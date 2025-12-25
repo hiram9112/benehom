@@ -29,7 +29,7 @@ El proyecto ha sido desarrollado de forma individual, con especial atención a l
 
 Este repositorio muestra **capturas reales de la interfaz** del proyecto, que permiten visualizar el funcionamiento general de la aplicación.
 
-*(Las imágenes se añadirán en la carpeta `/screens`)*
+*(Las imágenes se añadirán en la carpeta `/screenshots`)*
 
 ---
 

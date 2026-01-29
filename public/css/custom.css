@@ -1,0 +1,431 @@
+/*Importamos la fuente*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+
+
+
+/* Definimos varibles globales para los colores de la paleta que usaremos en nuestra web*/
+:root{
+    --bh-DarkTeal:#1A535C;
+    --bh-StrongCyan:#4ECDC4;
+    --bh-lightgray:#ffffff;
+    --bh-GrapefruitPink:#FF6B6B;
+    --bh-RoyalGold:#FFE66D;
+    --bh-MintCream:#F2F4F7;
+}
+
+body{
+    font-family: 'Inter',sans-serif;
+    
+}
+
+/*Clase para asegurar que los componentes utilizan toda la altura disponible de la pantalla*/
+.full-height{
+    min-height:100vh;
+}
+
+
+/* ------------------------------------Clase para datos totales importantes----------------------------*/
+.total-texto{
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 500;
+    margin-top: 14px;
+    border-radius: 6px;
+    display: inline-block;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.total-ingreso{
+    background-color: rgba(78,205,196,0.15);
+    color: #0F172A;
+}
+
+.total-ingreso strong{
+    color:#1A535C;
+}
+
+.total-gasto{
+    background-color: rgba(255,107,107,0.15);
+    color:#741E1E;
+}
+
+.total-gasto strong{
+    color: #B23A3A;
+}
+
+.total-ahorro{
+    background-color: rgba(46,125,50,0.15);
+    color: #0F3D18;
+}
+
+.total-ahorro strong{
+    color: #2E7D32;
+}
+/*-----------------------------------------------------Menuu lateral izquierdo------------------------------------------*/
+
+/*Fondo */
+.bg-side-menu{
+    background-color: var(--bh-DarkTeal);
+}
+
+/*Personlizamos los enlaces*/
+.bg-side-menu .nav-link{
+    
+    color: #FFFFFF;
+    transition: color 0.2s ease-in-out;
+}
+
+/*Hover personlizado para los enlaces */
+.bg-side-menu .nav-link:hover{  
+
+    color: var(--bh-RoyalGold);
+}
+
+/*Logo benehom*/
+.logo-container a {
+    text-decoration: none;
+}
+
+.logo-benehom{
+    max-width: 120px;
+    display: block;
+    margin-top: -40px;
+}
+
+/*Separador logo -menu*/
+.sidebar-separator{
+    border:none;
+    border-top: 1px solid white;
+    margin: -35px auto 20px auto;
+    width: 90%;
+}
+
+/*-------------------------------------------------------Panel central  -----------------------------------------------------*/
+
+
+.bg-main-content{
+    background-color:var(--bh-lightgray);
+    padding: 20px;
+}
+
+/*---------------------------Selector de mes-----------------------------------------------*/
+
+#selector_mes input[type='month']{
+    font-size: 15px;
+    padding: 6px 10px;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    background-color: white;
+    color: #333;
+    cursor:pointer;
+    outline: none;
+    transition: border-color 0.2s,box-shadow 0.2s ease ;
+}
+
+#selector_mes input[type='month']:hover{
+    border-color: #4ECDC4;
+    box-shadow: 0 0 0 2px rgb(78,205,196,0.45);
+}
+
+#selector_mes input[type='month']:focus{
+    border-color: #4ECDC4;
+    box-shadow: 0 0 0 2px rgb(78,205,196,0.45);
+}
+
+
+/*-----------------------------------Tarjetas-----------------------------------------------*/
+.card{
+    background-color: #F7F9FC;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.card-header{
+    background-color: white;
+    padding: 20px 24px;
+    border-bottom: 2px solid #4ECDC4;
+    border-radius: 8px 8px 0 0;
+}
+
+.card-header,.titulo{
+    margin: 0;
+    font-size: 26px;
+    font-style: 600;
+    color: #1A535C; 
+    letter-spacing: -0.5px;   
+}
+
+
+/*----------------------------------Formularios----------------------------------------------*/
+.formulario-bh{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap:10px;
+    background-color: #f8fafc;
+    padding: 12px 18px;
+    border-radius: 6px;
+    border:1px solid #E5E7EB;
+    margin-bottom: 12px;
+}
+
+.formulario-bh label{
+    font-weight: 600;
+    color: #333;
+    margin-right: 6px;
+}
+
+.formulario-bh select,.formulario-bh input[type="number"],
+.formulario-bh input[type="text"], .formulario-bh input[type="password"]{
+    padding: 6px 10px;
+    border: 1px solid #D1D5DB;
+    font-size: 14px;
+    min-width: 150px;
+    outline: none;
+    transition: border-color 0.2s ease;    
+}
+
+.formulario-bh select:focus,.formulario-bh input:focus{
+    border: 1px solid #4ECDC4 ;    
+    box-shadow: 0 0 0 2px rgb(78,205,196,0.45);
+}
+
+.formulario-bh select:hover,.formulario-bh input:hover{
+    border: 1px solid #4ECDC4 ;    
+}
+
+
+
+.formulario-bh button{
+    padding: 6px 14px;
+    background-color: #1A535C;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+}
+
+.formulario-bh button:hover{
+    background-color: #22717E;
+    box-shadow: 0 2px 8px rgba(26,83,92,0.45);
+}
+/*-----------------------------------------Listas---------------------------------------------------*/
+.lista-ingresos ul,.lista-gastos ul{
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lista-ingresos li,.lista-gastos li{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;    
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #E5E7EB;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+/*Eliminamos linea del ulitmo elemento*/
+.lista-gastos li:last-child,.lista-ingresos lis:last-child{
+    border-bottom: none;
+}
+
+.lista-ingresos li span,.lista-gastos li span{
+    font-size: 14px;
+    color: #333;
+}
+
+.lista-ingresos li:hover,.lista-gastos li:hover{
+    background-color: var(--bh-StrongCyan);   
+    border-radius: 3px;
+}
+
+/*Botones  eliminar*/
+.eliminar_ingreso,.eliminar_gasto{
+    background: transparent;
+    border: none;
+    padding: 0 4px;
+    margin-left: auto;
+    cursor: pointer;
+}
+
+/*Icono papelera*/
+.eliminar_ingreso i,.eliminar_gasto i{
+    color: #6C757D;
+    font-size: 15px;
+    display: inline-block;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.eliminar_ingreso:hover i,.eliminar_gasto:hover i{
+    color: #b30000;   
+    transform: scale(1.25)
+}
+/*-----------------------------------------------------Input Edición inline-----------------------------------------------------*/
+.input-edicion{
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+}
+.input-edicion:focus{
+    border: 1px solid var(--bh-StrongCyan);
+    box-shadow: 0 0 0 2px rgba(78,205,196,0.45);
+    outline: none;
+}
+
+/*-----------------------------------------------------Panel de graficos-----------------------------------------------------*/
+
+.contenedor-grafico{
+    position: relative;
+    height: 360px;    
+    width: 350px;
+    margin: 0 auto;
+    
+}
+
+#graficoPresupuestoMensual,#graficoVoluntarios6m,#graficoObligatorios6m,#graficoAhorros6m{
+    height: 100% !important;
+    display: block;
+}
+
+.ingreso-resumenMensual, .ahorro-resumenMensual{
+    font-size: 13px;
+    font-weight: 500;
+    margin: 1px 8px 1 0;
+    border-radius: 999px;
+    display: inline-block !important; 
+    vertical-align: middle;
+    padding:6px 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);    
+}
+
+.resumen-flex{
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+
+/*---------------------------------------------LOGIN-REGISTER----------------------------------------------------*/
+.login-body, .register-body{
+    /*Necesario para usar ::before y ::after*/
+    position: relative;
+    min-height: 100vh;    
+    /*Eliminamos el scroll*/
+    overflow: hidden;
+   
+}
+
+/*Capa difuminada detrás*/
+.login-body::before, .register-body::before{
+    content: "";
+    position: absolute;
+    inset: 0;
+    
+    /*Usamos la misma imagen */
+    background-image: url('../img/fondo-login.png');
+    /*cubrimos todo*/
+    background-size: cover;
+    background-position: center;
+    /*difuminamos y oscurecemos un poco*/
+    filter: blur(30px) brightness(0.9);
+    /*Evitamos ver brodes por el blur*/
+    transform: scale(1.2);
+    /*Colocamos debajo del contenido*/
+    z-index: 0;
+}
+
+.login-body::after, .register-body::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url('../img/fondo-login.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+
+/*contenido arriba*/
+.login-body >*, .register-body>*{
+    position: relative;
+    z-index: 2;
+}
+
+#btn-register, #btn-login{
+    padding: 6px 14px;
+    background-color: #1A535C;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+#btn-register:hover, #btn-login:hover{
+    background-color: #22717E;
+    box-shadow: 0 2px 8px rgba(26,83,92,0.45);
+}
+
+/*-----------------------------------------------------Secciones en desarrollo-----------------------------------------------------*/
+.main-proximamente{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh;
+}
+.contenedor-proximamente{
+    height: 10vh;
+    max-width: fit-content;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: var(--bh-lightgray);
+    border:1px solid var(--bh-StrongCyan);
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    padding: 30px 40px;
+}
+
+#proximamente-titulo{
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--bh-DarkTeal);
+    margin-bottom: 10px;
+}
+
+#proximamente-texto{
+    font-size: 18px;
+    color:var(--bh-GrapefruitPink);
+}
+
+/*-----------------------Valores positivos y negativos dinámicos*---------------------------------*/
+
+.valor-positivo{
+    background-color: rgba(78,205,196,0.15); 
+    color:#0F172A !important;   
+    
+}
+
+.valor-negativo{
+    background-color: rgba(255,107,107,0.15);   
+    color:#741E1E !important;     
+}
+
+.valor-positivo strong{    
+    color:#0F172A !important;    
+}
+
+.valor-negativo strong{    
+    color:#741E1E !important;    
+}

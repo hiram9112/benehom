@@ -2,8 +2,17 @@
 //Activamos el modo estricto de tipos para que php no intente convertir datos de manera automática y evitar resultados inesperados, ademas iniciamos sesion.
 declare(strict_types=1);
 
-//Configuramos cookie para que se cierre la sesión cuando se cierre el navegador 
-ini_set('session.cookie_lifetime',0);
+//Configuramos cookie 
+$secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+
+session_set_cookie_params([
+    'lifetime' => 0,          // Sesión hasta cerrar navegador
+    'path' => '/',
+    'domain' => '',
+    'secure' => $secure,      // true solo si hay HTTPS
+    'httponly' => true,       // JS no puede acceder
+    'samesite' => 'Lax',      // Protección básica CSRF
+]);
 
 //Iniciamos sesión PHP
 session_start();

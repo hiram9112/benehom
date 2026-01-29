@@ -31,6 +31,9 @@ class AuthController {
                 //Verificamos si el usuario existe y la contraseña coincide
                 if($user && password_verify($password,$user['password'])){
 
+                    // Regeneramos el ID de sesión para evitar session fixation
+                    session_regenerate_id(true);
+
                     //Guardamos el nombre del usuario y su id en la sesión
                     $_SESSION['usuario']=$user['usuario'];
                     $_SESSION['usuario_id']=$user['id'];
@@ -56,16 +59,30 @@ class AuthController {
        }
     }  
 
-    public function logout(){
-        
-        //Eliminamos las variables de la sesión
-        session_unset();
+    public function logout() {
+        // Vaciar variables de sesión
+        $_SESSION = [];
 
-        //Destruimos la sesión
+        // Si existe una cookie de sesión, la eliminamos
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
+        }
+
+        // Destruir la sesión
         session_destroy();
 
-        //Redirigimos al inicio de sesión
-        header("Location: ".BASE_URL."index.php?r=auth/login");
+        // Redirigir al login
+        header("Location: " . BASE_URL . "index.php?r=auth/login");
         exit;
     }
+
 }

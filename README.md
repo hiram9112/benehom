@@ -1,61 +1,62 @@
 # BeneHom – Gestor de Economía Familiar
 
-BeneHom es una **aplicación web** desarrollada como proyecto personal y académico, orientada a la **gestión de la economía familiar**, permitiendo registrar ingresos, gastos y visualizar la evolución financiera de forma clara.
+BeneHom es una **aplicación web** para la gestión de la economía familiar, desarrollada como proyecto personal y académico dentro del ciclo de **Desarrollo de Aplicaciones Web (DAW)**.
+
+Su objetivo principal no es solo registrar ingresos y gastos, sino **ayudar al usuario a comprender su comportamiento financiero** y a tomar decisiones más conscientes a partir de datos claros y visuales.
 
 ---
 
-## 🧩 Descripción del proyecto
+## 🎯 Enfoque del proyecto
 
-El objetivo de BeneHom es ofrecer una herramienta sencilla para el control financiero doméstico, facilitando la toma de decisiones a partir de datos organizados y visualizados mediante gráficos.
+A diferencia de otras herramientas más complejas, BeneHom adopta un enfoque **educativo y minimalista**:
 
-El proyecto ha sido desarrollado de forma individual, con especial atención a la **estructura del código**, la **claridad de la lógica de negocio** y la **separación de responsabilidades**.
+- Clasificación simple de gastos:
+  - **Gastos obligatorios**
+  - **Gastos voluntarios**
+- Visualización clara de:
+  - Ingresos
+  - Capacidad teórica de ahorro
+  - Ahorro real
+- Gráficos diseñados para **interpretar**, no solo mostrar datos
+
+La aplicación busca que el usuario entienda **qué podría ahorrar** frente a **lo que realmente ahorra**, fomentando la reflexión sobre hábitos de consumo.
 
 ---
 
 ## 🛠️ Tecnologías utilizadas
 
-- PHP  
+- PHP 8.x  
 - MySQL  
-- HTML5  
-- CSS3  
-- JavaScript  
+- HTML5 / CSS3  
+- JavaScript (AJAX / Fetch API)  
 - Chart.js  
-- Bootstrap  
-- Patrón MVC (implementación manual)
+- Bootstrap 5  
+- Arquitectura MVC (implementación manual)
 
 ---
 
-## 🖥️ Interfaz de usuario
+## 🖥️ Estado actual
 
-Este repositorio muestra **capturas reales de la interfaz** del proyecto, que permiten visualizar el funcionamiento general de la aplicación.
-
-*(Las imágenes se añadirán en la carpeta `/screens`)*
-
----
-
-## 📌 Estado del proyecto
-
-- Aplicación funcional completada
-- Proyecto en evolución
-- Código fuente y documentación completa **no públicos temporalmente**
-
----
-
-## 🔒 Sobre la disponibilidad del código
-
-El código fuente y la documentación técnica completa no están disponibles en este momento debido a que el proyecto se encuentra en **proceso de evaluación académica**.
-
-Una vez finalizada esta fase, el repositorio se actualizará progresivamente con el código y la documentación correspondiente.
+- ✔ Aplicación funcional en entorno local  
+- ✔ Backend, frontend y base de datos completos  
+- ✔ Gráficos dinámicos y resumen mensual operativo  
+- 🚧 Despliegue público pendiente  
+- 🚧 Algunas secciones previstas (Metas, Blog) aún en desarrollo
 
 ---
 
 ## 📈 Evolución futura
 
-Este repositorio actuará como base del proyecto, que continuará desarrollándose y ampliándose con mejoras técnicas, nuevas funcionalidades y documentación adicional.
+El proyecto está diseñado para poder ampliarse con:
+- Metas de ahorro
+- Recomendaciones financieras
+- Contenido educativo
+- Mejoras de seguridad y despliegue
 
 ---
 
 ## 👤 Autor
 
-Hiram (GitHub: @hiram9112)
-Proyecto desarrollado en el marco de la formación en **Desarrollo de Aplicaciones Web (DAW)**.
+**Hiram González González**  
+Proyecto desarrollado de forma individual dentro del CFGS de **Desarrollo de Aplicaciones Web (DAW)**.
+

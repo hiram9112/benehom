@@ -33,6 +33,12 @@ class CuentaController{
         $actual=$_POST['password_actual']?? '';
         $nueva=$_POST['password_nueva']?? '';
         
+        //Comprobamos que ambos campos estén rellenos
+        if ($actual === '' || $nueva === '') {
+            $_SESSION['mensaje_error'] = "Todos los campos son obligatorios.";
+            header("Location: index.php?r=cuenta/index");
+            exit;
+        }        
 
         //Obtenemos hash de  la contraseña actual
         $hashBD=Usuario::obtenerHashPassword($id);
@@ -43,14 +49,32 @@ class CuentaController{
             exit;
         }
 
+        // Evitar reutilizar la misma contraseña
+        if (password_verify($nueva, $hashBD)) {
+            $_SESSION['mensaje_error'] = "La nueva contraseña no puede ser igual a la actual.";
+            header("Location: index.php?r=cuenta/index");
+            exit;
+        }
+
+        // Validación de contraseña fuerte
+        if (
+            strlen($nueva) < 8 ||
+            !preg_match('/[a-z]/', $nueva) ||
+            !preg_match('/[A-Z]/', $nueva) ||
+            !preg_match('/[0-9]/', $nueva)
+        ) {
+            $_SESSION['mensaje_error'] =
+            "La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.";
+            header("Location: index.php?r=cuenta/index");
+            exit;
+        }
+
         $nuevoHash=password_hash($nueva,PASSWORD_BCRYPT);
         $resultado=Usuario::actualizarPassword($id,$nuevoHash);
 
-        //No aseguramos que se actulizó corrtamente
+        //Mensaje de éxito
         if($resultado){
             $_SESSION['mensaje_exitoso']="Contraseña actualizada correctamente.";
-        }else{
-            $_SESSION['mensaje_error']="Error al actualizar la contraseña. Inténtelo de nuevo";
         }
 
         header("Location: index.php?r=cuenta/index");

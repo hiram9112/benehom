@@ -4,27 +4,35 @@ class AuthController {
 
     public function login(){
        //No aseguramos que el formulario haya sido enviado mediante POST
-       if($_SERVER['REQUEST_METHOD']==='POST'){
-           //Limpiamos y almacenamos los datos recibidos
-           $email=trim($_POST['email']??'');
-           $password=trim($_POST['password']??'');
+        if($_SERVER['REQUEST_METHOD']==='POST'){
+             
+        
+            // Limpiamos errores anteriores
+            unset($_SESSION['mensaje_error']);
+
+            //Limpiamos y almacenamos los datos recibidos
+            $email=trim($_POST['email']??'');
+            $password=trim($_POST['password']??'');
            
-           //Array para almacenar posibles errores
-           $errores=[];
+            //Array para almacenar posibles errores
+            $errores=[];
 
-           //Validamos campos obligatorios
-           if($email===''){
-               $errores[]="El email es obligatorio"; 
+            //Validamos campos obligatorios
+            if ($email === '') {
+               $errores[] = "El email es obligatorio";
+            }elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+               $errores[] = "El email no tiene un formato válido";
+            }
 
-           }
-           if($password===''){
-               $errores[]="La contraseña es obligatoria"; 
 
-           }
            
-           //Si no hay errores, intentamos autenticar
-           if(empty($errores)){
-
+            if($password===''){
+                $errores[]="La contraseña es obligatoria"; 
+            }           
+           
+            //Si no hay errores, intentamos autenticar
+            if(empty($errores)){
+                
                 //Obtenemos el usuario de la base de datos
                 $user=Usuario::obtenerUsuario($email);
 
@@ -47,16 +55,18 @@ class AuthController {
                     //Si el usuario no existe o la contraseña no coincide
                     $errores[]="Usuario o contraseña incorrectos";
                 }
-           }
+            }
             // Si apareció algún error volvemos a cargar la vista
             $_SESSION['mensaje_error']=$errores[0];
-            require APP_PATH.'/views/auth/login.php';   
-
-       }
-       //Si no es una petición POST (el usuario entra por primera vez ) redirigimos
-       else{
-           require APP_PATH.'/views/auth/login.php'; 
-       }
+            header("Location: " . BASE_URL . "index.php?r=auth/login");
+            exit;  
+        }
+        //Si no es una petición POST (el usuario entra por primera vez ) redirigimos
+        else{
+            // Al entrar por GET limpiamos posibles errores antiguos
+            unset($_SESSION['mensaje_error']);
+            require APP_PATH.'/views/auth/login.php'; 
+        }
     }  
 
     public function logout() {

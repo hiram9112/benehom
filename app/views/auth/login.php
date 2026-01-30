@@ -6,6 +6,7 @@
 
      <!--Bootstrap CSS-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
     <!--Conectamos con archivo CSS propio-->
     <link rel="stylesheet" href="<?=BASE_URL?>css/custom.css">
@@ -45,10 +46,17 @@
                     <input type="email" name="email" id="email" class="form-control"required>
                 </div>
 
-                <div class="mb-3"> 
-                    <label for="password" class="form-label">Contraseña:</label>
-                    <input type="password" name="password" id="password" class="form-control" required>
+                <div class="mb-3">
+                   <label for="password" class="form-label">Contraseña:</label>
+                   <div class="input-group">
+                       <input type="password" name="password" id="password" class="form-control" required>
+                       <button class="btn btn-outline-secondary" type="button"
+                           onclick="togglePassword('password', this)">
+                               <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
                 </div>
+
 
                 <button type="submit" id="btn-login" class="btn w-100">Iniciar sesión</button>
             </form>
@@ -59,6 +67,23 @@
                 ¿Olvidaste la contraseña?</a></p>
         </div>
     </div>
+
+    <script>
+    function togglePassword(inputId, button) {
+        const input = document.getElementById(inputId);
+        const icon = button.querySelector('i');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+    </script>
 </body>
 </html>
 

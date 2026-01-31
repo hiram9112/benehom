@@ -18,9 +18,16 @@ session_set_cookie_params([
 session_start();
 
 //Mostraremos los errores mientras desarrollamos.
-//TODO
-ini_set('display_errors','1');
-error_reporting(E_ALL);
+$appEnv = $_ENV['APP_ENV'] ?? 'local';
+
+if ($appEnv === 'production') {
+    ini_set('display_errors', '0');
+    error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+} else {
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
+}
+
 
 // Creamos varias constantes para almacenar las rutas mas importantes del proyecto y facilitar el trabajo con ellas.
 
@@ -56,6 +63,21 @@ require_once APP_PATH."/helpers/utils.php";
 //Guardamos la ruta a la que quiere acceder el usuario
 $route=isset($_GET['r'])? trim($_GET['r'],"/"):'auth/login';
 
+// Rutas públicas (únicas sin sesión)
+$rutasPublicas = [
+    'auth/login',
+    'registro/registrarUsuario'
+];
+
+$usuarioLogueado = isset($_SESSION['usuario_id']);
+
+// Si NO está logueado y la ruta NO es pública → login
+if (!$usuarioLogueado && !in_array($route, $rutasPublicas, true)) {
+    header("Location: " . BASE_URL . "index.php?r=auth/login");
+    exit;
+}
+
+
 //Almacenamos el controlador asociado a la ruta y el metodo que usaremos
 list($controllerName,$actionName)=explode('/',$route);
 
@@ -63,26 +85,47 @@ list($controllerName,$actionName)=explode('/',$route);
 $controllerClass=ucfirst($controllerName).'Controller';
 $controllerFile=APP_PATH.'/controllers/'.$controllerClass.'.php';
 
-//Envíamos la solicituda para abrir el controlador solicitado y buscar el método necesario
 
-if(file_exists($controllerFile)){
-    require_once $controllerFile;
-    if(class_exists($controllerClass)){
-        $controller=new $controllerClass();
-        if(method_exists($controller,$actionName)){
-            $controller->$actionName();
-        }
-        else{
-            echo ("Error: método'{$actionName}' no encontrado.");
-        }
-    }
-    else{
-    echo ("Error: clase'{$controllerClass}' no encontrada.");
+
+// Enviamos la solicitud para abrir el controlador solicitado y ejecutar el método
+
+if (!file_exists($controllerFile)) {
+    if ($appEnv === 'production') {
+        header("Location: " . BASE_URL . "index.php?r=auth/login");
+        exit;
+    } else {
+        echo "Error: controlador '{$controllerClass}' no existe";
+        exit;
     }
 }
-else{
-echo ("Error: controlador'{$controllerClass}' no existe");
+
+require_once $controllerFile;
+
+if (!class_exists($controllerClass)) {
+    if ($appEnv === 'production') {
+        header("Location: " . BASE_URL . "index.php?r=auth/login");
+        exit;
+    } else {
+        echo "Error: clase '{$controllerClass}' no encontrada";
+        exit;
+    }
 }
+
+$controller = new $controllerClass();
+
+if (!method_exists($controller, $actionName)) {
+    if ($appEnv === 'production') {
+        header("Location: " . BASE_URL . "index.php?r=auth/login");
+        exit;
+    } else {
+        echo "Error: método '{$actionName}' no encontrado";
+        exit;
+    }
+}
+
+// Todo OK → ejecutamos acción
+$controller->$actionName();
+
     
 
 

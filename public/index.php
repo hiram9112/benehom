@@ -1,8 +1,10 @@
-<?php 
-//Activamos el modo estricto de tipos para que php no intente convertir datos de manera automática y evitar resultados inesperados, ademas iniciamos sesion.
+<?php
+
+
+// Activamos el modo estricto de tipos
 declare(strict_types=1);
 
-//Configuramos cookie 
+// Configuración de cookies de sesión
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 
 session_set_cookie_params([
@@ -14,10 +16,14 @@ session_set_cookie_params([
     'samesite' => 'Lax',      // Protección básica CSRF
 ]);
 
-//Iniciamos sesión PHP
+// Iniciamos sesión PHP
 session_start();
 
-//Mostraremos los errores mientras desarrollamos.
+
+//************************************************ ENTORNO Y ERRORES*******************
+ 
+
+// Mostraremos los errores según entorno
 $appEnv = $_ENV['APP_ENV'] ?? 'local';
 
 if ($appEnv === 'production') {
@@ -29,11 +35,12 @@ if ($appEnv === 'production') {
 }
 
 
-// Creamos varias constantes para almacenar las rutas mas importantes del proyecto y facilitar el trabajo con ellas.
+//*************************************************CONSTANTES Y RUTAS BASE
+ 
 
-define('BASE_PATH',dirname(__DIR__));
-define('APP_PATH', BASE_PATH.'/app');
-define('CONFIG_PATH',BASE_PATH.'/config');
+define('BASE_PATH', dirname(__DIR__));
+define('APP_PATH', BASE_PATH . '/app');
+define('CONFIG_PATH', BASE_PATH . '/config');
 
 // Detectamos dinámicamente la ruta base del proyecto
 $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
@@ -41,7 +48,9 @@ $baseUrl = rtrim(dirname($scriptName), '/') . '/';
 
 define('BASE_URL', $baseUrl);
 
-// Cargar variables de entorno desde .env
+
+//*************************************************VARIABLES DE ENTORNO (.env)
+
 $envPath = BASE_PATH . '/.env';
 
 if (file_exists($envPath)) {
@@ -56,12 +65,28 @@ if (file_exists($envPath)) {
 }
 
 
+//*************************************************HELPERS GLOBALES
 
-//Cargamos la función auxiliar para formatear categorias
-require_once APP_PATH."/helpers/utils.php";
 
-//Guardamos la ruta a la que quiere acceder el usuario
-$route=isset($_GET['r'])? trim($_GET['r'],"/"):'auth/login';
+require_once APP_PATH . "/helpers/utils.php";
+
+
+//*************************************************SEGURIDAD GLOBAL (CSRF)
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_validate()) {
+        http_response_code(403);
+        exit('403 Forbidden - CSRF inválido');
+    }
+}
+
+
+//*************************************************ROUTING
+ 
+
+// Ruta solicitada
+$route = isset($_GET['r']) ? trim($_GET['r'], "/") : 'auth/login';
 
 // Rutas públicas (únicas sin sesión)
 $rutasPublicas = [
@@ -78,17 +103,15 @@ if (!$usuarioLogueado && !in_array($route, $rutasPublicas, true)) {
 }
 
 
-//Almacenamos el controlador asociado a la ruta y el metodo que usaremos
-list($controllerName,$actionName)=explode('/',$route);
+//*************************************************DESPACHO A CONTROLADOR
+ 
+// Controlador y acción
+list($controllerName, $actionName) = explode('/', $route);
 
-//Hacemos la modificación necesaria para almacenar el nombre del archivo controlador y la ruta hacia él.
-$controllerClass=ucfirst($controllerName).'Controller';
-$controllerFile=APP_PATH.'/controllers/'.$controllerClass.'.php';
+$controllerClass = ucfirst($controllerName) . 'Controller';
+$controllerFile  = APP_PATH . '/controllers/' . $controllerClass . '.php';
 
-
-
-// Enviamos la solicitud para abrir el controlador solicitado y ejecutar el método
-
+// Comprobamos existencia del controlador
 if (!file_exists($controllerFile)) {
     if ($appEnv === 'production') {
         header("Location: " . BASE_URL . "index.php?r=auth/login");
@@ -101,6 +124,7 @@ if (!file_exists($controllerFile)) {
 
 require_once $controllerFile;
 
+// Comprobamos existencia de la clase
 if (!class_exists($controllerClass)) {
     if ($appEnv === 'production') {
         header("Location: " . BASE_URL . "index.php?r=auth/login");
@@ -113,6 +137,7 @@ if (!class_exists($controllerClass)) {
 
 $controller = new $controllerClass();
 
+// Comprobamos existencia del método
 if (!method_exists($controller, $actionName)) {
     if ($appEnv === 'production') {
         header("Location: " . BASE_URL . "index.php?r=auth/login");
@@ -126,7 +151,6 @@ if (!method_exists($controller, $actionName)) {
 // Todo OK → ejecutamos acción
 $controller->$actionName();
 
-    
 
 
 

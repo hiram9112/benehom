@@ -189,6 +189,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 //Creamos un FORMDATA para enviar el id
                 const datos = new FormData();
                 datos.append("id", id);
+                datos.append("_csrf", window.CSRF_TOKEN);
+
 
                 //Enviamos petición al servidor
                 const respuesta = await fetch("index.php?r=ingreso/eliminarAjax", {
@@ -249,6 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 //Creamos un FORMDATA para enviar el id
                 const datos = new FormData();
                 datos.append("id", id);
+                datos.append("_csrf", window.CSRF_TOKEN);
 
                 //Enviamos petición al servidor
                 const respuesta = await fetch("index.php?r=gasto/eliminarGastoAjax", {
@@ -312,6 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
         //Preparamos la consulta
         const datos = new FormData();
         datos.append("mes", mesSeleccionado);
+        datos.append("_csrf", window.CSRF_TOKEN);
 
         try {
 
@@ -501,6 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const datos = new FormData();
         datos.append("mes", mesSeleccionado);
         datos.append("tipo", "voluntario");
+        datos.append("_csrf", window.CSRF_TOKEN);
 
         try {
 
@@ -619,6 +624,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const datos = new FormData();
         datos.append("mes", mesSeleccionado);
         datos.append("tipo", "obligatorio");
+        datos.append("_csrf", window.CSRF_TOKEN);
 
         try {
 
@@ -734,6 +740,7 @@ document.addEventListener("DOMContentLoaded", () => {
         //Preparamos la consulta
         const datos = new FormData();
         datos.append("mes", mesSeleccionado);
+        datos.append("_csrf", window.CSRF_TOKEN);
 
         try {
 
@@ -1004,6 +1011,7 @@ async function editarIngresoInline(span) {
         const datos = new FormData();
         datos.append("id", id);
         datos.append("cantidad", nuevoValor);
+        datos.append("_csrf", window.CSRF_TOKEN);
 
         const respuesta = await fetch("index.php?r=ingreso/editarAjax", {
             method: "POST",
@@ -1204,6 +1212,7 @@ async function editarGastoInline(span) {
         const datos = new FormData();
         datos.append("id", id);
         datos.append("cantidad", nuevoValor);
+        datos.append("_csrf", window.CSRF_TOKEN);
 
         const respuesta = await fetch("index.php?r=gasto/editarGastoAjax", {
             method: "POST",

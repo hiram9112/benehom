@@ -105,6 +105,8 @@
                         </div>
                         <div class="card-body">
                             <form id="formIngresos" class="formulario-bh">
+                                <?= csrf_field() ?>
+
                                 <label for="categoria_ingreso">Categoría:</label>
                                 <select name="categoria_ingreso" id="categoria_ingreso" required>
                                     <option value="" selected disabled>Selecciona un tipo de ingreso</option>
@@ -159,6 +161,8 @@
                         </div>
                         <div class="card-body">
                             <form id="formGastosObligatorios" class="formulario-bh">
+                                <?= csrf_field() ?>
+
                                 <label for="gastos_obligatorio">Tipo de gasto: </label>
                                 <select name="categoria_gasto_obligatorio" id="categoria_gasto_obligatorio" required>
                                     <option value="" selected disabled>Selecciona un tipo de gastos</option>
@@ -230,6 +234,8 @@
                         </div>
                         <div class="card-body">
                             <form id="formGastosVoluntarios" class="formulario-bh">
+                                <?= csrf_field() ?>
+
                                 <label for="gastos_voluntarios">Tipo de gasto:</label>
                                 <select name="categoria_gasto_voluntario" id="categoria_gasto_voluntario" required>
                                     <option value="" selected disabled>Selecciona un tipo de gastos</option>

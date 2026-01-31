@@ -41,6 +41,8 @@
     
             <!--Enviamos el formulario a la misma ruta donde nos encontramos , será una petición de tipo POST lo procesará diferente-->
             <form method="post" action="">
+                <?= csrf_field() ?>
+
                 <div class="mb-3">
                     <label for="email" class="form-label">Email:</label>
                     <input type="email" name="email" id="email" class="form-control"required>

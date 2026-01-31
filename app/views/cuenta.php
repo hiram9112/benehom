@@ -89,6 +89,8 @@
                     <div class="card-body">
 
                         <form method="POST" action="index.php?r=cuenta/cambiarPassword" class="formulario-bh">
+                            <?= csrf_field() ?>
+
 
                             <label for="password_actual">Contraseña actual: </label>
                             <input type="password" id="password_actual" name="password_actual" required>
@@ -113,6 +115,8 @@
                         <p class="text-danger fw-bold"> Esta acción es irreversible, se eliminarán todos los datos de la cuenta</p>
 
                         <form method="POST" action="index.php?r=cuenta/eliminarCuenta" class="formulario-bh">
+                            <?= csrf_field() ?>
+
 
                             <label for="password_confirmacion">Introduce tu contraseña para confirmar: </label>
                             <input type="password" id="password_confirmacion" name="password_confirmacion" required>

@@ -29,6 +29,8 @@
 
             <!--Formulario para recoger datos de registro de nuevo usuario-->
             <form method="post" action="?r=registro/registrarUsuario">
+                <?= csrf_field() ?>
+
 
                 <div class="mb-3">
                     <label for="usuario" class="form-label">Usuario:</label>

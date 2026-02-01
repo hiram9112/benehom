@@ -64,9 +64,10 @@
             </form>
 
             <p class="text-center mt-3 mb-0">¿No tienes cuenta? <a href="?r=registro/registrarUsuario"> Registrate aquí</a></p><br>
-            <p class="text-center mt-3 mb-0"> <a href="#" 
-                onclick="alert('Esta funcionalidad está en desarrollo, si necesita recuperar el acceso contacte con el administrador: hiram9112@gmail.com')">
-                ¿Olvidaste la contraseña?</a></p>
+            <p class="text-center mt-3 mb-0">
+                <a href="?r=password/mostrarFormularioOlvido">¿Olvidaste la contraseña?</a>
+            </p>
+
         </div>
     </div>
 

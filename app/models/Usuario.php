@@ -137,7 +137,67 @@ class Usuario{
         }
 
     }
+
+
+    // Guarda el token de recuperación de contraseña
+    public static function guardarTokenReset($idUsuario, $tokenHash, $fechaExpiracion){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "UPDATE usuarios SET reset_token_hash = :token_hash, reset_token_expires_at = :expires_at
+              WHERE id = :id";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':token_hash', $tokenHash, PDO::PARAM_STR);
+            $stmt->bindParam(':expires_at', $fechaExpiracion);
+            $stmt->bindParam(':id', $idUsuario, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        }
+        catch(PDOException $e){
+            return false;
+        }
+    }
+
+    // Obtiene un usuario a partir de un token de recuperación válido
+    public static function obtenerUsuarioPorTokenReset($tokenHash){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "SELECT * FROM usuarios WHERE reset_token_hash = :token_hash
+                AND reset_token_expires_at > NOW()";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':token_hash', $tokenHash, PDO::PARAM_STR);
+            $stmt->execute();
+
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $resultado ? $resultado : false;
+        }
+        catch(PDOException $e){
+            return false;
+        }
+    }
     
+    // Limpia el token de recuperación tras usarlo
+    public static function limpiarTokenReset($idUsuario){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "UPDATE usuarios SET reset_token_hash = NULL, reset_token_expires_at = NULL
+                WHERE id = :id";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':id', $idUsuario, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        }
+        catch(PDOException $e){
+            return false;
+        }
+    }
+
 }
 
 

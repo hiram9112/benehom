@@ -361,7 +361,9 @@ body{
     z-index: 2;
 }
 
-#btn-register, #btn-login{
+button#btn-register, 
+button#btn-login, 
+button#btn-forgot{
     padding: 6px 14px;
     background-color: #1A535C;
     color: white;
@@ -371,7 +373,9 @@ body{
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
-#btn-register:hover, #btn-login:hover{
+button#btn-register:hover, 
+button#btn-login:hover, 
+button#btn-forgot:hover{
     background-color: #22717E;
     box-shadow: 0 2px 8px rgba(26,83,92,0.45);
 }

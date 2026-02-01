@@ -76,10 +76,20 @@ require_once APP_PATH . "/helpers/utils.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate()) {
-        http_response_code(403);
-        exit('403 Forbidden - CSRF inválido');
+
+        if ($_ENV['APP_ENV'] === 'production') {
+            session_unset();
+            session_destroy();
+            header("Location: " . BASE_URL . "index.php?r=auth/login");
+            exit;
+        } else {
+            http_response_code(403);
+            exit('403 Forbidden - CSRF inválido');
+        }
     }
 }
+
+
 
 
 //*************************************************ROUTING
@@ -91,7 +101,9 @@ $route = isset($_GET['r']) ? trim($_GET['r'], "/") : 'auth/login';
 // Rutas públicas (únicas sin sesión)
 $rutasPublicas = [
     'auth/login',
-    'registro/registrarUsuario'
+    'registro/registrarUsuario',
+    'password/mostrarFormularioOlvido',
+    'password/procesarFormularioOlvido'
 ];
 
 $usuarioLogueado = isset($_SESSION['usuario_id']);

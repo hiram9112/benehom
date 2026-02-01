@@ -22,6 +22,9 @@ session_start();
 
 //************************************************ ENTORNO Y ERRORES*******************
  
+date_default_timezone_set('Europe/Madrid');
+
+
 
 // Mostraremos los errores según entorno
 $appEnv = $_ENV['APP_ENV'] ?? 'local';

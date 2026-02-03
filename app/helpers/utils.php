@@ -57,3 +57,29 @@ function csrf_validate(): bool
     // hash_equals → comparación segura (evita ataques de timing)
     return hash_equals($sessionToken, $postToken);
 }
+
+/**
+ * Envía email de recuperación de contraseña
+ * Local: log
+ * Producción: mail()
+ */
+function enviarEmailReset(string $email, string $resetLink): void
+{
+    $appEnv = $_ENV['APP_ENV'] ?? 'local';
+
+    $subject = 'Recuperación de contraseña - BeneHom';
+    $message =
+        "Hola,\n\n" .
+        "Has solicitado restablecer tu contraseña.\n\n" .
+        "Enlace (válido 30 minutos):\n" .
+        $resetLink . "\n\n" .
+        "Si no lo solicitaste, ignora este mensaje.\n\n" .
+        "— Equipo de BeneHom";
+
+    if ($appEnv === 'production') {
+        @mail($email, $subject, $message);
+    } else {
+        error_log('[DEV][RESET LINK] ' . $resetLink);
+    }
+}
+

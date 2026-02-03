@@ -106,15 +106,21 @@ $rutasPublicas = [
     'auth/login',
     'registro/registrarUsuario',
     'password/mostrarFormularioOlvido',
-    'password/procesarFormularioOlvido'
+    'password/procesarFormularioOlvido',
+    'password/reset',
+    'password/procesarReset'
 ];
 
 $usuarioLogueado = isset($_SESSION['usuario_id']);
+
+
+
 
 // Si NO está logueado y la ruta NO es pública → login
 if (!$usuarioLogueado && !in_array($route, $rutasPublicas, true)) {
     header("Location: " . BASE_URL . "index.php?r=auth/login");
     exit;
+
 }
 
 

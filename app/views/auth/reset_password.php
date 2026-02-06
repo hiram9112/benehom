@@ -46,13 +46,25 @@
 
                 <div class="mb-3">
                     <label class="form-label">Nueva contraseña</label>
-                    <input type="password" name="password" class="form-control" required>
+                    <div class="input-group">
+                        <input type="password" id="password" name="password" class="form-control" required>
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="togglePassword('password', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Confirmar contraseña</label>
-                    <input type="password" name="password_confirm" class="form-control" required>
+                    <div class="input-group">
+                        <input type="password" id="password_confirm"name="password_confirm" class="form-control" required>
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="togglePassword('password_confirm', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
                     </div>
+                </div>
 
                 <button type="submit" class="btn w-100" id="btn-forgot">Cambiar contraseña</button>
             </form>

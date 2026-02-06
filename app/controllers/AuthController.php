@@ -63,8 +63,7 @@ class AuthController {
         }
         //Si no es una petición POST (el usuario entra por primera vez ) redirigimos
         else{
-            // Al entrar por GET limpiamos posibles errores antiguos
-            unset($_SESSION['mensaje_error']);
+            
             require APP_PATH.'/views/auth/login.php'; 
         }
     }  

@@ -433,3 +433,26 @@ button#btn-forgot:hover{
 .valor-negativo strong{    
     color:#741E1E !important;    
 }
+
+
+/*-----------------------Botones información---------------------------------*/
+
+
+.info-btn{
+    color: #016bfe; 
+    text-decoration: none;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.info-btn i{
+    font-size: 19px;
+    opacity: 0.75;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+
+.info-btn:hover{
+    
+    transform: scale(1.25);
+}
+

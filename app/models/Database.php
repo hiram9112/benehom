@@ -23,13 +23,10 @@ class Database{
                 self::$connection->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 
             }catch(PDOException $e){
-                //Si hay un error detenemos la ejecución mostrando el  mensaje correspondiente
-                die("Error de conexión: ".$e->getMessage());
+                //Devolvemos el error
+                throw $e;
 
             }
-
-
-
 
         }
 

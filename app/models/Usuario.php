@@ -35,17 +35,13 @@ class Usuario{
                  //Si el error es porque ya existe el ususario devolvemos false
                  return false;
             }
-            else{
-                //Si hay un error detenemos la ejecución mostrando el mensaje correspondiente.
-                die("Error al registrarse el usuario: ".$e->getMessage());
-            }
-           
-
             
+            throw $e;
 
         }
 
     }
+
 
     //Método par obtener los datos de un usuario
     public static function obtenerUsuario($email){
@@ -74,8 +70,7 @@ class Usuario{
             return $resultado;
         }
         catch(PDOException $e){
-            die("Error al obtener el usuario: ".$e->getMessage());
-
+            throw $e;
         }
 
     }

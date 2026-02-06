@@ -31,9 +31,7 @@ class Gasto{
             return $stmt->fetchAll(PDO::FETCH_ASSOC);    
 
         } catch(PDOException $e){
-            //SI ocurre un error alamcenamos mensaje en sesión y devolvemos un array vacío
-            $_SESSION['mensaje_error']='Error al obtener gastos: '.$e->getMessage();
-            return[];
+            throw $e;
         }
     }
 
@@ -144,7 +142,7 @@ class Gasto{
             return $resultado["total"]??0;        
 
         }catch(Exception $e){
-            error_log("Error en totalPorMes():".$e->getMessage());
+            
             return false;
         }
 

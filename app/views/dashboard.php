@@ -20,7 +20,7 @@
 <body >
     <!--Mensajes para cuando somos redirigidos después de agregar ingresos o gastos -->
     <?php 
-        //Registro exitoso
+        //Mensaje de éxito
         if(isset($_SESSION['mensaje_exitoso'])){
             echo"<p class='alert alert-success text-center'>";
             echo $_SESSION['mensaje_exitoso'];
@@ -30,7 +30,7 @@
             unset($_SESSION['mensaje_exitoso']);
 
         }  
-        //Error registrando ya existe el usuario inicie sesión o el usaurio o la contrasñea son incorrectos, damos dos usos a esta varible.
+        //Mensjae de error
         if(isset($_SESSION['mensaje_error'])){
             echo"<p class='alert alert-danger text-center'>";
             echo $_SESSION['mensaje_error'];

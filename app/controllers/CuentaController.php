@@ -3,6 +3,7 @@
 require_once APP_PATH."/models/Usuario.php";
 require_once APP_PATH."/models/Gasto.php";
 require_once APP_PATH."/models/Ingreso.php";
+require_once __DIR__ . '/Database.php';
 
 class CuentaController{    
     
@@ -72,9 +73,11 @@ class CuentaController{
         $nuevoHash=password_hash($nueva,PASSWORD_BCRYPT);
         $resultado=Usuario::actualizarPassword($id,$nuevoHash);
 
-        //Mensaje de éxito
-        if($resultado){
-            $_SESSION['mensaje_exitoso']="Contraseña actualizada correctamente.";
+        //Actualizamos mensajes
+        if ($resultado) {
+            $_SESSION['mensaje_exitoso'] = "Contraseña actualizada correctamente.";
+        } else {
+            $_SESSION['mensaje_error'] = "No se pudo actualizar la contraseña. Inténtalo de nueva más tarde";
         }
 
         header("Location: index.php?r=cuenta/index");
@@ -111,6 +114,10 @@ class CuentaController{
             header("Location: index.php?r=cuenta/index");
             exit;
         }
+        
+        //Iniciamos una transacción 
+        $db = Database::getConnection();
+        $db->beginTransaction();
        
 
         //Eliminamos los ingresos del usuario
@@ -120,22 +127,28 @@ class CuentaController{
         //Eliminamos usuario
         $eliminarUsuario=Usuario::eliminar($id);
 
-        //Comprobamos que todo salió bien
-        if($eliminarIngresos && $eliminarGastos && $eliminarUsuario){
-            //Cerramos y destruimos sesión
+        //Comprobamos que todo salió bien antes de confirmar la transacción
+        if ($eliminarIngresos && $eliminarGastos && $eliminarUsuario) {
+
+            // CONFIRMAMOS CAMBIOS
+            $db->commit();
+
             session_unset();
             session_destroy();
 
-            //Creamos nueva sesión para mostrar mensaje final al usuario
             session_start();
-            $_SESSION["mensaje_exitoso"]="Cuenta eliminada correctamente.";
+            $_SESSION['mensaje_exitoso'] = "Cuenta eliminada correctamente.";
 
             header("Location: index.php?r=auth/login");
             exit;
-        }else{
-            $_SESSION['mensaje_error']="Error eliminando la cuenta. Inténtelo de nuevo.";
+        } else {
+
+            //DESHACEMOS TODO
+            $db->rollBack();
+
+            $_SESSION['mensaje_error'] = "Error eliminando la cuenta. Inténtelo de nuevo.";
             header("Location: index.php?r=cuenta/index");
             exit;
-        }                     
+        }               
     }        
 }

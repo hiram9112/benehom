@@ -19,27 +19,8 @@ session_set_cookie_params([
 // Iniciamos sesión PHP
 session_start();
 
-
-//************************************************ ENTORNO Y ERRORES*******************
- 
-date_default_timezone_set('Europe/Madrid');
-
-
-
-// Mostraremos los errores según entorno
-$appEnv = $_ENV['APP_ENV'] ?? 'local';
-
-if ($appEnv === 'production') {
-    ini_set('display_errors', '0');
-    error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
-} else {
-    ini_set('display_errors', '1');
-    error_reporting(E_ALL);
-}
-
-
 //*************************************************CONSTANTES Y RUTAS BASE
- 
+
 
 define('BASE_PATH', dirname(__DIR__));
 define('APP_PATH', BASE_PATH . '/app');
@@ -50,6 +31,8 @@ $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
 $baseUrl = rtrim(dirname($scriptName), '/') . '/';
 
 define('BASE_URL', $baseUrl);
+
+
 
 
 //*************************************************VARIABLES DE ENTORNO (.env)
@@ -66,6 +49,27 @@ if (file_exists($envPath)) {
         $_ENV[$key] = $value;
     }
 }
+
+
+
+//************************************************ ENTORNO Y ERRORES*******************
+
+date_default_timezone_set('Europe/Madrid');
+
+
+
+// Mostraremos los errores según entorno
+$appEnv = $_ENV['APP_ENV'] ?? 'local';
+
+if ($appEnv === 'production') {
+    ini_set('display_errors', '0');
+    error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+} else {
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
+}
+
+
 
 
 //*************************************************HELPERS GLOBALES

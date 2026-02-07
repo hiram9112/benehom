@@ -32,9 +32,22 @@ class AuthController {
            
             //Si no hay errores, intentamos autenticar
             if(empty($errores)){
-                
+
                 //Obtenemos el usuario de la base de datos
-                $user=Usuario::obtenerUsuario($email);
+                try {
+                    $user = Usuario::obtenerUsuario($email);
+                } catch (PDOException $e) {
+
+                    if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
+                        $_SESSION['mensaje_error'] = 'Error de base de datos: ' . $e->getMessage();
+                    } else {
+                        $_SESSION['mensaje_error'] = 'No se pudo iniciar sesión. Inténtalo más tarde.';
+                    }
+
+                    header("Location: " . BASE_URL . "index.php?r=auth/login");
+                    exit;
+                }
+
 
                 //Verificamos si el usuario existe y la contraseña coincide
                 if($user && password_verify($password,$user['password'])){

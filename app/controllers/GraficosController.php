@@ -4,7 +4,7 @@ require_once APP_PATH.'/models/Gasto.php';
 
 class GraficosController{
 
-    //Funciones para presupuesto general 
+    //Función para presupuesto general 
 
     public function estadoGeneral(){
 
@@ -36,18 +36,26 @@ class GraficosController{
         $fechaFin=date("Y-m-t",strtotime($fechaInicio));
 
         //Obtenemos datos filtrados por mes
-        $ingresos=Ingreso::obtenerPorMes($usuario_id,$fechaInicio,$fechaFin);
-        $obligatorios=Gasto::obtenerPorMes($usuario_id,"obligatorio",$fechaInicio,$fechaFin);
-        $voluntarios=Gasto::obtenerPorMes($usuario_id,"voluntario",$fechaInicio,$fechaFin);
+        try {
+            $ingresos = Ingreso::obtenerPorMes($usuario_id, $fechaInicio, $fechaFin);
+            $obligatorios = Gasto::obtenerPorMes($usuario_id, "obligatorio", $fechaInicio, $fechaFin);
+            $voluntarios = Gasto::obtenerPorMes($usuario_id, "voluntario", $fechaInicio, $fechaFin);
+        } catch (PDOException $e) {
 
-        //Validación simple por si falla la BD
-        if(!is_array($ingresos)||!is_array($voluntarios)||!is_array($obligatorios)){
-            echo json_encode([
-                "ok"=>false,
-                "msg"=>"Error al obtener datos de la base de datos"
-            ]);
+            if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
+                echo json_encode([
+                    "ok" => false,
+                    "msg" => "Error de base de datos: " . $e->getMessage()
+                ]);
+            } else {
+                echo json_encode([
+                    "ok" => false,
+                    "msg" => "No se pudieron obtener los datos del gráfico."
+                ]);
+            }
             return;
         }
+
 
         //Calculamos totales
         $totalIngresos= array_sum(array_column($ingresos,"cantidad"));

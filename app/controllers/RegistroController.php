@@ -48,20 +48,40 @@ class RegistroController{
                 header("Location: " . BASE_URL . "index.php?r=registro/registrarUsuario");
                 exit;
             }
-            
+
 
             //Intentamos registrar el usuario
-            if(Usuario::registrar($usuario,$email,$password)){
-                $_SESSION['mensaje_exitoso']="Se ha completado el registro. Ahora puedes iniciar sesión.";
+            try {
 
-                //redirigimos al login
-                header("Location: ".BASE_URL."index.php?r=auth/login");
+                $registrado = Usuario::registrar($usuario, $email, $password);
+            } catch (PDOException $e) {
+
+                if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
+                    $_SESSION['mensaje_error'] = 'Error de base de datos: ' . $e->getMessage();
+                } else {
+                    $_SESSION['mensaje_error'] =
+                        'No se pudo completar el registro. Inténtalo más tarde.';
+                }
+
+                header("Location: " . BASE_URL . "index.php?r=registro/registrarUsuario");
                 exit;
             }
-            else{
-                //Ya existe un usuario con ese email creamos una varibale de sessión temporal para almacenar un mensaje
-                $_SESSION['mensaje_error']="Ya existe un usuario con ese email. Inicia sesión.";
-                header("Location: ".BASE_URL."index.php?r=auth/login");
+
+            // Resultado esperado
+            if ($registrado) {
+
+                $_SESSION['mensaje_exitoso'] =
+                    "Se ha completado el registro. Ahora puedes iniciar sesión.";
+
+                header("Location: " . BASE_URL . "index.php?r=auth/login");
+                exit;
+            } else {
+
+                // Email duplicado (caso controlado)
+                $_SESSION['mensaje_error'] =
+                    "Ya existe un usuario con ese email. Inicia sesión.";
+
+                header("Location: " . BASE_URL . "index.php?r=auth/login");
                 exit;
             }
         }

@@ -23,7 +23,21 @@ class PasswordController {
         }
 
         //Buscar usuario
-        $usuario = Usuario::obtenerUsuario($email);
+        try {
+            $usuario = Usuario::obtenerUsuario($email);
+        } catch (PDOException $e) {
+
+            // Error técnico 
+            if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
+                $_SESSION['mensaje_error'] = 'Error de base de datos: ' . $e->getMessage();
+            } else {
+                $_SESSION['mensaje_error'] =
+                    'No se pudo procesar la solicitud. Inténtalo de nuevo más tarde.';
+            }
+
+            header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+            exit;
+        }
 
         if ($usuario) {
             // Generar token seguro
@@ -36,7 +50,21 @@ class PasswordController {
             $expira = date('Y-m-d H:i:s', time() + 1800);
 
             //Guardar token en BD
-            Usuario::guardarTokenReset($usuario['id'],$tokenHash, $expira);
+            $guardado=Usuario::guardarTokenReset($usuario['id'],$tokenHash, $expira);
+
+            if (!$guardado) {
+
+                if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
+                    $_SESSION['mensaje_error'] =
+                        'Error guardando el token de recuperación.';
+                } else {
+                    $_SESSION['mensaje_error'] =
+                        'No se pudo procesar la solicitud. Inténtalo más tarde.';
+                }
+
+                header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+                exit;
+            }
 
             $resetLink = BASE_URL . "index.php?r=password/reset&token=" . $token;
             
@@ -55,6 +83,8 @@ class PasswordController {
         exit;
 
     }
+
+
 
     public function reset(){
         
@@ -137,10 +167,22 @@ class PasswordController {
 
         // Actualizamos contraseña
         $nuevoHash = password_hash($password, PASSWORD_BCRYPT);
-        Usuario::actualizarPassword($usuario['id'], $nuevoHash);
 
-        // Invalidamos token
-        Usuario::limpiarTokenReset($usuario['id']);
+        $passwordActualizada = Usuario::actualizarPassword($usuario['id'], $nuevoHash);
+        $tokenLimpiado = Usuario::limpiarTokenReset($usuario['id']);
+
+        if (!$passwordActualizada || !$tokenLimpiado) {
+
+            if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
+                $_SESSION['mensaje_error'] = 'Error actualizando la contraseña en base de datos.';
+            } else {
+                $_SESSION['mensaje_error'] =
+                    'No se pudo actualizar la contraseña. Inténtalo más tarde.';
+            }
+
+            header('Location: ?r=password/reset&token=' . urlencode($token));
+            exit;
+        }
 
         $_SESSION['mensaje_exitoso'] = 'Contraseña actualizada correctamente.';
 

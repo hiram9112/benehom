@@ -3,7 +3,6 @@
 require_once APP_PATH."/models/Usuario.php";
 require_once APP_PATH."/models/Gasto.php";
 require_once APP_PATH."/models/Ingreso.php";
-require_once __DIR__ . '/Database.php';
 
 class CuentaController{    
     

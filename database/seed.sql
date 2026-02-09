@@ -1,11 +1,14 @@
 /* =========================================================
    USUARIO DEMO
    ========================================================= */
+
+/*email:demo@benehom.local//////password:Demo1234*/   
+
 INSERT INTO usuarios (usuario, email, password)
 VALUES (
   'Demo',
   'demo@benehom.local',
-  '$2y$10$u1x3JZpWZxkM0c0ZrPjXDeUO1D9nZ8w3zY9s3gKQxwXQpQ0Zr9qXy'
+  '$2y$10$pT2ZldVudYp4asxUIkxGcOcEODMttIN/kumHzkuKjuwzy.E8rpzu6'
 );
 
 

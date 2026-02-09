@@ -781,6 +781,11 @@
 
     <!--Enlazamos con nuestros arvhicos js-->
     <script src="<?= BASE_URL ?>js/validaciones.js"></script>
+    <script src="<?= BASE_URL ?>js/dashboard-graficos.js?v=<?= time() ?>"></script>
+    <script src="<?= BASE_URL ?>js/dashboard-edicion.js?v=<?= time() ?>"></script>
+    <script src="<?= BASE_URL ?>js/dashboard-formularios.js?v=<?= time() ?>"></script>
+    <script src="<?= BASE_URL ?>js/dashboard-utils.js?v=<?= time() ?>"></script>
+    <script src="<?= BASE_URL ?>js/dashboard-dom.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/dashboard.js?v=<?= time() ?>"></script>
 
 

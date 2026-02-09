@@ -32,7 +32,11 @@ async function cargarGraficoPresupuesto() {
     const data = await respuesta.json();
 
     if (!data.ok) {
-      console.error(data.msg);
+      abrirModalInfo({
+        titulo: "No se pudo cargar el gráfico",
+        mensaje:
+          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
+      });
       return;
     }
 
@@ -179,7 +183,10 @@ async function cargarGraficoPresupuesto() {
       },
     });
   } catch (error) {
-    console.error("Error cargando gráfico: ", error);
+    abrirModalInfo({
+      titulo: "Problema de conexión",
+      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
+    });
   }
 }
 
@@ -207,7 +214,11 @@ async function cargarGraficoVoluntarios6m() {
     const data = await respuesta.json();
 
     if (!data.ok) {
-      console.error(data.msg);
+      abrirModalInfo({
+        titulo: "No se pudo cargar el gráfico",
+        mensaje:
+          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
+      });
       return;
     }
 
@@ -288,7 +299,10 @@ async function cargarGraficoVoluntarios6m() {
       },
     });
   } catch (error) {
-    console.error("Error cargando gráfico: ", error);
+    abrirModalInfo({
+      titulo: "Problema de conexión",
+      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
+    });
   }
 }
 
@@ -316,7 +330,11 @@ async function cargarGraficoObligatorios6m() {
     const data = await respuesta.json();
 
     if (!data.ok) {
-      console.error(data.msg);
+      abrirModalInfo({
+        titulo: "No se pudo cargar el gráfico",
+        mensaje:
+          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
+      });
       return;
     }
 
@@ -396,7 +414,10 @@ async function cargarGraficoObligatorios6m() {
       },
     });
   } catch (error) {
-    console.error("Error cargando gráfico: ", error);
+    abrirModalInfo({
+      titulo: "Problema de conexión",
+      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
+    });
   }
 }
 
@@ -422,7 +443,11 @@ async function cargarGraficoAhorros6m() {
     const data = await respuesta.json();
 
     if (!data.ok) {
-      console.error(data.msg);
+      abrirModalInfo({
+        titulo: "No se pudo cargar el gráfico",
+        mensaje:
+          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
+      });
       return;
     }
 
@@ -552,7 +577,10 @@ async function cargarGraficoAhorros6m() {
       },
     });
   } catch (error) {
-    console.error("Error cargando gráfico: ", error);
+    abrirModalInfo({
+      titulo: "Problema de conexión",
+      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
+    });
   }
 }
 

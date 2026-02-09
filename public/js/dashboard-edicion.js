@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-// ----------------------------------------------------SECCIÓN EVENTOS
+  // ----------------------------------------------------SECCIÓN EVENTOS
   // CLICKS----------------------------------------------------------
   // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -36,11 +36,19 @@ document.addEventListener("DOMContentLoaded", () => {
               cargarGraficoObligatorios6m();
               cargarGraficoAhorros6m();
             } else {
-              alert(data.msg || "Error al eliminar el ingreso");
+              abrirModalInfo({
+                titulo: "No se pudo eliminar el ingreso",
+                mensaje:
+                  data.msg ||
+                  "La operación no pudo completarse. Inténtalo de nuevo.",
+              });
             }
           } catch (error) {
-            console.error("Error AJAX:", error);
-            alert("Error de conexión con el servidor");
+            abrirModalInfo({
+              titulo: "Problema de conexión",
+              mensaje:
+                "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+            });
           }
         },
       });
@@ -92,11 +100,19 @@ document.addEventListener("DOMContentLoaded", () => {
               cargarGraficoObligatorios6m();
               cargarGraficoAhorros6m();
             } else {
-              alert(data.msg || "Error al eliminar el gasto");
+              abrirModalInfo({
+                titulo: "No se pudo eliminar el gasto",
+                mensaje:
+                  data.msg ||
+                  "La operación no pudo completarse. Inténtalo de nuevo.",
+              });
             }
           } catch (error) {
-            console.error("Error AJAX:", error);
-            alert("Error de conexión con el servidor");
+            abrirModalInfo({
+              titulo: "Problema de conexión",
+              mensaje:
+                "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+            });
           }
         },
       });
@@ -127,6 +143,4 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarGraficoObligatorios6m();
     cargarGraficoAhorros6m();
   });
-
 });
-

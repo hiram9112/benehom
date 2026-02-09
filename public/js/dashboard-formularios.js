@@ -27,7 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         //Convertimos la respuesta a formato JSON
         const data = await respuesta.json();
-        console.log("respuesta del servidor :", data);
 
         //Si el servidor confirma éxito
         if (data.ok) {
@@ -43,11 +42,19 @@ document.addEventListener("DOMContentLoaded", () => {
           //Limpiamos campos  del formulario
           formIngresos.reset();
         } else {
-          alert(data.msg || "Error al agregar el ingreso");
+          abrirModalInfo({
+            titulo: "No se pudo completar la operación",
+            mensaje:
+              data.msg ||
+              "La operación no pudo completarse. Inténtalo de nuevo.",
+          });
         }
       } catch (error) {
-        console.error("Error en la solicitud AJAX: ", error);
-        alert("Error de conexión con el servidor");
+        abrirModalInfo({
+          titulo: "Problema de conexión",
+          mensaje:
+            "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+        });
       }
     });
   }
@@ -81,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         //Convertimos la respuesta a formato JSON
         const data = await respuesta.json();
-        console.log("respuesta del servidor :", data);
 
         //Si el servidor confirma éxito
         if (data.ok) {
@@ -97,11 +103,19 @@ document.addEventListener("DOMContentLoaded", () => {
           //Limpiamos campos  del formulario
           formGastosObligatorios.reset();
         } else {
-          alert(data.msg || "Error al agregar el gasto obligatorio");
+          abrirModalInfo({
+            titulo: "No se pudo completar la operación",
+            mensaje:
+              data.msg ||
+              "La operación no pudo completarse. Inténtalo de nuevo.",
+          });
         }
       } catch (error) {
-        console.error("Error en la solicitud AJAX: ", error);
-        alert("Error de conexión con el servidor");
+        abrirModalInfo({
+          titulo: "Problema de conexión",
+          mensaje:
+            "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+        });
       }
     });
   }
@@ -135,7 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         //Convertimos la respuesta a formato JSON
         const data = await respuesta.json();
-        console.log("respuesta del servidor :", data);
 
         //Si el servidor confirma éxito
         if (data.ok) {
@@ -151,11 +164,19 @@ document.addEventListener("DOMContentLoaded", () => {
           //Limpiamos campos  del formulario
           formGastosVoluntarios.reset();
         } else {
-          alert(data.msg || "Error al agregar el gasto voluntario");
+          abrirModalInfo({
+            titulo: "No se pudo completar la operación",
+            mensaje:
+              data.msg ||
+              "La operación no pudo completarse. Inténtalo de nuevo.",
+          });
         }
       } catch (error) {
-        console.error("Error en la solicitud AJAX: ", error);
-        alert("Error de conexión con el servidor");
+        abrirModalInfo({
+          titulo: "Problema de conexión",
+          mensaje:
+            "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+        });
       }
     });
   }

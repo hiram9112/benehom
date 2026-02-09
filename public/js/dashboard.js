@@ -55,12 +55,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Exponemos la función para usarla en otros listeners
   window.abrirModalConfirmacion = abrirModalConfirmacion;
-});
 
+  // =========================
+  // MODAL INFORMATIVO (ERROR / INFO)
+  // =========================
+  function abrirModalInfo({ titulo, mensaje }) {
+    const modal = new bootstrap.Modal(document.getElementById("modalInfo"));
+
+    document.getElementById("modalInfoTitulo").textContent = titulo;
+    document.getElementById("modalInfoTexto").textContent = mensaje;
+
+    modal.show();
+  }
+
+  // Exponemos la función para usarla en AJAX
+  window.abrirModalInfo = abrirModalInfo;
+});
 
 // -------------------------------------------Función para agregar el nuevo
 // Ingreso al DOM----------------------
-
 
 // --------------------------------------Función para actualizar un
 // ingreso---------------------------------------
@@ -120,7 +133,12 @@ async function editarIngresoInline(span) {
       window.cargarGraficoAhorros6m();
     } else {
       //SI falla la edición restauramos el valor anterior
-      alert("Error al editar el ingreso");
+      abrirModalInfo({
+        titulo: "No se pudo guardar el cambio",
+        mensaje:
+          data.msg ||
+          "La modificación no pudo completarse. Inténtalo de nuevo.",
+      });
       input.replaceWith(span);
     }
     //desactivamos modo edición porque ya terminó
@@ -135,8 +153,6 @@ async function editarIngresoInline(span) {
 
   input.addEventListener("blur", guardar);
 }
-
-
 
 // --------------------------------------Función para actualizar un gasto
 // -----------------------------------
@@ -206,7 +222,12 @@ async function editarGastoInline(span) {
       window.cargarGraficoAhorros6m();
     } else {
       //SI falla la edición restauramos el valor anterior
-      alert("Error al editar el gasto obligatorio");
+      abrirModalInfo({
+        titulo: "No se pudo guardar el cambio",
+        mensaje:
+          data.msg ||
+          "La modificación no pudo completarse. Inténtalo de nuevo.",
+      });
       input.replaceWith(span);
     }
 
@@ -222,5 +243,3 @@ async function editarGastoInline(span) {
 
   input.addEventListener("blur", guardar);
 }
-
-

@@ -87,6 +87,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_ENV['APP_ENV'] === 'production') {
             session_unset();
             session_destroy();
+
+            // Iniciamos una nueva sesión 
+            session_start();
+            $_SESSION['mensaje_error'] =
+                'Tu sesión ha caducado o la solicitud no es válida. Vuelve a iniciar sesión.';
+
             header("Location: " . BASE_URL . "index.php?r=auth/login");
             exit;
         } else {

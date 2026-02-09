@@ -14,32 +14,31 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!--Conectamos con archivo CSS propio-->
-    <link rel="stylesheet" href="<?=BASE_URL?>css/custom.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
 </head>
 
 <body>
 
     <!--Mensajes para notificar al usuario si la contraseña se ha modificado o no -->
-    <?php 
-        //Registro exitoso
-        if(isset($_SESSION['mensaje_exitoso'])){
-            echo"<p class='alert alert-success text-center'>";
-            echo $_SESSION['mensaje_exitoso'];
-            echo "</p>";
+    <?php
+    //Registro exitoso
+    if (isset($_SESSION['mensaje_exitoso'])) {
+        echo "<p class='alert alert-success text-center'>";
+        echo $_SESSION['mensaje_exitoso'];
+        echo "</p>";
 
-            //eliminamos mensaje para no mostrarlo otra vez
-            unset($_SESSION['mensaje_exitoso']);
+        //eliminamos mensaje para no mostrarlo otra vez
+        unset($_SESSION['mensaje_exitoso']);
+    }
+    //Error registrando ya existe el usuario inicie sesión o el usaurio o la contrasñea son incorrectos, damos dos usos a esta varible.
+    if (isset($_SESSION['mensaje_error'])) {
+        echo "<p class='alert alert-danger text-center'>";
+        echo $_SESSION['mensaje_error'];
+        echo "</p>";
 
-        }  
-        //Error registrando ya existe el usuario inicie sesión o el usaurio o la contrasñea son incorrectos, damos dos usos a esta varible.
-        if(isset($_SESSION['mensaje_error'])){
-            echo"<p class='alert alert-danger text-center'>";
-            echo $_SESSION['mensaje_error'];
-            echo"</p>";
-
-            //eliminamos mensaje para no mostrarlo ota vez;
-            unset($_SESSION['mensaje_error']);
-        }
+        //eliminamos mensaje para no mostrarlo ota vez;
+        unset($_SESSION['mensaje_error']);
+    }
     ?>
 
     <!--Contenedor Principal-->
@@ -50,7 +49,7 @@
             <!-- Panel Lateral izquierdo-->
             <aside class="col-12 col-md-3 col-lg-1  bg-side-menu text-white full-height py-4">
 
-                
+
 
                 <!-- Logo Benehom-->
                 <div class="logo-container text-center mb-4">
@@ -110,8 +109,8 @@
                             <button type="submit" class="mt-2">Cambiar contraseña</button>
                         </form>
                     </div>
-                </div>    
-                
+                </div>
+
                 <!--tarjeta eliminar cuenta-->
                 <div class="card mb-3 card-cuenta">
                     <div class="card-header">
@@ -123,7 +122,7 @@
                         <!--Alertamos al usuario -->
                         <p class="text-danger fw-bold"> Esta acción es irreversible, se eliminarán todos los datos de la cuenta</p>
 
-                        <form method="POST" action="index.php?r=cuenta/eliminarCuenta" class="formulario-bh">
+                        <form id="formEliminarCuenta" method="POST" action="index.php?r=cuenta/eliminarCuenta" class="formulario-bh">
                             <?= csrf_field() ?>
 
 
@@ -134,34 +133,63 @@
                                 <i class="bi bi-eye"></i>
                             </button>
 
-                            
 
-                            <button type="submit"  class="mt-2 btn btn-danger"
-                                onclick="return confirm('¿Seguro que desea eliminar su cuenta? Esta acción no se puede deshacer.');">
+
+                            <button type="submit" class="mt-2 btn btn-danger">
                                 Eliminar cuenta
                             </button>
                         </form>
                     </div>
-                </div>    
-            </main>                             
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación genérico -->
+    <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalConfirmacionTitulo">Confirmar acción</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body" id="modalConfirmacionTexto">
+                    ¿Estás seguro?
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger" id="modalConfirmacionAceptar">
+                        Aceptar
+                    </button>
+                </div>
+
+            </div>
         </div>
     </div>
 
     <script>
-    function togglePassword(inputId, button) {
-        const input = document.getElementById(inputId);
-        const icon = button.querySelector('i');
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const icon = button.querySelector('i');
 
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
         }
-    }
     </script>
+
+    <script src="<?= BASE_URL ?>js/cuenta.js?v=<?= time() ?>"></script>
 </body>
+
 </html>

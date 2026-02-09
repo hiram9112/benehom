@@ -14,31 +14,30 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!--Conectamos con archivo CSS propio-->
-    <link rel="stylesheet" href="<?=BASE_URL?>css/custom.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
 </head>
 
-<body >
+<body>
     <!--Mensajes para cuando somos redirigidos después de agregar ingresos o gastos -->
-    <?php 
-        //Mensaje de éxito
-        if(isset($_SESSION['mensaje_exitoso'])){
-            echo"<p class='alert alert-success text-center'>";
-            echo $_SESSION['mensaje_exitoso'];
-            echo "</p>";
+    <?php
+    //Mensaje de éxito
+    if (isset($_SESSION['mensaje_exitoso'])) {
+        echo "<p class='alert alert-success text-center'>";
+        echo $_SESSION['mensaje_exitoso'];
+        echo "</p>";
 
-            //eliminamos mensaje para no mostrarlo otra vez
-            unset($_SESSION['mensaje_exitoso']);
+        //eliminamos mensaje para no mostrarlo otra vez
+        unset($_SESSION['mensaje_exitoso']);
+    }
+    //Mensjae de error
+    if (isset($_SESSION['mensaje_error'])) {
+        echo "<p class='alert alert-danger text-center'>";
+        echo $_SESSION['mensaje_error'];
+        echo "</p>";
 
-        }  
-        //Mensjae de error
-        if(isset($_SESSION['mensaje_error'])){
-            echo"<p class='alert alert-danger text-center'>";
-            echo $_SESSION['mensaje_error'];
-            echo"</p>";
-
-            //eliminamos mensaje para no mostrarlo ota vez;
-            unset($_SESSION['mensaje_error']);
-        }
+        //eliminamos mensaje para no mostrarlo ota vez;
+        unset($_SESSION['mensaje_error']);
+    }
     ?>
 
 
@@ -93,7 +92,7 @@
                         <form method="GET" action="index.php" style="margin-bottom:20px;">
                             <input type="hidden" name="r" value="dashboard/index">
                             <input type="month" id="mes" name="mes"
-                                value="<?= isset($_GET['mes']) ?$_GET['mes']: date('Y-m') ?>"
+                                value="<?= isset($_GET['mes']) ? $_GET['mes'] : date('Y-m') ?>"
                                 onchange="this.form.submit()">
                         </form>
                     </div>
@@ -129,31 +128,31 @@
                                 <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" step="0.01" required>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?=$mesSeleccionado?>">
+                                <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
 
                                 <button type="submit">Añadir ingreso</button>
                             </form>
 
                             <!--Contenedor para manejar de manera dinámica los ingresos utilizando AJAX y PHP-->
                             <div id="lista_ingresos" class="lista-ingresos">
-                                <?php if(!empty($ingresos)):?>
-                                <ul>
-                                    <?php foreach($ingresos as $ingreso):?>
-                                    <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                    <li id="ingreso-<?=$ingreso['id']?>">
-                                        <span
-                                            class="categoria_ingreso_individual"><?=htmlspecialchars(formatearCategoria($ingreso['categoria']))?></span>:
-                                        <span class="cantidad_ingreso"
-                                            data-id="<?=$ingreso['id']?>"><?=htmlspecialchars($ingreso['cantidad'])?></span>€
-                                        <button class="eliminar_ingreso" data-id="<?=$ingreso['id']?>">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </li>
-                                    <?php endforeach;?>
-                                </ul>
-                                <?php else:?>
-                                <p>No tienes ingresos registrados todavía.</p>
-                                <?php endif;?>
+                                <?php if (!empty($ingresos)): ?>
+                                    <ul>
+                                        <?php foreach ($ingresos as $ingreso): ?>
+                                            <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
+                                            <li id="ingreso-<?= $ingreso['id'] ?>">
+                                                <span
+                                                    class="categoria_ingreso_individual"><?= htmlspecialchars(formatearCategoria($ingreso['categoria'])) ?></span>:
+                                                <span class="cantidad_ingreso"
+                                                    data-id="<?= $ingreso['id'] ?>"><?= formatearCantidadPHP($ingreso['cantidad']) ?></span>€
+                                                <button class="eliminar_ingreso" data-id="<?= $ingreso['id'] ?>">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php else: ?>
+                                    <p>No tienes ingresos registrados todavía.</p>
+                                <?php endif; ?>
                             </div>
 
                             <!--Usaremos este elemento para mostrar de manera dinámica el total de ingresos -->
@@ -184,22 +183,44 @@
                                 <label for="gastos_obligatorio">Tipo de gasto: </label>
                                 <select name="categoria_gasto_obligatorio" id="categoria_gasto_obligatorio" required>
                                     <option value="" selected disabled>Selecciona un tipo de gastos</option>
-                                    <option value="agua">Agua</option>
-                                    <option value="combustible_trabajo">Combustible por trabajo / estudio</option>
-                                    <option value="supermercado">Compra del supermercado</option>
+
+                                    <!-- Vivienda -->
+                                    <option value="vivienda">Vivienda (alquiler / hipoteca)</option>
                                     <option value="comunidad">Gastos de comunidad</option>
-                                    <option value="educacion">Educación / material escolar</option>
+                                    <option value="mantenimiento_hogar">Mantenimiento y reparaciones del hogar</option>
+                                    <option value="mobiliario_hogar">Mobiliario y equipamiento del hogar</option>
+
+                                    <!-- Suministros -->
+                                    <option value="agua">Agua</option>
                                     <option value="electricidad">Electricidad</option>
                                     <option value="gas">Gas</option>
-                                    <option value="imprevistos">Imprevistos</option>
-                                    <option value="impuestos">Impuestos y tasas</option>
                                     <option value="internet_telefonia">Internet y telefonía</option>
-                                    <option value="ropa_calzado">Ropa y calzado básicos</option>
-                                    <option value="salud">Salud y medicación</option>
-                                    <option value="seguros">Seguros</option>
-                                    <option value="trabajo">Gastos de trabajo</option>
+
+                                    <!-- Alimentación -->
+                                    <option value="supermercado">Compra del supermercado</option>
+
+                                    <!-- Hijos -->
+                                    <option value="alimentacion_bebe">Alimentación bebé</option>
+                                    <option value="higiene_bebe">Higiene bebé</option>
+                                    <option value="ropa_bebe">Ropa bebé</option>
+                                    <option value="cuidado_infantil">Cuidado infantil (guardería / cuidador)</option>
+
+                                    <!-- Transporte -->
+                                    <option value="combustible_trabajo">Combustible por trabajo / estudio</option>
                                     <option value="transporte_publico">Transporte público</option>
-                                    <option value="vivienda">Vivienda (alquiler / hipoteca)</option>
+                                    <option value="reparaciones_coche">Reparaciones y mantenimiento del coche</option>
+
+                                    <!-- Salud y educación -->
+                                    <option value="salud">Salud y medicación</option>
+                                    <option value="educacion">Educación / material escolar</option>
+
+                                    <!-- Trabajo e impuestos -->
+                                    <option value="trabajo">Gastos de trabajo</option>
+                                    <option value="impuestos">Impuestos y tasas</option>
+                                    <option value="seguros">Seguros</option>
+
+                                    <!-- Otros -->
+                                    <option value="imprevistos">Imprevistos</option>
                                     <option value="otros_obligatorios">Otros gastos obligatorios</option>
                                 </select>
 
@@ -208,7 +229,7 @@
                                     step="0.01" required>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?=$mesSeleccionado?>">
+                                <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
 
                                 <button type="submit">Añadir gasto</button>
                             </form>
@@ -216,25 +237,25 @@
 
                             <!--Contenedor para manejar de manera dinámica los gastos obligatorios utilizando AJAX y PHP-->
                             <div id="lista_gastos_obligatorios" class="lista-gastos">
-                                <?php if(!empty($gastosObligatorios)):?>
-                                <ul>
-                                    <?php foreach($gastosObligatorios as $gastoObligatorio):?>
-                                    <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                    <li id="gasto-<?=$gastoObligatorio['id']?>"
-                                        data-tipo="<?=$gastoObligatorio['tipo']?>">
-                                        <span
-                                            class="categoria_gasto_obli"><?=htmlspecialchars(formatearCategoria($gastoObligatorio['categoria']))?></span>:
-                                        <span class="cantidad_gasto_obli cantidad_gasto"
-                                            data-id="<?=$gastoObligatorio['id']?>"><?=htmlspecialchars($gastoObligatorio['cantidad'])?></span>€
-                                        <button class="eliminar_gasto" data-id="<?=$gastoObligatorio['id']?>">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </li>
-                                    <?php endforeach;?>
-                                </ul>
-                                <?php else:?>
-                                <p>No tienes gastos obligatorios registrados todavía.</p>
-                                <?php endif;?>
+                                <?php if (!empty($gastosObligatorios)): ?>
+                                    <ul>
+                                        <?php foreach ($gastosObligatorios as $gastoObligatorio): ?>
+                                            <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
+                                            <li id="gasto-<?= $gastoObligatorio['id'] ?>"
+                                                data-tipo="<?= $gastoObligatorio['tipo'] ?>">
+                                                <span
+                                                    class="categoria_gasto_obli"><?= htmlspecialchars(formatearCategoria($gastoObligatorio['categoria'])) ?></span>:
+                                                <span class="cantidad_gasto_obli cantidad_gasto"
+                                                    data-id="<?= $gastoObligatorio['id'] ?>"><?= formatearCantidadPHP($gastoObligatorio['cantidad']) ?></span>€
+                                                <button class="eliminar_gasto" data-id="<?= $gastoObligatorio['id'] ?>">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php else: ?>
+                                    <p>No tienes gastos obligatorios registrados todavía.</p>
+                                <?php endif; ?>
                             </div>
 
                             <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos obligatorios -->
@@ -270,17 +291,33 @@
 
                                 <label for="gastos_voluntarios">Tipo de gasto:</label>
                                 <select name="categoria_gasto_voluntario" id="categoria_gasto_voluntario" required>
-                                    <option value="combustible_personal">Combustible (uso personal)</option>
-                                    <option value="comidas_fuera">Comidas fuera</option>
-                                    <option value="compras_financiadas">Compras financiadas</option>
-                                    <option value="donaciones">Donaciones</option>
-                                    <option value="movil_financiado">Móvil financiado</option>
+                                    <!-- Ocio y consumo -->
                                     <option value="ocio">Ocio y entretenimiento</option>
+                                    <option value="gimnasio">Gimnasio / actividad deportiva</option>
+
+                                    <!-- Restauración -->
+                                    <option value="comidas_fuera">Comidas fuera</option>
                                     <option value="pedir_comida">Pedir comida a domicilio</option>
-                                    <option value="prestamo_coche">Préstamo o renting de coche</option>
-                                    <option value="prestamo_personal">Préstamo personal</option>
+
+                                    <!-- Suscripciones -->
                                     <option value="suscripciones">Suscripciones</option>
+                                    <option value="movil_financiado">Móvil financiado</option>
+
+                                    <!-- Transporte personal -->
+                                    <option value="combustible_personal">Combustible (uso personal)</option>
+
+                                    <!-- Finanzas personales -->
+                                    <option value="compras_financiadas">Compras financiadas</option>
+                                    <option value="prestamo_personal">Préstamo personal</option>
+                                    <option value="prestamo_coche">Préstamo o renting de coche</option>
+
+                                    <!-- Viajes -->
                                     <option value="viajes">Viajes y vacaciones</option>
+
+                                    <!-- Solidaridad -->
+                                    <option value="donaciones">Donaciones</option>
+
+                                    <!-- Otros -->
                                     <option value="otros_voluntarios">Otros gastos voluntarios</option>
                                 </select>
 
@@ -289,36 +326,36 @@
                                     step="0.01" required>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?=$mesSeleccionado?>">
+                                <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
 
                                 <button type="submit">Añadir gasto</button>
                             </form>
 
                             <!--Contenedor para manejar de manera dinámica los gastos obligatorios utilizando AJAX y PHP-->
                             <div id="lista_gastos_voluntarios" class="lista-gastos">
-                                <?php if(!empty($gastosVoluntarios)):?>
-                                <ul>
-                                    <?php foreach($gastosVoluntarios as $gastoVoluntario):?>
-                                    <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                    <li id="gasto-<?=$gastoVoluntario['id']?>"
-                                        data-tipo="<?=$gastoVoluntario['tipo']?>">
-                                        <span
-                                            class="categoria_gasto_volun"><?=htmlspecialchars(formatearCategoria($gastoVoluntario['categoria']))?></span>:
-                                        <span class="cantidad_gasto_volun cantidad_gasto"
-                                            data-id="<?=$gastoVoluntario['id']?>"><?=htmlspecialchars($gastoVoluntario['cantidad'])?></span>€
-                                        <button class="eliminar_gasto" data-id="<?=$gastoVoluntario['id']?>"> <i
-                                                class="bi bi-trash"></i></button>
-                                    </li>
-                                    <?php endforeach;?>
-                                </ul>
-                                <?php else:?>
-                                <p>No tienes gastos voluntarios registrados todavía.</p>
-                                <?php endif;?>
+                                <?php if (!empty($gastosVoluntarios)): ?>
+                                    <ul>
+                                        <?php foreach ($gastosVoluntarios as $gastoVoluntario): ?>
+                                            <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
+                                            <li id="gasto-<?= $gastoVoluntario['id'] ?>"
+                                                data-tipo="<?= $gastoVoluntario['tipo'] ?>">
+                                                <span
+                                                    class="categoria_gasto_volun"><?= htmlspecialchars(formatearCategoria($gastoVoluntario['categoria'])) ?></span>:
+                                                <span class="cantidad_gasto_volun cantidad_gasto"
+                                                    data-id="<?= $gastoVoluntario['id'] ?>"><?= formatearCantidadPHP($gastoVoluntario['cantidad']) ?></span>€
+                                                <button class="eliminar_gasto" data-id="<?= $gastoVoluntario['id'] ?>"> <i
+                                                        class="bi bi-trash"></i></button>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php else: ?>
+                                    <p>No tienes gastos voluntarios registrados todavía.</p>
+                                <?php endif; ?>
                             </div>
 
                             <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos voluntarios -->
                             <p id="total_gastos_voluntarios_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
-                             <!--Usaremos este elemento para mostrar de manera dinámica el ahorro real -->
+                            <!--Usaremos este elemento para mostrar de manera dinámica el ahorro real -->
                             <p id="ahorro_real_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
 
                         </div>
@@ -331,8 +368,8 @@
             <!--Panel lateral derecho-->
             <aside class="col-12 col-md-3 col-lg-3 bg-main-content mt-5">
 
-                <!--Gráfico presupuesto mensual-->    
-                <div class="card p-3 mb-3 contenedor-grafico">                    
+                <!--Gráfico presupuesto mensual-->
+                <div class="card p-3 mb-3 contenedor-grafico">
                     <h5 class="mb-3">
                         Presupuesto mensual
                         <button type="button"
@@ -347,11 +384,11 @@
                         <p id="totalIngresosTexto" class="fw-bold mb-1 ingreso-resumenMensual"></p>
                         <p id="ahorro_mensual" class="mb-1 fw-bold ahorro-resumenMensual"></p>
                     </div>
-                    <canvas id="graficoPresupuestoMensual"></canvas>                    
+                    <canvas id="graficoPresupuestoMensual"></canvas>
                 </div>
 
-                <!--Gráfico Ahorros 6m-->    
-                <div class="card p-3 mb-3 contenedor-grafico">                    
+                <!--Gráfico Ahorros 6m-->
+                <div class="card p-3 mb-3 contenedor-grafico">
                     <h5 class="mb-3">
                         Evolución del Ahorro
                         <button type="button"
@@ -362,12 +399,12 @@
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
-                    <canvas id="graficoAhorros6m"></canvas>                    
-                </div>                
+                    <canvas id="graficoAhorros6m"></canvas>
+                </div>
 
 
                 <!--Gráfico evolución gastos obligatorios-->
-                <div class="card p-3 mb-3 contenedor-grafico">                    
+                <div class="card p-3 mb-3 contenedor-grafico">
                     <h5 class="mb-3">
                         Evolución Gastos Obligatorios
                         <button type="button"
@@ -383,7 +420,7 @@
 
 
                 <!--Gráfico evolución gastos voluntarios-->
-                <div class="card p-3 mb-3 contenedor-grafico">                    
+                <div class="card p-3 mb-3 contenedor-grafico">
                     <h5 class="mb-3">
                         Evolución Gastos Voluntarios
                         <button type="button"
@@ -421,7 +458,7 @@
                     </ul>
 
                     <p class="mt-2">Registrar correctamente los ingresos es clave para entender tu capacidad real de ahorro
-                    y analizar si tus gastos están equilibrados.</p>
+                        y analizar si tus gastos están equilibrados.</p>
                 </div>
 
                 <div class="modal-footer">
@@ -443,13 +480,13 @@
 
                 <div class="modal-body">
                     <p> Los gastos obligatorios son aquellos necesarios para mantener el hogar
-                    y cubrir necesidades básicas. </p>
+                        y cubrir necesidades básicas. </p>
 
-                    <p>No dependen de decisiones de ocio o consumo,son obligaciones que no podemos 
-                    ignorar, suelen repetirse cada mes.</p>
+                    <p>No dependen de decisiones de ocio o consumo,son obligaciones que no podemos
+                        ignorar, suelen repetirse cada mes.</p>
 
-                    <p class="mt-2"> Separarlos del resto de gastos te ayuda a entender 
-                    cuánto dinero necesitas realmente para vivir.</p>
+                    <p class="mt-2"> Separarlos del resto de gastos te ayuda a entender
+                        cuánto dinero necesitas realmente para vivir.</p>
                 </div>
 
                 <div class="modal-footer">
@@ -461,7 +498,7 @@
     </div>
 
     <!--Modal de gastos voluntarios-->
-    
+
     <div class="modal fade" id="infoGastosVoluntarios" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -514,9 +551,9 @@
                     <p>Este gráfico muestra un resumen claro de tu economía en el mes actual.</p>
 
                     <p><strong>Compara tus ingresos con el total de gastos</strong> y te indica cuánto dinero estás
-                         ahorrando o perdiendo al final del mes.
+                        ahorrando o perdiendo al final del mes.
                     </p>
-                   
+
 
                     <p>Los porcentajes te ayudan a entender qué parte de tus ingresos
                         se destina a gastos y qué parte se convierte en ahorro.
@@ -529,9 +566,9 @@
                     <p class="mt-2">Este gráfico te permite detectar desequilibrios rápidamente
                         y tomar decisiones para mejorar tu situación financiera.
                     </p>
-                     <p class="mt-2">Puedes pasar el cursor sobre cada barra para ver el valor exacto.               
+                    <p class="mt-2">Puedes pasar el cursor sobre cada barra para ver el valor exacto.
                     </p>
-                     
+
                 </div>
 
                 <div class="modal-footer">
@@ -568,7 +605,7 @@
                     </p>
 
                     <p>Cuando el <strong>ahorro real es negativo</strong>, significa que ese mes se ha <strong>gastado
-                        más dinero del que se ingresó</strong>, utilizando ahorros anteriores.
+                            más dinero del que se ingresó</strong>, utilizando ahorros anteriores.
                     </p>
 
                     <p class="mt-2">Si esta situación se repite durante varios meses, es una señal de alerta:
@@ -663,10 +700,10 @@
                     <p>
                         Este gráfico muestra la <strong>evolución de tus gastos voluntarios</strong>
                         durante los últimos 6 meses. Representa de forma visual <strong>cómo se están
-                        comportando tus hábitos de consumo</strong>
+                            comportando tus hábitos de consumo</strong>
                         con el paso del tiempo.
                     </p>
-                
+
                     <p>
                         Si los valores <strong>van aumentando mes a mes</strong>, significa que cada vez
                         estás gastando más, esto provoca que <strong>cada vez puedas ahorrar menos</strong> o incluso que
@@ -705,22 +742,46 @@
     </div>
 
 
+    <!-- Modal de confirmación genérico -->
+    <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
 
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalConfirmacionTitulo">Confirmar acción</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
 
+                <div class="modal-body" id="modalConfirmacionTexto">
+                    ¿Estás seguro?
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger" id="modalConfirmacionAceptar">
+                        Aceptar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
 
 
     <!--Añadimos chart.js-->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <!--Cargamos token crsf-->
     <script>
-    window.CSRF_TOKEN = "<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>";
+        window.CSRF_TOKEN = "<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>";
     </script>
 
     <!--Enlazamos con nuestros arvhicos js-->
-    <script src="<?=BASE_URL?>js/validaciones.js"></script>
-    <script src="<?=BASE_URL?>js/dashboard.js?v=<?=time()?>"></script>
+    <script src="<?= BASE_URL ?>js/validaciones.js"></script>
+    <script src="<?= BASE_URL ?>js/dashboard.js?v=<?= time() ?>"></script>
 
 
 </body>

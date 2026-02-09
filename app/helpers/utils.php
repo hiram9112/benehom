@@ -6,7 +6,20 @@ function formatearCategoria($texto){
     $texto=str_replace("_"," ",$texto);
 
     //Ponemos mayúsucula inicial a cada palabra 
-    return ucwords($texto);}
+    return ucwords($texto);
+}
+
+//Función para formatear cantidades
+function formatearCantidadPHP($valor)
+{
+    if (intval($valor) == $valor) {
+        return (string)intval($valor);
+    }
+    return number_format($valor, 2, ',', '');
+}
+
+
+
 
 
 

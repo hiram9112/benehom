@@ -266,6 +266,20 @@ body{
     color: #b30000;   
     transform: scale(1.25)
 }
+
+.cantidad_ingreso,
+.cantidad_gasto,
+.cantidad_gasto_obli,
+.cantidad_gasto_volun {
+    margin-left: 0.25rem;
+}
+
+.categoria_ingreso_individual,
+.categoria_gasto_obli,
+.categoria_gasto_volun {
+    padding-right: 0.25rem;
+}
+
 /*-----------------------------------------------------Input Edición inline-----------------------------------------------------*/
 .input-edicion{
     font-family: 'Inter', sans-serif;

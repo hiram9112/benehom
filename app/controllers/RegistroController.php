@@ -35,7 +35,7 @@ class RegistroController{
                 !preg_match('/[A-Z]/', $password) ||
                 !preg_match('/[0-9]/', $password)
             ){
-                $_SESSION['mensaje_error'] = "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número";
+                $_SESSION['mensaje_error'] = "La contraseña debe tener al menos 8 caracteres,<br> una mayúscula, una minúscula y un número";
             }
             elseif ($password !== $passwordConfirm) {
             $_SESSION['mensaje_error'] = "Las contraseñas no coinciden";
@@ -71,7 +71,7 @@ class RegistroController{
             if ($registrado) {
 
                 $_SESSION['mensaje_exitoso'] =
-                    "Se ha completado el registro. Ahora puedes iniciar sesión.";
+                    "Se ha completado el registro.<br> Ahora puedes iniciar sesión.";
 
                 header("Location: " . BASE_URL . "index.php?r=auth/login");
                 exit;

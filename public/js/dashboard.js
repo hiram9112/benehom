@@ -243,3 +243,27 @@ async function editarGastoInline(span) {
 
   input.addEventListener("blur", guardar);
 }
+
+// Inicializa el selector de mes/año con Flatpickr
+flatpickr("#mes", {
+  locale: "es",
+  dateFormat: "Y-m", // Formato que espera el backend
+  defaultDate: document.getElementById("mes").value,
+
+  altInput: true,
+  altFormat: "F Y", // lo que ve el usuario
+
+  plugins: [
+    new monthSelectPlugin({
+      shorthand: true, // Ene, Feb, Mar...
+      dateFormat: "Y-m",
+      altFormat: "F Y", // Texto visible: "Enero 2026"
+    }),
+  ],
+  onChange: function () {
+    // Enviar automáticamente al cambiar el mes
+    this._input.form.submit();
+  },
+});
+
+

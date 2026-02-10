@@ -15,6 +15,14 @@
 
     <!--Conectamos con archivo CSS propio-->
     <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
+
+    <!-- Flatpickr: selector de fecha -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <!-- Flatpickr plugin: selección por mes/año -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+
+
 </head>
 
 <body>
@@ -84,18 +92,20 @@
 
                 <!--Panel central-->
                 <section>
-
-                    <!--Barra superior con el mes  -->
-                    <div id="selector_mes">
-
-                        <!--Selección del mes por defecto dejamos seleccionado el mes actual si el usuario elige otro enviamos al enrutador para que maneje la nueva petición-->
-                        <form method="GET" action="index.php" style="margin-bottom:20px;">
+                    <!--Selector de mes-->
+                    <div id="selector_mes" class="mb-4">
+                        <form method="GET" action="index.php">
                             <input type="hidden" name="r" value="dashboard/index">
-                            <input type="month" id="mes" name="mes"
-                                value="<?= isset($_GET['mes']) ? $_GET['mes'] : date('Y-m') ?>"
-                                onchange="this.form.submit()">
+
+                            <input
+                                type="text"
+                                id="mes"
+                                name="mes"
+                                value="<?= isset($_GET['mes']) ? $_GET['mes'] : date('Y-m') ?>">
                         </form>
                     </div>
+
+
 
                     <!-- Ingresos-->
                     <div class="card mb-3">
@@ -801,6 +811,18 @@
     <script>
         window.CSRF_TOKEN = "<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>";
     </script>
+
+
+    <!-- Flatpickr: librería base -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- Flatpickr plugin: selección de mes/año -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+
+    <!-- Locale ------ español-->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+
 
     <!--Enlazamos con nuestros arvhicos js-->
     <script src="<?= BASE_URL ?>js/validaciones.js"></script>

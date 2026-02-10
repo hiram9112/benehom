@@ -111,27 +111,35 @@ body{
 
 /*---------------------------Selector de mes-----------------------------------------------*/
 
-#selector_mes input[type='month']{
-    font-size: 15px;
-    padding: 6px 10px;
-    border: 1px solid #D1D5DB;
-    border-radius: 4px;
-    background-color: white;
-    color: #333;
-    cursor:pointer;
-    outline: none;
-    transition: border-color 0.2s,box-shadow 0.2s ease ;
+/* Contenedor del selector: evita que el input ocupe toda la fila */
+#selector_mes {
+    --bs-focus-ring-color: rgba(78, 205, 196, 0.45);
+    --bs-focus-ring-width: 2px;
 }
 
-#selector_mes input[type='month']:hover{
-    border-color: #4ECDC4;
-    box-shadow: 0 0 0 2px rgb(78,205,196,0.45);
+#selector_mes {
+    width: fit-content;
+    margin-bottom: 1rem;
 }
 
-#selector_mes input[type='month']:focus{
-    border-color: #4ECDC4;
-    box-shadow: 0 0 0 2px rgb(78,205,196,0.45);
+#selector_mes input.form-control:focus,
+#selector_mes input.form-control:focus-visible {
+    border-color: var(--bh-StrongCyan) !important;
+    box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.35) !important;
+    outline: none !important;
 }
+
+#selector_mes input.form-control:hover {
+    border-color: var(--bh-StrongCyan);
+    box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.25);
+}
+
+.flatpickr-monthSelect-month.selected {
+    background-color: var(--bh-StrongCyan) !important;
+    color: #000000 !important;
+}
+
+
 
 
 /*-----------------------------------Tarjetas-----------------------------------------------*/
@@ -469,4 +477,5 @@ button#btn-forgot:hover{
     
     transform: scale(1.25);
 }
+
 

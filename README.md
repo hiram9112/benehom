@@ -1,74 +1,195 @@
 # BeneHom – Gestor de Economía Familiar
 
-BeneHom es una **aplicación web** para la gestión de la economía familiar, desarrollada como proyecto personal y académico dentro del ciclo de **Desarrollo de Aplicaciones Web (DAW)**.
+BeneHom es una aplicación web para la gestión de la economía familiar, desarrollada como proyecto individual dentro del CFGS de **Desarrollo de Aplicaciones Web (DAW)** y evolucionada hacia una aplicación estructurada y preparada para despliegue real.
 
-Su objetivo principal no es solo registrar ingresos y gastos, sino **ayudar al usuario a comprender su comportamiento financiero** y a tomar decisiones más conscientes a partir de datos claros y visuales.
+El objetivo principal no es únicamente registrar ingresos y gastos, sino ayudar al usuario a comprender su comportamiento financiero y tomar decisiones más conscientes a partir de datos claros y visuales.
 
 ---
 
-## 🎯 Enfoque del proyecto
+## 🎯 Objetivo del proyecto
 
-A diferencia de otras herramientas más complejas, BeneHom adopta un enfoque **educativo y minimalista**:
+BeneHom adopta un enfoque educativo y minimalista:
 
-- Clasificación simple de gastos:
-  - **Gastos obligatorios**
-  - **Gastos voluntarios**
-- Visualización clara de:
-  - Ingresos
-  - Capacidad teórica de ahorro
-  - Ahorro real
-- Gráficos diseñados para **interpretar**, no solo mostrar datos
+- Registro sencillo de ingresos y gastos.
+- Separación clara entre gastos obligatorios y gastos voluntarios.
+- Cálculo automático de:
+  - Capacidad teórica de ahorro.
+  - Ahorro real.
+- Visualización gráfica de la evolución financiera.
 
-La aplicación busca que el usuario entienda **qué podría ahorrar** frente a **lo que realmente ahorra**, fomentando la reflexión sobre hábitos de consumo.
+La aplicación está diseñada para que el usuario entienda qué podría ahorrar frente a lo que realmente ahorra.
+
+---
+
+## 🧠 Enfoque funcional
+
+La estructura financiera se divide en:
+
+### 1️⃣ Ingresos
+
+- Salario  
+- Inversiones  
+- Otros ingresos  
+
+### 2️⃣ Gastos obligatorios
+
+Costes necesarios para mantener el hogar:
+
+- Vivienda  
+- Suministros  
+- Seguros  
+- Alimentación básica  
+- Transporte esencial  
+- Impuestos  
+
+### 3️⃣ Gastos voluntarios
+
+Gastos no imprescindibles:
+
+- Ocio  
+- Suscripciones  
+- Viajes  
+- Restauración  
+- Compras personales  
+
+A partir de esta clasificación, BeneHom calcula automáticamente:
+
+- Totales dinámicos mensuales.
+- Capacidad de ahorro.
+- Ahorro real.
+- Evolución histórica (últimos meses).
+- Gráficos comparativos y de tendencia.
 
 ---
 
 ## 🛠️ Tecnologías utilizadas
 
+### Backend
+
 - PHP 8.x  
 - MySQL  
-- HTML5 / CSS3  
-- JavaScript (AJAX / Fetch API)  
-- Chart.js  
+- Arquitectura MVC (implementación manual)  
+- Protección CSRF  
+- Gestión segura de sesiones  
+- Configuración mediante variables de entorno (.env)  
+
+### Frontend
+
+- HTML5  
+- CSS3 (estilos personalizados)  
 - Bootstrap 5  
-- Arquitectura MVC (implementación manual)
+- JavaScript (Fetch API / AJAX)  
+- Chart.js  
+- Flatpickr (selector de mes)  
 
 ---
 
-## 🖥️ Estado actual
+## 🏗️ Arquitectura
 
-- ✔ Aplicación funcional en entorno local  
-- ✔ Backend, frontend y base de datos completos  
-- ✔ Gráficos dinámicos y resumen mensual operativo  
-- 🚧 Despliegue público pendiente  
-- 🚧 Algunas secciones previstas (Metas, Blog) aún en desarrollo  
+El proyecto sigue una arquitectura MVC estructurada manualmente:
+
+```
+/app
+    /controllers
+    /models
+    /views
+/config
+/public
+```
+
+### Características técnicas relevantes:
+
+- Separación clara entre lógica de negocio y presentación.
+- Validaciones en frontend y backend.
+- Manejo de errores preparado para entorno producción.
+- Configuración desacoplada mediante variables de entorno.
+- Protección contra CSRF en todos los formularios.
 
 ---
 
-## 🚀 Instalación en entorno local
+## 🔐 Seguridad implementada
 
-El proyecto está preparado para ejecutarse en un entorno local estándar con PHP y MySQL.
+- Protección CSRF en formularios.
+- Sanitización de datos con htmlspecialchars.
+- Gestión reforzada de sesiones.
+- Control de acceso por autenticación.
+- Uso de consultas preparadas con PDO (prepared statements) para prevenir inyecciones SQL.
+- Variables sensibles fuera del repositorio (.env).
 
-El repositorio incluye:
-- **Estructura completa de la base de datos**
-- **Datos de ejemplo (seed)** para poder visualizar correctamente las gráficas desde el primer acceso
+---
 
-La configuración del entorno se realiza mediante un archivo `.env`, cuyo formato de referencia se encuentra en `.env.example`.
+## 📱 Responsive
+
+- Menú lateral adaptado a dispositivos móviles mediante Bootstrap Offcanvas.
+- Diseño optimizado para evitar desbordamientos horizontales.
+- Estructura fluida basada en grid de Bootstrap.
+
+---
+
+## 📦 Estado actual
+
+- ✔ Aplicación completamente funcional.
+- ✔ Sistema de autenticación operativo.
+- ✔ Panel dinámico con gráficos y cálculos en tiempo real.
+- ✔ Diseño responsive estable.
+- ✔ Lista para despliegue en entorno real.
+- 🚧 Secciones futuras: Metas y Blog en desarrollo.
+
+---
+
+## 💻 Instalación en entorno local
+
+### Requisitos
+
+- PHP 8.x  
+- MySQL  
+- Servidor local (XAMPP, MAMP, Apache, etc.)  
+
+### Configuración
+
+1. Clonar el repositorio.
+2. Crear archivo `.env` a partir de `.env.example`.
+3. Configurar variables de entorno:
+
+```
+DB_HOST=localhost
+DB_NAME=benehom
+DB_USER=root
+DB_PASS=
+APP_ENV=local
+```
+
+4. Importar la base de datos incluida en el proyecto (estructura + datos seed).
+
+La aplicación estará disponible en entorno local tras configurar el servidor.
+
+---
+
+## 🌍 Despliegue
+
+La aplicación está preparada para desplegarse en un entorno con:
+
+- PHP 8.x  
+- MySQL  
+- Soporte para variables de entorno  
+
+El siguiente paso del proyecto es su despliegue público.
 
 ---
 
 ## 📈 Evolución futura
 
-El proyecto está diseñado para poder ampliarse con:
-- Metas de ahorro
-- Recomendaciones financieras
-- Contenido educativo
-- Mejoras de seguridad y despliegue
+- Sistema de metas de ahorro.
+- Panel comparativo anual.
+- Exportación de datos.
+- Mejora progresiva de seguridad en producción.
+- Optimización continua de experiencia móvil.
 
 ---
 
-## 👤 Autor
+## 👨‍💻 Autor
 
 **Hiram González González**  
-Proyecto desarrollado de forma individual dentro del CFGS de **Desarrollo de Aplicaciones Web (DAW)**.
+Desarrollador Web – CFGS Desarrollo de Aplicaciones Web (DAW)
 
+Proyecto desarrollado de forma individual como aplicación real orientada a producción y portfolio profesional.

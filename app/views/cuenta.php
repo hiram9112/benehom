@@ -196,6 +196,34 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- tarjeta documentación legal -->
+                <div class="card card-cuenta">
+                    <div class="card-header">
+                        <h4 class="titulo m-0">Documentación legal</h4>
+                    </div>
+
+                    <div class="card-body">
+                        <p class="mb-3">
+                            Puedes consultar en cualquier momento la información relativa
+                            a la protección de datos y condiciones de uso de la aplicación.
+                        </p>
+
+                        <ul class="list-unstyled mb-0">
+                            <li>
+                                <a href="index.php?r=legal/privacidad" target="_blank">
+                                    Política de Privacidad
+                                </a>
+                            </li>
+                            <li>
+                                <a href="index.php?r=legal/terminos" target="_blank">
+                                    Términos y Condiciones de Uso
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>

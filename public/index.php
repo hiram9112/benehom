@@ -118,7 +118,9 @@ $rutasPublicas = [
     'password/mostrarFormularioOlvido',
     'password/procesarFormularioOlvido',
     'password/reset',
-    'password/procesarReset'
+    'password/procesarReset',
+    'legal/privacidad',
+    'legal/terminos'
 ];
 
 $usuarioLogueado = isset($_SESSION['usuario_id']);

@@ -40,6 +40,11 @@ class RegistroController{
             elseif ($password !== $passwordConfirm) {
             $_SESSION['mensaje_error'] = "Las contraseñas no coinciden";
             }
+            // Validación aceptación de términos
+            elseif (empty($_POST['acepta_terminos'])) {
+                $_SESSION['mensaje_error'] ="Debes aceptar la Política de Privacidad y los Términos para registrarte";
+            }
+
 
 
 

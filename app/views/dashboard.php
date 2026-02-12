@@ -436,7 +436,7 @@
             <aside class="col-12 col-md-3 col-lg-3 bg-main-content mt-5">
 
                 <!--Gráfico presupuesto mensual-->
-                <div class="card p-3 mb-3 contenedor-grafico">
+                <div class="card p-3 mb-3 contenedor-grafico mt-3">
                     <h5 class="mb-3">
                         Presupuesto mensual
                         <button type="button"

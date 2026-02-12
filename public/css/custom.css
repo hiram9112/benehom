@@ -360,7 +360,7 @@ body{
     /*difuminamos y oscurecemos un poco*/
     filter: blur(30px) brightness(0.9);
     /*Evitamos ver brodes por el blur*/
-    transform: scale(1.2);
+    transform: none;
     /*Colocamos debajo del contenido*/
     z-index: 0;
 }

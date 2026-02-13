@@ -74,25 +74,62 @@ function csrf_validate(): bool
 /**
  * Envía email de recuperación de contraseña
  * Local: log
- * Producción: mail()
+ * Producción: PGPMailer()
  */
 function enviarEmailReset(string $email, string $resetLink): void
 {
     $appEnv = $_ENV['APP_ENV'] ?? 'local';
 
+    // Construimos URL absoluta
+    $resetLink = rtrim($_ENV['APP_URL'], '/') . $resetLink;
+
     $subject = 'Recuperación de contraseña - BeneHom';
-    $message =
-        "Hola,\n\n" .
-        "Has solicitado restablecer tu contraseña.\n\n" .
-        "Enlace (válido 30 minutos):\n" .
-        $resetLink . "\n\n" .
-        "Si no lo solicitaste, ignora este mensaje.\n\n" .
-        "— Equipo de BeneHom";
 
     if ($appEnv === 'production') {
-        @mail($email, $subject, $message);
+
+        require_once BASE_PATH . '/vendor/PHPMailer/PHPMailer.php';
+        require_once BASE_PATH . '/vendor/PHPMailer/SMTP.php';
+        require_once BASE_PATH . '/vendor/PHPMailer/Exception.php';
+
+        $mail = new PHPMailer\PHPMailer\PHPMailer();
+
+        $mail->CharSet = 'UTF-8';
+
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $_ENV['SMTP_USER'];
+        $mail->Password   = $_ENV['SMTP_PASS'];
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
+
+        $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
+        $mail->addAddress($email);
+
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+
+        $mail->Body = "
+            <p>Hola,</p>
+            <p>Has solicitado restablecer tu contraseña.</p>
+            <p><strong>Enlace (válido 30 minutos):</strong></p>
+            <p>
+                <a href='{$resetLink}'>{$resetLink}</a>
+            </p>
+            <p>Si no lo solicitaste, ignora este mensaje.</p>
+            <p>— Equipo de BeneHom</p>
+        ";
+
+        $mail->AltBody =
+            "Hola,\n\n" .
+            "Has solicitado restablecer tu contraseña.\n\n" .
+            "Enlace (válido 30 minutos):\n" .
+            $resetLink . "\n\n" .
+            "Si no lo solicitaste, ignora este mensaje.\n\n" .
+            "— Equipo de BeneHom";
+
+        $mail->send();
     } else {
         error_log('[DEV][RESET LINK] ' . $resetLink);
     }
 }
-

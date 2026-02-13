@@ -381,10 +381,12 @@ body{
 
 
 /*contenido arriba*/
-.login-body >*, .register-body>*{
+.login-body > .container,
+.register-body > .container{
     position: relative;
     z-index: 2;
 }
+
 
 button#btn-register, 
 button#btn-login, 
@@ -404,6 +406,24 @@ button#btn-forgot:hover{
     background-color: #22717E;
     box-shadow: 0 2px 8px rgba(26,83,92,0.45);
 }
+
+
+
+.login-card {
+    padding-top: 25px;   /* reducimos espacio arriba */
+    padding-bottom: 25px;
+    
+}
+.login-card .text-center {
+    margin-bottom: 8px;
+}
+
+.login-card h2 {
+    margin: 8px 0 18px 0;
+}
+
+
+
 
 /*-----------------------------------------------------Secciones en desarrollo-----------------------------------------------------*/
 .main-proximamente{

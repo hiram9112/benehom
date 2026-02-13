@@ -1,5 +1,8 @@
 # BeneHom – Gestor de Economía Familiar
 
+🌍 Aplicación en producción:
+https://benehom.es
+
 BeneHom es una aplicación web para la gestión de la economía familiar, desarrollada como proyecto individual dentro del CFGS de **Desarrollo de Aplicaciones Web (DAW)** y evolucionada hacia una aplicación estructurada y preparada para despliegue real.
 
 El objetivo principal no es únicamente registrar ingresos y gastos, sino ayudar al usuario a comprender su comportamiento financiero y tomar decisiones más conscientes a partir de datos claros y visuales.
@@ -132,7 +135,7 @@ El proyecto sigue una arquitectura MVC estructurada manualmente:
 - ✔ Sistema de autenticación operativo.
 - ✔ Panel dinámico con gráficos y cálculos en tiempo real.
 - ✔ Diseño responsive estable.
-- ✔ Lista para despliegue en entorno real.
+- ✔ Desplegada en entorno real (https://benehom.es).
 - 🚧 Secciones futuras: Metas y Blog en desarrollo.
 
 ---
@@ -149,31 +152,10 @@ El proyecto sigue una arquitectura MVC estructurada manualmente:
 
 1. Clonar el repositorio.
 2. Crear archivo `.env` a partir de `.env.example`.
-3. Configurar variables de entorno:
-
-```
-DB_HOST=localhost
-DB_NAME=benehom
-DB_USER=root
-DB_PASS=
-APP_ENV=local
-```
-
+3. Configurar variables de entorno.
 4. Importar la base de datos incluida en el proyecto (estructura + datos seed).
 
 La aplicación estará disponible en entorno local tras configurar el servidor.
-
----
-
-## 🌍 Despliegue
-
-La aplicación está preparada para desplegarse en un entorno con:
-
-- PHP 8.x  
-- MySQL  
-- Soporte para variables de entorno  
-
-El siguiente paso del proyecto es su despliegue público.
 
 ---
 

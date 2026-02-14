@@ -3,6 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="BeneHom">
+    <meta property="og:description" content="BeneHom es una aplicación web diseñada para ayudarte a organizar ingresos y gastos del hogar, analizar tu capacidad real de ahorro y tomar decisiones financieras más conscientes.">
+    <meta property="og:url" content="https://benehom.es">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://benehom.es/img/og-image.png">
+    <meta property="og:locale" content="es_ES">
     <title>Iniciar sesión</title>
 
     <!--Bootstrap CSS-->
@@ -20,7 +28,7 @@
     <div class="container vh-100 d-flex justify-content-center align-items-center">
         <div class="login-card card shadow p-4">
 
-            
+
             <h2 class="text-center">Inicie sesión</h2>
 
 

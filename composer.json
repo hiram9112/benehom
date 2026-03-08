@@ -1,0 +1,15 @@
+{
+    "name": "hiram9112/benehom",
+    "autoload": {
+        "psr-4": {
+            "Hiram9112\\Benehom\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "hiram9112",
+            "email": "234371043+hiram9112@users.noreply.github.com"
+        }
+    ],
+    "require": {}
+}

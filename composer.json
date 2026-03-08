@@ -11,5 +11,7 @@
             "email": "234371043+hiram9112@users.noreply.github.com"
         }
     ],
-    "require": {}
+    "require-dev": {
+        "phpstan/phpstan": "^2.1"
+    }
 }

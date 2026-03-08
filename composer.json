@@ -2,7 +2,7 @@
     "name": "hiram9112/benehom",
     "autoload": {
         "psr-4": {
-            "Hiram9112\\Benehom\\": "src/"
+            "Hiram9112\\Benehom\\": "app/"
         }
     },
     "authors": [

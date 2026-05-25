@@ -358,6 +358,7 @@
 
                                 <label for="gastos_voluntarios">Tipo de gasto:</label>
                                 <select name="categoria_gasto_voluntario" id="categoria_gasto_voluntario" required>
+                                    <option value="" selected disabled>Selecciona un tipo de gastos</option>
                                     <!-- Ocio y consumo -->
                                     <option value="ocio">Ocio y entretenimiento</option>
                                     <option value="gimnasio">Gimnasio / actividad deportiva</option>

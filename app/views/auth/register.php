@@ -80,7 +80,7 @@
                 </div>
 
 
-                <button type="submit" id="btn-register" class="btn w-100">Registrarse</button>
+                <button type="submit" id="btn-register" class="bh-btn bh-btn-primary w-100">Registrarse</button>
             </form>
             <!--Damos opción de iniciar sesión en caso de que ya tenga cuenta-->
             <p class="text-center mt-3 mb-0">¿Ya tienes cuenta?<a href="?r=auth/login">Inicia sesión aquí</a></p>

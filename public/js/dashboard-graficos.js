@@ -88,7 +88,7 @@ async function cargarGraficoPresupuesto() {
         layout: {
           padding: {
             top: 5,
-            bottom: 80,
+            bottom: 44,
             left: 0,
             right: 0,
           },
@@ -257,7 +257,7 @@ async function cargarGraficoVoluntarios6m() {
         layout: {
           padding: {
             top: 5,
-            bottom: 40,
+            bottom: 16,
             left: 0,
             right: 0,
           },
@@ -373,7 +373,7 @@ async function cargarGraficoObligatorios6m() {
         layout: {
           padding: {
             top: 5,
-            bottom: 40,
+            bottom: 16,
             left: 0,
             right: 0,
           },
@@ -503,7 +503,7 @@ async function cargarGraficoAhorros6m() {
         layout: {
           padding: {
             top: 5,
-            bottom: 40,
+            bottom: 20,
             left: 0,
             right: 0,
           },

@@ -165,12 +165,12 @@
 
 
                     <!-- Ingresos-->
-                    <div class="card mb-3">
-                        <div class="card-header ">
+                    <div class="bh-card bh-card-finance mb-3">
+                        <div class="bh-card-header">
                             <h3 class="titulo">
                                 Ingresos
                                 <button type="button"
-                                    class="btn btn-link p-0 info-btn"
+                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoIngresos"
                                     aria-label="Información sobre ingresos">
@@ -179,7 +179,7 @@
 
                             </h3>
                         </div>
-                        <div class="card-body">
+                        <div class="bh-card-body">
                             <form id="formIngresos" class="formulario-bh">
                                 <?= csrf_field() ?>
 
@@ -211,7 +211,7 @@
                                                     class="categoria_ingreso_individual"><?= htmlspecialchars(formatearCategoria($ingreso['categoria'])) ?></span>:
                                                 <span class="cantidad_ingreso"
                                                     data-id="<?= $ingreso['id'] ?>"><?= formatearCantidadPHP($ingreso['cantidad']) ?></span>€
-                                                <button class="eliminar_ingreso" data-id="<?= $ingreso['id'] ?>">
+                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="<?= $ingreso['id'] ?>" aria-label="Eliminar ingreso">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </li>
@@ -231,11 +231,11 @@
 
 
                     <!--Gastos obligatorios-->
-                    <div class="card mb-3">
-                        <div class="card-header">
+                    <div class="bh-card bh-card-finance mb-3">
+                        <div class="bh-card-header">
                             <h3 class="titulo ">Gastos Obligatorios
                                 <button type="button"
-                                    class="btn btn-link p-0 info-btn"
+                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoGastosObligatorios"
                                     aria-label="Información sobre gastos obligatorios">
@@ -243,7 +243,7 @@
                                 </button>
                             </h3>
                         </div>
-                        <div class="card-body">
+                        <div class="bh-card-body">
                             <form id="formGastosObligatorios" class="formulario-bh">
                                 <?= csrf_field() ?>
 
@@ -314,7 +314,7 @@
                                                     class="categoria_gasto_obli"><?= htmlspecialchars(formatearCategoria($gastoObligatorio['categoria'])) ?></span>:
                                                 <span class="cantidad_gasto_obli cantidad_gasto"
                                                     data-id="<?= $gastoObligatorio['id'] ?>"><?= formatearCantidadPHP($gastoObligatorio['cantidad']) ?></span>€
-                                                <button class="eliminar_gasto" data-id="<?= $gastoObligatorio['id'] ?>">
+                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoObligatorio['id'] ?>" aria-label="Eliminar gasto">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </li>
@@ -339,12 +339,12 @@
 
 
                     <!--Gastos voluntarios-->
-                    <div class="card ">
-                        <div class="card-header">
+                    <div class="bh-card bh-card-finance">
+                        <div class="bh-card-header">
                             <h3 class="titulo">
                                 Gastos voluntarios
                                 <button type="button"
-                                    class="btn btn-link p-0 info-btn"
+                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoGastosVoluntarios"
                                     aria-label="Información sobre gastos voluntarios">
@@ -352,7 +352,7 @@
                                 </button>
                             </h3>
                         </div>
-                        <div class="card-body">
+                        <div class="bh-card-body">
                             <form id="formGastosVoluntarios" class="formulario-bh">
                                 <?= csrf_field() ?>
 
@@ -411,7 +411,7 @@
                                                     class="categoria_gasto_volun"><?= htmlspecialchars(formatearCategoria($gastoVoluntario['categoria'])) ?></span>:
                                                 <span class="cantidad_gasto_volun cantidad_gasto"
                                                     data-id="<?= $gastoVoluntario['id'] ?>"><?= formatearCantidadPHP($gastoVoluntario['cantidad']) ?></span>€
-                                                <button class="eliminar_gasto" data-id="<?= $gastoVoluntario['id'] ?>"> <i
+                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoVoluntario['id'] ?>" aria-label="Eliminar gasto"> <i
                                                         class="bi bi-trash"></i></button>
                                             </li>
                                         <?php endforeach; ?>
@@ -437,11 +437,11 @@
             <aside class="col-12 col-md-3 col-lg-3 bg-main-content mt-5">
 
                 <!--Gráfico presupuesto mensual-->
-                <div class="card p-3 mb-3 contenedor-grafico mt-3">
+                <div class="bh-card bh-card-chart p-3 mb-3 mt-3">
                     <h5 class="mb-3">
                         Presupuesto mensual
                         <button type="button"
-                            class="btn btn-link p-0 info-btn"
+                            class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoPresupuestoMensual"
                             aria-label="Información sobre presupuesto mensual">
@@ -452,54 +452,62 @@
                         <p id="totalIngresosTexto" class="fw-bold mb-1 ingreso-resumenMensual"></p>
                         <p id="ahorro_mensual" class="mb-1 fw-bold ahorro-resumenMensual"></p>
                     </div>
-                    <canvas id="graficoPresupuestoMensual"></canvas>
+                    <div class="contenedor-grafico">
+                        <canvas id="graficoPresupuestoMensual"></canvas>
+                    </div>
                 </div>
 
                 <!--Gráfico Ahorros 6m-->
-                <div class="card p-3 mb-3 contenedor-grafico">
+                <div class="bh-card bh-card-chart p-3 mb-3">
                     <h5 class="mb-3">
                         Evolución del Ahorro
                         <button type="button"
-                            class="btn btn-link p-0 info-btn"
+                            class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoEvolucionAhorro"
                             aria-label="Información sobre evolución del ahorro">
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
-                    <canvas id="graficoAhorros6m"></canvas>
+                    <div class="contenedor-grafico">
+                        <canvas id="graficoAhorros6m"></canvas>
+                    </div>
                 </div>
 
 
                 <!--Gráfico evolución gastos obligatorios-->
-                <div class="card p-3 mb-3 contenedor-grafico">
+                <div class="bh-card bh-card-chart p-3 mb-3">
                     <h5 class="mb-3">
                         Evolución Gastos Obligatorios
                         <button type="button"
-                            class="btn btn-link p-0 info-btn"
+                            class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoEvolucionObligatorios"
                             aria-label="Información sobre la evolución de los gastos obligatorios">
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
-                    <canvas id="graficoObligatorios6m"></canvas>
+                    <div class="contenedor-grafico">
+                        <canvas id="graficoObligatorios6m"></canvas>
+                    </div>
                 </div>
 
 
                 <!--Gráfico evolución gastos voluntarios-->
-                <div class="card p-3 mb-3 contenedor-grafico">
+                <div class="bh-card bh-card-chart p-3 mb-3">
                     <h5 class="mb-3">
                         Evolución Gastos Voluntarios
                         <button type="button"
-                            class="btn btn-link p-0 info-btn"
+                            class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoEvolucionVoluntarios"
                             aria-label="Información sobre gastos voluntarios">
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
-                    <canvas id="graficoVoluntarios6m"></canvas>
+                    <div class="contenedor-grafico">
+                        <canvas id="graficoVoluntarios6m"></canvas>
+                    </div>
                 </div>
             </aside>
 

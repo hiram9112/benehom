@@ -75,7 +75,7 @@
                 </div>
 
 
-                <button type="submit" id="btn-login" class="btn w-100">Iniciar sesión</button>
+                <button type="submit" id="btn-login" class="bh-btn bh-btn-primary w-100">Iniciar sesión</button>
             </form>
 
             <p class="text-center mt-3 mb-0">¿No tienes cuenta? <a href="?r=registro/registrarUsuario"> Registrate aquí</a></p><br>

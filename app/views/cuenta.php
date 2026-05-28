@@ -135,12 +135,12 @@
             <main class="col-12 col-md-9 col-lg-11 bg-main-content p-4 ">
 
                 <!--tarjeta cambiar contraseña-->
-                <div class="card mb-3 card-cuenta">
-                    <div class="card-header">
+                <div class="bh-card mb-3 card-cuenta">
+                    <div class="bh-card-header">
                         <h4 class=" titulo m-0">Cambiar contraseña</h4>
                     </div>
 
-                    <div class="card-body">
+                    <div class="bh-card-body">
 
                         <form method="POST" action="index.php?r=cuenta/cambiarPassword" class="formulario-bh">
                             <?= csrf_field() ?>
@@ -167,12 +167,12 @@
                 </div>
 
                 <!--tarjeta eliminar cuenta-->
-                <div class="card mb-3 card-cuenta">
-                    <div class="card-header">
+                <div class="bh-card mb-3 card-cuenta">
+                    <div class="bh-card-header">
                         <h4 class=" titulo m-0 text-danger">Eliminar cuenta</h4>
                     </div>
 
-                    <div class="card-body">
+                    <div class="bh-card-body">
 
                         <!--Alertamos al usuario -->
                         <p class="text-danger fw-bold"> Esta acción es irreversible, se eliminarán todos los datos de la cuenta</p>
@@ -198,12 +198,12 @@
                 </div>
 
                 <!-- tarjeta documentación legal -->
-                <div class="card card-cuenta">
-                    <div class="card-header">
+                <div class="bh-card bh-card-legal card-cuenta">
+                    <div class="bh-card-header">
                         <h4 class="titulo m-0">Documentación legal</h4>
                     </div>
 
-                    <div class="card-body">
+                    <div class="bh-card-body">
                         <p class="mb-3">
                             Puedes consultar en cualquier momento la información relativa
                             a la protección de datos y condiciones de uso de la aplicación.

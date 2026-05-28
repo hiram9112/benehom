@@ -25,7 +25,7 @@ function agregarIngresoAlDOM(ingreso) {
       ingreso.categoria,
     )}</span>: 
     <span class="cantidad_ingreso" data-id="${ingreso.id}">${formatearCantidad(ingreso.cantidad)}</span>€
-    <button class="eliminar_ingreso" data-id="${ingreso.id}"><i class="bi bi-trash"></i>
+    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="${ingreso.id}" aria-label="Eliminar ingreso"><i class="bi bi-trash"></i>
     </button>
     `;
 
@@ -87,7 +87,7 @@ function agregarGastoObligAlDOM(gasto_oblig) {
       gasto_oblig.categoria,
     )}</span>: 
     <span class="cantidad_gasto_obli cantidad_gasto" data-id="${gasto_oblig.id}">${formatearCantidad(gasto_oblig.cantidad)}</span>€
-    <button class="eliminar_gasto" data-id="${gasto_oblig.id}"><i class="bi bi-trash"></i></button>
+    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gasto_oblig.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
     `;
 
   //Insertamos el nuevo elemento al inicio de la lista
@@ -124,7 +124,7 @@ function agregarGastoVolunAlDOM(gasto_volun) {
       gasto_volun.categoria,
     )}</span>: 
     <span class="cantidad_gasto_volun cantidad_gasto"  data-id="${gasto_volun.id}">${formatearCantidad(gasto_volun.cantidad)}</span>€
-    <button class="eliminar_gasto" data-id="${gasto_volun.id}"><i class="bi bi-trash"></i></button>
+    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gasto_volun.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
     `;
 
   //Insertamos el nuevo elemento al inicio de la lista

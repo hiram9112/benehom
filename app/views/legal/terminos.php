@@ -25,7 +25,7 @@
                     <div class="row">
                         <div class="col-lg-8 mx-auto">
 
-                            <div class="card shadow-sm border-0 p-4">
+                            <div class="bh-card bh-card-legal p-4">
 
                                 <h1 class="mb-4">Términos y Condiciones de Uso</h1>
 

@@ -47,7 +47,7 @@
                 <input type="email" name="email" id="email" class="form-control" placeholder="Correo electrónico"required>
             </div>
 
-            <button id ="btn-forgot" type="submit" class="btn w-100">
+            <button id="btn-forgot" type="submit" class="bh-btn bh-btn-primary w-100">
                 Enviar enlace de recuperación
             </button>
         </form>

@@ -66,7 +66,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn w-100" id="btn-forgot">Cambiar contraseña</button>
+                <button type="submit" class="bh-btn bh-btn-primary w-100" id="btn-forgot">Cambiar contraseña</button>
             </form>
 
            

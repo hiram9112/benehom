@@ -1,2 +1,10 @@
 .env
 /vendor/
+
+skills-lock.json
+
+.agents
+rediseño-visual.md
+plan.md
+identidad-visual.md
+auditoria-visual.md

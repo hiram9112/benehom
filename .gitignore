@@ -4,6 +4,7 @@
 skills-lock.json
 
 .agents
+.playwright-mcp/
 rediseño-visual.md
 plan.md
 identidad-visual.md

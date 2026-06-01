@@ -369,10 +369,11 @@ textarea:disabled {
 
 .bh-summary-metric{
     display: grid;
-    align-content: start;
-    gap: 0.15rem;
+    align-content: center;
+    gap: 0.25rem;
     min-height: 4.15rem;
     padding: 0.85rem var(--bh-space-3);
+    text-align: center;
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-md);
     background-color: rgba(233, 244, 236, 0.62);
@@ -380,20 +381,20 @@ textarea:disabled {
 
 .bh-summary-metric span{
     color: var(--bh-text-muted);
-    font-size: 0.78rem;
+    font-size: 0.9rem;
     font-weight: var(--bh-weight-bold);
     line-height: var(--bh-line-normal);
 }
 
 .bh-summary-metric strong{
     color: var(--bh-text-main);
-    font-size: 1.25rem;
+    font-size: 1.65rem;
     font-weight: var(--bh-weight-bold);
     line-height: var(--bh-line-tight);
 }
 
 #resumen_estado_card strong{
-    font-size: 1.05rem;
+    font-size: 1.35rem;
 }
 
 .bh-summary-metric.is-positive{

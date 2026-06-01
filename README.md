@@ -14,7 +14,7 @@ El objetivo principal no es únicamente registrar ingresos y gastos, sino ayudar
 BeneHom adopta un enfoque educativo y minimalista:
 
 - Registro sencillo de ingresos y gastos.
-- Separación clara entre gastos obligatorios y gastos voluntarios.
+- Separación clara entre gastos base y gastos ajustables.
 - Cálculo automático de:
   - Capacidad teórica de ahorro.
   - Ahorro real.
@@ -34,7 +34,7 @@ La estructura financiera se divide en:
 - Inversiones  
 - Otros ingresos  
 
-### 2️⃣ Gastos obligatorios
+### 2️⃣ Gastos base
 
 Costes necesarios para mantener el hogar:
 
@@ -45,9 +45,9 @@ Costes necesarios para mantener el hogar:
 - Transporte esencial  
 - Impuestos  
 
-### 3️⃣ Gastos voluntarios
+### 3️⃣ Gastos ajustables
 
-Gastos no imprescindibles:
+Gastos vinculados a decisiones de consumo y hábitos revisables:
 
 - Ocio  
 - Suscripciones  

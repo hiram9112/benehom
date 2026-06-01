@@ -35,7 +35,15 @@ class GastoController{
                 "ok"=>false,
                 "msg"=>"Datos inválidos"
             ]);
-            return;    
+            return;
+        }
+
+        if(!gastoCategoriaPermitida($tipo,$categoria)){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Selecciona una categoría válida."
+            ]);
+            return;
         }
 
         //Insertamos en la base de datos el nuevo gasto obligatorio(devolverá el ID del recién creado gasto)
@@ -183,7 +191,15 @@ class GastoController{
                 "ok"=>false,
                 "msg"=>"Datos inválidos"
             ]);
-            return;    
+            return;
+        }
+
+        if(!gastoCategoriaPermitida($tipo,$categoria)){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Selecciona una categoría válida."
+            ]);
+            return;
         }
 
         //Insertamos en la base de datos el nuevo gasto Voluntario(devolverá el ID del recién creado gasto)

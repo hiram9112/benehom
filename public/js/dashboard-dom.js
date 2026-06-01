@@ -154,7 +154,8 @@ function eliminarGastoDelDOM(id) {
   const lista = document.querySelector(`#${contenedorID} ul`);
 
   if (!lista || lista.children.length === 0) {
+    const nombreTipo = tipo === "obligatorio" ? "esenciales" : "flexibles";
     document.getElementById(contenedorID).innerHTML =
-      `<p>No tienes gastos ${tipo}s registrados todavía.</p>`;
+      `<p>No tienes gastos ${nombreTipo} registrados todavía.</p>`;
   }
 }

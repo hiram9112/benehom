@@ -53,6 +53,8 @@
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
     bh_mobile_nav();
+    $categoriasGasto = gastoCategorias();
+    $labelsCategoriasGasto = gastoCategoriaLabels();
     ?>
 
 
@@ -63,27 +65,59 @@
 
             <!-- Contenedor principal -->
             <main class="bh-main">
-                <div class="bh-content-grid bh-dashboard-grid">
+                <div class="bh-dashboard-layout">
+                    <header class="bh-dashboard-summary">
+                        <div class="bh-dashboard-period">
+                            <h1>Resumen mensual</h1>
+
+                            <!--Selector de mes-->
+                            <div id="selector_mes">
+                                <form method="GET" action="index.php">
+                                    <input type="hidden" name="r" value="dashboard/index">
+
+                                    <input
+                                        type="text"
+                                        id="mes"
+                                        name="mes"
+                                        value="<?= isset($_GET['mes']) ? $_GET['mes'] : date('Y-m') ?>">
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="bh-summary-metrics" aria-live="polite">
+                            <div class="bh-summary-metric" id="resumen_estado_card">
+                                <span>Balance del mes</span>
+                                <strong id="resumen_estado_mes">Sin datos</strong>
+                            </div>
+
+                            <div class="bh-summary-metric" id="resumen_ahorro_card">
+                                <span>Ahorro real</span>
+                                <strong id="resumen_ahorro_real">0€</strong>
+                            </div>
+
+                            <div class="bh-summary-metric">
+                                <span>Ingresos ahorrados</span>
+                                <strong id="resumen_ingresos_ahorrados">0%</strong>
+                            </div>
+
+                            <div class="bh-summary-metric">
+                                <span>Gastos esenciales</span>
+                                <strong id="resumen_peso_base">0%</strong>
+                            </div>
+
+                            <div class="bh-summary-metric">
+                                <span>Ingresos usados</span>
+                                <strong id="resumen_ingresos_usados">0%</strong>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="bh-content-grid bh-dashboard-grid">
 
 
 
                 <!--Panel central-->
                 <section>
-                    <!--Selector de mes-->
-                    <div id="selector_mes" class="mb-4">
-                        <form method="GET" action="index.php">
-                            <input type="hidden" name="r" value="dashboard/index">
-
-                            <input
-                                type="text"
-                                id="mes"
-                                name="mes"
-                                value="<?= isset($_GET['mes']) ? $_GET['mes'] : date('Y-m') ?>">
-                        </form>
-                    </div>
-
-
-
                     <!-- Ingresos-->
                     <div class="bh-card bh-card-finance mb-3">
                         <div class="bh-card-header">
@@ -100,19 +134,25 @@
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formIngresos" class="formulario-bh">
+                            <form id="formIngresos" class="formulario-bh bh-guided-form">
                                 <?= csrf_field() ?>
 
-                                <label for="categoria_ingreso">Categoría:</label>
-                                <select name="categoria_ingreso" id="categoria_ingreso" required>
-                                    <option value="" selected disabled>Selecciona un tipo de ingreso</option>
-                                    <option value="salario">Salario</option>
-                                    <option value="inversiones">Inversiones</option>
-                                    <option value="otros">Otros</option>
-                                </select>
+                                <div class="bh-field">
+                                    <label class="bh-label" for="categoria_ingreso">Categoría</label>
+                                    <div class="bh-select-shell">
+                                        <select name="categoria_ingreso" id="categoria_ingreso" class="bh-select" required>
+                                            <option value="" selected disabled>Selecciona un tipo de ingreso</option>
+                                            <option value="salario">Salario</option>
+                                            <option value="inversiones">Inversiones</option>
+                                            <option value="otros">Otros</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                                <label for="cantidad_ingreso">Cantidad(€): </label>
-                                <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" step="0.01" required>
+                                <div class="bh-field">
+                                    <label class="bh-label" for="cantidad_ingreso">Cantidad(€)</label>
+                                    <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" step="0.01" required>
+                                </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
                                 <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
@@ -150,79 +190,59 @@
 
 
 
-                    <!--Gastos obligatorios-->
+                    <!--Gastos esenciales-->
                     <div class="bh-card bh-card-finance mb-3">
                         <div class="bh-card-header">
-                            <h3 class="titulo ">Gastos Obligatorios
+                            <h3 class="titulo ">Gastos esenciales
                                 <button type="button"
                                     class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoGastosObligatorios"
-                                    aria-label="Información sobre gastos obligatorios">
+                                    aria-label="Información sobre gastos esenciales">
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formGastosObligatorios" class="formulario-bh">
+                            <form id="formGastosObligatorios" class="formulario-bh bh-guided-form">
                                 <?= csrf_field() ?>
 
-                                <label for="gastos_obligatorio">Tipo de gasto: </label>
-                                <select name="categoria_gasto_obligatorio" id="categoria_gasto_obligatorio" required>
-                                    <option value="" selected disabled>Selecciona un tipo de gastos</option>
+                                <div class="bh-category-picker" data-category-picker data-category-type="obligatorio">
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="area_gasto_obligatorio">Área del gasto</label>
+                                        <div class="bh-select-shell">
+                                            <select id="area_gasto_obligatorio" class="bh-select" data-area-select required>
+                                                <option value="" selected disabled>Selecciona un área</option>
+                                            </select>
+                                        </div>
+                                    </div>
 
-                                    <!-- Vivienda -->
-                                    <option value="vivienda">Vivienda (alquiler / hipoteca)</option>
-                                    <option value="comunidad">Gastos de comunidad</option>
-                                    <option value="mantenimiento_hogar">Mantenimiento y reparaciones del hogar</option>
-                                    <option value="mobiliario_hogar">Mobiliario y equipamiento del hogar</option>
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="categoria_gasto_obligatorio">Concepto</label>
+                                        <div class="bh-select-shell">
+                                            <select name="categoria_gasto_obligatorio" id="categoria_gasto_obligatorio" class="bh-select" data-concept-select required disabled>
+                                                <option value="" selected>Elige primero un área</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    <!-- Suministros -->
-                                    <option value="agua">Agua</option>
-                                    <option value="electricidad">Electricidad</option>
-                                    <option value="gas">Gas</option>
-                                    <option value="internet_telefonia">Internet y telefonía</option>
-
-                                    <!-- Alimentación -->
-                                    <option value="supermercado">Compra del supermercado</option>
-
-                                    <!-- Hijos -->
-                                    <option value="alimentacion_bebe">Alimentación bebé</option>
-                                    <option value="higiene_bebe">Higiene bebé</option>
-                                    <option value="ropa_bebe">Ropa bebé</option>
-                                    <option value="cuidado_infantil">Cuidado infantil (guardería / cuidador)</option>
-
-                                    <!-- Transporte -->
-                                    <option value="combustible_trabajo">Combustible por trabajo / estudio</option>
-                                    <option value="transporte_publico">Transporte público</option>
-                                    <option value="reparaciones_coche">Reparaciones y mantenimiento del coche</option>
-
-                                    <!-- Salud y educación -->
-                                    <option value="salud">Salud y medicación</option>
-                                    <option value="educacion">Educación / material escolar</option>
-
-                                    <!-- Trabajo e impuestos -->
-                                    <option value="trabajo">Gastos de trabajo</option>
-                                    <option value="impuestos">Impuestos y tasas</option>
-                                    <option value="seguros">Seguros</option>
-
-                                    <!-- Otros -->
-                                    <option value="imprevistos">Imprevistos</option>
-                                    <option value="otros_obligatorios">Otros gastos obligatorios</option>
-                                </select>
-
-                                <label for="cantidad_gasto_obligatorio">Cantidad(€):</label>
-                                <input type="number" name="cantidad_gasto_obligatorio" id="cantidad_gasto_obligatorio"
-                                    step="0.01" required>
+                                <div class="bh-field">
+                                    <label class="bh-label" for="cantidad_gasto_obligatorio">Cantidad(€)</label>
+                                    <input type="number" name="cantidad_gasto_obligatorio" id="cantidad_gasto_obligatorio"
+                                        step="0.01" required>
+                                </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
                                 <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
 
                                 <button type="submit">Añadir gasto</button>
+
+                                <p class="bh-help bh-category-help" data-category-help>Elige el área para ver solo los gastos relacionados.</p>
                             </form>
 
 
-                            <!--Contenedor para manejar de manera dinámica los gastos obligatorios utilizando AJAX y PHP-->
+                            <!--Contenedor para manejar de manera dinámica los gastos esenciales utilizando AJAX y PHP-->
                             <div id="lista_gastos_obligatorios" class="lista-gastos">
                                 <?php if (!empty($gastosObligatorios)): ?>
                                     <ul>
@@ -241,11 +261,11 @@
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <p>No tienes gastos obligatorios registrados todavía.</p>
+                                    <p>No tienes gastos esenciales registrados todavía.</p>
                                 <?php endif; ?>
                             </div>
 
-                            <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos obligatorios -->
+                            <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos esenciales -->
                             <p id="total_gastos_obligatorios_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
 
                             <!--Usaremos este elemento para mostrar de manera dinámica la capacidad de ahorro  -->
@@ -258,68 +278,59 @@
 
 
 
-                    <!--Gastos voluntarios-->
+                    <!--Gastos flexibles-->
                     <div class="bh-card bh-card-finance">
                         <div class="bh-card-header">
                             <h3 class="titulo">
-                                Gastos voluntarios
+                                Gastos flexibles
                                 <button type="button"
                                     class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoGastosVoluntarios"
-                                    aria-label="Información sobre gastos voluntarios">
+                                    aria-label="Información sobre gastos flexibles">
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formGastosVoluntarios" class="formulario-bh">
+                            <form id="formGastosVoluntarios" class="formulario-bh bh-guided-form">
                                 <?= csrf_field() ?>
 
-                                <label for="gastos_voluntarios">Tipo de gasto:</label>
-                                <select name="categoria_gasto_voluntario" id="categoria_gasto_voluntario" required>
-                                    <option value="" selected disabled>Selecciona un tipo de gastos</option>
-                                    <!-- Ocio y consumo -->
-                                    <option value="ocio">Ocio y entretenimiento</option>
-                                    <option value="gimnasio">Gimnasio / actividad deportiva</option>
+                                <div class="bh-category-picker" data-category-picker data-category-type="voluntario">
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="area_gasto_voluntario">Área del gasto</label>
+                                        <div class="bh-select-shell">
+                                            <select id="area_gasto_voluntario" class="bh-select" data-area-select required>
+                                                <option value="" selected disabled>Selecciona un área</option>
+                                            </select>
+                                        </div>
+                                    </div>
 
-                                    <!-- Restauración -->
-                                    <option value="comidas_fuera">Comidas fuera</option>
-                                    <option value="pedir_comida">Pedir comida a domicilio</option>
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="categoria_gasto_voluntario">Concepto</label>
+                                        <div class="bh-select-shell">
+                                            <select name="categoria_gasto_voluntario" id="categoria_gasto_voluntario" class="bh-select" data-concept-select required disabled>
+                                                <option value="" selected>Elige primero un área</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    <!-- Suscripciones -->
-                                    <option value="suscripciones">Suscripciones</option>
-                                    <option value="movil_financiado">Móvil financiado</option>
-
-                                    <!-- Transporte personal -->
-                                    <option value="combustible_personal">Combustible (uso personal)</option>
-
-                                    <!-- Finanzas personales -->
-                                    <option value="compras_financiadas">Compras financiadas</option>
-                                    <option value="prestamo_personal">Préstamo personal</option>
-                                    <option value="prestamo_coche">Préstamo o renting de coche</option>
-
-                                    <!-- Viajes -->
-                                    <option value="viajes">Viajes y vacaciones</option>
-
-                                    <!-- Solidaridad -->
-                                    <option value="donaciones">Donaciones</option>
-
-                                    <!-- Otros -->
-                                    <option value="otros_voluntarios">Otros gastos voluntarios</option>
-                                </select>
-
-                                <label for="cantidad_gasto_voluntario">Cantidad(€):</label>
-                                <input type="number" name="cantidad_gasto_voluntario" id="cantidad_gasto_voluntario"
-                                    step="0.01" required>
+                                <div class="bh-field">
+                                    <label class="bh-label" for="cantidad_gasto_voluntario">Cantidad(€)</label>
+                                    <input type="number" name="cantidad_gasto_voluntario" id="cantidad_gasto_voluntario"
+                                        step="0.01" required>
+                                </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
                                 <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
 
                                 <button type="submit">Añadir gasto</button>
+
+                                <p class="bh-help bh-category-help" data-category-help>Elige el área para ver solo los gastos relacionados.</p>
                             </form>
 
-                            <!--Contenedor para manejar de manera dinámica los gastos obligatorios utilizando AJAX y PHP-->
+                            <!--Contenedor para manejar de manera dinámica los gastos flexibles utilizando AJAX y PHP-->
                             <div id="lista_gastos_voluntarios" class="lista-gastos">
                                 <?php if (!empty($gastosVoluntarios)): ?>
                                     <ul>
@@ -337,11 +348,11 @@
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <p>No tienes gastos voluntarios registrados todavía.</p>
+                                    <p>No tienes gastos flexibles registrados todavía.</p>
                                 <?php endif; ?>
                             </div>
 
-                            <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos voluntarios -->
+                            <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos flexibles -->
                             <p id="total_gastos_voluntarios_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
                             <!--Usaremos este elemento para mostrar de manera dinámica el ahorro real -->
                             <p id="ahorro_real_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
@@ -355,7 +366,7 @@
                 <aside>
 
                 <!--Gráfico presupuesto mensual-->
-                <div class="bh-card bh-card-chart p-3 mb-3 mt-3">
+                <div class="bh-card bh-card-chart p-3 mb-3">
                     <h5 class="mb-3">
                         Presupuesto mensual
                         <button type="button"
@@ -366,10 +377,6 @@
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
-                    <div class="resumen-flex">
-                        <p id="totalIngresosTexto" class="fw-bold mb-1 ingreso-resumenMensual"></p>
-                        <p id="ahorro_mensual" class="mb-1 fw-bold ahorro-resumenMensual"></p>
-                    </div>
                     <div class="contenedor-grafico">
                         <canvas id="graficoPresupuestoMensual"></canvas>
                     </div>
@@ -393,15 +400,15 @@
                 </div>
 
 
-                <!--Gráfico evolución gastos obligatorios-->
+                <!--Gráfico evolución gastos esenciales-->
                 <div class="bh-card bh-card-chart p-3 mb-3">
                     <h5 class="mb-3">
-                        Evolución Gastos Obligatorios
+                        Evolución gastos esenciales
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoEvolucionObligatorios"
-                            aria-label="Información sobre la evolución de los gastos obligatorios">
+                            aria-label="Información sobre la evolución de los gastos esenciales">
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
@@ -411,15 +418,15 @@
                 </div>
 
 
-                <!--Gráfico evolución gastos voluntarios-->
+                <!--Gráfico evolución gastos flexibles-->
                 <div class="bh-card bh-card-chart p-3 mb-3">
                     <h5 class="mb-3">
-                        Evolución Gastos Voluntarios
+                        Evolución gastos flexibles
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoEvolucionVoluntarios"
-                            aria-label="Información sobre gastos voluntarios">
+                            aria-label="Información sobre gastos flexibles">
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
@@ -428,6 +435,7 @@
                     </div>
                 </div>
                 </aside>
+                </div>
                 </div>
             </main>
     </div>
@@ -464,25 +472,25 @@
         </div>
     </div>
 
-    <!--Modal de gastos obligatorios-->
+    <!--Modal de gastos esenciales-->
     <div class="modal fade" id="infoGastosObligatorios" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">¿Qué son los gastos obligatorios?</h5>
+                    <h5 class="modal-title">¿Qué son los gastos esenciales?</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
-                    <p> Los gastos obligatorios son aquellos necesarios para mantener el hogar
-                        y cubrir necesidades básicas. </p>
+                    <p>Los gastos esenciales son los pagos que sostienen el funcionamiento del hogar
+                        y cubren necesidades básicas.</p>
 
-                    <p>No dependen de decisiones de ocio o consumo,son obligaciones que no podemos
-                        ignorar, suelen repetirse cada mes.</p>
+                    <p>Suelen repetirse cada mes y te ayudan a entender cuánto dinero necesitas
+                        para vivir con estabilidad.</p>
 
-                    <p class="mt-2"> Separarlos del resto de gastos te ayuda a entender
-                        cuánto dinero necesitas realmente para vivir.</p>
+                    <p class="mt-2">Separarlos del resto de gastos permite calcular tu margen real
+                        antes de revisar decisiones de consumo.</p>
                 </div>
 
                 <div class="modal-footer">
@@ -493,35 +501,32 @@
         </div>
     </div>
 
-    <!--Modal de gastos voluntarios-->
+    <!--Modal de gastos flexibles-->
 
     <div class="modal fade" id="infoGastosVoluntarios" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">¿Qué son los gastos voluntarios?</h5>
+                    <h5 class="modal-title">¿Qué son los gastos flexibles?</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
-                    <p>Los gastos voluntarios son aquellos que <strong>no son imprescindibles para vivir</strong>
-                        y dependen principalmente de nuestros hábitos de consumo y decisiones personales.
+                    <p>Los gastos flexibles son pagos vinculados a hábitos, preferencias y decisiones de consumo.
+                        No son negativos por sí mismos, pero suelen ofrecer más margen de revisión.
                     </p>
 
-                    <p>Identificar este tipo de gastos permite entender con claridad
+                    <p>Identificarlos permite entender con claridad
                         <strong>qué parte de nuestro presupuesto es realmente flexible</strong>.
-                        Son gastos que pueden reducirse o eliminarse sin afectar a las
-                        necesidades básicas del hogar.
+                        Muchos pueden reducirse, pausarse o reorganizarse sin afectar a los gastos esenciales del hogar.
                     </p>
 
                     <p class="mt-2">
-                        Identificarlos ayuda a medir el impacto real que pequeños cambios en nuestros hábitos
+                        Revisarlos ayuda a medir el impacto real que pequeños cambios en nuestros hábitos
                         pueden tener sobre la <strong>capacidad de ahorro</strong> y el
                         <strong>bienestar financiero</strong>.
-                        Al no ser obligaciones fijas, muchos de estos gastos pueden eliminarse
-                        de un mes para otro, generando un efecto positivo
-                        <strong>rápido y significativo</strong> en la economía familiar.
+                        En muchos casos, el efecto puede notarse de un mes a otro.
                     </p>
                 </div>
 
@@ -592,11 +597,11 @@
                     </p>
 
                     <p>La <strong>capacidad de ahorro</strong> representa cuánto dinero
-                        podrías haber ahorrado en un mes según tus ingresos y gastos obligatorios.
+                        podrías haber ahorrado en un mes según tus ingresos y gastos esenciales.
                     </p>
 
                     <p>El <strong>ahorro real</strong> muestra lo que finalmente ocurrió
-                        después de incluir los gastos voluntarios: lo que realmente se ahorró
+                        después de incluir los gastos flexibles: lo que realmente se ahorró
                         o se perdió.
                     </p>
 
@@ -622,7 +627,7 @@
         </div>
     </div>
 
-    <!--Modal Gráfico de evolución de gastos obligatorios-->
+    <!--Modal Gráfico de evolución de gastos esenciales-->
     <div class="modal fade" id="infoEvolucionObligatorios" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -634,18 +639,18 @@
 
                 <div class="modal-body">
                     <p>
-                        Este gráfico muestra la <strong>evolución de tus gastos obligatorios</strong>
+                        Este gráfico muestra la <strong>evolución de tus gastos esenciales</strong>
                         durante los últimos 6 meses.
                     </p>
 
                     <p>
-                        Los gastos obligatorios suelen ser <strong>estables en el tiempo</strong>,
+                        Los gastos esenciales suelen ser <strong>estables en el tiempo</strong>,
                         ya que corresponden a pagos necesarios como vivienda, suministros o seguros.
                     </p>
 
                     <p>
                         Si las <strong>cantidades se mantienen constantes</strong>,
-                        significa que tus gastos básicos están bajo control.
+                        significa que la base económica del hogar está bajo control.
                     </p>
 
                     <p>
@@ -655,7 +660,7 @@
 
                     <p>
                         En algunos casos, este gráfico ayuda a detectar
-                        <strong>gastos que quizá no sean realmente obligatorios</strong>
+                        <strong>gastos que quizá no pertenezcan a los gastos esenciales del hogar</strong>
                         o que estén <strong>mal clasificados</strong>.
                     </p>
 
@@ -681,7 +686,7 @@
 
 
 
-    <!--Modal Gráfico de evolución de gastos voluntarios-->
+    <!--Modal Gráfico de evolución de gastos flexibles-->
 
     <div class="modal fade" id="infoEvolucionVoluntarios" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -694,7 +699,7 @@
 
                 <div class="modal-body">
                     <p>
-                        Este gráfico muestra la <strong>evolución de tus gastos voluntarios</strong>
+                        Este gráfico muestra la <strong>evolución de tus gastos flexibles</strong>
                         durante los últimos 6 meses. Representa de forma visual <strong>cómo se están
                             comportando tus hábitos de consumo</strong>
                         con el paso del tiempo.
@@ -796,6 +801,8 @@
     <!--Cargamos token crsf-->
     <script>
         window.CSRF_TOKEN = "<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>";
+        window.BH_GASTO_CATEGORIAS = <?= json_encode($categoriasGasto, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+        window.BH_GASTO_CATEGORIA_LABELS = <?= json_encode($labelsCategoriasGasto, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     </script>
 
 
@@ -814,6 +821,7 @@
     <script src="<?= BASE_URL ?>js/validaciones.js"></script>
     <script src="<?= BASE_URL ?>js/dashboard-graficos.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/dashboard-edicion.js?v=<?= time() ?>"></script>
+    <script src="<?= BASE_URL ?>js/dashboard-categorias.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/dashboard-formularios.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/dashboard-utils.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/dashboard-dom.js?v=<?= time() ?>"></script>

@@ -240,7 +240,7 @@ async function cargarGraficoVoluntarios6m() {
         labels: meses,
         datasets: [
           {
-            label: "Gastos Voluntarios",
+            label: "Gastos flexibles",
             data: valores,
             borderColor: "#4ECDC4",
             backgroundColor: "rgba(74,144,226,0.25)",
@@ -356,7 +356,7 @@ async function cargarGraficoObligatorios6m() {
         labels: meses,
         datasets: [
           {
-            label: "Gastos Obligatorios",
+            label: "Gastos esenciales",
             data: valores,
             borderColor: "#4ECDC4",
             backgroundColor: "rgba(74,144,226,0.25)",

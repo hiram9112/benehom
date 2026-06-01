@@ -1,11 +1,61 @@
 <?php
 
+function gastoCategorias(): array
+{
+    static $categorias = null;
+
+    if ($categorias === null) {
+        $categorias = require CONFIG_PATH . '/gasto_categorias.php';
+    }
+
+    return $categorias;
+}
+
+function gastoCategoriasPorTipo(string $tipo): array
+{
+    $categorias = gastoCategorias();
+
+    return $categorias[$tipo] ?? [];
+}
+
+function gastoCategoriaLabels(): array
+{
+    $labels = [];
+
+    foreach (gastoCategorias() as $grupos) {
+        foreach ($grupos as $grupo) {
+            foreach ($grupo['items'] as $valor => $label) {
+                $labels[$valor] = $label;
+            }
+        }
+    }
+
+    return $labels;
+}
+
+function gastoCategoriaPermitida(string $tipo, string $categoria): bool
+{
+    foreach (gastoCategoriasPorTipo($tipo) as $grupo) {
+        if (isset($grupo['items'][$categoria])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 //Funcion para formatear las categorias
 function formatearCategoria($texto){
-    //Reemplazamos "_" por espacios 
+    $labels = gastoCategoriaLabels();
+
+    if (isset($labels[$texto])) {
+        return $labels[$texto];
+    }
+
+    //Reemplazamos "_" por espacios
     $texto=str_replace("_"," ",$texto);
 
-    //Ponemos mayúsucula inicial a cada palabra 
+    //Ponemos mayúsucula inicial a cada palabra
     return ucwords($texto);
 }
 

@@ -132,7 +132,7 @@
                     <h6 class="mt-3">¿Qué permite?</h6>
                     <ul>
                         <li>Registrar ingresos y clasificarlos correctamente</li>
-                        <li>Diferenciar obligaciones y decisiones de consumo</li>
+                        <li>Diferenciar gastos esenciales y gastos flexibles</li>
                         <li>Visualizar tu capacidad real de ahorro vs lo que ahorras realmente</li>
                         <li>Detectar patrones de comportamiento que pueden generar problemas económico para el hogar.</li>
                     </ul>
@@ -140,7 +140,7 @@
                     <h6 class="mt-3">¿Cuál es su objetivo?</h6>
                     <p>
                         Fomentar una gestión consciente y sostenible del dinero,
-                        demostrando que pequeños ajustes en los hábitos de consumo
+                        mostrando que pequeños ajustes en los gastos flexibles
                         pueden generar un impacto significativo en la estabilidad
                         económica familiar a largo plazo.
                     </p>

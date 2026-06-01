@@ -55,6 +55,7 @@
     bh_mobile_nav();
     $categoriasGasto = gastoCategorias();
     $labelsCategoriasGasto = gastoCategoriaLabels();
+    $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
     ?>
 
 
@@ -79,7 +80,7 @@
                                         type="text"
                                         id="mes"
                                         name="mes"
-                                        value="<?= isset($_GET['mes']) ? $_GET['mes'] : date('Y-m') ?>">
+                                        value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
                                 </form>
                             </div>
                         </div>
@@ -155,7 +156,7 @@
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
+                                <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
 
                                 <button type="submit">Añadir ingreso</button>
                             </form>
@@ -234,7 +235,7 @@
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
+                                <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
 
                                 <button type="submit">Añadir gasto</button>
 
@@ -323,7 +324,7 @@
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?= $mesSeleccionado ?>">
+                                <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
 
                                 <button type="submit">Añadir gasto</button>
 

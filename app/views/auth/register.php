@@ -1,110 +1,80 @@
-<!DOCTYPE html>
-<html lang="es">
+<?php
+require_once APP_PATH . '/views/partials/auth-layout.php';
 
-<head>
-    <meta charset="UTF-8">
-    <title>Registro de usuario</title>
+bh_auth_begin(
+    'Registro de usuario',
+    'Crea tu cuenta',
+    'Empieza a ordenar tus ingresos, gastos y metas económicas desde un solo lugar.'
+);
+?>
 
-    <!--Bootstrap CSS-->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<?php bh_auth_flash_messages(); ?>
 
+<form method="post" action="?r=registro/registrarUsuario" class="bh-auth-form">
+    <?= csrf_field() ?>
 
-    <!--Conectamos con archivo CSS propio-->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
-</head>
+    <div class="mb-3">
+        <label for="usuario" class="form-label">Usuario:</label>
+        <input type="text" class="form-control" name="usuario" id="usuario" required>
+    </div>
 
-<body class="register-body">
-    <div class="container vh-100 d-flex justify-content-center align-items-center">
-        <div class="login-card card shadow p-4">
-            <h2 class="text-center mb-3">Registrese aquí</h2>
+    <div class="mb-3">
+        <label for="email" class="form-label">Correo electrónico:</label>
+        <input type="email" class="form-control" name="email" id="email" required>
+    </div>
 
-            <!--Mostramos mensaje de error si existe-->
-            <?php
-            if (isset($_SESSION['mensaje_error'])) {
-                echo '<div class="alert alert-danger">';
-                echo $_SESSION['mensaje_error'];
-                echo '</div>';
-                unset($_SESSION['mensaje_error']);
-            }
-            ?>
-
-            <!--Formulario para recoger datos de registro de nuevo usuario-->
-            <form method="post" action="?r=registro/registrarUsuario">
-                <?= csrf_field() ?>
-
-
-                <div class="mb-3">
-                    <label for="usuario" class="form-label">Usuario:</label>
-                    <input type="text" class="form-control" name="usuario" id="usuario" required>
-                </div>
-
-                <div class="mb-3">
-                    <label for="email" class="form-label">Correo electrónico:</label>
-                    <input type="email" class="form-control" name="email" id="email" required>
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Contraseña:</label>
-                    <div class="input-group">
-                        <input type="password" class="form-control" name="password" id="password" required>
-                        <button class="btn btn-outline-secondary" type="button"
-                            onclick="togglePassword('password', this)"><i class="bi bi-eye"></i></button>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="password_confirm" class="form-label">Confirmar contraseña:</label>
-                    <div class="input-group">
-                        <input type="password" class="form-control" name="password_confirm" id="password_confirm" required>
-                        <button class="btn btn-outline-secondary" type="button"
-                            onclick="togglePassword('password_confirm', this)"><i class="bi bi-eye"></i></button>
-                    </div>
-                </div>
-
-                <div class="form-check mt-3">
-                    <input
-                        class="form-check-input"
-                        type="checkbox"
-                        name="acepta_terminos"
-                        required>
-                    <label class="form-check-label">
-                        Acepto la
-                        <a href="<?= BASE_URL ?>index.php?r=legal/privacidad" target="_blank">
-                            Política de Privacidad
-                        </a>
-                        y <br> los
-                        <a href="<?= BASE_URL ?>index.php?r=legal/terminos" target="_blank">
-                            Términos y Condiciones
-                        </a>.
-                    </label>
-                </div>
-
-
-                <button type="submit" id="btn-register" class="bh-btn bh-btn-primary w-100">Registrarse</button>
-            </form>
-            <!--Damos opción de iniciar sesión en caso de que ya tenga cuenta-->
-            <p class="text-center mt-3 mb-0">¿Ya tienes cuenta?<a href="?r=auth/login">Inicia sesión aquí</a></p>
+    <div class="mb-3">
+        <label for="password" class="form-label">Contraseña:</label>
+        <div class="input-group">
+            <input type="password" class="form-control" name="password" id="password" required>
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)" aria-label="Mostrar u ocultar contraseña">
+                <i class="bi bi-eye"></i>
+            </button>
         </div>
     </div>
 
-    <script>
-        function togglePassword(inputId, button) {
-            const input = document.getElementById(inputId);
-            const icon = button.querySelector('i');
+    <div class="mb-3">
+        <label for="password_confirm" class="form-label">Confirmar contraseña:</label>
+        <div class="input-group">
+            <input type="password" class="form-control" name="password_confirm" id="password_confirm" required>
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password_confirm', this)" aria-label="Mostrar u ocultar contraseña">
+                <i class="bi bi-eye"></i>
+            </button>
+        </div>
+    </div>
 
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('bi-eye');
-                icon.classList.add('bi-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
-            }
+    <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" name="acepta_terminos" id="acepta_terminos" required>
+        <label class="form-check-label" for="acepta_terminos">
+            Acepto la
+            <a href="<?= BASE_URL ?>index.php?r=legal/privacidad" target="_blank">Política de Privacidad</a>
+            y los
+            <a href="<?= BASE_URL ?>index.php?r=legal/terminos" target="_blank">Términos y Condiciones</a>.
+        </label>
+    </div>
+
+    <button type="submit" id="btn-register" class="bh-btn bh-btn-primary w-100">Registrarse</button>
+</form>
+
+<div class="bh-auth-links">
+    <p>¿Ya tienes cuenta? <a href="?r=auth/login">Inicia sesión aquí</a></p>
+</div>
+
+<script>
+    function togglePassword(inputId, button) {
+        const input = document.getElementById(inputId);
+        const icon = button.querySelector('i');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
         }
-    </script>
+    }
+</script>
 
-
-</body>
-
-</html>
+<?php bh_auth_end(); ?>

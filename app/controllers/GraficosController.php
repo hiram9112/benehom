@@ -38,8 +38,8 @@ class GraficosController{
         //Obtenemos datos filtrados por mes
         try {
             $ingresos = Ingreso::obtenerPorMes($usuario_id, $fechaInicio, $fechaFin);
-            $obligatorios = Gasto::obtenerPorMes($usuario_id, "obligatorio", $fechaInicio, $fechaFin);
-            $voluntarios = Gasto::obtenerPorMes($usuario_id, "voluntario", $fechaInicio, $fechaFin);
+            $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "obligatorio", $fechaInicio, $fechaFin);
+            $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "voluntario", $fechaInicio, $fechaFin);
         } catch (PDOException $e) {
 
             if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
@@ -59,12 +59,12 @@ class GraficosController{
 
         //Calculamos totales
         $totalIngresos= array_sum(array_column($ingresos,"cantidad"));
-        $totalObligatorios= array_sum(array_column($obligatorios,"cantidad"));
-        $totalVoluntarios= array_sum(array_column($voluntarios,"cantidad"));
-        $gastosTotales=$totalObligatorios+$totalVoluntarios;
+        $totalGastosEsenciales= array_sum(array_column($gastosEsenciales,"cantidad"));
+        $totalGastosFlexibles= array_sum(array_column($gastosFlexibles,"cantidad"));
+        $gastosTotales=$totalGastosEsenciales+$totalGastosFlexibles;
         
-        //Calculamos la capacidad de ahorro real
-        $capacidadAhorroReal=$totalIngresos-($totalVoluntarios+$totalObligatorios);
+        //Calculamos el ahorro real del mes
+        $ahorroReal=$totalIngresos-($totalGastosFlexibles+$totalGastosEsenciales);
 
         
         //Enviamos respuesta
@@ -72,15 +72,15 @@ class GraficosController{
             "ok"=>true,
             "data"=>[
             "ingresos"=>$totalIngresos,
-            "obligatorios"=>$totalObligatorios,
-            "voluntarios"=>$totalVoluntarios,
-            "ahorroReal"=>$capacidadAhorroReal,
+            "gastosEsenciales"=>$totalGastosEsenciales,
+            "gastosFlexibles"=>$totalGastosFlexibles,
+            "ahorroReal"=>$ahorroReal,
             "gastosTotales"=>$gastosTotales
             ]
         ]);
     }
 
-    //Función para evolución de gráficos voluntarios y obligatorios
+    //Función para evolución de gráficos de gastos esenciales y flexibles
     public function gastos6m(){
         // Comprobaciones de seguridad, nos aseguramos que la petición sea POST y haya una sesión activa
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -188,7 +188,7 @@ class GraficosController{
         }
 
         // Efectuamos los cálculos para cada mes
-        $capacidadAhorro = [];
+        $ahorroPosible = [];
         $ahorroReal = [];
 
         foreach ($meses as $mes) {
@@ -199,8 +199,8 @@ class GraficosController{
 
             // Hacemos las consultas al modelo
             $tIngresos = Ingreso::totalPorRango($usuario_id, $fechaInicio, $fechaFin);
-            $tObligatorios = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "obligatorio");
-            $tVoluntarios = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "voluntario");
+            $tGastosEsenciales = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "obligatorio");
+            $tGastosFlexibles = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "voluntario");
 
             // control explícito de errores del modelo
             if ($tIngresos === false) {
@@ -211,7 +211,7 @@ class GraficosController{
                 return;
             }
 
-            if ($tObligatorios === false) {
+            if ($tGastosEsenciales === false) {
                 echo json_encode([
                     "ok" => false,
                     "msg" => "Error consultando gastos esenciales"
@@ -219,7 +219,7 @@ class GraficosController{
                 return;
             }
 
-            if ($tVoluntarios === false) {
+            if ($tGastosFlexibles === false) {
                 echo json_encode([
                     "ok" => false,
                     "msg" => "Error consultando gastos flexibles"
@@ -228,10 +228,10 @@ class GraficosController{
             }
 
             // Cálculos
-            $cap = $tIngresos - $tObligatorios;
-            $real = $tIngresos - ($tObligatorios + $tVoluntarios);
+            $posible = $tIngresos - $tGastosEsenciales;
+            $real = $tIngresos - ($tGastosEsenciales + $tGastosFlexibles);
 
-            $capacidadAhorro[] = $cap;
+            $ahorroPosible[] = $posible;
             $ahorroReal[] = $real;
         }
 
@@ -240,7 +240,7 @@ class GraficosController{
             "ok" => true,
             "data" => [
                 "meses" => $meses,
-                "capacidad" => $capacidadAhorro,
+                "ahorroPosible" => $ahorroPosible,
                 "ahorroReal" => $ahorroReal
             ]
         ]);

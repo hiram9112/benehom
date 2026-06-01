@@ -1,7 +1,7 @@
 //Variable para destruir  gáficos cuando el usuario cambie de mes
 let graficoPresupuesto = null;
-let graficoVoluntarios6m = null;
-let graficoObligatorios6m = null;
+let graficoGastosFlexibles6m = null;
+let graficoGastosEsenciales6m = null;
 let graficoAhorros6m = null;
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ async function cargarGraficoPresupuesto() {
       type: "bar",
       data: {
         //Introducimos al gráfico cada dato con su valor correspondiente
-        labels: ["Ingresos", "Gastos Totales", "Ahorro real"],
+        labels: ["Ingresos", "Gastos totales", "Ahorro real"],
         datasets: [
           {
             data: [valores.ingresos, valores.gastosTotales, valores.ahorroReal],
@@ -119,7 +119,7 @@ async function cargarGraficoPresupuesto() {
             //agragamos simbolo de € a los valores
             callbacks: {
               label: function (context) {
-                const nombres = ["Ingresos", "Gastos Totales", "Ahorro Real"];
+                const nombres = ["Ingresos", "Gastos totales", "Ahorro real"];
                 return nombres[context.dataIndex] + ": " + context.raw + "€";
               },
             },
@@ -191,9 +191,9 @@ async function cargarGraficoPresupuesto() {
 }
 
 //---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos flexibles------------------------------------------------
-async function cargarGraficoVoluntarios6m() {
+async function cargarGraficoGastosFlexibles6m() {
   // Seleccionamos el canvas donde irá el gráfico
-  const ctx = document.getElementById("graficoVoluntarios6m").getContext("2d");
+  const ctx = document.getElementById("graficoGastosFlexibles6m").getContext("2d");
 
   //Recogemos el valor del mes selecionado
   const mesSeleccionado = document.getElementById("mes").value;
@@ -227,13 +227,13 @@ async function cargarGraficoVoluntarios6m() {
     const valores = data.data.valores;
 
     //Si ya había un gráfico lo destruimos para actualizarlo
-    if (graficoVoluntarios6m) {
-      graficoVoluntarios6m.destroy();
-      graficoVoluntarios6m = null;
+    if (graficoGastosFlexibles6m) {
+      graficoGastosFlexibles6m.destroy();
+      graficoGastosFlexibles6m = null;
     }
 
     //Creamos el gráfico
-    graficoVoluntarios6m = new Chart(ctx, {
+    graficoGastosFlexibles6m = new Chart(ctx, {
       type: "line",
       data: {
         //Introducimos al gráfico cada dato con su valor correspondiente
@@ -307,9 +307,9 @@ async function cargarGraficoVoluntarios6m() {
 }
 
 //---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos esenciales------------------------------------------------
-async function cargarGraficoObligatorios6m() {
+async function cargarGraficoGastosEsenciales6m() {
   // Seleccionamos el canvas donde irá el gráfico
-  const ctx = document.getElementById("graficoObligatorios6m").getContext("2d");
+  const ctx = document.getElementById("graficoGastosEsenciales6m").getContext("2d");
 
   //Recogemos el valor del mes selecionado
   const mesSeleccionado = document.getElementById("mes").value;
@@ -343,13 +343,13 @@ async function cargarGraficoObligatorios6m() {
     const valores = data.data.valores;
 
     //Si ya había un gráfico lo destruimos para actualizarlo
-    if (graficoObligatorios6m) {
-      graficoObligatorios6m.destroy();
-      graficoObligatorios6m = null;
+    if (graficoGastosEsenciales6m) {
+      graficoGastosEsenciales6m.destroy();
+      graficoGastosEsenciales6m = null;
     }
 
     //Creamos el gráfico
-    graficoObligatorios6m = new Chart(ctx, {
+    graficoGastosEsenciales6m = new Chart(ctx, {
       type: "line",
       data: {
         //Introducimos al gráfico cada dato con su valor correspondiente
@@ -452,7 +452,7 @@ async function cargarGraficoAhorros6m() {
     }
 
     const meses = data.data.meses;
-    const capacidad = data.data.capacidad;
+    const ahorroPosible = data.data.ahorroPosible;
     const ahorroReal = data.data.ahorroReal;
 
     //Si ya había un gráfico lo destruimos para actualizarlo
@@ -469,16 +469,16 @@ async function cargarGraficoAhorros6m() {
         labels: meses,
         datasets: [
           {
-            label: "Capacidad de ahorro",
-            data: capacidad,
-            backgroundColor: capacidad.map((v) =>
+            label: "Ahorro posible",
+            data: ahorroPosible,
+            backgroundColor: ahorroPosible.map((v) =>
               v >= 0 ? "#4ECDC4" : "#FF6B6B",
             ),
             barPercentage: 0.9,
             categoryPercentage: 0.6,
           },
           {
-            label: "Ahorro Real",
+            label: "Ahorro real",
             data: ahorroReal,
             backgroundColor: ahorroReal.map((v) =>
               v >= 0 ? "#1A535C" : "#FF6B6B",
@@ -545,7 +545,7 @@ async function cargarGraficoAhorros6m() {
               generateLabels() {
                 return [
                   {
-                    text: "Capacidad (+)",
+                    text: "Ahorro posible (+)",
                     fillStyle: "#4ECDC4",
                     strokeStyle: "#4ECDC4",
                     pointStyle: "rectRounded",
@@ -586,6 +586,6 @@ async function cargarGraficoAhorros6m() {
 
 //Hacemos globales las funciones que actualizan los gráficos
 window.cargarGraficoPresupuesto = cargarGraficoPresupuesto;
-window.cargarGraficoVoluntarios6m = cargarGraficoVoluntarios6m;
-window.cargarGraficoObligatorios6m = cargarGraficoObligatorios6m;
+window.cargarGraficoGastosFlexibles6m = cargarGraficoGastosFlexibles6m;
+window.cargarGraficoGastosEsenciales6m = cargarGraficoGastosEsenciales6m;
 window.cargarGraficoAhorros6m = cargarGraficoAhorros6m;

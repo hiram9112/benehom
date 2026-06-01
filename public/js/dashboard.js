@@ -128,8 +128,8 @@ async function editarIngresoInline(span) {
 
       //Actualizamos gráficos
       window.cargarGraficoPresupuesto();
-      window.cargarGraficoVoluntarios6m();
-      window.cargarGraficoObligatorios6m();
+      window.cargarGraficoGastosFlexibles6m();
+      window.cargarGraficoGastosEsenciales6m();
       window.cargarGraficoAhorros6m();
     } else {
       //SI falla la edición restauramos el valor anterior
@@ -207,9 +207,9 @@ async function editarGastoInline(span) {
 
       //Agregamos la clase según el tipo de gasto
       if (tipo === "obligatorio") {
-        nuevoSpan.classList.add("cantidad_gasto_obli", "cantidad_gasto");
+        nuevoSpan.classList.add("cantidad_gasto_esencial", "cantidad_gasto");
       } else {
-        nuevoSpan.classList.add("cantidad_gasto_volun", "cantidad_gasto");
+        nuevoSpan.classList.add("cantidad_gasto_flexible", "cantidad_gasto");
       }
 
       //Reemplazamos el input con el span que contiene el nuevo valor
@@ -217,8 +217,8 @@ async function editarGastoInline(span) {
 
       //Actualizamos gráficos
       window.cargarGraficoPresupuesto();
-      window.cargarGraficoVoluntarios6m();
-      window.cargarGraficoObligatorios6m();
+      window.cargarGraficoGastosFlexibles6m();
+      window.cargarGraficoGastosEsenciales6m();
       window.cargarGraficoAhorros6m();
     } else {
       //SI falla la edición restauramos el valor anterior

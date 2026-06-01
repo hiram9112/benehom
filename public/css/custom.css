@@ -1456,14 +1456,14 @@ textarea:disabled {
 
 .cantidad_ingreso,
 .cantidad_gasto,
-.cantidad_gasto_obli,
-.cantidad_gasto_volun {
+.cantidad_gasto_esencial,
+.cantidad_gasto_flexible {
     margin-left: 0.25rem;
 }
 
 .categoria_ingreso_individual,
-.categoria_gasto_obli,
-.categoria_gasto_volun {
+.categoria_gasto_esencial,
+.categoria_gasto_flexible {
     padding-right: 0.25rem;
 }
 
@@ -1518,7 +1518,7 @@ textarea:disabled {
     margin-top: var(--bh-space-2);
 }
 
-#graficoPresupuestoMensual,#graficoVoluntarios6m,#graficoObligatorios6m,#graficoAhorros6m{
+#graficoPresupuestoMensual,#graficoGastosFlexibles6m,#graficoGastosEsenciales6m,#graficoAhorros6m{
     height: 100% !important;
     display: block;
 }

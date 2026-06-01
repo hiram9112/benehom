@@ -58,36 +58,36 @@ function eliminarIngresoDelDOM(id) {
 // ------------------------------------------------------
 
 // -------------------------------------------Función para agregar el nuevo
-// gasto obligatorio al DOM----------------------
+// gasto esencial al DOM----------------------
 
-function agregarGastoObligAlDOM(gasto_oblig) {
+function agregarGastoEsencialAlDOM(gastoEsencial) {
   //Intentamos seleccionar  la lista existente
-  let lista = document.querySelector("#lista_gastos_obligatorios ul");
+  let lista = document.querySelector("#lista_gastos_esenciales ul");
 
   //Si existe el mensaje de "No tienes gastos..." lo eliminamos antes de insertar
-  const mensaje = document.querySelector("#lista_gastos_obligatorios p");
+  const mensaje = document.querySelector("#lista_gastos_esenciales p");
   if (mensaje) mensaje.remove();
 
   //Si no existe la etiqueta ul la creamos
   if (!lista) {
     lista = document.createElement("ul");
-    document.getElementById("lista_gastos_obligatorios").appendChild(lista);
+    document.getElementById("lista_gastos_esenciales").appendChild(lista);
   }
 
-  //creamos el elemento li que representa el nuevo gasto obligatorio
+  //creamos el elemento li que representa el nuevo gasto esencial
   const li = document.createElement("li");
 
   //le asignamos el id correspondiente y tipo correspondiente
-  li.id = `gasto-${gasto_oblig.id}`;
+  li.id = `gasto-${gastoEsencial.id}`;
   li.dataset.tipo = "obligatorio";
 
-  //Agregamos el nuevo gasto obligatorio al elemento li
+  //Agregamos el nuevo gasto esencial al elemento li
   li.innerHTML = `
-    <span class="categoria_gasto_obli">${formatearCategoriaJS(
-      gasto_oblig.categoria,
+    <span class="categoria_gasto_esencial">${formatearCategoriaJS(
+      gastoEsencial.categoria,
     )}</span>: 
-    <span class="cantidad_gasto_obli cantidad_gasto" data-id="${gasto_oblig.id}">${formatearCantidad(gasto_oblig.cantidad)}</span>€
-    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gasto_oblig.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
+    <span class="cantidad_gasto_esencial cantidad_gasto" data-id="${gastoEsencial.id}">${formatearCantidad(gastoEsencial.cantidad)}</span>€
+    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoEsencial.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
     `;
 
   //Insertamos el nuevo elemento al inicio de la lista
@@ -95,36 +95,36 @@ function agregarGastoObligAlDOM(gasto_oblig) {
 }
 
 // -------------------------------------------Función para agregar el nuevo
-// gasto Voluntario al DOM----------------------
+// gasto flexible al DOM----------------------
 
-function agregarGastoVolunAlDOM(gasto_volun) {
+function agregarGastoFlexibleAlDOM(gastoFlexible) {
   //Intentamos seleccionar  la lista existente
-  let lista = document.querySelector("#lista_gastos_voluntarios ul");
+  let lista = document.querySelector("#lista_gastos_flexibles ul");
 
   //Si existe el mensaje de "No tienes gastos..." lo eliminamos antes de insertar
-  const mensaje = document.querySelector("#lista_gastos_voluntarios p");
+  const mensaje = document.querySelector("#lista_gastos_flexibles p");
   if (mensaje) mensaje.remove();
 
   //Si no existe la etiqueta ul la creamos
   if (!lista) {
     lista = document.createElement("ul");
-    document.getElementById("lista_gastos_voluntarios").appendChild(lista);
+    document.getElementById("lista_gastos_flexibles").appendChild(lista);
   }
 
-  //creamos el elemento li que representa el nuevo gasto voluntario
+  //creamos el elemento li que representa el nuevo gasto flexible
   const li = document.createElement("li");
 
   //le asignamos el id y el tipo correspondiente
-  li.id = `gasto-${gasto_volun.id}`;
+  li.id = `gasto-${gastoFlexible.id}`;
   li.dataset.tipo = "voluntario";
 
-  //Agregamos el nuevo gasto voluntario al elemento li
+  //Agregamos el nuevo gasto flexible al elemento li
   li.innerHTML = `
-    <span class="categoria_gasto_volun">${formatearCategoriaJS(
-      gasto_volun.categoria,
+    <span class="categoria_gasto_flexible">${formatearCategoriaJS(
+      gastoFlexible.categoria,
     )}</span>: 
-    <span class="cantidad_gasto_volun cantidad_gasto"  data-id="${gasto_volun.id}">${formatearCantidad(gasto_volun.cantidad)}</span>€
-    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gasto_volun.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
+    <span class="cantidad_gasto_flexible cantidad_gasto"  data-id="${gastoFlexible.id}">${formatearCantidad(gastoFlexible.cantidad)}</span>€
+    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoFlexible.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
     `;
 
   //Insertamos el nuevo elemento al inicio de la lista
@@ -147,8 +147,8 @@ function eliminarGastoDelDOM(id) {
   //Determinamos que contenedor revisaremos
   const contenedorID =
     tipo === "obligatorio"
-      ? "lista_gastos_obligatorios"
-      : "lista_gastos_voluntarios";
+      ? "lista_gastos_esenciales"
+      : "lista_gastos_flexibles";
 
   //Seleccionamos la lista correspondiente
   const lista = document.querySelector(`#${contenedorID} ul`);

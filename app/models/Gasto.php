@@ -35,7 +35,7 @@ class Gasto{
         }
     }
 
-    //Método para agregar un Gasto lo utilizamos para voluntarios y obligatorios, gestionamos el tipo desde el controlador
+    //Método para agregar un gasto; el controlador gestiona si es esencial o flexible.
     public static function agregarGasto($usuario_id,$tipo,$categoria,$cantidad,$fecha){
 
         try{
@@ -66,7 +66,7 @@ class Gasto{
 
     }
 
-    //Método para eliminar un gasto obligatorio
+    //Método para eliminar un gasto
     public static function eliminarGasto($id){
 
         try{
@@ -89,7 +89,7 @@ class Gasto{
     }
 
 
-    //Método para actualizar un gasto obligatorio
+    //Método para actualizar un gasto
     public static function actualizarGasto($id,$cantidad){
 
         try{

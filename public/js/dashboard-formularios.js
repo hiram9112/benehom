@@ -35,8 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
           //Actualizamos gráficos
           cargarGraficoPresupuesto();
-          cargarGraficoVoluntarios6m();
-          cargarGraficoObligatorios6m();
+          cargarGraficoGastosFlexibles6m();
+          cargarGraficoGastosEsenciales6m();
           cargarGraficoAhorros6m();
 
           //Limpiamos campos  del formulario
@@ -60,26 +60,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ------------------------------------------Crear nuevo gasto
-  // obligatorio--------------------------------------- Seleccionamos el fomulario
-  // de gatos obligatorios
-  const formGastosObligatorios = document.getElementById(
-    "formGastosObligatorios",
+  // esencial--------------------------------------- Seleccionamos el fomulario
+  // de gastos esenciales
+  const formGastosEsenciales = document.getElementById(
+    "formGastosEsenciales",
   );
 
   // Escuchamos el evento submit y usamos una función de tipo async para poder
   // emplear el await
-  if (formGastosObligatorios) {
-    formGastosObligatorios.addEventListener("submit", async (e) => {
+  if (formGastosEsenciales) {
+    formGastosEsenciales.addEventListener("submit", async (e) => {
       //evitamos que la pagina se recargue
       e.preventDefault();
 
       //capturamos los datos del formulario usando FormData
-      const datos = new FormData(formGastosObligatorios);
+      const datos = new FormData(formGastosEsenciales);
 
       try {
         //Enviamos petición al servidor
         const respuesta = await fetch(
-          "index.php?r=gasto/agregarGastoObligAjax",
+          "index.php?r=gasto/agregarGastoEsencialAjax",
           {
             method: "POST",
             body: datos,
@@ -92,16 +92,16 @@ document.addEventListener("DOMContentLoaded", () => {
         //Si el servidor confirma éxito
         if (data.ok) {
           //LLamamos a la función auxiliar correpondiente
-          agregarGastoObligAlDOM(data.gasto_oblig);
+          agregarGastoEsencialAlDOM(data.gasto_esencial);
 
           //Actualizamos gráficos
           cargarGraficoPresupuesto();
-          cargarGraficoVoluntarios6m();
-          cargarGraficoObligatorios6m();
+          cargarGraficoGastosFlexibles6m();
+          cargarGraficoGastosEsenciales6m();
           cargarGraficoAhorros6m();
 
           //Limpiamos campos  del formulario
-          formGastosObligatorios.reset();
+          formGastosEsenciales.reset();
         } else {
           abrirModalInfo({
             titulo: "No se pudo completar la operación",
@@ -121,26 +121,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ------------------------------------------Crear nuevo gasto
-  // Voluntario--------------------------------------- Seleccionamos el fomulario
-  // de gatos Voluntarios
-  const formGastosVoluntarios = document.getElementById(
-    "formGastosVoluntarios",
+  // flexible--------------------------------------- Seleccionamos el fomulario
+  // de gastos flexibles
+  const formGastosFlexibles = document.getElementById(
+    "formGastosFlexibles",
   );
 
   // Escuchamos el evento submit y usamos una función de tipo async para poder
   // emplear el await
-  if (formGastosVoluntarios) {
-    formGastosVoluntarios.addEventListener("submit", async (e) => {
+  if (formGastosFlexibles) {
+    formGastosFlexibles.addEventListener("submit", async (e) => {
       //evitamos que la pagina se recargue
       e.preventDefault();
 
       //capturamos los datos del formulario usando FormData
-      const datos = new FormData(formGastosVoluntarios);
+      const datos = new FormData(formGastosFlexibles);
 
       try {
         //Enviamos petición al servidor
         const respuesta = await fetch(
-          "index.php?r=gasto/agregarGastoVolunAjax",
+          "index.php?r=gasto/agregarGastoFlexibleAjax",
           {
             method: "POST",
             body: datos,
@@ -153,16 +153,16 @@ document.addEventListener("DOMContentLoaded", () => {
         //Si el servidor confirma éxito
         if (data.ok) {
           //LLamamos a la función auxiliar correpondiente
-          agregarGastoVolunAlDOM(data.gasto_volun);
+          agregarGastoFlexibleAlDOM(data.gasto_flexible);
 
           //Actualizamos gráficos
           cargarGraficoPresupuesto();
-          cargarGraficoVoluntarios6m();
-          cargarGraficoObligatorios6m();
+          cargarGraficoGastosFlexibles6m();
+          cargarGraficoGastosEsenciales6m();
           cargarGraficoAhorros6m();
 
           //Limpiamos campos  del formulario
-          formGastosVoluntarios.reset();
+          formGastosFlexibles.reset();
         } else {
           abrirModalInfo({
             titulo: "No se pudo completar la operación",

@@ -2,8 +2,8 @@
 require_once APP_PATH.'/models/Gasto.php';
 class GastoController{
 
-    //Método para manejar la petición AJAX de agregar un gasto obligatorio
-    public function agregarGastoObligAjax(){
+    //Método para manejar la petición AJAX de agregar un gasto esencial
+    public function agregarGastoEsencialAjax(){
 
         //Comprobaciones de seguridad, nos aseguramos que la petición sea POST y  haya una sesión activa
         if($_SERVER['REQUEST_METHOD']!=='POST'){
@@ -24,8 +24,8 @@ class GastoController{
 
         //Recuperamos datos enviados desde el formulario
         $usuario_id=$_SESSION['usuario_id'];
-        $categoria=trim($_POST['categoria_gasto_obligatorio']??'');
-        $cantidad=trim($_POST['cantidad_gasto_obligatorio']??'');
+        $categoria=trim($_POST['categoria_gasto_esencial']??'');
+        $cantidad=trim($_POST['cantidad_gasto_esencial']??'');
         $fecha=$_POST['mes_seleccionado']."-01";
         $tipo="obligatorio";
 
@@ -46,7 +46,7 @@ class GastoController{
             return;
         }
 
-        //Insertamos en la base de datos el nuevo gasto obligatorio(devolverá el ID del recién creado gasto)
+        //Insertamos en la base de datos el nuevo gasto esencial(devolverá el ID del recién creado gasto)
         $nuevoID=Gasto::agregarGasto($usuario_id,$tipo,$categoria,$cantidad,$fecha);
 
         //Si falla la inserción
@@ -61,7 +61,7 @@ class GastoController{
         //Enviamos respueesta exitosa en formato JSON
         echo json_encode([
             "ok"=>true,
-            "gasto_oblig"=>[
+            "gasto_esencial"=>[
                 "id"=>$nuevoID,
                 "categoria"=>$categoria,
                 "cantidad"=>$cantidad
@@ -158,8 +158,8 @@ class GastoController{
     }
 
 
-    //Método para manejar la petición AJAX de agregar un gasto Voluntario
-    public function agregarGastoVolunAjax(){
+    //Método para manejar la petición AJAX de agregar un gasto flexible
+    public function agregarGastoFlexibleAjax(){
 
         //Comprobaciones de seguridad, nos aseguramos que la petición sea POST y  haya una sesión activa
         if($_SERVER['REQUEST_METHOD']!=='POST'){
@@ -180,8 +180,8 @@ class GastoController{
 
         //Recuperamos datos enviados desde el formulario
         $usuario_id=$_SESSION['usuario_id'];
-        $categoria=trim($_POST['categoria_gasto_voluntario']??'');
-        $cantidad=trim($_POST['cantidad_gasto_voluntario']??'');
+        $categoria=trim($_POST['categoria_gasto_flexible']??'');
+        $cantidad=trim($_POST['cantidad_gasto_flexible']??'');
         $fecha=$_POST['mes_seleccionado']."-01";
         $tipo="voluntario";
 
@@ -202,7 +202,7 @@ class GastoController{
             return;
         }
 
-        //Insertamos en la base de datos el nuevo gasto Voluntario(devolverá el ID del recién creado gasto)
+        //Insertamos en la base de datos el nuevo gasto flexible(devolverá el ID del recién creado gasto)
         $nuevoID=Gasto::agregarGasto($usuario_id,$tipo,$categoria,$cantidad,$fecha);
 
         //Si falla la inserción
@@ -217,7 +217,7 @@ class GastoController{
         //Enviamos respueesta exitosa en formato JSON
         echo json_encode([
             "ok"=>true,
-            "gasto_volun"=>[
+            "gasto_flexible"=>[
                 "id"=>$nuevoID,
                 "categoria"=>$categoria,
                 "cantidad"=>$cantidad

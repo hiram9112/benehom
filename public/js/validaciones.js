@@ -35,6 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   //Aplicamos la validación a los tres formularios
   validarFormulario("formIngresos", "cantidad_ingreso");
-  validarFormulario("formGastosObligatorios", "cantidad_gasto_obligatorio");
-  validarFormulario("formGastosVoluntarios", "cantidad_gasto_voluntario");
+  validarFormulario("formGastosEsenciales", "cantidad_gasto_esencial");
+  validarFormulario("formGastosFlexibles", "cantidad_gasto_flexible");
 });

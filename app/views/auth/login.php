@@ -58,7 +58,7 @@ bh_auth_begin(
                 <ul>
                     <li>Registrar ingresos y clasificarlos correctamente</li>
                     <li>Diferenciar gastos esenciales y gastos flexibles</li>
-                    <li>Visualizar tu capacidad real de ahorro vs lo que ahorras realmente</li>
+                    <li>Visualizar tu ahorro posible frente a tu ahorro real</li>
                     <li>Detectar patrones de comportamiento que pueden generar problemas económico para el hogar.</li>
                 </ul>
 

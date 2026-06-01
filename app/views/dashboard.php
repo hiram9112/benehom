@@ -103,7 +103,7 @@
 
                             <div class="bh-summary-metric">
                                 <span>Gastos esenciales</span>
-                                <strong id="resumen_peso_base">0%</strong>
+                                <strong id="resumen_peso_esenciales">0%</strong>
                             </div>
 
                             <div class="bh-summary-metric">
@@ -198,30 +198,30 @@
                                 <button type="button"
                                     class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
-                                    data-bs-target="#infoGastosObligatorios"
+                                    data-bs-target="#infoGastosEsenciales"
                                     aria-label="Información sobre gastos esenciales">
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formGastosObligatorios" class="formulario-bh bh-guided-form">
+                            <form id="formGastosEsenciales" class="formulario-bh bh-guided-form">
                                 <?= csrf_field() ?>
 
                                 <div class="bh-category-picker" data-category-picker data-category-type="obligatorio">
                                     <div class="bh-field">
-                                        <label class="bh-label" for="area_gasto_obligatorio">Área del gasto</label>
+                                        <label class="bh-label" for="area_gasto_esencial">Área del gasto</label>
                                         <div class="bh-select-shell">
-                                            <select id="area_gasto_obligatorio" class="bh-select" data-area-select required>
+                                            <select id="area_gasto_esencial" class="bh-select" data-area-select required>
                                                 <option value="" selected disabled>Selecciona un área</option>
                                             </select>
                                         </div>
                                     </div>
 
                                     <div class="bh-field">
-                                        <label class="bh-label" for="categoria_gasto_obligatorio">Concepto</label>
+                                        <label class="bh-label" for="categoria_gasto_esencial">Concepto</label>
                                         <div class="bh-select-shell">
-                                            <select name="categoria_gasto_obligatorio" id="categoria_gasto_obligatorio" class="bh-select" data-concept-select required disabled>
+                                            <select name="categoria_gasto_esencial" id="categoria_gasto_esencial" class="bh-select" data-concept-select required disabled>
                                                 <option value="" selected>Elige primero un área</option>
                                             </select>
                                         </div>
@@ -229,8 +229,8 @@
                                 </div>
 
                                 <div class="bh-field">
-                                    <label class="bh-label" for="cantidad_gasto_obligatorio">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_gasto_obligatorio" id="cantidad_gasto_obligatorio"
+                                    <label class="bh-label" for="cantidad_gasto_esencial">Cantidad(€)</label>
+                                    <input type="number" name="cantidad_gasto_esencial" id="cantidad_gasto_esencial"
                                         step="0.01" required>
                                 </div>
 
@@ -244,18 +244,18 @@
 
 
                             <!--Contenedor para manejar de manera dinámica los gastos esenciales utilizando AJAX y PHP-->
-                            <div id="lista_gastos_obligatorios" class="lista-gastos">
-                                <?php if (!empty($gastosObligatorios)): ?>
+                            <div id="lista_gastos_esenciales" class="lista-gastos">
+                                <?php if (!empty($gastosEsenciales)): ?>
                                     <ul>
-                                        <?php foreach ($gastosObligatorios as $gastoObligatorio): ?>
+                                        <?php foreach ($gastosEsenciales as $gastoEsencial): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="gasto-<?= $gastoObligatorio['id'] ?>"
-                                                data-tipo="<?= $gastoObligatorio['tipo'] ?>">
+                                            <li id="gasto-<?= $gastoEsencial['id'] ?>"
+                                                data-tipo="<?= $gastoEsencial['tipo'] ?>">
                                                 <span
-                                                    class="categoria_gasto_obli"><?= htmlspecialchars(formatearCategoria($gastoObligatorio['categoria'])) ?></span>:
-                                                <span class="cantidad_gasto_obli cantidad_gasto"
-                                                    data-id="<?= $gastoObligatorio['id'] ?>"><?= formatearCantidadPHP($gastoObligatorio['cantidad']) ?></span>€
-                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoObligatorio['id'] ?>" aria-label="Eliminar gasto">
+                                                    class="categoria_gasto_esencial"><?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria'])) ?></span>:
+                                                <span class="cantidad_gasto_esencial cantidad_gasto"
+                                                    data-id="<?= $gastoEsencial['id'] ?>"><?= formatearCantidadPHP($gastoEsencial['cantidad']) ?></span>€
+                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoEsencial['id'] ?>" aria-label="Eliminar gasto">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </li>
@@ -267,10 +267,10 @@
                             </div>
 
                             <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos esenciales -->
-                            <p id="total_gastos_obligatorios_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
+                            <p id="total_gastos_esenciales_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
 
-                            <!--Usaremos este elemento para mostrar de manera dinámica la capacidad de ahorro  -->
-                            <p id="capacidad_ahorro_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
+                            <!--Usaremos este elemento para mostrar de manera dinámica el ahorro posible  -->
+                            <p id="ahorro_posible_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
 
 
                         </div>
@@ -287,30 +287,30 @@
                                 <button type="button"
                                     class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
-                                    data-bs-target="#infoGastosVoluntarios"
+                                    data-bs-target="#infoGastosFlexibles"
                                     aria-label="Información sobre gastos flexibles">
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formGastosVoluntarios" class="formulario-bh bh-guided-form">
+                            <form id="formGastosFlexibles" class="formulario-bh bh-guided-form">
                                 <?= csrf_field() ?>
 
                                 <div class="bh-category-picker" data-category-picker data-category-type="voluntario">
                                     <div class="bh-field">
-                                        <label class="bh-label" for="area_gasto_voluntario">Área del gasto</label>
+                                        <label class="bh-label" for="area_gasto_flexible">Área del gasto</label>
                                         <div class="bh-select-shell">
-                                            <select id="area_gasto_voluntario" class="bh-select" data-area-select required>
+                                            <select id="area_gasto_flexible" class="bh-select" data-area-select required>
                                                 <option value="" selected disabled>Selecciona un área</option>
                                             </select>
                                         </div>
                                     </div>
 
                                     <div class="bh-field">
-                                        <label class="bh-label" for="categoria_gasto_voluntario">Concepto</label>
+                                        <label class="bh-label" for="categoria_gasto_flexible">Concepto</label>
                                         <div class="bh-select-shell">
-                                            <select name="categoria_gasto_voluntario" id="categoria_gasto_voluntario" class="bh-select" data-concept-select required disabled>
+                                            <select name="categoria_gasto_flexible" id="categoria_gasto_flexible" class="bh-select" data-concept-select required disabled>
                                                 <option value="" selected>Elige primero un área</option>
                                             </select>
                                         </div>
@@ -318,8 +318,8 @@
                                 </div>
 
                                 <div class="bh-field">
-                                    <label class="bh-label" for="cantidad_gasto_voluntario">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_gasto_voluntario" id="cantidad_gasto_voluntario"
+                                    <label class="bh-label" for="cantidad_gasto_flexible">Cantidad(€)</label>
+                                    <input type="number" name="cantidad_gasto_flexible" id="cantidad_gasto_flexible"
                                         step="0.01" required>
                                 </div>
 
@@ -332,18 +332,18 @@
                             </form>
 
                             <!--Contenedor para manejar de manera dinámica los gastos flexibles utilizando AJAX y PHP-->
-                            <div id="lista_gastos_voluntarios" class="lista-gastos">
-                                <?php if (!empty($gastosVoluntarios)): ?>
+                            <div id="lista_gastos_flexibles" class="lista-gastos">
+                                <?php if (!empty($gastosFlexibles)): ?>
                                     <ul>
-                                        <?php foreach ($gastosVoluntarios as $gastoVoluntario): ?>
+                                        <?php foreach ($gastosFlexibles as $gastoFlexible): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="gasto-<?= $gastoVoluntario['id'] ?>"
-                                                data-tipo="<?= $gastoVoluntario['tipo'] ?>">
+                                            <li id="gasto-<?= $gastoFlexible['id'] ?>"
+                                                data-tipo="<?= $gastoFlexible['tipo'] ?>">
                                                 <span
-                                                    class="categoria_gasto_volun"><?= htmlspecialchars(formatearCategoria($gastoVoluntario['categoria'])) ?></span>:
-                                                <span class="cantidad_gasto_volun cantidad_gasto"
-                                                    data-id="<?= $gastoVoluntario['id'] ?>"><?= formatearCantidadPHP($gastoVoluntario['cantidad']) ?></span>€
-                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoVoluntario['id'] ?>" aria-label="Eliminar gasto"> <i
+                                                    class="categoria_gasto_flexible"><?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria'])) ?></span>:
+                                                <span class="cantidad_gasto_flexible cantidad_gasto"
+                                                    data-id="<?= $gastoFlexible['id'] ?>"><?= formatearCantidadPHP($gastoFlexible['cantidad']) ?></span>€
+                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoFlexible['id'] ?>" aria-label="Eliminar gasto"> <i
                                                         class="bi bi-trash"></i></button>
                                             </li>
                                         <?php endforeach; ?>
@@ -354,7 +354,7 @@
                             </div>
 
                             <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos flexibles -->
-                            <p id="total_gastos_voluntarios_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
+                            <p id="total_gastos_flexibles_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
                             <!--Usaremos este elemento para mostrar de manera dinámica el ahorro real -->
                             <p id="ahorro_real_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
 
@@ -408,13 +408,13 @@
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
-                            data-bs-target="#infoEvolucionObligatorios"
+                            data-bs-target="#infoEvolucionEsenciales"
                             aria-label="Información sobre la evolución de los gastos esenciales">
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
                     <div class="contenedor-grafico">
-                        <canvas id="graficoObligatorios6m"></canvas>
+                        <canvas id="graficoGastosEsenciales6m"></canvas>
                     </div>
                 </div>
 
@@ -426,13 +426,13 @@
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
-                            data-bs-target="#infoEvolucionVoluntarios"
+                            data-bs-target="#infoEvolucionFlexibles"
                             aria-label="Información sobre gastos flexibles">
                             <i class="bi bi-info-circle"></i>
                         </button>
                     </h5>
                     <div class="contenedor-grafico">
-                        <canvas id="graficoVoluntarios6m"></canvas>
+                        <canvas id="graficoGastosFlexibles6m"></canvas>
                     </div>
                 </div>
                 </aside>
@@ -462,7 +462,7 @@
                         <li>Ingresos por inversiones</li>
                     </ul>
 
-                    <p class="mt-2">Registrar correctamente los ingresos es clave para entender tu capacidad real de ahorro
+                    <p class="mt-2">Registrar correctamente los ingresos es clave para entender tu ahorro posible y tu ahorro real
                         y analizar si tus gastos están equilibrados.</p>
                 </div>
 
@@ -474,7 +474,7 @@
     </div>
 
     <!--Modal de gastos esenciales-->
-    <div class="modal fade" id="infoGastosObligatorios" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="infoGastosEsenciales" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
@@ -504,7 +504,7 @@
 
     <!--Modal de gastos flexibles-->
 
-    <div class="modal fade" id="infoGastosVoluntarios" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="infoGastosFlexibles" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
@@ -525,7 +525,7 @@
 
                     <p class="mt-2">
                         Revisarlos ayuda a medir el impacto real que pequeños cambios en nuestros hábitos
-                        pueden tener sobre la <strong>capacidad de ahorro</strong> y el
+                        pueden tener sobre el <strong>ahorro real</strong> y el
                         <strong>bienestar financiero</strong>.
                         En muchos casos, el efecto puede notarse de un mes a otro.
                     </p>
@@ -597,7 +597,7 @@
                         a entender si tu economía es sostenible en el tiempo.
                     </p>
 
-                    <p>La <strong>capacidad de ahorro</strong> representa cuánto dinero
+                    <p>El <strong>ahorro posible</strong> representa cuánto dinero
                         podrías haber ahorrado en un mes según tus ingresos y gastos esenciales.
                     </p>
 
@@ -629,7 +629,7 @@
     </div>
 
     <!--Modal Gráfico de evolución de gastos esenciales-->
-    <div class="modal fade" id="infoEvolucionObligatorios" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="infoEvolucionEsenciales" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
@@ -689,7 +689,7 @@
 
     <!--Modal Gráfico de evolución de gastos flexibles-->
 
-    <div class="modal fade" id="infoEvolucionVoluntarios" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="infoEvolucionFlexibles" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
@@ -720,7 +720,7 @@
 
                     <p>
                         Si los gastos <strong>van disminuyendo con el paso del tiempo</strong>, vas por buen camino:
-                        estás recuperando margen y <strong>mejorando tu capacidad de ahorro</strong>.
+                        estás recuperando margen y <strong>mejorando tu ahorro real</strong>.
                     </p>
 
                     <p>

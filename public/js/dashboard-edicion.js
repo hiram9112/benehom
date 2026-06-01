@@ -32,8 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.ok) {
               eliminarIngresoDelDOM(id);
               cargarGraficoPresupuesto();
-              cargarGraficoVoluntarios6m();
-              cargarGraficoObligatorios6m();
+              cargarGraficoGastosFlexibles6m();
+              cargarGraficoGastosEsenciales6m();
               cargarGraficoAhorros6m();
             } else {
               abrirModalInfo({
@@ -96,8 +96,8 @@ document.addEventListener("DOMContentLoaded", () => {
               eliminarGastoDelDOM(id);
 
               cargarGraficoPresupuesto();
-              cargarGraficoVoluntarios6m();
-              cargarGraficoObligatorios6m();
+              cargarGraficoGastosFlexibles6m();
+              cargarGraficoGastosEsenciales6m();
               cargarGraficoAhorros6m();
             } else {
               abrirModalInfo({
@@ -133,14 +133,14 @@ document.addEventListener("DOMContentLoaded", () => {
   //Cargamos el gráfico al entrar
   cargarGraficoAhorros6m();
   cargarGraficoPresupuesto();
-  cargarGraficoVoluntarios6m();
-  cargarGraficoObligatorios6m();
+  cargarGraficoGastosFlexibles6m();
+  cargarGraficoGastosEsenciales6m();
 
   //Actulizamos el gráfico al cambiar el mes
   document.getElementById("mes").addEventListener("change", () => {
     cargarGraficoPresupuesto();
-    cargarGraficoVoluntarios6m();
-    cargarGraficoObligatorios6m();
+    cargarGraficoGastosFlexibles6m();
+    cargarGraficoGastosEsenciales6m();
     cargarGraficoAhorros6m();
   });
 });

@@ -18,42 +18,39 @@ function formatearCategoriaJS(texto) {
 
 function actualizarTotales(valores) {
   const ingresos = Number(valores.ingresos) || 0;
-  const obligatorios = Number(valores.obligatorios) || 0;
-  const voluntarios = Number(valores.voluntarios) || 0;
+  const gastosEsenciales = Number(valores.gastosEsenciales) || 0;
+  const gastosFlexibles = Number(valores.gastosFlexibles) || 0;
   const ahorroReal = Number(valores.ahorroReal) || 0;
   const gastosTotales = Number(valores.gastosTotales) || 0;
 
-  const capacidadNumero = ingresos - obligatorios;
+  const ahorroPosibleNumero = ingresos - gastosEsenciales;
   const ingresosAhorrados = ingresos > 0 ? (ahorroReal / ingresos) * 100 : 0;
-  const pesoBase = ingresos > 0 ? (obligatorios / ingresos) * 100 : 0;
+  const pesoGastosEsenciales = ingresos > 0 ? (gastosEsenciales / ingresos) * 100 : 0;
   const ingresosUsados = ingresos > 0 ? (gastosTotales / ingresos) * 100 : 0;
 
   const tIngresos = formatearCantidad(ingresos);
-  const tOblig = formatearCantidad(obligatorios);
-  const tVolun = formatearCantidad(voluntarios);
+  const tGastosEsenciales = formatearCantidad(gastosEsenciales);
+  const tGastosFlexibles = formatearCantidad(gastosFlexibles);
+  const tAhorroPosible = formatearCantidad(ahorroPosibleNumero);
   const tAhorro = formatearCantidad(ahorroReal);
-
-  //Calculamos capacidad de ahorro
-
-  const capacidad = formatearCantidad(capacidadNumero);
 
   //Totales de las tarjetas
   document.getElementById("total_ingresos_texto").innerHTML =
     `Ingresos del mes: <strong>${tIngresos}€</strong>`;
-  document.getElementById("total_gastos_obligatorios_texto").innerHTML =
-    `Gastos esenciales del mes: <strong>${tOblig}€</strong>`;
-  document.getElementById("capacidad_ahorro_texto").innerHTML =
-    `Capacidad de ahorro: <strong>${capacidad}</strong>`;
-  document.getElementById("total_gastos_voluntarios_texto").innerHTML =
-    `Gastos flexibles del mes: <strong>${tVolun}€</strong>`;
+  document.getElementById("total_gastos_esenciales_texto").innerHTML =
+    `Gastos esenciales del mes: <strong>${tGastosEsenciales}€</strong>`;
+  document.getElementById("ahorro_posible_texto").innerHTML =
+    `Ahorro posible: <strong>${tAhorroPosible}€</strong>`;
+  document.getElementById("total_gastos_flexibles_texto").innerHTML =
+    `Gastos flexibles del mes: <strong>${tGastosFlexibles}€</strong>`;
   document.getElementById("ahorro_real_texto").innerHTML =
-    `Ahorro del mes: <strong>${tAhorro}€</strong>`;
+    `Ahorro real del mes: <strong>${tAhorro}€</strong>`;
 
   //Resumen mensual superior
   const resumenEstado = document.getElementById("resumen_estado_mes");
   const resumenAhorro = document.getElementById("resumen_ahorro_real");
   const resumenIngresosAhorrados = document.getElementById("resumen_ingresos_ahorrados");
-  const resumenBase = document.getElementById("resumen_peso_base");
+  const resumenGastosEsenciales = document.getElementById("resumen_peso_esenciales");
   const resumenIngresosUsados = document.getElementById("resumen_ingresos_usados");
   const estadoCard = document.getElementById("resumen_estado_card");
   const ahorroCard = document.getElementById("resumen_ahorro_card");
@@ -64,7 +61,7 @@ function actualizarTotales(valores) {
 
   if (resumenAhorro) resumenAhorro.textContent = `${tAhorro}€`;
   if (resumenIngresosAhorrados) resumenIngresosAhorrados.textContent = `${formatearPorcentaje(ingresosAhorrados)}%`;
-  if (resumenBase) resumenBase.textContent = `${formatearPorcentaje(pesoBase)}%`;
+  if (resumenGastosEsenciales) resumenGastosEsenciales.textContent = `${formatearPorcentaje(pesoGastosEsenciales)}%`;
   if (resumenIngresosUsados) resumenIngresosUsados.textContent = `${formatearPorcentaje(ingresosUsados)}%`;
 
   [estadoCard, ahorroCard].forEach((card) => {
@@ -74,16 +71,16 @@ function actualizarTotales(valores) {
   });
 
   //Asignamos colores de manera dinámica a los totales de las tarjetas
-  const capacidadElem = document.getElementById("capacidad_ahorro_texto");
+  const ahorroPosibleElem = document.getElementById("ahorro_posible_texto");
   const ahorroElem = document.getElementById("ahorro_real_texto");
 
   //Rmovemos clases anteriores
-  capacidadElem.classList.remove("valor-positivo", "valor-negativo");
+  ahorroPosibleElem.classList.remove("valor-positivo", "valor-negativo");
   ahorroElem.classList.remove("valor-positivo", "valor-negativo");
 
   //Aplicamos color según valor
-  capacidadElem.classList.add(
-    capacidadNumero >= 0 ? "valor-positivo" : "valor-negativo",
+  ahorroPosibleElem.classList.add(
+    ahorroPosibleNumero >= 0 ? "valor-positivo" : "valor-negativo",
   );
   ahorroElem.classList.add(ahorroReal >= 0 ? "valor-positivo" : "valor-negativo");
 }

@@ -30,14 +30,14 @@ class DashboardController{
         
         //Obtenemos los datos filtrados por mes
         $ingresos=[];
-        $gastosObligatorios=[];
-        $gastosVoluntarios=[];
+        $gastosEsenciales=[];
+        $gastosFlexibles=[];
 
         if($usuario_id){
             try {
                 $ingresos = Ingreso::obtenerPorMes($usuario_id, $fechaInicio, $fechaFin);
-                $gastosObligatorios = Gasto::obtenerPorMes($usuario_id, "obligatorio", $fechaInicio, $fechaFin);
-                $gastosVoluntarios = Gasto::obtenerPorMes($usuario_id, "voluntario", $fechaInicio, $fechaFin);
+                $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "obligatorio", $fechaInicio, $fechaFin);
+                $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "voluntario", $fechaInicio, $fechaFin);
             } catch (PDOException $e) {
 
                 if (($_ENV['APP_ENV'] ?? 'production') === 'local') {

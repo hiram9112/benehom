@@ -10,12 +10,12 @@ bh_auth_begin(
 
 <?php bh_auth_flash_messages(); ?>
 
-<form method="POST" action="?r=password/procesarFormularioOlvido" class="bh-auth-form">
+<form method="POST" action="?r=password/procesarFormularioOlvido" class="bh-form bh-auth-form">
     <?= csrf_field(); ?>
 
-    <div class="mb-3">
-        <label for="email" class="form-label">Correo electrónico:</label>
-        <input type="email" name="email" id="email" class="form-control" placeholder="Correo electrónico" required>
+    <div class="bh-field">
+        <label for="email" class="bh-label">Correo electrónico:</label>
+        <input type="email" name="email" id="email" class="bh-input" placeholder="Correo electrónico" required>
     </div>
 
     <button id="btn-forgot" type="submit" class="bh-btn bh-btn-primary w-100">

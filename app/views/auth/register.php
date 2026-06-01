@@ -10,35 +10,35 @@ bh_auth_begin(
 
 <?php bh_auth_flash_messages(); ?>
 
-<form method="post" action="?r=registro/registrarUsuario" class="bh-auth-form">
+<form method="post" action="?r=registro/registrarUsuario" class="bh-form bh-auth-form">
     <?= csrf_field() ?>
 
-    <div class="mb-3">
-        <label for="usuario" class="form-label">Usuario:</label>
-        <input type="text" class="form-control" name="usuario" id="usuario" required>
+    <div class="bh-field">
+        <label for="usuario" class="bh-label">Usuario:</label>
+        <input type="text" class="bh-input" name="usuario" id="usuario" required>
     </div>
 
-    <div class="mb-3">
-        <label for="email" class="form-label">Correo electrónico:</label>
-        <input type="email" class="form-control" name="email" id="email" required>
+    <div class="bh-field">
+        <label for="email" class="bh-label">Correo electrónico:</label>
+        <input type="email" class="bh-input" name="email" id="email" required>
     </div>
 
-    <div class="mb-3">
-        <label for="password" class="form-label">Contraseña:</label>
-        <div class="input-group">
-            <input type="password" class="form-control" name="password" id="password" required>
-            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)" aria-label="Mostrar u ocultar contraseña">
-                <i class="bi bi-eye"></i>
+    <div class="bh-field">
+        <label for="password" class="bh-label">Contraseña:</label>
+        <div class="bh-password-field">
+            <input type="password" class="bh-input" name="password" id="password" required>
+            <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">
+                <i class="bi bi-eye" aria-hidden="true"></i>
             </button>
         </div>
     </div>
 
-    <div class="mb-3">
-        <label for="password_confirm" class="form-label">Confirmar contraseña:</label>
-        <div class="input-group">
-            <input type="password" class="form-control" name="password_confirm" id="password_confirm" required>
-            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password_confirm', this)" aria-label="Mostrar u ocultar contraseña">
-                <i class="bi bi-eye"></i>
+    <div class="bh-field">
+        <label for="password_confirm" class="bh-label">Confirmar contraseña:</label>
+        <div class="bh-password-field">
+            <input type="password" class="bh-input" name="password_confirm" id="password_confirm" required>
+            <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password_confirm" aria-label="Mostrar contraseña" aria-pressed="false">
+                <i class="bi bi-eye" aria-hidden="true"></i>
             </button>
         </div>
     </div>
@@ -59,22 +59,5 @@ bh_auth_begin(
 <div class="bh-auth-links">
     <p>¿Ya tienes cuenta? <a href="?r=auth/login">Inicia sesión aquí</a></p>
 </div>
-
-<script>
-    function togglePassword(inputId, button) {
-        const input = document.getElementById(inputId);
-        const icon = button.querySelector('i');
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
-        }
-    }
-</script>
 
 <?php bh_auth_end(); ?>

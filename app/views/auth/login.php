@@ -11,20 +11,20 @@ bh_auth_begin(
 
 <?php bh_auth_flash_messages(); ?>
 
-<form method="post" action="" class="bh-auth-form">
+<form method="post" action="" class="bh-form bh-auth-form">
     <?= csrf_field() ?>
 
-    <div class="mb-3">
-        <label for="email" class="form-label">Email:</label>
-        <input type="email" name="email" id="email" class="form-control" required>
+    <div class="bh-field">
+        <label for="email" class="bh-label">Email:</label>
+        <input type="email" name="email" id="email" class="bh-input" required>
     </div>
 
-    <div class="mb-3">
-        <label for="password" class="form-label">Contraseña:</label>
-        <div class="input-group">
-            <input type="password" name="password" id="password" class="form-control" required>
-            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)" aria-label="Mostrar u ocultar contraseña">
-                <i class="bi bi-eye"></i>
+    <div class="bh-field">
+        <label for="password" class="bh-label">Contraseña:</label>
+        <div class="bh-password-field">
+            <input type="password" name="password" id="password" class="bh-input" required>
+            <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">
+                <i class="bi bi-eye" aria-hidden="true"></i>
             </button>
         </div>
     </div>
@@ -41,23 +41,6 @@ bh_auth_begin(
         </a>
     </p>
 </div>
-
-<script>
-    function togglePassword(inputId, button) {
-        const input = document.getElementById(inputId);
-        const icon = button.querySelector('i');
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
-        }
-    }
-</script>
 
 <!-- Modal informativo sobre BeneHom -->
 <div class="modal fade" id="infoApp" tabindex="-1" aria-hidden="true">
@@ -89,7 +72,7 @@ bh_auth_begin(
             </div>
 
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

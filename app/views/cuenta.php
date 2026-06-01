@@ -70,16 +70,16 @@
                             <label for="password_actual">Contraseña actual: </label>
                             <input type="password" id="password_actual" name="password_actual" required>
                             <button class="btn btn-outline-secondary" type="button"
-                                onclick="togglePassword('password_actual', this)">
-                                <i class="bi bi-eye"></i>
+                                data-bh-password-toggle="password_actual" aria-label="Mostrar contraseña" aria-pressed="false">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
                             </button>
 
 
                             <label for="password_nueva">Contraseña nueva: </label>
                             <input type="password" id="password_nueva" name="password_nueva" required>
                             <button class="btn btn-outline-secondary" type="button"
-                                onclick="togglePassword('password_nueva', this)">
-                                <i class="bi bi-eye"></i>
+                                data-bh-password-toggle="password_nueva" aria-label="Mostrar contraseña" aria-pressed="false">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
                             </button>
 
                             <button type="submit" class="mt-2">Cambiar contraseña</button>
@@ -105,8 +105,8 @@
                             <label for="password_confirmacion">Introduce tu contraseña para confirmar: </label>
                             <input type="password" id="password_confirmacion" name="password_confirmacion" required>
                             <button class="btn btn-outline-secondary" type="button"
-                                onclick="togglePassword('password_confirmacion', this)">
-                                <i class="bi bi-eye"></i>
+                                data-bh-password-toggle="password_confirmacion" aria-label="Mostrar contraseña" aria-pressed="false">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
                             </button>
 
 
@@ -177,23 +177,7 @@
         </div>
     </div>
 
-    <script>
-        function togglePassword(inputId, button) {
-            const input = document.getElementById(inputId);
-            const icon = button.querySelector('i');
-
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('bi-eye');
-                icon.classList.add('bi-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
-            }
-        }
-    </script>
-
+    <script src="<?= BASE_URL ?>js/password-toggle.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/cuenta.js?v=<?= time() ?>"></script>
 </body>
 

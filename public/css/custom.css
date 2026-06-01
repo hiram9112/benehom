@@ -1084,6 +1084,30 @@ textarea:disabled {
     background-color: var(--bh-surface-soft);
 }
 
+.bh-password-field {
+    display: flex;
+    align-items: stretch;
+}
+
+.bh-password-field .bh-input {
+    border-radius: var(--bh-radius-sm) 0 0 var(--bh-radius-sm);
+}
+
+.bh-password-toggle {
+    flex: 0 0 44px;
+    border-color: var(--bh-border-color);
+    border-left: 0;
+    border-radius: 0 var(--bh-radius-sm) var(--bh-radius-sm) 0;
+    background-color: var(--bh-surface-soft);
+}
+
+.bh-password-toggle:hover,
+.bh-password-toggle:focus-visible {
+    border-color: var(--bh-brand);
+    color: var(--bh-brand-strong);
+    background-color: var(--bh-surface-soft);
+}
+
 .bh-help {
     color: var(--bh-text-muted);
     font-size: var(--bh-text-xs);

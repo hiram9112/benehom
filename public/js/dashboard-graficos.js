@@ -190,7 +190,7 @@ async function cargarGraficoPresupuesto() {
   }
 }
 
-//---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos voluntarios------------------------------------------------
+//---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos flexibles------------------------------------------------
 async function cargarGraficoVoluntarios6m() {
   // Seleccionamos el canvas donde irá el gráfico
   const ctx = document.getElementById("graficoVoluntarios6m").getContext("2d");
@@ -306,7 +306,7 @@ async function cargarGraficoVoluntarios6m() {
   }
 }
 
-//---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos obligatorios------------------------------------------------
+//---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos esenciales------------------------------------------------
 async function cargarGraficoObligatorios6m() {
   // Seleccionamos el canvas donde irá el gráfico
   const ctx = document.getElementById("graficoObligatorios6m").getContext("2d");

@@ -214,7 +214,7 @@ class GraficosController{
             if ($tObligatorios === false) {
                 echo json_encode([
                     "ok" => false,
-                    "msg" => "Error consultando gastos obligatorios"
+                    "msg" => "Error consultando gastos esenciales"
                 ]);
                 return;
             }
@@ -222,7 +222,7 @@ class GraficosController{
             if ($tVoluntarios === false) {
                 echo json_encode([
                     "ok" => false,
-                    "msg" => "Error consultando gastos voluntarios"
+                    "msg" => "Error consultando gastos flexibles"
                 ]);
                 return;
             }

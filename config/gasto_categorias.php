@@ -69,7 +69,7 @@ return [
                 'cuota_autonomo' => 'Cuota de autónomo o actividad profesional',
                 'impuestos_tasas' => 'Impuestos y tasas',
                 'comisiones_bancarias_necesarias' => 'Comisiones bancarias necesarias',
-                'pagos_familiares_obligatorios' => 'Pagos familiares obligatorios',
+                'pagos_familiares_obligatorios' => 'Pagos familiares esenciales',
             ],
         ],
         'urgencias' => [
@@ -77,7 +77,7 @@ return [
             'help' => 'Situaciones puntuales necesarias para mantener la estabilidad del hogar.',
             'items' => [
                 'urgencias_esenciales_hogar' => 'Urgencias esenciales del hogar',
-                'otro_gasto_base' => 'Otro gasto base',
+                'otro_gasto_base' => 'Otro gasto esencial',
             ],
         ],
     ],
@@ -110,7 +110,7 @@ return [
         ],
         'compras' => [
             'label' => 'Compras',
-            'help' => 'Compras personales o del hogar que no forman parte de la base mensual.',
+            'help' => 'Compras personales o del hogar que no forman parte de los gastos esenciales mensuales.',
             'items' => [
                 'ropa_calzado' => 'Ropa y calzado',
                 'cuidado_personal_estetica' => 'Cuidado personal y estética',
@@ -152,7 +152,7 @@ return [
             'items' => [
                 'donaciones_aportaciones' => 'Donaciones y aportaciones voluntarias',
                 'consumos_personales' => 'Consumos personales',
-                'otro_gasto_ajustable' => 'Otro gasto ajustable',
+                'otro_gasto_ajustable' => 'Otro gasto flexible',
             ],
         ],
     ],

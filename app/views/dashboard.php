@@ -651,7 +651,7 @@
 
                     <p>
                         Si las <strong>cantidades se mantienen constantes</strong>,
-                        significa que la base económica del hogar está bajo control.
+                        significa que los gastos esenciales del hogar están bajo control.
                     </p>
 
                     <p>

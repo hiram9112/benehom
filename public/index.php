@@ -109,10 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
 
 // Ruta solicitada
-$route = isset($_GET['r']) ? trim($_GET['r'], "/") : 'auth/login';
+$route = isset($_GET['r']) ? trim($_GET['r'], "/") : 'landing/index';
 
 // Rutas públicas (únicas sin sesión)
 $rutasPublicas = [
+    'landing/index',
     'auth/login',
     'registro/registrarUsuario',
     'password/mostrarFormularioOlvido',

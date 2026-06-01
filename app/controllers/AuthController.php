@@ -103,7 +103,7 @@ class AuthController {
         session_destroy();
 
         // Redirigir al login
-        header("Location: " . BASE_URL . "index.php?r=auth/login");
+        header("Location: " . BASE_URL . "index.php?r=landing/index");
         exit;
     }
 

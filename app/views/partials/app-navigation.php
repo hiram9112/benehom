@@ -9,7 +9,7 @@ function bh_navigation_items(): array
 {
     return [
         [
-            'label' => 'Inicio',
+            'label' => 'Dasboard',
             'route' => 'dashboard/index',
             'href' => 'index.php?r=dashboard/index',
             'icon' => 'bi-house-door',

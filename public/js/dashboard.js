@@ -70,6 +70,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Exponemos la función para usarla en AJAX
   window.abrirModalInfo = abrirModalInfo;
+
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((elemento) => {
+    bootstrap.Tooltip.getOrCreateInstance(elemento);
+  });
+
+  document.querySelectorAll("[data-summary-flip]").forEach((card) => {
+    const alternarCard = () => {
+      const estaGirada = card.classList.toggle("is-flipped");
+      card.setAttribute("aria-expanded", estaGirada ? "true" : "false");
+    };
+
+    const cerrarCard = () => {
+      if (!card.classList.contains("is-flipped")) {
+        return;
+      }
+
+      card.classList.add("is-returning");
+      card.classList.remove("is-flipped");
+      card.setAttribute("aria-expanded", "false");
+    };
+
+    const limpiarRetorno = (event) => {
+      if (event.target !== card.querySelector(".bh-summary-card-inner")) {
+        return;
+      }
+
+      card.classList.remove("is-returning");
+    };
+
+    card.addEventListener("click", alternarCard);
+    card.addEventListener("mouseleave", cerrarCard);
+    card.addEventListener("transitionend", limpiarRetorno);
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      alternarCard();
+    });
+  });
+
 });
 
 // -------------------------------------------Función para agregar el nuevo
@@ -251,6 +293,7 @@ flatpickr("#mes", {
   defaultDate: document.getElementById("mes").value,
 
   altInput: true,
+  altInputClass: "bh-input bh-month-input",
   altFormat: "F Y", // lo que ve el usuario
 
   plugins: [

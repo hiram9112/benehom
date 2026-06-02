@@ -226,6 +226,8 @@ async function cargarGraficoGastosFlexibles6m() {
     const meses = data.data.meses;
     const valores = data.data.valores;
 
+    actualizarResumenVariacionGastos("voluntario", valores);
+
     //Si ya había un gráfico lo destruimos para actualizarlo
     if (graficoGastosFlexibles6m) {
       graficoGastosFlexibles6m.destroy();
@@ -341,6 +343,8 @@ async function cargarGraficoGastosEsenciales6m() {
     //Almacenamos los meses y los valores en variables independientes
     const meses = data.data.meses;
     const valores = data.data.valores;
+
+    actualizarResumenVariacionGastos("obligatorio", valores);
 
     //Si ya había un gráfico lo destruimos para actualizarlo
     if (graficoGastosEsenciales6m) {

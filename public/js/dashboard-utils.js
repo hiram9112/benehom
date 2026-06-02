@@ -21,18 +21,17 @@ function actualizarTotales(valores) {
   const gastosEsenciales = Number(valores.gastosEsenciales) || 0;
   const gastosFlexibles = Number(valores.gastosFlexibles) || 0;
   const ahorroReal = Number(valores.ahorroReal) || 0;
-  const gastosTotales = Number(valores.gastosTotales) || 0;
-
   const ahorroPosibleNumero = ingresos - gastosEsenciales;
   const ingresosAhorrados = ingresos > 0 ? (ahorroReal / ingresos) * 100 : 0;
-  const pesoGastosEsenciales = ingresos > 0 ? (gastosEsenciales / ingresos) * 100 : 0;
-  const ingresosUsados = ingresos > 0 ? (gastosTotales / ingresos) * 100 : 0;
+  const pesoGastosFlexibles = ingresos > 0 ? (gastosFlexibles / ingresos) * 100 : 0;
 
   const tIngresos = formatearCantidad(ingresos);
   const tGastosEsenciales = formatearCantidad(gastosEsenciales);
   const tGastosFlexibles = formatearCantidad(gastosFlexibles);
   const tAhorroPosible = formatearCantidad(ahorroPosibleNumero);
   const tAhorro = formatearCantidad(ahorroReal);
+  const signoBalance = ahorroReal > 0 ? "+" : ahorroReal < 0 ? "-" : "";
+  const tBalanceResumen = `${signoBalance}${formatearCantidad(Math.abs(ahorroReal))}`;
 
   //Totales de las tarjetas
   document.getElementById("total_ingresos_texto").innerHTML =
@@ -47,24 +46,16 @@ function actualizarTotales(valores) {
     `Ahorro real del mes: <strong>${tAhorro}€</strong>`;
 
   //Resumen mensual superior
-  const resumenEstado = document.getElementById("resumen_estado_mes");
   const resumenAhorro = document.getElementById("resumen_ahorro_real");
   const resumenIngresosAhorrados = document.getElementById("resumen_ingresos_ahorrados");
-  const resumenGastosEsenciales = document.getElementById("resumen_peso_esenciales");
-  const resumenIngresosUsados = document.getElementById("resumen_ingresos_usados");
-  const estadoCard = document.getElementById("resumen_estado_card");
+  const resumenGastosFlexibles = document.getElementById("resumen_gastos_flexibles_peso");
   const ahorroCard = document.getElementById("resumen_ahorro_card");
 
-  if (resumenEstado) {
-    resumenEstado.textContent = ahorroReal >= 0 ? "Mes en positivo" : "Mes en negativo";
-  }
-
-  if (resumenAhorro) resumenAhorro.textContent = `${tAhorro}€`;
+  if (resumenAhorro) resumenAhorro.textContent = `${tBalanceResumen}€`;
   if (resumenIngresosAhorrados) resumenIngresosAhorrados.textContent = `${formatearPorcentaje(ingresosAhorrados)}%`;
-  if (resumenGastosEsenciales) resumenGastosEsenciales.textContent = `${formatearPorcentaje(pesoGastosEsenciales)}%`;
-  if (resumenIngresosUsados) resumenIngresosUsados.textContent = `${formatearPorcentaje(ingresosUsados)}%`;
+  if (resumenGastosFlexibles) resumenGastosFlexibles.textContent = `${formatearPorcentaje(pesoGastosFlexibles)}%`;
 
-  [estadoCard, ahorroCard].forEach((card) => {
+  [ahorroCard].forEach((card) => {
     if (!card) return;
     card.classList.remove("is-positive", "is-negative");
     card.classList.add(ahorroReal >= 0 ? "is-positive" : "is-negative");
@@ -85,15 +76,40 @@ function actualizarTotales(valores) {
   ahorroElem.classList.add(ahorroReal >= 0 ? "valor-positivo" : "valor-negativo");
 }
 
-//Función para formatear cantidades
-function formatearCantidad(valor) {
-  const numero = Number(valor);
+function actualizarResumenVariacionGastos(tipo, valores) {
+  const elemento = document.getElementById(
+    tipo === "obligatorio"
+      ? "resumen_variacion_esenciales"
+      : "resumen_variacion_flexibles",
+  );
 
-  if (Number.isInteger(numero)) {
-    return numero.toString();
+  if (!elemento) return;
+
+  const actual = Number(valores[valores.length - 1]) || 0;
+  const anterior = Number(valores[valores.length - 2]) || 0;
+  const variacion = anterior > 0 ? ((actual - anterior) / anterior) * 100 : 0;
+
+  elemento.textContent = formatearPorcentajeConSigno(variacion);
+}
+
+function formatearPorcentajeConSigno(valor) {
+  const numero = Number(valor) || 0;
+
+  if (numero === 0) {
+    return "0%";
   }
 
-  return numero.toFixed(2).replace(".", ",");
+  return `${numero > 0 ? "+" : ""}${formatearPorcentaje(numero)}%`;
+}
+
+//Función para formatear cantidades
+function formatearCantidad(valor) {
+  const numero = Number(valor) || 0;
+  const opciones = Number.isInteger(numero)
+    ? { maximumFractionDigits: 0 }
+    : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+  return new Intl.NumberFormat("es-ES", opciones).format(numero);
 }
 
 function formatearPorcentaje(valor) {

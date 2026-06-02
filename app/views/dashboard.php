@@ -67,48 +67,91 @@
             <!-- Contenedor principal -->
             <main class="bh-main">
                 <div class="bh-dashboard-layout">
-                    <header class="bh-dashboard-summary">
+                    <header class="bh-page-header bh-dashboard-summary">
                         <div class="bh-dashboard-period">
                             <h1>Resumen mensual</h1>
 
                             <!--Selector de mes-->
                             <div id="selector_mes">
-                                <form method="GET" action="index.php">
+                                <form method="GET" action="index.php" class="bh-form bh-month-form">
                                     <input type="hidden" name="r" value="dashboard/index">
 
                                     <input
                                         type="text"
                                         id="mes"
                                         name="mes"
+                                        class="bh-input bh-month-input"
                                         value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
                                 </form>
                             </div>
                         </div>
 
                         <div class="bh-summary-metrics" aria-live="polite">
-                            <div class="bh-summary-metric" id="resumen_estado_card">
-                                <span>Balance del mes</span>
-                                <strong id="resumen_estado_mes">Sin datos</strong>
-                            </div>
-
                             <div class="bh-summary-metric" id="resumen_ahorro_card">
-                                <span>Ahorro real</span>
+                                <div class="bh-summary-metric-heading">
+                                    <span>Balance del mes</span>
+                                </div>
                                 <strong id="resumen_ahorro_real">0€</strong>
                             </div>
 
-                            <div class="bh-summary-metric">
-                                <span>Ingresos ahorrados</span>
-                                <strong id="resumen_ingresos_ahorrados">0%</strong>
+                            <div class="bh-summary-metric bh-summary-flip-card" role="button" tabindex="0" aria-expanded="false" aria-label="Ver explicación sobre ingresos ahorrados" data-summary-flip>
+                                <div class="bh-summary-card-inner">
+                                    <div class="bh-summary-card-face bh-summary-card-front">
+                                        <div class="bh-summary-metric-heading">
+                                            <span>Ingresos ahorrados</span>
+                                        </div>
+                                        <strong id="resumen_ingresos_ahorrados">0%</strong>
+                                        <small>Clic para ver detalle</small>
+                                    </div>
+                                    <div class="bh-summary-card-face bh-summary-card-back">
+                                        <p>Indica qué parte de lo que entra en casa termina quedándose como ahorro real. Te ayuda a ver si tus ingresos dejan margen al final del mes.</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="bh-summary-metric">
-                                <span>Gastos esenciales</span>
-                                <strong id="resumen_peso_esenciales">0%</strong>
+                            <div class="bh-summary-metric bh-summary-flip-card" role="button" tabindex="0" aria-expanded="false" aria-label="Ver explicación sobre gastos flexibles" data-summary-flip>
+                                <div class="bh-summary-card-inner">
+                                    <div class="bh-summary-card-face bh-summary-card-front">
+                                        <div class="bh-summary-metric-heading">
+                                            <span>Gastos flexibles</span>
+                                        </div>
+                                        <strong id="resumen_gastos_flexibles_peso">0%</strong>
+                                        <small>Clic para ver detalle</small>
+                                    </div>
+                                    <div class="bh-summary-card-face bh-summary-card-back">
+                                        <p>Muestra cuánto presupuesto depende de decisiones de consumo. Cuanto más alto sea, más oportunidades tienes para ajustar sin tocar gastos básicos.</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="bh-summary-metric">
-                                <span>Ingresos usados</span>
-                                <strong id="resumen_ingresos_usados">0%</strong>
+                            <div class="bh-summary-metric bh-summary-flip-card" role="button" tabindex="0" aria-expanded="false" aria-label="Ver explicación sobre variación de gastos esenciales" data-summary-flip>
+                                <div class="bh-summary-card-inner">
+                                    <div class="bh-summary-card-face bh-summary-card-front">
+                                        <div class="bh-summary-metric-heading">
+                                            <span>Variación esenciales</span>
+                                        </div>
+                                        <strong id="resumen_variacion_esenciales">0%</strong>
+                                        <small>Clic para ver detalle</small>
+                                    </div>
+                                    <div class="bh-summary-card-face bh-summary-card-back">
+                                        <p>Los gastos esenciales normalmente deberían mantenerse estables. Si suben varios meses seguidos, revisa con detenimiento facturas y clasificaciones.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bh-summary-metric bh-summary-flip-card" role="button" tabindex="0" aria-expanded="false" aria-label="Ver explicación sobre variación de gastos flexibles" data-summary-flip>
+                                <div class="bh-summary-card-inner">
+                                    <div class="bh-summary-card-face bh-summary-card-front">
+                                        <div class="bh-summary-metric-heading">
+                                            <span>Variación flexibles</span>
+                                        </div>
+                                        <strong id="resumen_variacion_flexibles">0%</strong>
+                                        <small>Clic para ver detalle</small>
+                                    </div>
+                                    <div class="bh-summary-card-face bh-summary-card-back">
+                                        <p>Señala si tus hábitos de consumo suben o bajan frente al mes anterior. Es una pista rápida para saber si ganas o pierdes margen de ahorro.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </header>

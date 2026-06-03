@@ -322,9 +322,23 @@ textarea:disabled {
     grid-template-columns: minmax(0, 2fr) minmax(18rem, 0.85fr);
 }
 
+@media (min-width: 992px){
+    .bh-dashboard-aside{
+        align-self: start;
+        position: sticky;
+        top: var(--bh-dashboard-aside-sticky-top, var(--bh-space-4));
+    }
+}
+
 .bh-dashboard-layout{
     display: grid;
     gap: var(--bh-space-5);
+}
+
+.bh-dashboard-finance-stack,
+.bh-dashboard-aside{
+    display: grid;
+    gap: var(--bh-space-4);
 }
 
 .bh-dashboard-summary{
@@ -868,6 +882,20 @@ textarea:disabled {
 .bh-card-finance {
     border-color: var(--bh-border-strong);
     box-shadow: var(--bh-shadow-card);
+}
+
+.bh-dashboard-empty-state{
+    max-width: none;
+    margin-top: var(--bh-space-4);
+    padding: var(--bh-space-4);
+    background-color: var(--bh-surface-soft);
+    box-shadow: none;
+}
+
+.bh-dashboard-empty-state .bh-empty-state-icon{
+    width: 44px;
+    height: 44px;
+    font-size: var(--bh-text-lg);
 }
 
 .bh-card-chart {
@@ -1438,37 +1466,16 @@ textarea:disabled {
     }
 }
 
-.input-edicion{
-    width: 80px;
-    min-width: 80px;
-    max-width: 96px;
-    min-height: 0;
-    height: 24px;
-    padding: 0 0.35rem;
-    border: var(--bh-border-subtle);
-    border-radius: var(--bh-radius-sm);
-    background-color: var(--bh-surface-card);
-    color: var(--bh-text-main);
-    font-family: var(--bh-font-interface);
-    font-size: var(--bh-text-sm);
+.bh-inline-edit-input{
+    width: 6rem;
+    min-width: 5rem;
+    max-width: 7rem;
+    min-height: 2rem;
+    height: 2rem;
+    padding: 0.2rem 0.45rem;
     font-weight: var(--bh-weight-medium);
     line-height: 1;
     text-align: right;
-    transition:
-        border-color var(--bh-transition-base),
-        box-shadow var(--bh-transition-base),
-        background-color var(--bh-transition-base);
-}
-
-.input-edicion:hover{
-    border-color: var(--bh-border-strong);
-}
-
-.input-edicion:focus,
-.input-edicion:focus-visible{
-    border-color: var(--bh-brand);
-    box-shadow: var(--bh-focus-ring);
-    outline: none;
 }
 
 
@@ -1513,6 +1520,57 @@ textarea:disabled {
     color: var(--bh-saving);
 }
 
+.bh-totals-inline-row{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.bh-totals-inline-row .total-texto{
+    margin-top: 0 !important;
+    margin-bottom: 0;
+}
+
+.bh-total-info-row{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    padding: 10px 10px 10px 14px;
+    border-radius: 6px;
+    background-color: var(--bh-saving-soft);
+    box-shadow: var(--bh-shadow-soft);
+}
+
+.bh-total-info-row:has(.valor-positivo){
+    background-color: var(--bh-income-soft);
+}
+
+.bh-total-info-row:has(.valor-negativo){
+    background-color: var(--bh-expense-soft);
+}
+
+.bh-total-info-row .total-texto{
+    padding: 0;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.bh-total-info-row .bh-btn-icon{
+    width: 1.5rem;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
+    margin-top: 0;
+}
+
+.lista-ingresos,
+.lista-gastos{
+    margin-top: var(--bh-space-4);
+}
+
 .lista-ingresos ul,.lista-gastos ul{
     margin: 0;
     padding: 0;
@@ -1521,31 +1579,68 @@ textarea:disabled {
 
 .lista-ingresos li,.lista-gastos li{
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
-    margin-bottom: 4px;
+    gap: var(--bh-space-3);
+    padding: var(--bh-space-3);
+    margin-bottom: var(--bh-space-2);
     border-bottom: var(--bh-border-subtle);
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+    border-radius: var(--bh-radius-md);
+    background-color: rgba(253, 254, 253, 0.58);
+    transition:
+        background-color var(--bh-transition-base),
+        border-color var(--bh-transition-base),
+        transform var(--bh-transition-fast);
 }
 
-.lista-gastos li:last-child,.lista-ingresos lis:last-child{
+.lista-gastos li:last-child,.lista-ingresos li:last-child{
     border-bottom: none;
-}
-
-.lista-ingresos li span,.lista-gastos li span{
-    font-size: 14px;
-    color: var(--bh-text-main);
 }
 
 .lista-ingresos li:hover,.lista-gastos li:hover{
     background-color: var(--bh-surface-soft);
-    border-radius: 3px;
+    border-color: var(--bh-border-strong);
+    transform: translateY(-1px);
+}
+
+.bh-movement-main{
+    display: grid;
+    flex: 1 1 min(100%, 14rem);
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.bh-movement-label{
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-md);
+    font-weight: var(--bh-weight-bold);
+    line-height: var(--bh-line-tight);
+}
+
+.bh-movement-side{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.15rem;
+    flex: 0 0 auto;
+}
+
+.bh-movement-amount{
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-md);
+    font-weight: var(--bh-weight-bold);
+    line-height: 1;
+}
+
+.bh-money-symbol{
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
 }
 
 .eliminar_ingreso,.eliminar_gasto{
-    margin-left: auto;
+    margin-left: var(--bh-space-2);
     background-color: transparent;
     border-color: transparent;
     color: var(--bh-neutral);
@@ -1567,17 +1662,10 @@ textarea:disabled {
     transform: scale(1.18);
 }
 
-.cantidad_ingreso,
-.cantidad_gasto,
-.cantidad_gasto_esencial,
-.cantidad_gasto_flexible {
-    margin-left: 0.25rem;
-}
-
 .categoria_ingreso_individual,
 .categoria_gasto_esencial,
 .categoria_gasto_flexible {
-    padding-right: 0.25rem;
+    padding-right: 0;
 }
 
 .ingreso-resumenMensual, .ahorro-resumenMensual{
@@ -2838,6 +2926,15 @@ textarea:disabled {
 }
 
 @media (max-width: 576px) {
+    .lista-ingresos li,
+    .lista-gastos li {
+        align-items: flex-start;
+    }
+
+    .bh-movement-side {
+        align-items: flex-start;
+    }
+
     .bh-field-row {
         grid-template-columns: 1fr;
     }

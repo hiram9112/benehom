@@ -161,9 +161,9 @@
 
 
                 <!--Panel central-->
-                <section>
+                <section class="bh-dashboard-finance-stack">
                     <!-- Ingresos-->
-                    <div class="bh-card bh-card-finance mb-3">
+                    <div class="bh-card bh-card-finance">
                         <div class="bh-card-header">
                             <h3 class="titulo">
                                 Ingresos
@@ -178,7 +178,7 @@
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formIngresos" class="formulario-bh bh-guided-form">
+                            <form id="formIngresos" class="bh-form bh-guided-form">
                                 <?= csrf_field() ?>
 
                                 <div class="bh-field">
@@ -195,13 +195,13 @@
 
                                 <div class="bh-field">
                                     <label class="bh-label" for="cantidad_ingreso">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" step="0.01" required>
+                                    <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" class="bh-input" step="0.01" required>
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
                                 <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
 
-                                <button type="submit">Añadir ingreso</button>
+                                <button type="submit" class="bh-btn bh-btn-primary">Añadir ingreso</button>
                             </form>
 
                             <!--Contenedor para manejar de manera dinámica los ingresos utilizando AJAX y PHP-->
@@ -210,19 +210,25 @@
                                     <ul>
                                         <?php foreach ($ingresos as $ingreso): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="ingreso-<?= $ingreso['id'] ?>">
-                                                <span
-                                                    class="categoria_ingreso_individual"><?= htmlspecialchars(formatearCategoria($ingreso['categoria'])) ?></span>:
-                                                <span class="cantidad_ingreso"
-                                                    data-id="<?= $ingreso['id'] ?>"><?= formatearCantidadPHP($ingreso['cantidad']) ?></span>€
-                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="<?= $ingreso['id'] ?>" aria-label="Eliminar ingreso">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                            <li id="ingreso-<?= $ingreso['id'] ?>" class="bh-movement-item">
+                                                <div class="bh-movement-main">
+                                                    <span class="bh-movement-label categoria_ingreso_individual"><?= htmlspecialchars(formatearCategoria($ingreso['categoria'])) ?></span>
+                                                </div>
+                                                <div class="bh-movement-side">
+                                                    <span class="bh-movement-amount cantidad_ingreso" data-id="<?= $ingreso['id'] ?>"><?= formatearCantidadPHP($ingreso['cantidad']) ?></span><span class="bh-money-symbol">€</span>
+                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="<?= $ingreso['id'] ?>" aria-label="Eliminar ingreso">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <p>No tienes ingresos registrados todavía.</p>
+                                    <div class="bh-empty-state bh-dashboard-empty-state">
+                                        <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-wallet2"></i></span>
+                                        <h4 class="bh-empty-state-title">Sin ingresos este mes</h4>
+                                        <p class="bh-empty-state-text">Añade tu primer ingreso para calcular el ahorro posible y el balance real del mes.</p>
+                                    </div>
                                 <?php endif; ?>
                             </div>
 
@@ -235,7 +241,7 @@
 
 
                     <!--Gastos esenciales-->
-                    <div class="bh-card bh-card-finance mb-3">
+                    <div class="bh-card bh-card-finance">
                         <div class="bh-card-header">
                             <h3 class="titulo ">Gastos esenciales
                                 <button type="button"
@@ -248,7 +254,7 @@
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formGastosEsenciales" class="formulario-bh bh-guided-form">
+                            <form id="formGastosEsenciales" class="bh-form bh-guided-form">
                                 <?= csrf_field() ?>
 
                                 <div class="bh-category-picker" data-category-picker data-category-type="obligatorio">
@@ -273,16 +279,16 @@
 
                                 <div class="bh-field">
                                     <label class="bh-label" for="cantidad_gasto_esencial">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_gasto_esencial" id="cantidad_gasto_esencial"
+                                    <input type="number" name="cantidad_gasto_esencial" id="cantidad_gasto_esencial" class="bh-input"
                                         step="0.01" required>
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
                                 <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
 
-                                <button type="submit">Añadir gasto</button>
+                                <button type="submit" class="bh-btn bh-btn-primary">Añadir gasto</button>
 
-                                <p class="bh-help bh-category-help" data-category-help>Elige el área para ver solo los gastos relacionados.</p>
+                                
                             </form>
 
 
@@ -292,28 +298,41 @@
                                     <ul>
                                         <?php foreach ($gastosEsenciales as $gastoEsencial): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="gasto-<?= $gastoEsencial['id'] ?>"
+                                            <li id="gasto-<?= $gastoEsencial['id'] ?>" class="bh-movement-item"
                                                 data-tipo="<?= $gastoEsencial['tipo'] ?>">
-                                                <span
-                                                    class="categoria_gasto_esencial"><?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria'])) ?></span>:
-                                                <span class="cantidad_gasto_esencial cantidad_gasto"
-                                                    data-id="<?= $gastoEsencial['id'] ?>"><?= formatearCantidadPHP($gastoEsencial['cantidad']) ?></span>€
-                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoEsencial['id'] ?>" aria-label="Eliminar gasto">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                                <div class="bh-movement-main">
+                                                    <span class="bh-movement-label categoria_gasto_esencial"><?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria'])) ?></span>
+                                                </div>
+                                                <div class="bh-movement-side">
+                                                    <span class="bh-movement-amount cantidad_gasto_esencial cantidad_gasto" data-id="<?= $gastoEsencial['id'] ?>"><?= formatearCantidadPHP($gastoEsencial['cantidad']) ?></span><span class="bh-money-symbol">€</span>
+                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoEsencial['id'] ?>" aria-label="Eliminar gasto">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <p>No tienes gastos esenciales registrados todavía.</p>
+                                    <div class="bh-empty-state bh-dashboard-empty-state">
+                                        <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-house-heart"></i></span>
+                                        <h4 class="bh-empty-state-title">Sin gastos esenciales</h4>
+                                        <p class="bh-empty-state-text">Registra vivienda, suministros o gastos necesarios para ver tu ahorro posible.</p>
+                                    </div>
                                 <?php endif; ?>
                             </div>
 
-                            <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos esenciales -->
-                            <p id="total_gastos_esenciales_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
+                            <div class="bh-totals-inline-row">
+                                <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos esenciales -->
+                                <p id="total_gastos_esenciales_texto" class="mt-2 fw-bold total-texto total-gasto"></p>
 
-                            <!--Usaremos este elemento para mostrar de manera dinámica el ahorro posible  -->
-                            <p id="ahorro_posible_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
+                                <!--Usaremos este elemento para mostrar de manera dinámica el ahorro posible  -->
+                                <div class="bh-total-info-row">
+                                    <p id="ahorro_posible_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
+                                    <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorroPosible" aria-label="Información sobre ahorro posible">
+                                        <i class="bi bi-info-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
 
 
                         </div>
@@ -337,7 +356,7 @@
                             </h3>
                         </div>
                         <div class="bh-card-body">
-                            <form id="formGastosFlexibles" class="formulario-bh bh-guided-form">
+                            <form id="formGastosFlexibles" class="bh-form bh-guided-form">
                                 <?= csrf_field() ?>
 
                                 <div class="bh-category-picker" data-category-picker data-category-type="voluntario">
@@ -362,16 +381,16 @@
 
                                 <div class="bh-field">
                                     <label class="bh-label" for="cantidad_gasto_flexible">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_gasto_flexible" id="cantidad_gasto_flexible"
+                                    <input type="number" name="cantidad_gasto_flexible" id="cantidad_gasto_flexible" class="bh-input"
                                         step="0.01" required>
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
                                 <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
 
-                                <button type="submit">Añadir gasto</button>
+                                <button type="submit" class="bh-btn bh-btn-primary">Añadir gasto</button>
 
-                                <p class="bh-help bh-category-help" data-category-help>Elige el área para ver solo los gastos relacionados.</p>
+                                
                             </form>
 
                             <!--Contenedor para manejar de manera dinámica los gastos flexibles utilizando AJAX y PHP-->
@@ -380,26 +399,40 @@
                                     <ul>
                                         <?php foreach ($gastosFlexibles as $gastoFlexible): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="gasto-<?= $gastoFlexible['id'] ?>"
+                                            <li id="gasto-<?= $gastoFlexible['id'] ?>" class="bh-movement-item"
                                                 data-tipo="<?= $gastoFlexible['tipo'] ?>">
-                                                <span
-                                                    class="categoria_gasto_flexible"><?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria'])) ?></span>:
-                                                <span class="cantidad_gasto_flexible cantidad_gasto"
-                                                    data-id="<?= $gastoFlexible['id'] ?>"><?= formatearCantidadPHP($gastoFlexible['cantidad']) ?></span>€
-                                                <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoFlexible['id'] ?>" aria-label="Eliminar gasto"> <i
-                                                        class="bi bi-trash"></i></button>
+                                                <div class="bh-movement-main">
+                                                    <span class="bh-movement-label categoria_gasto_flexible"><?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria'])) ?></span>
+                                                </div>
+                                                <div class="bh-movement-side">
+                                                    <span class="bh-movement-amount cantidad_gasto_flexible cantidad_gasto" data-id="<?= $gastoFlexible['id'] ?>"><?= formatearCantidadPHP($gastoFlexible['cantidad']) ?></span><span class="bh-money-symbol">€</span>
+                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoFlexible['id'] ?>" aria-label="Eliminar gasto">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <p>No tienes gastos flexibles registrados todavía.</p>
+                                    <div class="bh-empty-state bh-dashboard-empty-state">
+                                        <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-basket2"></i></span>
+                                        <h4 class="bh-empty-state-title">Sin gastos flexibles</h4>
+                                        <p class="bh-empty-state-text">Añade ocio, compras o decisiones variables para comparar ahorro posible y ahorro real.</p>
+                                    </div>
                                 <?php endif; ?>
                             </div>
 
-                            <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos flexibles -->
-                            <p id="total_gastos_flexibles_texto" class="mt-2 fw-bold total-texto total-gasto"></p><br>
-                            <!--Usaremos este elemento para mostrar de manera dinámica el ahorro real -->
-                            <p id="ahorro_real_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
+                            <div class="bh-totals-inline-row">
+                                <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos flexibles -->
+                                <p id="total_gastos_flexibles_texto" class="mt-2 fw-bold total-texto total-gasto"></p>
+                                <!--Usaremos este elemento para mostrar de manera dinámica el ahorro real -->
+                                <div class="bh-total-info-row">
+                                    <p id="ahorro_real_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
+                                    <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorroReal" aria-label="Información sobre ahorro real">
+                                        <i class="bi bi-info-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
 
                         </div>
                     </div>
@@ -407,10 +440,10 @@
                 </section>
 
                 <!--Panel lateral derecho-->
-                <aside>
+                <aside class="bh-dashboard-aside">
 
                 <!--Gráfico presupuesto mensual-->
-                <div class="bh-card bh-card-chart p-3 mb-3">
+                <div class="bh-card bh-card-chart p-3">
                     <h5 class="mb-3">
                         Presupuesto mensual
                         <button type="button"
@@ -427,7 +460,7 @@
                 </div>
 
                 <!--Gráfico Ahorros 6m-->
-                <div class="bh-card bh-card-chart p-3 mb-3">
+                <div class="bh-card bh-card-chart p-3">
                     <h5 class="mb-3">
                         Evolución del Ahorro
                         <button type="button"
@@ -445,7 +478,7 @@
 
 
                 <!--Gráfico evolución gastos esenciales-->
-                <div class="bh-card bh-card-chart p-3 mb-3">
+                <div class="bh-card bh-card-chart p-3">
                     <h5 class="mb-3">
                         Evolución gastos esenciales
                         <button type="button"
@@ -463,7 +496,7 @@
 
 
                 <!--Gráfico evolución gastos flexibles-->
-                <div class="bh-card bh-card-chart p-3 mb-3">
+                <div class="bh-card bh-card-chart p-3">
                     <h5 class="mb-3">
                         Evolución gastos flexibles
                         <button type="button"
@@ -578,6 +611,48 @@
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!--Modal de ahorro posible-->
+    <div class="modal fade" id="infoAhorroPosible" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">¿Qué es el ahorro posible?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>Es una referencia: muestra cuánto podrías ahorrar si solo tuvieras ingresos y gastos esenciales.</p>
+                    <p>Tener 0 gastos flexibles no suele ser realista, pero ayuda a ver tu potencial de ahorro y el impacto de tus decisiones de consumo.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal de ahorro real-->
+    <div class="modal fade" id="infoAhorroReal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">¿Qué es el ahorro real?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>Es lo que realmente queda al final del mes después de ingresos, gastos esenciales y gastos flexibles.</p>
+                    <p>Muestra el resultado final de tus decisiones financieras del mes.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>

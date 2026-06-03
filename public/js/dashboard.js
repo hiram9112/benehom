@@ -75,6 +75,31 @@ document.addEventListener("DOMContentLoaded", () => {
     bootstrap.Tooltip.getOrCreateInstance(elemento);
   });
 
+  const dashboardAside = document.querySelector(".bh-dashboard-aside");
+
+  if (dashboardAside) {
+    const actualizarStickyAside = () => {
+      const offset = 16;
+      const top = Math.min(
+        offset,
+        window.innerHeight - dashboardAside.offsetHeight - offset,
+      );
+
+      dashboardAside.style.setProperty(
+        "--bh-dashboard-aside-sticky-top",
+        `${top}px`,
+      );
+    };
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(actualizarStickyAside);
+      observer.observe(dashboardAside);
+    }
+
+    window.addEventListener("resize", actualizarStickyAside);
+    actualizarStickyAside();
+  }
+
   document.querySelectorAll("[data-summary-flip]").forEach((card) => {
     const alternarCard = () => {
       const estaGirada = card.classList.toggle("is-flipped");
@@ -114,6 +139,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 
+function normalizarCantidadParaInput(valor) {
+  return valor.trim().replace(/\./g, "").replace(",", ".");
+}
+
+function crearInputEdicion(valorActual) {
+  const input = document.createElement("input");
+  input.type = "number";
+  input.step = "0.01";
+  input.min = "0";
+  input.inputMode = "decimal";
+  input.value = normalizarCantidadParaInput(valorActual);
+  input.classList.add("bh-input", "bh-inline-edit-input");
+
+  return input;
+}
+
 // -------------------------------------------Función para agregar el nuevo
 // Ingreso al DOM----------------------
 
@@ -127,12 +168,9 @@ async function editarIngresoInline(span) {
   const id = span.dataset.id;
   const valorActual = span.textContent;
 
-  //Creamos input para permitir la edición
-  const input = document.createElement("input");
-  input.type = "number";
-  input.step = "0.01";
-  input.value = valorActual;
-  input.classList.add("input-edicion");
+  //Creamos input BeneHom para permitir la edición
+  const input = crearInputEdicion(valorActual);
+  let guardando = false;
 
   // Reemplazamos el elemento span por el el input y para permitir escribir al
   // usuario
@@ -141,8 +179,21 @@ async function editarIngresoInline(span) {
 
   //Función para guardar los cambios
   const guardar = async () => {
+    if (guardando) return;
+    guardando = true;
+
     //Recogemos el nuevo valor
     const nuevoValor = input.value;
+
+    if (nuevoValor === "" || Number(nuevoValor) < 0) {
+      abrirModalInfo({
+        titulo: "Cantidad no válida",
+        mensaje: "Introduce una cantidad igual o superior a 0.",
+      });
+      input.replaceWith(span);
+      window.modoEdición = false;
+      return;
+    }
 
     //Preparemos y hacemos la petición al servidor
     const datos = new FormData();
@@ -150,39 +201,48 @@ async function editarIngresoInline(span) {
     datos.append("cantidad", nuevoValor);
     datos.append("_csrf", window.CSRF_TOKEN);
 
-    const respuesta = await fetch("index.php?r=ingreso/editarAjax", {
-      method: "POST",
-      body: datos,
-    });
+    try {
+      const respuesta = await fetch("index.php?r=ingreso/editarAjax", {
+        method: "POST",
+        body: datos,
+      });
 
-    //Recogemos la respuesta del servidor
-    const data = await respuesta.json();
+      //Recogemos la respuesta del servidor
+      const data = await respuesta.json();
 
-    if (data.ok) {
-      //Creamos nuevo span actualizado
-      const nuevoSpan = document.createElement("span");
-      nuevoSpan.textContent = formatearCantidad(nuevoValor);
-      nuevoSpan.dataset.id = id;
-      nuevoSpan.classList.add("cantidad_ingreso");
+      if (data.ok) {
+        //Creamos nuevo span actualizado
+        const nuevoSpan = document.createElement("span");
+        nuevoSpan.textContent = formatearCantidad(nuevoValor);
+        nuevoSpan.dataset.id = id;
+        nuevoSpan.classList.add("bh-movement-amount", "cantidad_ingreso");
 
-      //Reemplazamos el input con el span que contiene el nuevo valor
-      input.replaceWith(nuevoSpan);
+        //Reemplazamos el input con el span que contiene el nuevo valor
+        input.replaceWith(nuevoSpan);
 
-      //Actualizamos gráficos
-      window.cargarGraficoPresupuesto();
-      window.cargarGraficoGastosFlexibles6m();
-      window.cargarGraficoGastosEsenciales6m();
-      window.cargarGraficoAhorros6m();
-    } else {
-      //SI falla la edición restauramos el valor anterior
+        //Actualizamos gráficos
+        window.cargarGraficoPresupuesto();
+        window.cargarGraficoGastosFlexibles6m();
+        window.cargarGraficoGastosEsenciales6m();
+        window.cargarGraficoAhorros6m();
+      } else {
+        //SI falla la edición restauramos el valor anterior
+        abrirModalInfo({
+          titulo: "No se pudo guardar el cambio",
+          mensaje:
+            data.msg ||
+            "La modificación no pudo completarse. Inténtalo de nuevo.",
+        });
+        input.replaceWith(span);
+      }
+    } catch (error) {
       abrirModalInfo({
-        titulo: "No se pudo guardar el cambio",
-        mensaje:
-          data.msg ||
-          "La modificación no pudo completarse. Inténtalo de nuevo.",
+        titulo: "Problema de conexión",
+        mensaje: "No se pudo contactar con el servidor. Inténtalo de nuevo.",
       });
       input.replaceWith(span);
     }
+
     //desactivamos modo edición porque ya terminó
     window.modoEdición = false;
   };
@@ -206,12 +266,9 @@ async function editarGastoInline(span) {
   const id = span.dataset.id;
   const valorActual = span.textContent;
 
-  //Creamos input para permitir la edición
-  const input = document.createElement("input");
-  input.type = "number";
-  input.step = "0.01";
-  input.value = valorActual;
-  input.classList.add("input-edicion");
+  //Creamos input BeneHom para permitir la edición
+  const input = crearInputEdicion(valorActual);
+  let guardando = false;
 
   // Reemplazamos el elemento span por el el input y para permitir escribir al
   // usuario
@@ -220,8 +277,21 @@ async function editarGastoInline(span) {
 
   //Función para guardar los cambios
   const guardar = async () => {
+    if (guardando) return;
+    guardando = true;
+
     //Recogemos el nuevo valor
     const nuevoValor = input.value;
+
+    if (nuevoValor === "" || Number(nuevoValor) < 0) {
+      abrirModalInfo({
+        titulo: "Cantidad no válida",
+        mensaje: "Introduce una cantidad igual o superior a 0.",
+      });
+      input.replaceWith(span);
+      window.modoEdición = false;
+      return;
+    }
 
     //Preparemos y hacemos la petición al servidor
     const datos = new FormData();
@@ -229,46 +299,62 @@ async function editarGastoInline(span) {
     datos.append("cantidad", nuevoValor);
     datos.append("_csrf", window.CSRF_TOKEN);
 
-    const respuesta = await fetch("index.php?r=gasto/editarGastoAjax", {
-      method: "POST",
-      body: datos,
-    });
+    try {
+      const respuesta = await fetch("index.php?r=gasto/editarGastoAjax", {
+        method: "POST",
+        body: datos,
+      });
 
-    //Recogemos la respuesta del servidor
-    const data = await respuesta.json();
+      //Recogemos la respuesta del servidor
+      const data = await respuesta.json();
 
-    if (data.ok) {
-      //Recuperamos el li más cercano para obetener el tipo de gasto
-      const li = input.closest("li");
-      const tipo = li.dataset.tipo;
+      if (data.ok) {
+        //Recuperamos el li más cercano para obetener el tipo de gasto
+        const li = input.closest("li");
+        const tipo = li.dataset.tipo;
 
-      //Creamos nuevo span actualizado
-      const nuevoSpan = document.createElement("span");
-      nuevoSpan.textContent = formatearCantidad(nuevoValor);
-      nuevoSpan.dataset.id = id;
+        //Creamos nuevo span actualizado
+        const nuevoSpan = document.createElement("span");
+        nuevoSpan.textContent = formatearCantidad(nuevoValor);
+        nuevoSpan.dataset.id = id;
 
-      //Agregamos la clase según el tipo de gasto
-      if (tipo === "obligatorio") {
-        nuevoSpan.classList.add("cantidad_gasto_esencial", "cantidad_gasto");
+        //Agregamos la clase según el tipo de gasto
+        if (tipo === "obligatorio") {
+          nuevoSpan.classList.add(
+            "bh-movement-amount",
+            "cantidad_gasto_esencial",
+            "cantidad_gasto",
+          );
+        } else {
+          nuevoSpan.classList.add(
+            "bh-movement-amount",
+            "cantidad_gasto_flexible",
+            "cantidad_gasto",
+          );
+        }
+
+        //Reemplazamos el input con el span que contiene el nuevo valor
+        input.replaceWith(nuevoSpan);
+
+        //Actualizamos gráficos
+        window.cargarGraficoPresupuesto();
+        window.cargarGraficoGastosFlexibles6m();
+        window.cargarGraficoGastosEsenciales6m();
+        window.cargarGraficoAhorros6m();
       } else {
-        nuevoSpan.classList.add("cantidad_gasto_flexible", "cantidad_gasto");
+        //SI falla la edición restauramos el valor anterior
+        abrirModalInfo({
+          titulo: "No se pudo guardar el cambio",
+          mensaje:
+            data.msg ||
+            "La modificación no pudo completarse. Inténtalo de nuevo.",
+        });
+        input.replaceWith(span);
       }
-
-      //Reemplazamos el input con el span que contiene el nuevo valor
-      input.replaceWith(nuevoSpan);
-
-      //Actualizamos gráficos
-      window.cargarGraficoPresupuesto();
-      window.cargarGraficoGastosFlexibles6m();
-      window.cargarGraficoGastosEsenciales6m();
-      window.cargarGraficoAhorros6m();
-    } else {
-      //SI falla la edición restauramos el valor anterior
+    } catch (error) {
       abrirModalInfo({
-        titulo: "No se pudo guardar el cambio",
-        mensaje:
-          data.msg ||
-          "La modificación no pudo completarse. Inténtalo de nuevo.",
+        titulo: "Problema de conexión",
+        mensaje: "No se pudo contactar con el servidor. Inténtalo de nuevo.",
       });
       input.replaceWith(span);
     }

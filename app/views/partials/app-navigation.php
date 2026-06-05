@@ -15,10 +15,10 @@ function bh_navigation_items(): array
             'icon' => 'bi-house-door',
         ],
         [
-            'label' => 'Metas',
-            'route' => 'metas/index',
-            'href' => 'index.php?r=metas/index',
-            'icon' => 'bi-bullseye',
+            'label' => 'Simulador',
+            'route' => 'simulador/index',
+            'href' => 'index.php?r=simulador/index',
+            'icon' => 'bi-sliders2',
         ],
         [
             'label' => 'Blog',

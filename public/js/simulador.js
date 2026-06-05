@@ -1,7 +1,36 @@
 document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".js-meta-form").forEach((formulario) => {
+    const actualizarModo = () => {
+      const modoSeleccionado = formulario.querySelector('input[name="modo_calculo"]:checked')?.value || "aportacion";
+
+      formulario.querySelectorAll("[data-mode-group]").forEach((grupo) => {
+        const activo = grupo.dataset.modeGroup === modoSeleccionado;
+        grupo.hidden = !activo;
+        grupo.querySelectorAll("input, select, textarea").forEach((campo) => {
+          campo.disabled = !activo;
+        });
+      });
+    };
+
+    formulario.querySelectorAll('input[name="modo_calculo"]').forEach((radio) => {
+      radio.addEventListener("change", actualizarModo);
+    });
+
+    actualizarModo();
+  });
+
+  document.querySelectorAll("[data-confirm]").forEach((boton) => {
+    boton.addEventListener("click", (event) => {
+      if (!window.confirm(boton.dataset.confirm)) {
+        event.preventDefault();
+      }
+    });
+  });
+
   const ahorroElemento = document.getElementById("ahorro_mensual_disponible");
   const ahorroAsignadoElemento = document.getElementById("ahorro_asignado_metas");
   const ahorroDisponibleElemento = document.getElementById("ahorro_disponible_metas");
+  const metaCapacidadDisponibleElemento = document.getElementById("meta_capacidad_disponible");
 
   if (!ahorroElemento) return;
 
@@ -93,6 +122,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (ahorroDisponibleElemento) {
           ahorroDisponibleElemento.textContent = `${formatearCantidad(data.ahorroDisponibleMetas)} €`;
+        }
+
+        if (metaCapacidadDisponibleElemento) {
+          metaCapacidadDisponibleElemento.textContent = `${formatearCantidad(data.ahorroDisponibleMetas)} €`;
         }
 
         restaurar();

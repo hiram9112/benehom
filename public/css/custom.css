@@ -1287,6 +1287,201 @@ textarea:disabled {
     text-align: right;
 }
 
+.bh-simulator-goals{
+    margin-top: var(--bh-space-5);
+}
+
+.bh-simulator-goals-grid{
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.85fr) minmax(0, 1.35fr);
+    gap: var(--bh-space-5);
+    align-items: start;
+}
+
+.bh-meta-form-card,
+.bh-meta-list-card{
+    min-width: 0;
+}
+
+.bh-field-help{
+    margin: 0;
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-sm);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-mode-fieldset{
+    display: grid;
+    gap: var(--bh-space-3);
+    margin: 0;
+    padding: var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background-color: var(--bh-surface-soft);
+}
+
+.bh-meta-mode-fieldset legend{
+    float: none;
+    width: auto;
+    margin-bottom: var(--bh-space-2);
+    padding: 0;
+}
+
+.bh-meta-mode-option{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    cursor: pointer;
+}
+
+.bh-meta-mode-option input{
+    accent-color: var(--bh-brand-strong);
+}
+
+.bh-meta-form-note{
+    padding: var(--bh-space-3) var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background-color: var(--bh-info-soft);
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-sm);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-list-header{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-4);
+}
+
+.bh-meta-list-header p{
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-sm);
+}
+
+.bh-meta-list{
+    display: grid;
+    gap: var(--bh-space-4);
+}
+
+.bh-meta-card{
+    display: grid;
+    gap: var(--bh-space-4);
+    padding: var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-lg);
+    background:
+        linear-gradient(135deg, rgba(233, 244, 236, 0.72), rgba(253, 254, 253, 0.96));
+}
+
+.bh-meta-card-main{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-3);
+}
+
+.bh-meta-card h4{
+    margin-bottom: 0;
+    font-size: var(--bh-text-xl);
+}
+
+.bh-meta-category{
+    margin-bottom: var(--bh-space-1);
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-meta-metrics{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bh-space-3);
+}
+
+.bh-meta-metrics p{
+    display: grid;
+    gap: var(--bh-space-1);
+    margin: 0;
+    padding: var(--bh-space-3);
+    border-radius: var(--bh-radius-md);
+    background-color: rgba(253, 254, 253, 0.82);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-metrics span{
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-xs);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-meta-metrics strong{
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-md);
+}
+
+.bh-meta-estimation-copy{
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-sm);
+}
+
+.bh-meta-edit-details{
+    border-top: var(--bh-border-subtle);
+    padding-top: var(--bh-space-3);
+}
+
+.bh-meta-edit-details summary{
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    color: var(--bh-brand-strong);
+    font-weight: var(--bh-weight-bold);
+    cursor: pointer;
+}
+
+.bh-meta-edit-form{
+    margin-top: var(--bh-space-3);
+}
+
+.bh-meta-delete-form{
+    display: flex;
+    justify-content: flex-end;
+}
+
+.bh-meta-empty-state{
+    max-width: none;
+    background-color: var(--bh-surface-soft);
+    box-shadow: none;
+}
+
+@media (max-width: 991.98px){
+    .bh-simulator-goals-grid{
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px){
+    .bh-meta-list-header,
+    .bh-meta-card-main{
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .bh-meta-metrics{
+        grid-template-columns: 1fr;
+    }
+
+    .bh-meta-delete-form .bh-btn,
+    .bh-meta-form-card .bh-btn,
+    .bh-meta-edit-form .bh-btn{
+        width: 100%;
+    }
+}
+
 
 /* ==========================================================================
    Formularios

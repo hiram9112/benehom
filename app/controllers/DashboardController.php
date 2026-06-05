@@ -15,12 +15,14 @@ class DashboardController{
         //Recuperamos el id del usuario actual
         $usuario_id=$_SESSION['usuario_id']??null;
 
-        //Si recibimos un mes del selector lo usamos,de lo contrario cargamos el mes actual.
-        if(isset($_GET['mes'])){
-            $mesActual=$_GET['mes'];
-        }else{
-            $mesActual=date('Y-m');
+        //Si recibimos un mes válido del selector lo usamos,de lo contrario cargamos el mes actual.
+        $mesActual = date('Y-m');
+
+        if (isset($_GET['mes']) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $_GET['mes'])) {
+            $mesActual = (string) $_GET['mes'];
         }
+
+        $_SESSION['dashboard_mes_seleccionado'] = $mesActual;
         
         //Añadimos el día para obtener la fecha de inicio para la consulta
         $fechaInicio=$mesActual."-01";

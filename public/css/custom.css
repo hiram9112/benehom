@@ -1145,6 +1145,149 @@ textarea:disabled {
 }
 
 
+/* ========================================================================== 
+   Simulador
+   ========================================================================== */
+
+.bh-simulator-hero{
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+    gap: var(--bh-space-5);
+    align-items: stretch;
+}
+
+.bh-simulator-hero > *{
+    min-width: 0;
+}
+
+.bh-simulator-intro-card .bh-card-body,
+.bh-simulator-savings-card .bh-card-body{
+    min-height: 100%;
+    padding: clamp(var(--bh-space-5), 3vw, var(--bh-space-6));
+}
+
+.bh-simulator-kicker{
+    margin-bottom: var(--bh-space-2);
+    color: var(--bh-accent);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+    letter-spacing: 0.02em;
+}
+
+.bh-simulator-intro-card h1{
+    margin-bottom: var(--bh-space-4);
+}
+
+.bh-simulator-intro-card p{
+    max-width: 58rem;
+}
+
+.bh-simulator-savings-card{
+    border-color: rgba(253, 254, 253, 0.18);
+    background:
+        radial-gradient(circle at top right, rgba(233, 244, 236, 0.18), transparent 13rem),
+        var(--bh-brand-strong);
+    box-shadow: var(--bh-shadow-card);
+}
+
+.bh-simulator-savings-card,
+.bh-simulator-savings-card h2,
+.bh-simulator-savings-card h3,
+.bh-simulator-savings-card p,
+.bh-simulator-savings-card span,
+.bh-simulator-savings-card strong{
+    color: var(--bh-text-inverse);
+}
+
+.bh-simulator-savings-label{
+    margin-bottom: var(--bh-space-3);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+    letter-spacing: 0.02em;
+    opacity: 0.86;
+}
+
+.bh-simulator-savings-value{
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--bh-space-2);
+    margin-bottom: var(--bh-space-2);
+}
+
+.bh-simulator-savings-amount{
+    display: inline-flex;
+    align-items: center;
+    min-height: 3.75rem;
+    border-radius: var(--bh-radius-md);
+    font-family: var(--bh-font-heading);
+    font-size: clamp(2.5rem, 5vw, 4.75rem);
+    font-weight: var(--bh-weight-bold);
+    line-height: 0.98;
+    cursor: pointer;
+    text-underline-offset: 0.16em;
+    transition:
+        background-color var(--bh-transition-base),
+        box-shadow var(--bh-transition-base);
+}
+
+.bh-simulator-savings-amount:hover,
+.bh-simulator-savings-amount:focus-visible{
+    background-color: rgba(253, 254, 253, 0.10);
+    box-shadow: 0 0 0 8px rgba(253, 254, 253, 0.10);
+}
+
+.bh-simulator-currency{
+    font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+    font-weight: var(--bh-weight-bold);
+    opacity: 0.86;
+}
+
+.bh-simulator-edit-hint{
+    margin-bottom: var(--bh-space-5);
+    font-size: var(--bh-text-sm);
+    opacity: 0.76;
+}
+
+.bh-simulator-savings-breakdown{
+    display: grid;
+    gap: var(--bh-space-2);
+    padding-top: var(--bh-space-4);
+    border-top: 1px solid rgba(253, 254, 253, 0.22);
+}
+
+.bh-simulator-savings-breakdown p{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--bh-space-3);
+    margin: 0;
+    font-size: var(--bh-text-sm);
+}
+
+.bh-simulator-savings-breakdown span{
+    opacity: 0.78;
+}
+
+.bh-simulator-savings-breakdown strong{
+    white-space: nowrap;
+}
+
+.bh-simulator-savings-value .bh-simulator-inline-input{
+    width: min(100%, 15.5rem);
+    min-width: 10.5rem;
+    max-width: 15.5rem;
+    height: auto;
+    min-height: 3.65rem;
+    padding: 0.15rem 0.55rem;
+    font-family: var(--bh-font-heading);
+    font-size: clamp(2.15rem, 4.2vw, 3.55rem);
+    font-weight: var(--bh-weight-bold);
+    line-height: 0.98;
+    text-align: right;
+}
+
+
 /* ==========================================================================
    Formularios
    ========================================================================== */
@@ -2823,6 +2966,17 @@ textarea:disabled {
     .bh-content-grid{
         grid-template-columns: minmax(0, 1fr);
         gap: var(--bh-space-4);
+    }
+
+    .bh-simulator-hero{
+        grid-template-columns: 1fr;
+        gap: var(--bh-space-4);
+    }
+
+    .bh-simulator-savings-breakdown p{
+        align-items: flex-start;
+        flex-direction: column;
+        gap: var(--bh-space-1);
     }
 
     .bh-dashboard-summary{

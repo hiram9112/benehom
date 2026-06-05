@@ -29,3 +29,32 @@ CREATE TABLE gastos (
   CONSTRAINT gastos_usuario_fk
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE metas_ahorro (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  nombre VARCHAR(100) NOT NULL,
+  categoria VARCHAR(60) NOT NULL,
+  importe_objetivo DECIMAL(10,2) NOT NULL,
+  aportacion_mensual DECIMAL(10,2) NOT NULL DEFAULT 0,
+  fecha_objetivo DATE NULL,
+  estado ENUM('activa') NOT NULL DEFAULT 'activa',
+  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT metas_ahorro_usuario_fk
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE escenarios_inversion (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  nombre VARCHAR(100) NOT NULL,
+  capital_inicial DECIMAL(10,2) NOT NULL DEFAULT 0,
+  aportacion_mensual DECIMAL(10,2) NOT NULL DEFAULT 0,
+  rentabilidad_anual DECIMAL(5,2) NOT NULL DEFAULT 0,
+  plazo_anios INT NOT NULL,
+  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT escenarios_inversion_usuario_fk
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

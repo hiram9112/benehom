@@ -23,40 +23,87 @@
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
     bh_mobile_nav();
+
+    $formatearEuros = static function ($cantidad): string {
+        return formatearCantidadPHP($cantidad) . ' €';
+    };
     ?>
+
+    <?php if (isset($_SESSION['mensaje_error'])): ?>
+        <p class="alert alert-danger text-center">
+            <?= htmlspecialchars($_SESSION['mensaje_error'], ENT_QUOTES, 'UTF-8') ?>
+        </p>
+        <?php unset($_SESSION['mensaje_error']); ?>
+    <?php endif; ?>
 
     <!--Contenedor Principal-->
     <div class="bh-app-shell">
         <?php bh_sidebar(); ?>
 
         <!--Panel Central-->
-        <main class="bh-main bh-main-contained">
-            <header class="bh-page-header">
-                <div>
-                    <h1>Simulador</h1>
-                    <p>
-                        Herramienta educativa para visualizar cómo decisiones de ahorro, inversión e inflación
-                        pueden influir en objetivos financieros futuros.
-                    </p>
-                </div>
-            </header>
+        <main class="bh-main">
+            <section class="bh-simulator-hero mb-4" aria-labelledby="simulador-titulo">
+                <article class="bh-card bh-card-finance bh-simulator-intro-card">
+                    <div class="bh-card-body">
+                        <p class="bh-simulator-kicker">Herramienta educativa</p>
+                        <h1 id="simulador-titulo">Simulador</h1>
+                        <p>
+                            Visualiza cómo decisiones de ahorro, inversión e inflación pueden influir en objetivos
+                            financieros futuros sin convertir BeneHom en una contabilidad paralela.
+                        </p>
+                        <p>
+                            Tomamos como referencia el ahorro mensual del mes seleccionado en Dashboard. Puedes editar
+                            esa cantidad manualmente para probar escenarios sin modificar tus ingresos, gastos ni el Dashboard.
+                        </p>
+                        <p class="mb-0">
+                            Los resultados son estimaciones orientativas, no garantías ni recomendaciones financieras.
+                        </p>
+                    </div>
+                </article>
 
-            <section class="bh-card bh-card-finance mb-4" aria-labelledby="simulador-proposito">
-                <div class="bh-card-header">
-                    <h2 id="simulador-proposito" class="titulo m-0">Explora escenarios antes de decidir</h2>
-                </div>
-                <div class="bh-card-body">
-                    <p>
-                        El Simulador está pensado para ayudarte a entender posibilidades, comparar hipótesis y
-                        aprender el impacto aproximado de distintos hábitos financieros.
-                    </p>
-                    <p class="mb-0">
-                        Los resultados que se muestren en esta sección serán estimaciones orientativas, no garantías.
-                        BeneHom no ofrece recomendaciones financieras, productos, entidades, activos ni estrategias
-                        concretas.
-                    </p>
-                </div>
+                <article class="bh-card bh-simulator-savings-card" aria-labelledby="ahorro-mensual-disponible-label">
+                    <div class="bh-card-body">
+                        <p id="ahorro-mensual-disponible-label" class="bh-simulator-savings-label">Ahorro mensual disponible</p>
+                        <div class="bh-simulator-savings-value">
+                            <span
+                                id="ahorro_mensual_disponible"
+                                class="bh-simulator-savings-amount"
+                                role="button"
+                                tabindex="0"
+                                aria-label="Editar ahorro mensual disponible"
+                                data-value="<?= htmlspecialchars((string) $ahorroMensualDisponible, ENT_QUOTES, 'UTF-8') ?>">
+                                <?= formatearCantidadPHP($ahorroMensualDisponible) ?>
+                            </span>
+                            <span class="bh-simulator-currency">€</span>
+                        </div>
+                        <p class="bh-simulator-edit-hint">Haz clic en el importe para editarlo.</p>
+
+                        <div class="bh-simulator-savings-breakdown">
+                            <p>
+                                <span>Asignado a metas</span>
+                                <strong id="ahorro_asignado_metas"><?= $formatearEuros($ahorroAsignadoMetas) ?></strong>
+                            </p>
+                            <p>
+                                <span>Disponible</span>
+                                <strong id="ahorro_disponible_metas"><?= $formatearEuros($ahorroDisponibleMetas) ?></strong>
+                            </p>
+                        </div>
+                    </div>
+                </article>
             </section>
+
+            <?php if (!empty($avisoAhorroAsignado)): ?>
+                <div class="bh-alert bh-alert-warning mb-4">
+                    <?= htmlspecialchars($avisoAhorroAsignado, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($ahorroAsignadoSuperaDisponible): ?>
+                <div class="bh-alert bh-alert-warning mb-4">
+                    El ahorro asignado a metas supera el ahorro mensual disponible. Puedes ajustar el importe para simular
+                    sin cambiar tus datos reales.
+                </div>
+            <?php endif; ?>
 
             <section aria-labelledby="simulador-modulos">
                 <div class="bh-page-header">
@@ -77,7 +124,7 @@
                         <div class="bh-card-body">
                             <p class="mb-0">
                                 Permitirá crear escenarios de ahorro y estimar plazos o aportaciones necesarias
-                                según una capacidad mensual configurada para simular.
+                                según el ahorro mensual disponible para simular.
                             </p>
                         </div>
                     </article>
@@ -92,7 +139,7 @@
                         <div class="bh-card-body">
                             <p class="mb-0">
                                 Ayudará a comparar hipótesis de capital inicial, aportaciones periódicas,
-                                rentabilidad estimada y plazo, sin recomendar productos financieros.
+                                rentabilidad hipotética y plazo, sin recomendar productos financieros.
                             </p>
                         </div>
                     </article>
@@ -117,6 +164,10 @@
     </div>
 
     <?php bh_mobile_menu(); ?>
+    <script>
+        window.CSRF_TOKEN = "<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>";
+    </script>
+    <script src="<?= BASE_URL ?>js/simulador.js?v=<?= time() ?>"></script>
 </body>
 
 </html>

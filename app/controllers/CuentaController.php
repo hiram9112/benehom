@@ -3,6 +3,8 @@
 require_once APP_PATH."/models/Usuario.php";
 require_once APP_PATH."/models/Gasto.php";
 require_once APP_PATH."/models/Ingreso.php";
+require_once APP_PATH."/models/MetaAhorro.php";
+require_once APP_PATH."/models/EscenarioInversion.php";
 
 class CuentaController{    
     
@@ -119,6 +121,10 @@ class CuentaController{
         $db->beginTransaction();
        
 
+        //Eliminamos las metas de ahorro del usuario
+        $eliminarMetas=MetaAhorro::eliminarTodosPorUsuario($id);
+        //Eliminamos los escenarios de inversión del usuario
+        $eliminarEscenarios=EscenarioInversion::eliminarTodosPorUsuario($id);
         //Eliminamos los ingresos del usuario
         $eliminarIngresos=Ingreso::eliminarTodosPorUsuario($id);
         //Eliminamos los gastos del usuario
@@ -127,7 +133,7 @@ class CuentaController{
         $eliminarUsuario=Usuario::eliminar($id);
 
         //Comprobamos que todo salió bien antes de confirmar la transacción
-        if ($eliminarIngresos && $eliminarGastos && $eliminarUsuario) {
+        if ($eliminarMetas && $eliminarEscenarios && $eliminarIngresos && $eliminarGastos && $eliminarUsuario) {
 
             // CONFIRMAMOS CAMBIOS
             $db->commit();

@@ -27,13 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  const ahorroElemento = document.getElementById("ahorro_mensual_disponible");
-  const ahorroAsignadoElemento = document.getElementById("ahorro_asignado_metas");
-  const ahorroDisponibleElemento = document.getElementById("ahorro_disponible_metas");
-  const metaCapacidadDisponibleElemento = document.getElementById("meta_capacidad_disponible");
-
-  if (!ahorroElemento) return;
-
   const formatearCantidad = (valor) => {
     const numero = Number(valor) || 0;
 
@@ -42,6 +35,357 @@ document.addEventListener("DOMContentLoaded", () => {
       maximumFractionDigits: 2,
     }).format(numero);
   };
+
+  const formatearPlazo = (meses) => {
+    const mesesEnteros = Number(meses);
+
+    if (!Number.isFinite(mesesEnteros) || mesesEnteros <= 0) {
+      return "No calculable";
+    }
+
+    const totalMeses = Math.ceil(mesesEnteros);
+    const anios = Math.floor(totalMeses / 12);
+    const restoMeses = totalMeses % 12;
+
+    if (anios === 0) {
+      return `${totalMeses} ${totalMeses === 1 ? "mes" : "meses"}`;
+    }
+
+    if (restoMeses === 0) {
+      return `${anios} ${anios === 1 ? "año" : "años"}`;
+    }
+
+    return `${anios} ${anios === 1 ? "año" : "años"} y ${restoMeses} ${restoMeses === 1 ? "mes" : "meses"}`;
+  };
+
+  const formatearFechaDesdeHoy = (meses) => {
+    const hoy = new Date();
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + meses, 1);
+    const ultimoDiaMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+
+    fecha.setDate(Math.min(hoy.getDate(), ultimoDiaMes));
+
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(fecha);
+  };
+
+  const formatearFechaISO = (fechaISO) => {
+    if (!fechaISO) return "Sin fecha estimada";
+
+    const partes = String(fechaISO).split("-").map(Number);
+
+    if (partes.length !== 3 || partes.some((parte) => !Number.isFinite(parte))) {
+      return "Sin fecha estimada";
+    }
+
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(partes[0], partes[1] - 1, partes[2]));
+  };
+
+  const formatearOpcionConImporte = (texto, importe, prefijo = "") => {
+    const etiqueta = String(texto || "").trim();
+    const importeTexto = `${prefijo}${formatearCantidad(importe)} €`;
+
+    return `${etiqueta} --> ${importeTexto}`;
+  };
+
+  document.querySelectorAll("[data-meta-card]").forEach((card) => {
+    const categoriaSelect = card.querySelector("[data-simulation-category]");
+    const porcentajeSelect = card.querySelector("[data-simulation-percent]");
+    const mensaje = card.querySelector("[data-simulation-message]");
+    const badgeSimulacion = card.querySelector("[data-simulation-badge]");
+    const limpiarBoton = card.querySelector("[data-simulation-clear]");
+    const objetivoElemento = card.querySelector("[data-meta-target-amount]");
+    const aportacionElemento = card.querySelector('[data-simulation-value="aportacion"]');
+    const plazoElemento = card.querySelector('[data-simulation-value="plazo"]');
+    const mejoraElemento = card.querySelector('[data-simulation-value="mejora"]');
+    const fechaElemento = card.querySelector('[data-simulation-value="fecha"]');
+
+    if (!categoriaSelect || !porcentajeSelect || !aportacionElemento || !plazoElemento || !fechaElemento) return;
+
+    const elementosSimulados = [aportacionElemento, plazoElemento, fechaElemento];
+    const obtenerEtiqueta = (elemento) => elemento.closest("p")?.querySelector("span") || null;
+
+    const actualizarEstadoPorcentaje = () => {
+      const opcionCategoria = categoriaSelect.selectedOptions[0];
+      const totalCategoria = Number(opcionCategoria?.dataset.total || 0);
+
+      if (categoriaSelect.value === "") {
+        porcentajeSelect.value = "";
+        porcentajeSelect.disabled = true;
+        categoriaSelect.classList.remove("is-expense-selected");
+        porcentajeSelect.classList.remove("is-saving-selected");
+        porcentajeSelect.options[0].textContent = "Elige primero una categoría";
+
+        Array.from(porcentajeSelect.options).slice(1).forEach((option) => {
+          option.textContent = option.dataset.percentLabel || `${option.value}%`;
+        });
+
+        return;
+      }
+
+      porcentajeSelect.disabled = false;
+      categoriaSelect.classList.add("is-expense-selected");
+      porcentajeSelect.options[0].textContent = "Selecciona porcentaje";
+
+      Array.from(porcentajeSelect.options).slice(1).forEach((option) => {
+        const porcentaje = Number(option.value || 0);
+        const etiqueta = option.dataset.percentLabel || `${porcentaje}%`;
+        const reduccion = totalCategoria * (porcentaje / 100);
+
+        option.textContent = formatearOpcionConImporte(etiqueta, reduccion, "+");
+      });
+    };
+
+    elementosSimulados.forEach((elemento) => {
+      const etiqueta = obtenerEtiqueta(elemento);
+
+      elemento.dataset.originalText = elemento.textContent;
+
+      if (etiqueta) {
+        etiqueta.dataset.originalText = etiqueta.textContent;
+      }
+    });
+
+    const limpiarSimulacion = (texto = "") => {
+      elementosSimulados.forEach((elemento) => {
+        const etiqueta = obtenerEtiqueta(elemento);
+
+        elemento.textContent = elemento.dataset.originalText || elemento.textContent;
+        elemento.closest("p")?.classList.remove("is-simulated");
+
+        if (etiqueta?.dataset.originalText) {
+          etiqueta.textContent = etiqueta.dataset.originalText;
+        }
+      });
+
+      if (mejoraElemento) {
+        mejoraElemento.textContent = "";
+        mejoraElemento.hidden = true;
+      }
+
+      if (mensaje) {
+        mensaje.textContent = texto;
+        mensaje.hidden = texto === "";
+      }
+
+      porcentajeSelect.classList.remove("is-saving-selected");
+
+      if (badgeSimulacion) {
+        badgeSimulacion.hidden = true;
+      }
+    };
+
+    const resetearControlesYSimulacion = () => {
+      categoriaSelect.value = "";
+      porcentajeSelect.value = "";
+      actualizarEstadoPorcentaje();
+      limpiarSimulacion();
+    };
+
+    const aplicarSimulacion = () => {
+      const opcionCategoria = categoriaSelect.selectedOptions[0];
+      const totalCategoria = Number(opcionCategoria?.dataset.total || 0);
+      const porcentaje = Number(porcentajeSelect.value || 0);
+      const importeObjetivo = Number(card.dataset.importeObjetivo || 0);
+      const aportacionOriginal = Number(card.dataset.aportacionOriginal || 0);
+      const plazoOriginal = Number(card.dataset.plazoOriginal || 0);
+
+      if (!opcionCategoria?.value || porcentaje <= 0) {
+        limpiarSimulacion();
+        return;
+      }
+
+      if (totalCategoria <= 0 || importeObjetivo <= 0 || aportacionOriginal <= 0 || plazoOriginal <= 0) {
+        limpiarSimulacion("No hay impacto calculable para esta meta con los datos actuales.");
+        return;
+      }
+
+      const aportacionExtra = totalCategoria * (porcentaje / 100);
+      const aportacionSimulada = aportacionOriginal + aportacionExtra;
+      const plazoSimulado = Math.ceil(importeObjetivo / aportacionSimulada);
+      const mejoraMeses = plazoOriginal - plazoSimulado;
+
+      if (mejoraMeses <= 0) {
+        limpiarSimulacion("Con esa reducción no se aprecia una mejora de plazo en esta estimación.");
+        return;
+      }
+
+      const categoriaTexto = opcionCategoria.dataset.label || opcionCategoria.textContent.trim();
+      const aportacionEtiqueta = obtenerEtiqueta(aportacionElemento);
+      const plazoEtiqueta = obtenerEtiqueta(plazoElemento);
+      const fechaEtiqueta = obtenerEtiqueta(fechaElemento);
+
+      if (aportacionEtiqueta) aportacionEtiqueta.textContent = "Aportación simulada";
+      if (plazoEtiqueta) plazoEtiqueta.textContent = "Plazo simulado";
+      if (fechaEtiqueta) fechaEtiqueta.textContent = "Fecha simulada";
+
+      aportacionElemento.textContent = `${formatearCantidad(aportacionSimulada)} €`;
+      plazoElemento.textContent = formatearPlazo(plazoSimulado);
+      fechaElemento.textContent = formatearFechaDesdeHoy(plazoSimulado);
+
+      elementosSimulados.forEach((elemento) => {
+        elemento.closest("p")?.classList.add("is-simulated");
+      });
+
+      if (mejoraElemento) {
+        mejoraElemento.textContent = `-${mejoraMeses} ${mejoraMeses === 1 ? "mes" : "meses"}`;
+        mejoraElemento.hidden = false;
+      }
+
+      if (mensaje) {
+        mensaje.textContent = `Si redujeras aproximadamente ${formatearCantidad(aportacionExtra)} € al mes en ${categoriaTexto}, podrías aportarlos a esta meta. Esta simulación no modifica tus gastos ni la meta guardada.`;
+        mensaje.hidden = false;
+      }
+
+
+      porcentajeSelect.classList.add("is-saving-selected");
+
+      if (badgeSimulacion) {
+        badgeSimulacion.hidden = false;
+      }
+    };
+
+    categoriaSelect.addEventListener("change", () => {
+      limpiarSimulacion();
+      porcentajeSelect.value = "";
+      actualizarEstadoPorcentaje();
+    });
+
+    porcentajeSelect.addEventListener("change", () => {
+      if (porcentajeSelect.value === "") {
+        limpiarSimulacion();
+        return;
+      }
+
+      aplicarSimulacion();
+    });
+
+    if (limpiarBoton) {
+      limpiarBoton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        resetearControlesYSimulacion();
+      });
+    }
+
+    const editarObjetivoInline = () => {
+      if (!objetivoElemento || objetivoElemento.dataset.editing === "true") return;
+
+      objetivoElemento.dataset.editing = "true";
+
+      const valorAnterior = objetivoElemento.dataset.value || "";
+      const input = document.createElement("input");
+      let guardando = false;
+      let cancelado = false;
+
+      input.type = "number";
+      input.step = "0.01";
+      input.min = "0.01";
+      input.inputMode = "decimal";
+      input.value = valorAnterior;
+      input.classList.add("bh-input", "bh-inline-edit-input", "bh-meta-target-inline-input");
+      input.setAttribute("aria-label", "Importe objetivo de la meta");
+
+      objetivoElemento.replaceWith(input);
+      input.focus();
+      input.select();
+
+      const restaurar = () => {
+        input.replaceWith(objetivoElemento);
+        objetivoElemento.dataset.editing = "false";
+      };
+
+      const guardar = async () => {
+        if (cancelado || guardando) return;
+
+        guardando = true;
+
+        const nuevoValor = input.value;
+
+        if (nuevoValor === "" || Number(nuevoValor) <= 0) {
+          objetivoElemento.setAttribute("title", "El importe objetivo debe ser mayor que 0.");
+          restaurar();
+          return;
+        }
+
+        const datos = new FormData();
+        datos.append("id", objetivoElemento.dataset.metaId || "");
+        datos.append("importe_objetivo", nuevoValor);
+        datos.append("_csrf", window.CSRF_TOKEN || "");
+
+        try {
+          const respuesta = await fetch("index.php?r=simulador/actualizarImporteMetaAjax", {
+            method: "POST",
+            body: datos,
+          });
+          const data = await respuesta.json();
+
+          if (!data.ok) {
+            objetivoElemento.setAttribute("title", data.msg || "No se pudo actualizar el importe objetivo.");
+            restaurar();
+            return;
+          }
+
+          resetearControlesYSimulacion();
+
+          const importeObjetivo = Number(data.importeObjetivo) || 0;
+          const plazoTexto = formatearPlazo(data.plazoMesesEstimado);
+          const fechaTexto = formatearFechaISO(data.fechaFinalizacionEstimada);
+
+          card.dataset.importeObjetivo = importeObjetivo;
+          card.dataset.plazoOriginal = data.plazoMesesEstimado ?? "";
+          objetivoElemento.textContent = `${formatearCantidad(importeObjetivo)} €`;
+          objetivoElemento.dataset.value = importeObjetivo;
+          objetivoElemento.removeAttribute("title");
+          plazoElemento.textContent = plazoTexto;
+          plazoElemento.dataset.originalText = plazoTexto;
+          fechaElemento.textContent = fechaTexto;
+          fechaElemento.dataset.originalText = fechaTexto;
+
+          restaurar();
+        } catch (error) {
+          objetivoElemento.setAttribute("title", "No se pudo contactar con el servidor. Inténtalo de nuevo.");
+          restaurar();
+        }
+      };
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") guardar();
+        if (event.key === "Escape") {
+          cancelado = true;
+          restaurar();
+        }
+      });
+
+      input.addEventListener("blur", guardar);
+    };
+
+    if (objetivoElemento) {
+      objetivoElemento.addEventListener("click", editarObjetivoInline);
+      objetivoElemento.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+
+        event.preventDefault();
+        editarObjetivoInline();
+      });
+    }
+
+    actualizarEstadoPorcentaje();
+  });
+
+  const ahorroElemento = document.getElementById("ahorro_mensual_disponible");
+  const ahorroAsignadoElemento = document.getElementById("ahorro_asignado_metas");
+  const ahorroDisponibleElemento = document.getElementById("ahorro_disponible_metas");
+  const metaCapacidadDisponibleElemento = document.getElementById("meta_capacidad_disponible");
+
+  if (!ahorroElemento) return;
 
   const normalizarCantidadParaInput = (valor) => valor.trim().replace(/\./g, "").replace(",", ".");
 

@@ -5,11 +5,11 @@ skills-lock.json
 
 .agents
 .playwright-mcp/
-rediseño-visual.md
-plan.md
-identidad-visual.md
 auditoria-visual.md
-PRODUCT.md
 DESIGN.md
-simulador-hu.md
+identidad-visual.md
 plan-implementación-simulador.md
+plan.md
+PRODUCT.md
+rediseño-visual.md
+simulador-hu.md

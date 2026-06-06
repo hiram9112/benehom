@@ -55,6 +55,13 @@
 
         return $anios . ($anios === 1 ? ' año' : ' años') . ' y ' . $restoMeses . ($restoMeses === 1 ? ' mes' : ' meses');
     };
+
+    $formatearOpcionConImporte = static function ($texto, $importe, $prefijo = ''): string {
+        $texto = trim((string) $texto);
+        $importeTexto = $prefijo . formatearCantidadPHP($importe) . ' €';
+
+        return $texto . ' --> ' . $importeTexto;
+    };
     ?>
 
     <?php if (isset($_SESSION['mensaje_exitoso'])): ?>
@@ -133,6 +140,12 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (!empty($avisoGastosFlexibles)): ?>
+                <div class="bh-alert bh-alert-warning mb-4">
+                    <?= htmlspecialchars($avisoGastosFlexibles, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
+
             <?php if ($ahorroAsignadoSuperaDisponible): ?>
                 <div class="bh-alert bh-alert-warning mb-4">
                     El ahorro asignado a metas supera el ahorro mensual disponible. Puedes ajustar el importe para simular
@@ -170,14 +183,9 @@
                                         <input class="bh-input" type="text" id="meta_nombre" name="nombre" maxlength="100" required placeholder="Ej. Fondo para vacaciones">
                                     </div>
                                     <div class="bh-field">
-                                        <label class="bh-label" for="meta_categoria">Categoría</label>
-                                        <input class="bh-input" type="text" id="meta_categoria" name="categoria" maxlength="60" required placeholder="Ej. Viajes, hogar, estudios">
+                                        <label class="bh-label" for="meta_importe_objetivo">Importe objetivo</label>
+                                        <input class="bh-input" type="number" id="meta_importe_objetivo" name="importe_objetivo" min="0.01" step="0.01" inputmode="decimal" required>
                                     </div>
-                                </div>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="meta_importe_objetivo">Importe objetivo</label>
-                                    <input class="bh-input" type="number" id="meta_importe_objetivo" name="importe_objetivo" min="0.01" step="0.01" inputmode="decimal" required>
                                 </div>
 
                                 <fieldset class="bh-meta-mode-fieldset">
@@ -242,11 +250,23 @@
                                         $metaId = intval($meta['id']);
                                         $modoMeta = $meta['modo_calculo'];
                                         ?>
-                                        <article class="bh-meta-card">
+                                        <article
+                                            class="bh-meta-card"
+                                            data-meta-card
+                                            data-importe-objetivo="<?= htmlspecialchars((string) $meta['importe_objetivo'], ENT_QUOTES, 'UTF-8') ?>"
+                                            data-aportacion-original="<?= htmlspecialchars((string) $meta['aportacion_mensual'], ENT_QUOTES, 'UTF-8') ?>"
+                                            data-plazo-original="<?= htmlspecialchars((string) ($meta['plazo_meses_estimado'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                             <div class="bh-meta-card-main">
                                                 <div>
-                                                    <p class="bh-meta-category"><?= htmlspecialchars($meta['categoria'], ENT_QUOTES, 'UTF-8') ?></p>
-                                                    <h4><?= htmlspecialchars($meta['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                                    <div class="bh-meta-title-row">
+                                                        <h4><?= htmlspecialchars($meta['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                                        <span class="bh-meta-simulation-badge" data-simulation-badge hidden>
+                                                            Simulación
+                                                            <button type="button" class="bh-meta-simulation-clear" data-simulation-clear aria-label="Limpiar simulación">
+                                                                &times;
+                                                            </button>
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <span class="bh-badge bh-badge-saving">Estimación</span>
                                             </div>
@@ -254,19 +274,30 @@
                                             <div class="bh-meta-metrics">
                                                 <p>
                                                     <span>Objetivo</span>
-                                                    <strong><?= $formatearEuros($meta['importe_objetivo']) ?></strong>
+                                                    <strong
+                                                        data-meta-target-amount
+                                                        data-meta-id="<?= $metaId ?>"
+                                                        data-value="<?= htmlspecialchars((string) $meta['importe_objetivo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar importe objetivo de la meta">
+                                                        <?= $formatearEuros($meta['importe_objetivo']) ?>
+                                                    </strong>
                                                 </p>
                                                 <p>
                                                     <span>Aportación mensual</span>
-                                                    <strong><?= $formatearEuros($meta['aportacion_mensual']) ?></strong>
+                                                    <strong data-simulation-value="aportacion"><?= $formatearEuros($meta['aportacion_mensual']) ?></strong>
                                                 </p>
                                                 <p>
                                                     <span>Plazo estimado</span>
-                                                    <strong><?= htmlspecialchars($formatearPlazo($meta['plazo_meses_estimado']), ENT_QUOTES, 'UTF-8') ?></strong>
+                                                    <strong>
+                                                        <span data-simulation-value="plazo"><?= htmlspecialchars($formatearPlazo($meta['plazo_meses_estimado']), ENT_QUOTES, 'UTF-8') ?></span>
+                                                        <span class="bh-meta-simulation-improvement" data-simulation-value="mejora" hidden></span>
+                                                    </strong>
                                                 </p>
                                                 <p>
                                                     <span>Finalización estimada</span>
-                                                    <strong><?= htmlspecialchars($formatearFecha($meta['fecha_finalizacion_estimada']), ENT_QUOTES, 'UTF-8') ?></strong>
+                                                    <strong data-simulation-value="fecha"><?= htmlspecialchars($formatearFecha($meta['fecha_finalizacion_estimada']), ENT_QUOTES, 'UTF-8') ?></strong>
                                                 </p>
                                             </div>
 
@@ -274,62 +305,71 @@
                                                 Resultado orientativo: no garantiza que la meta se alcance en esa fecha ni modifica tus datos reales.
                                             </p>
 
-                                            <details class="bh-meta-edit-details">
-                                                <summary>Editar meta</summary>
-                                                <form method="POST" action="index.php?r=simulador/actualizarMetaAhorro" class="bh-form js-meta-form bh-meta-edit-form">
+                                            <div class="bh-meta-flex-simulation" aria-label="Simulación de reducción de gastos flexibles">
+                                                <div class="bh-meta-simulation-header">
+                                                    <h5 class="bh-meta-simulation-title">Simular reducción de gastos flexible</h5>
+                                                    <button type="button"
+                                                        class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#infoSimulacionGastosFlexibles"
+                                                        aria-label="Información sobre simulación de gastos flexibles">
+                                                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                                    </button>
+                                                </div>
+
+                                                <?php if (empty($gastosFlexiblesPorCategoria)): ?>
+                                                    <p class="bh-field-help mb-0">No hay gastos flexibles registrados en el mes seleccionado para simular una reducción.</p>
+                                                <?php else: ?>
+                                                    <div class="bh-category-picker bh-meta-simulation-controls" data-simulation-picker>
+                                                        <div class="bh-field">
+                                                            <label class="bh-label" for="meta_sim_categoria_<?= $metaId ?>">Categoría flexible</label>
+                                                            <div class="bh-select-shell">
+                                                                <select class="bh-select" id="meta_sim_categoria_<?= $metaId ?>" data-simulation-category>
+                                                                    <option value="">Sin simulación</option>
+                                                                    <?php foreach ($gastosFlexiblesPorCategoria as $gastoFlexibleCategoria): ?>
+                                                                        <?php
+                                                                        $categoriaFlexible = (string) $gastoFlexibleCategoria['categoria'];
+                                                                        $totalCategoriaFlexible = floatval($gastoFlexibleCategoria['total']);
+                                                                        ?>
+                                                                        <option
+                                                                            value="<?= htmlspecialchars($categoriaFlexible, ENT_QUOTES, 'UTF-8') ?>"
+                                                                            data-label="<?= htmlspecialchars(formatearCategoria($categoriaFlexible), ENT_QUOTES, 'UTF-8') ?>"
+                                                                            data-total="<?= htmlspecialchars((string) $totalCategoriaFlexible, ENT_QUOTES, 'UTF-8') ?>">
+                                                                            <?= htmlspecialchars($formatearOpcionConImporte(formatearCategoria($categoriaFlexible), $totalCategoriaFlexible), ENT_QUOTES, 'UTF-8') ?>
+                                                                        </option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="bh-field">
+                                                            <label class="bh-label" for="meta_sim_porcentaje_<?= $metaId ?>">Reducción simulada</label>
+                                                            <div class="bh-select-shell">
+                                                                <select class="bh-select" id="meta_sim_porcentaje_<?= $metaId ?>" data-simulation-percent disabled>
+                                                                    <option value="">Elige primero una categoría</option>
+                                                                    <option value="25" data-percent-label="25%">25%</option>
+                                                                    <option value="50" data-percent-label="50%">50%</option>
+                                                                    <option value="75" data-percent-label="75%">75%</option>
+                                                                    <option value="100" data-percent-label="100%">100%</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <p class="bh-meta-simulation-result" data-simulation-message hidden></p>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <div class="bh-meta-actions">
+                                                <form method="POST" action="index.php?r=simulador/eliminarMetaAhorro" class="bh-meta-delete-form">
                                                     <?= csrf_field() ?>
                                                     <input type="hidden" name="id" value="<?= $metaId ?>">
-
-                                                    <div class="bh-field-row">
-                                                        <div class="bh-field">
-                                                            <label class="bh-label" for="meta_nombre_<?= $metaId ?>">Nombre</label>
-                                                            <input class="bh-input" type="text" id="meta_nombre_<?= $metaId ?>" name="nombre" maxlength="100" required value="<?= htmlspecialchars($meta['nombre'], ENT_QUOTES, 'UTF-8') ?>">
-                                                        </div>
-                                                        <div class="bh-field">
-                                                            <label class="bh-label" for="meta_categoria_<?= $metaId ?>">Categoría</label>
-                                                            <input class="bh-input" type="text" id="meta_categoria_<?= $metaId ?>" name="categoria" maxlength="60" required value="<?= htmlspecialchars($meta['categoria'], ENT_QUOTES, 'UTF-8') ?>">
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="bh-field">
-                                                        <label class="bh-label" for="meta_importe_<?= $metaId ?>">Importe objetivo</label>
-                                                        <input class="bh-input" type="number" id="meta_importe_<?= $metaId ?>" name="importe_objetivo" min="0.01" step="0.01" inputmode="decimal" required value="<?= htmlspecialchars((string) $meta['importe_objetivo'], ENT_QUOTES, 'UTF-8') ?>">
-                                                    </div>
-
-                                                    <fieldset class="bh-meta-mode-fieldset">
-                                                        <legend class="bh-label">Modo de cálculo</legend>
-                                                        <label class="bh-meta-mode-option">
-                                                            <input type="radio" name="modo_calculo" value="aportacion" <?= $modoMeta === 'aportacion' ? 'checked' : '' ?>>
-                                                            <span>Por aportación mensual</span>
-                                                        </label>
-                                                        <label class="bh-meta-mode-option">
-                                                            <input type="radio" name="modo_calculo" value="fecha" <?= $modoMeta === 'fecha' ? 'checked' : '' ?>>
-                                                            <span>Por fecha objetivo</span>
-                                                        </label>
-                                                    </fieldset>
-
-                                                    <div class="bh-field" data-mode-group="aportacion" <?= $modoMeta === 'fecha' ? 'hidden' : '' ?>>
-                                                        <label class="bh-label" for="meta_aportacion_<?= $metaId ?>">Aportación mensual</label>
-                                                        <input class="bh-input" type="number" id="meta_aportacion_<?= $metaId ?>" name="aportacion_mensual" min="0.01" step="0.01" inputmode="decimal" value="<?= htmlspecialchars((string) $meta['aportacion_mensual'], ENT_QUOTES, 'UTF-8') ?>">
-                                                    </div>
-
-                                                    <div class="bh-field" data-mode-group="fecha" <?= $modoMeta === 'aportacion' ? 'hidden' : '' ?>>
-                                                        <label class="bh-label" for="meta_fecha_<?= $metaId ?>">Fecha objetivo</label>
-                                                        <input class="bh-input" type="date" id="meta_fecha_<?= $metaId ?>" name="fecha_objetivo" value="<?= htmlspecialchars((string) ($meta['fecha_objetivo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                                                    </div>
-
-                                                    <button type="submit" class="bh-btn bh-btn-secondary">Guardar cambios</button>
+                                                    <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta meta retirará su aportación de la capacidad usada. ¿Quieres continuar?">
+                                                        <i class="bi bi-trash3" aria-hidden="true"></i>
+                                                        Eliminar meta
+                                                    </button>
                                                 </form>
-                                            </details>
-
-                                            <form method="POST" action="index.php?r=simulador/eliminarMetaAhorro" class="bh-meta-delete-form">
-                                                <?= csrf_field() ?>
-                                                <input type="hidden" name="id" value="<?= $metaId ?>">
-                                                <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta meta retirará su aportación de la capacidad usada. ¿Quieres continuar?">
-                                                    <i class="bi bi-trash3" aria-hidden="true"></i>
-                                                    Eliminar meta
-                                                </button>
-                                            </form>
+                                            </div>
                                         </article>
                                     <?php endforeach; ?>
                                 </div>
@@ -339,6 +379,32 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <div class="modal fade" id="infoSimulacionGastosFlexibles" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Simular reducción de gastos flexible</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        Elige una categoría flexible registrada en el mes seleccionado y un porcentaje de reducción.
+                        BeneHom calcula cuánto podrías aportar de forma adicional a esa meta.
+                    </p>
+                    <p>
+                        La comparación actualiza solo la card: muestra la aportación simulada, el nuevo plazo estimado
+                        y la fecha aproximada. No modifica tus gastos reales ni cambia la meta guardada.
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <?php bh_mobile_menu(); ?>

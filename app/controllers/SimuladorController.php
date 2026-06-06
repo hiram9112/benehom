@@ -24,6 +24,7 @@ class SimuladorController {
         $ingresosMes = Ingreso::totalPorRango($usuario_id, $fechaInicio, $fechaFin);
         $gastosEsencialesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'obligatorio');
         $gastosFlexiblesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+        $gastosFlexiblesPorCategoria = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
         $ahorroAsignadoMetas = MetaAhorro::totalAportacionesActivas($usuario_id);
         $metasAhorro = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
 
@@ -43,6 +44,13 @@ class SimuladorController {
         if ($metasAhorro === false) {
             $metasAhorro = [];
             $avisoAhorroAsignado = 'No se pudieron cargar tus metas de ahorro. Inténtalo de nuevo más tarde.';
+        }
+
+        if ($gastosFlexiblesPorCategoria === false) {
+            $gastosFlexiblesPorCategoria = [];
+            $avisoGastosFlexibles = 'No se pudieron cargar los gastos flexibles para simular reducciones.';
+        } else {
+            $avisoGastosFlexibles = '';
         }
 
         $ahorroMensualDelMes = $ingresosMes - $gastosEsencialesMes - $gastosFlexiblesMes;
@@ -80,7 +88,6 @@ class SimuladorController {
         $nuevaMeta = MetaAhorro::crear(
             $usuario_id,
             $datos['nombre'],
-            $datos['categoria'],
             $datos['importe_objetivo'],
             $datos['aportacion_mensual'],
             $datos['fecha_objetivo']
@@ -100,38 +107,7 @@ class SimuladorController {
             return;
         }
 
-        $usuario_id = $_SESSION['usuario_id'];
-        $id = intval($_POST['id'] ?? 0);
-
-        if ($id <= 0 || !MetaAhorro::obtenerPorIdYUsuario($id, $usuario_id)) {
-            $_SESSION['mensaje_error'] = 'No se encontró la meta que quieres editar.';
-            $this->redirigirAlSimulador();
-        }
-
-        $resultado = $this->validarDatosMeta($usuario_id, $id);
-
-        if (!$resultado['ok']) {
-            $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
-        }
-
-        $datos = $resultado['datos'];
-        $actualizada = MetaAhorro::actualizar(
-            $id,
-            $usuario_id,
-            $datos['nombre'],
-            $datos['categoria'],
-            $datos['importe_objetivo'],
-            $datos['aportacion_mensual'],
-            $datos['fecha_objetivo']
-        );
-
-        if (!$actualizada) {
-            $_SESSION['mensaje_error'] = 'No se pudo actualizar la meta. Se conservó el escenario anterior.';
-            $this->redirigirAlSimulador();
-        }
-
-        $_SESSION['mensaje_exitoso'] = 'Meta de ahorro actualizada.';
+        $_SESSION['mensaje_error'] = 'Solo puedes editar el importe objetivo de una meta desde la propia card.';
         $this->redirigirAlSimulador();
     }
 
@@ -162,6 +138,59 @@ class SimuladorController {
 
         $_SESSION['mensaje_exitoso'] = 'Meta eliminada. Su aportación deja de contar como capacidad usada.';
         $this->redirigirAlSimulador();
+    }
+
+    public function actualizarImporteMetaAjax(){
+        if($_SERVER['REQUEST_METHOD'] !== 'POST'){
+            echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
+            return;
+        }
+
+        if(!isset($_SESSION['usuario_id'])){
+            echo json_encode(['ok' => false, 'msg' => 'Sesión no válida']);
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+        $importeObjetivo = $this->normalizarCantidad($_POST['importe_objetivo'] ?? null);
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió una meta válida.']);
+            return;
+        }
+
+        $meta = MetaAhorro::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$meta) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró la meta que quieres actualizar.']);
+            return;
+        }
+
+        if ($importeObjetivo === null || $importeObjetivo <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'El importe objetivo debe ser mayor que 0.']);
+            return;
+        }
+
+        $importeObjetivo = round($importeObjetivo, 2);
+        $actualizada = MetaAhorro::actualizarImporteObjetivo($id, $usuario_id, $importeObjetivo);
+
+        if (!$actualizada) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo actualizar el importe objetivo.']);
+            return;
+        }
+
+        $meta['importe_objetivo'] = $importeObjetivo;
+        $meta['fecha_objetivo'] = null;
+        $metaPreparada = $this->prepararMetaParaVista($meta);
+
+        echo json_encode([
+            'ok' => true,
+            'importeObjetivo' => $importeObjetivo,
+            'aportacionMensual' => floatval($metaPreparada['aportacion_mensual']),
+            'plazoMesesEstimado' => $metaPreparada['plazo_meses_estimado'],
+            'fechaFinalizacionEstimada' => $metaPreparada['fecha_finalizacion_estimada'],
+        ]);
     }
 
     public function actualizarAhorroMensualAjax(){
@@ -227,7 +256,6 @@ class SimuladorController {
 
     private function validarDatosMeta($usuario_id, $meta_id): array{
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
-        $categoria = trim((string) ($_POST['categoria'] ?? ''));
         $modoCalculo = trim((string) ($_POST['modo_calculo'] ?? ''));
         $importeObjetivo = $this->normalizarCantidad($_POST['importe_objetivo'] ?? null);
 
@@ -237,14 +265,6 @@ class SimuladorController {
 
         if (strlen($nombre) > 100) {
             return $this->errorValidacion('El nombre no puede superar 100 caracteres.');
-        }
-
-        if ($categoria === '') {
-            return $this->errorValidacion('La categoría de la meta es obligatoria.');
-        }
-
-        if (strlen($categoria) > 60) {
-            return $this->errorValidacion('La categoría no puede superar 60 caracteres.');
         }
 
         if ($importeObjetivo === null || $importeObjetivo <= 0) {
@@ -298,7 +318,6 @@ class SimuladorController {
             'ok' => true,
             'datos' => [
                 'nombre' => $nombre,
-                'categoria' => $categoria,
                 'importe_objetivo' => round($importeObjetivo, 2),
                 'aportacion_mensual' => $aportacionMensual,
                 'fecha_objetivo' => $fechaObjetivo,

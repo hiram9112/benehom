@@ -34,7 +34,6 @@ CREATE TABLE metas_ahorro (
   id INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NOT NULL,
   nombre VARCHAR(100) NOT NULL,
-  categoria VARCHAR(60) NOT NULL,
   importe_objetivo DECIMAL(10,2) NOT NULL,
   aportacion_mensual DECIMAL(10,2) NOT NULL DEFAULT 0,
   fecha_objetivo DATE NULL,

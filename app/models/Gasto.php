@@ -181,6 +181,40 @@ class Gasto{
 
     }
 
+    //Método para obtener totales agrupados por categoría en un rango
+    public static function totalesPorCategoriaYRango($usuario_id,$fechaInicio,$fechaFin,$tipo){
+
+        try{
+
+            //Establecemos conexión
+            $db=Database::getConnection();
+
+            $sql="SELECT categoria, SUM(cantidad) AS total
+                  FROM gastos
+                  WHERE usuario_id= :usuario_id
+                  AND tipo= :tipo
+                  AND fecha BETWEEN :inicio AND :fin
+                  GROUP BY categoria
+                  HAVING total > 0
+                  ORDER BY total DESC, categoria ASC";
+
+            $stmt=$db->prepare($sql);
+
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+            $stmt->bindParam(':tipo',$tipo,PDO::PARAM_STR);
+            $stmt->bindParam(':inicio',$fechaInicio);
+            $stmt->bindParam(':fin',$fechaFin);
+
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch (Exception $e){
+
+            return false;
+        }
+
+    }
+
     //Función para eliminar todos los gastos de un usuario
     public static function eliminarTodosPorUsuario($id){
         try{

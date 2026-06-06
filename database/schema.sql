@@ -52,6 +52,7 @@ CREATE TABLE escenarios_inversion (
   aportacion_mensual DECIMAL(10,2) NOT NULL DEFAULT 0,
   rentabilidad_anual DECIMAL(5,2) NOT NULL DEFAULT 0,
   plazo_anios INT NOT NULL,
+  frecuencia_reinversion ENUM('mensual','trimestral','semestral','anual') NOT NULL DEFAULT 'mensual',
   fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   fecha_actualizacion TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT escenarios_inversion_usuario_fk

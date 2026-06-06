@@ -95,6 +95,153 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${etiqueta} --> ${importeTexto}`;
   };
 
+  const actualizarTextoEditable = (elemento, texto) => {
+    const textoElemento = elemento.querySelector("[data-editable-text]");
+
+    if (textoElemento) {
+      textoElemento.textContent = texto;
+      return;
+    }
+
+    elemento.textContent = texto;
+  };
+
+  document.querySelectorAll("[data-investment-card]").forEach((card) => {
+    const editableElements = card.querySelectorAll("[data-investment-field]");
+
+    const moneyFields = ["capital_inicial", "aportacion_mensual", "capital_total_aportado", "valor_final_estimado", "rendimiento_estimado"];
+    const updateMoneyValue = (field, value) => {
+      const element = card.querySelector(`[data-investment-value="${field}"]`);
+
+      if (!element) return;
+
+      actualizarTextoEditable(element, `${formatearCantidad(value)} €`);
+
+      if (element.dataset.investmentField) {
+        element.dataset.value = value;
+      }
+    };
+
+    const updatePercentValue = (field, value) => {
+      const element = card.querySelector(`[data-investment-value="${field}"]`);
+
+      if (!element) return;
+
+      actualizarTextoEditable(element, `${formatearCantidad(value)}%`);
+      element.dataset.value = value;
+    };
+
+    const updateCard = (data) => {
+      moneyFields.forEach((field) => {
+        const responseKey = {
+          capital_inicial: "capitalInicial",
+          aportacion_mensual: "aportacionMensual",
+          capital_total_aportado: "capitalTotalAportado",
+          valor_final_estimado: "valorFinalEstimado",
+          rendimiento_estimado: "rendimientoEstimado",
+        }[field];
+
+        updateMoneyValue(field, data[responseKey]);
+      });
+
+      updatePercentValue("rentabilidad_anual", data.rentabilidadAnual);
+    };
+
+    const editInline = (element) => {
+      if (element.dataset.editing === "true") return;
+
+      element.dataset.editing = "true";
+
+      const field = element.dataset.investmentField || "";
+      const previousValue = String(element.dataset.value || "");
+      const input = document.createElement("input");
+      let saving = false;
+      let cancelled = false;
+
+      input.type = "number";
+      input.step = "0.01";
+      input.min = "0";
+      input.inputMode = "decimal";
+      input.value = Number(previousValue) === 0 ? "" : previousValue;
+      input.classList.add("bh-input", "bh-inline-edit-input", "bh-investment-inline-input");
+      input.setAttribute("aria-label", element.getAttribute("aria-label") || "Editar valor del escenario");
+
+      element.replaceWith(input);
+      input.focus();
+      input.select();
+
+      const restore = () => {
+        input.replaceWith(element);
+        element.dataset.editing = "false";
+      };
+
+      const save = async () => {
+        if (cancelled || saving) return;
+
+        saving = true;
+
+        const newValue = input.value;
+
+        if (newValue === "" || Number(newValue) < 0) {
+          element.setAttribute("title", "Introduce un valor igual o superior a 0.");
+          restore();
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("id", card.dataset.investmentId || "");
+        formData.append("campo", field);
+        formData.append("valor", newValue);
+        formData.append("_csrf", window.CSRF_TOKEN || "");
+
+        try {
+          const response = await fetch("index.php?r=simulador/actualizarEscenarioInversionAjax", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+
+          if (!data.ok) {
+            element.setAttribute("title", data.msg || "No se pudo actualizar el escenario.");
+            restore();
+            return;
+          }
+
+          element.setAttribute("title", "Haz clic para editar");
+          restore();
+          updateCard(data);
+        } catch (error) {
+          element.setAttribute("title", "No se pudo contactar con el servidor. Inténtalo de nuevo.");
+          restore();
+        }
+      };
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          save();
+        }
+
+        if (event.key === "Escape") {
+          cancelled = true;
+          restore();
+        }
+      });
+
+      input.addEventListener("blur", save);
+    };
+
+    editableElements.forEach((element) => {
+      element.addEventListener("click", () => editInline(element));
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+
+        event.preventDefault();
+        editInline(element);
+      });
+    });
+  });
+
   document.querySelectorAll("[data-meta-card]").forEach((card) => {
     const categoriaSelect = card.querySelector("[data-simulation-category]");
     const porcentajeSelect = card.querySelector("[data-simulation-percent]");
@@ -341,9 +488,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
           card.dataset.importeObjetivo = importeObjetivo;
           card.dataset.plazoOriginal = data.plazoMesesEstimado ?? "";
-          objetivoElemento.textContent = `${formatearCantidad(importeObjetivo)} €`;
+          actualizarTextoEditable(objetivoElemento, `${formatearCantidad(importeObjetivo)} €`);
           objetivoElemento.dataset.value = importeObjetivo;
-          objetivoElemento.removeAttribute("title");
+          objetivoElemento.setAttribute("title", "Haz clic para editar");
           plazoElemento.textContent = plazoTexto;
           plazoElemento.dataset.originalText = plazoTexto;
           fechaElemento.textContent = fechaTexto;

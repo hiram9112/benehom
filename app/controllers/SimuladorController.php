@@ -2,6 +2,7 @@
 require_once APP_PATH . '/models/Ingreso.php';
 require_once APP_PATH . '/models/Gasto.php';
 require_once APP_PATH . '/models/MetaAhorro.php';
+require_once APP_PATH . '/models/EscenarioInversion.php';
 
 class SimuladorController {
 
@@ -27,6 +28,7 @@ class SimuladorController {
         $gastosFlexiblesPorCategoria = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
         $ahorroAsignadoMetas = MetaAhorro::totalAportacionesActivas($usuario_id);
         $metasAhorro = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
+        $escenariosInversion = EscenarioInversion::obtenerPorUsuario($usuario_id);
 
         if ($ingresosMes === false || $gastosEsencialesMes === false || $gastosFlexiblesMes === false) {
             $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos del Simulador.';
@@ -53,6 +55,13 @@ class SimuladorController {
             $avisoGastosFlexibles = '';
         }
 
+        if ($escenariosInversion === false) {
+            $escenariosInversion = [];
+            $avisoEscenariosInversion = 'No se pudieron cargar tus escenarios de inversión. Inténtalo de nuevo más tarde.';
+        } else {
+            $avisoEscenariosInversion = '';
+        }
+
         $ahorroMensualDelMes = $ingresosMes - $gastosEsencialesMes - $gastosFlexiblesMes;
         $ahorroMensualDisponible = max(0, $ahorroMensualDelMes);
 
@@ -67,8 +76,193 @@ class SimuladorController {
         $ahorroDisponibleMetas = max(0, $ahorroMensualDisponible - $ahorroAsignadoMetas);
         $ahorroAsignadoSuperaDisponible = $ahorroAsignadoMetas > $ahorroMensualDisponible;
         $metasAhorroPreparadas = array_map([$this, 'prepararMetaParaVista'], $metasAhorro);
+        $escenariosInversionPreparados = array_map([$this, 'prepararEscenarioInversionParaVista'], $escenariosInversion);
 
         require_once APP_PATH . "/views/simulador.php";
+    }
+
+    public function crearEscenarioInversion(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $resultado = $this->validarDatosEscenarioInversion();
+
+        if (!$resultado['ok']) {
+            $_SESSION['mensaje_error'] = $resultado['mensaje'];
+            $this->redirigirAlSimulador();
+        }
+
+        $datos = $resultado['datos'];
+        $nuevoEscenario = EscenarioInversion::crear(
+            $usuario_id,
+            $datos['nombre'],
+            $datos['capital_inicial'],
+            $datos['aportacion_mensual'],
+            $datos['rentabilidad_anual'],
+            $datos['plazo_anios'],
+            $datos['frecuencia_reinversion']
+        );
+
+        if (!$nuevoEscenario) {
+            $_SESSION['mensaje_error'] = 'No se pudo guardar el escenario de inversión. Revisa los datos e inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Escenario de inversión guardado como simulación educativa.';
+        $this->redirigirAlSimulador();
+    }
+
+    public function actualizarEscenarioInversion(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['mensaje_error'] = 'No se recibió un escenario válido para editar.';
+            $this->redirigirAlSimulador();
+        }
+
+        if (!EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró el escenario de inversión que quieres editar.';
+            $this->redirigirAlSimulador();
+        }
+
+        $resultado = $this->validarDatosEscenarioInversion();
+
+        if (!$resultado['ok']) {
+            $_SESSION['mensaje_error'] = $resultado['mensaje'];
+            $this->redirigirAlSimulador();
+        }
+
+        $datos = $resultado['datos'];
+        $actualizado = EscenarioInversion::actualizar(
+            $id,
+            $usuario_id,
+            $datos['nombre'],
+            $datos['capital_inicial'],
+            $datos['aportacion_mensual'],
+            $datos['rentabilidad_anual'],
+            $datos['plazo_anios'],
+            $datos['frecuencia_reinversion']
+        );
+
+        if (!$actualizado) {
+            $_SESSION['mensaje_error'] = 'No se pudo actualizar el escenario de inversión. Inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Escenario de inversión actualizado.';
+        $this->redirigirAlSimulador();
+    }
+
+    public function actualizarEscenarioInversionAjax(){
+        if($_SERVER['REQUEST_METHOD'] !== 'POST'){
+            echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
+            return;
+        }
+
+        if(!isset($_SESSION['usuario_id'])){
+            echo json_encode(['ok' => false, 'msg' => 'Sesión no válida']);
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+        $campo = trim((string) ($_POST['campo'] ?? ''));
+        $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
+        $camposPermitidos = ['capital_inicial', 'aportacion_mensual', 'rentabilidad_anual'];
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió un escenario válido.']);
+            return;
+        }
+
+        if (!in_array($campo, $camposPermitidos, true)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió un campo editable válido.']);
+            return;
+        }
+
+        if ($valor === null || $valor < 0) {
+            echo json_encode(['ok' => false, 'msg' => 'Introduce un valor igual o superior a 0.']);
+            return;
+        }
+
+        $escenario = EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$escenario) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró el escenario de inversión que quieres actualizar.']);
+            return;
+        }
+
+        $escenario[$campo] = round($valor, 2);
+        $frecuenciaReinversion = $escenario['frecuencia_reinversion'] ?? 'mensual';
+
+        if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
+            $frecuenciaReinversion = 'mensual';
+        }
+
+        $actualizado = EscenarioInversion::actualizar(
+            $id,
+            $usuario_id,
+            $escenario['nombre'],
+            round(floatval($escenario['capital_inicial']), 2),
+            round(floatval($escenario['aportacion_mensual']), 2),
+            round(floatval($escenario['rentabilidad_anual']), 2),
+            intval($escenario['plazo_anios']),
+            $frecuenciaReinversion
+        );
+
+        if (!$actualizado) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo actualizar el escenario de inversión.']);
+            return;
+        }
+
+        $escenario['frecuencia_reinversion'] = $frecuenciaReinversion;
+        $escenarioPreparado = $this->prepararEscenarioInversionParaVista($escenario);
+
+        echo json_encode([
+            'ok' => true,
+            'capitalInicial' => floatval($escenarioPreparado['capital_inicial']),
+            'aportacionMensual' => floatval($escenarioPreparado['aportacion_mensual']),
+            'rentabilidadAnual' => floatval($escenarioPreparado['rentabilidad_anual']),
+            'capitalTotalAportado' => floatval($escenarioPreparado['capital_total_aportado']),
+            'valorFinalEstimado' => floatval($escenarioPreparado['valor_final_estimado']),
+            'rendimientoEstimado' => floatval($escenarioPreparado['rendimiento_estimado']),
+        ]);
+    }
+
+    public function eliminarEscenarioInversion(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['mensaje_error'] = 'No se recibió un escenario válido para eliminar.';
+            $this->redirigirAlSimulador();
+        }
+
+        if (!EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró el escenario de inversión que quieres eliminar.';
+            $this->redirigirAlSimulador();
+        }
+
+        $eliminado = EscenarioInversion::eliminarPorUsuario($id, $usuario_id);
+
+        if (!$eliminado) {
+            $_SESSION['mensaje_error'] = 'No se pudo eliminar el escenario de inversión. Inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Escenario de inversión eliminado.';
+        $this->redirigirAlSimulador();
     }
 
     public function crearMetaAhorro(){
@@ -404,6 +598,135 @@ class SimuladorController {
         $meta['fecha_finalizacion_estimada'] = $fechaEstimada;
 
         return $meta;
+    }
+
+    private function validarDatosEscenarioInversion(): array{
+        $nombre = trim((string) ($_POST['nombre'] ?? ''));
+        $capitalInicial = $this->normalizarCantidad($_POST['capital_inicial'] ?? null);
+        $aportacionMensual = $this->normalizarCantidad($_POST['aportacion_mensual'] ?? null);
+        $rentabilidadAnual = $this->normalizarCantidad($_POST['rentabilidad_anual'] ?? null);
+        $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
+        $frecuenciaReinversion = trim((string) ($_POST['frecuencia_reinversion'] ?? ''));
+
+        if ($nombre === '') {
+            return $this->errorValidacion('El nombre del escenario de inversión es obligatorio.');
+        }
+
+        if (strlen($nombre) > 100) {
+            return $this->errorValidacion('El nombre del escenario no puede superar 100 caracteres.');
+        }
+
+        if ($capitalInicial === null || $capitalInicial < 0) {
+            return $this->errorValidacion('El capital inicial debe ser igual o superior a 0.');
+        }
+
+        if ($aportacionMensual === null || $aportacionMensual < 0) {
+            return $this->errorValidacion('La aportación mensual debe ser igual o superior a 0.');
+        }
+
+        if ($rentabilidadAnual === null || $rentabilidadAnual < 0) {
+            return $this->errorValidacion('La rentabilidad anual estimada debe ser igual o superior a 0.');
+        }
+
+        if ($plazoAnios === '' || !ctype_digit($plazoAnios) || intval($plazoAnios) <= 0) {
+            return $this->errorValidacion('El plazo en años debe ser mayor que 0.');
+        }
+
+        if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
+            return $this->errorValidacion('Selecciona una frecuencia de reinversión válida.');
+        }
+
+        return [
+            'ok' => true,
+            'datos' => [
+                'nombre' => $nombre,
+                'capital_inicial' => round($capitalInicial, 2),
+                'aportacion_mensual' => round($aportacionMensual, 2),
+                'rentabilidad_anual' => round($rentabilidadAnual, 2),
+                'plazo_anios' => intval($plazoAnios),
+                'frecuencia_reinversion' => $frecuenciaReinversion,
+            ],
+        ];
+    }
+
+    private function prepararEscenarioInversionParaVista($escenario): array{
+        $capitalInicial = floatval($escenario['capital_inicial']);
+        $aportacionMensual = floatval($escenario['aportacion_mensual']);
+        $rentabilidadAnual = floatval($escenario['rentabilidad_anual']);
+        $plazoAnios = intval($escenario['plazo_anios']);
+        $frecuenciaReinversion = (string) ($escenario['frecuencia_reinversion'] ?? 'mensual');
+
+        if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
+            $frecuenciaReinversion = 'mensual';
+        }
+
+        $resultado = $this->calcularEscenarioInversion(
+            $capitalInicial,
+            $aportacionMensual,
+            $rentabilidadAnual,
+            $plazoAnios,
+            $frecuenciaReinversion
+        );
+
+        $escenario['frecuencia_reinversion'] = $frecuenciaReinversion;
+        $escenario['frecuencia_reinversion_label'] = $this->frecuenciasReinversionPermitidas()[$frecuenciaReinversion];
+        $escenario['total_aportaciones_plazo'] = $resultado['total_aportaciones_plazo'];
+        $escenario['capital_total_aportado'] = $resultado['capital_total_aportado'];
+        $escenario['valor_final_estimado'] = $resultado['valor_final_estimado'];
+        $escenario['rendimiento_estimado'] = $resultado['rendimiento_estimado'];
+        $escenario['periodos_por_anio'] = $resultado['periodos_por_anio'];
+        $escenario['meses_por_periodo'] = $resultado['meses_por_periodo'];
+
+        return $escenario;
+    }
+
+    private function calcularEscenarioInversion($capitalInicial, $aportacionMensual, $rentabilidadAnual, $plazoAnios, $frecuenciaReinversion): array{
+        $periodosPorAnio = $this->periodosPorAnio($frecuenciaReinversion);
+        $mesesPorPeriodo = intdiv(12, $periodosPorAnio);
+        $tasaPeriodo = $rentabilidadAnual > 0 ? ($rentabilidadAnual / 100) / $periodosPorAnio : 0;
+        $meses = $plazoAnios * 12;
+        $capital = $capitalInicial;
+
+        for ($mes = 1; $mes <= $meses; $mes++) {
+            $capital += $aportacionMensual;
+
+            if ($tasaPeriodo > 0 && $mes % $mesesPorPeriodo === 0) {
+                $capital += $capital * $tasaPeriodo;
+            }
+        }
+
+        $totalAportacionesPlazo = $aportacionMensual * $meses;
+        $capitalTotalAportado = $capitalInicial + $totalAportacionesPlazo;
+        $valorFinalEstimado = $capital;
+        $rendimientoEstimado = max(0, $valorFinalEstimado - $capitalTotalAportado);
+
+        return [
+            'total_aportaciones_plazo' => round($totalAportacionesPlazo, 2),
+            'capital_total_aportado' => round($capitalTotalAportado, 2),
+            'valor_final_estimado' => round($valorFinalEstimado, 2),
+            'rendimiento_estimado' => round($rendimientoEstimado, 2),
+            'periodos_por_anio' => $periodosPorAnio,
+            'meses_por_periodo' => $mesesPorPeriodo,
+        ];
+    }
+
+    private function frecuenciasReinversionPermitidas(): array{
+        return [
+            'mensual' => 'Mensual',
+            'trimestral' => 'Trimestral',
+            'semestral' => 'Semestral',
+            'anual' => 'Anual',
+        ];
+    }
+
+    private function periodosPorAnio($frecuenciaReinversion): int{
+        return match ($frecuenciaReinversion) {
+            'mensual' => 12,
+            'trimestral' => 4,
+            'semestral' => 2,
+            'anual' => 1,
+            default => 12,
+        };
     }
 
     private function errorValidacion($mensaje): array{

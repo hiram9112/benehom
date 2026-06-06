@@ -62,6 +62,13 @@
 
         return $texto . ' --> ' . $importeTexto;
     };
+
+    $frecuenciasReinversion = [
+        'mensual' => 'Mensual',
+        'trimestral' => 'Trimestral',
+        'semestral' => 'Semestral',
+        'anual' => 'Anual',
+    ];
     ?>
 
     <?php if (isset($_SESSION['mensaje_exitoso'])): ?>
@@ -143,6 +150,12 @@
             <?php if (!empty($avisoGastosFlexibles)): ?>
                 <div class="bh-alert bh-alert-warning mb-4">
                     <?= htmlspecialchars($avisoGastosFlexibles, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($avisoEscenariosInversion)): ?>
+                <div class="bh-alert bh-alert-warning mb-4">
+                    <?= htmlspecialchars($avisoEscenariosInversion, ENT_QUOTES, 'UTF-8') ?>
                 </div>
             <?php endif; ?>
 
@@ -228,9 +241,9 @@
                         <div class="bh-card-header bh-meta-list-header">
                             <div>
                                 <h3 class="titulo m-0">Tus metas activas</h3>
-                                <p class="mb-0">Cada meta consume parte de la capacidad mensual configurada.</p>
+                                <p class="mb-0">Cada meta consume parte de la capacidad mensual configurada. Los valores con lápiz se pueden editar.</p>
                             </div>
-                            <span class="bh-badge bh-badge-saving"><?= count($metasAhorroPreparadas) ?> activas</span>
+                            <span class="bh-badge bh-badge-saving"><?= count($metasAhorroPreparadas) ?> <?= count($metasAhorroPreparadas) === 1 ? 'activa' : 'activas' ?></span>
                         </div>
                         <div class="bh-card-body">
                             <?php if (empty($metasAhorroPreparadas)): ?>
@@ -275,13 +288,16 @@
                                                 <p>
                                                     <span>Objetivo</span>
                                                     <strong
+                                                        class="bh-editable-value"
                                                         data-meta-target-amount
                                                         data-meta-id="<?= $metaId ?>"
                                                         data-value="<?= htmlspecialchars((string) $meta['importe_objetivo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        title="Haz clic para editar"
                                                         role="button"
                                                         tabindex="0"
                                                         aria-label="Editar importe objetivo de la meta">
-                                                        <?= $formatearEuros($meta['importe_objetivo']) ?>
+                                                        <span data-editable-text><?= $formatearEuros($meta['importe_objetivo']) ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
                                                     </strong>
                                                 </p>
                                                 <p>
@@ -370,6 +386,203 @@
                                                     </button>
                                                 </form>
                                             </div>
+                                        </article>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section aria-labelledby="inversion-educativa-titulo" class="bh-simulator-investments">
+                <div class="bh-page-header">
+                    <div>
+                        <p class="bh-simulator-kicker">Interés compuesto</p>
+                        <h2 id="inversion-educativa-titulo">Escenarios de inversión educativa</h2>
+                        <p>
+                            Guarda hipótesis para entender cómo influye la frecuencia de reinversión de beneficios.
+                            La rentabilidad indicada es anual y BeneHom la reparte según la frecuencia elegida.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bh-alert bh-alert-info mb-4">
+                    Este módulo no es asesoramiento financiero. No recomienda productos, entidades, activos ni estrategias.
+                    La rentabilidad usada es una hipótesis introducida por ti y el resultado es una estimación.
+                </div>
+
+                <div class="bh-simulator-investments-grid">
+                    <article class="bh-card bh-investment-form-card">
+                        <div class="bh-card-header">
+                            <h3 class="titulo m-0">
+                                <i class="bi bi-graph-up-arrow me-2" aria-hidden="true"></i>
+                                Nuevo escenario de inversión
+                            </h3>
+                        </div>
+                        <div class="bh-card-body">
+                            <form method="POST" action="index.php?r=simulador/crearEscenarioInversion" class="bh-form">
+                                <?= csrf_field() ?>
+
+                                <div class="bh-field">
+                                    <label class="bh-label" for="inversion_nombre">Nombre</label>
+                                    <input class="bh-input" type="text" id="inversion_nombre" name="nombre" maxlength="100" required placeholder="Ejemplo: Escenario 1">
+                                </div>
+
+                                <div class="bh-field-row">
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="inversion_capital_inicial">Capital inicial</label>
+                                        <input class="bh-input" type="number" id="inversion_capital_inicial" name="capital_inicial" min="0" step="0.01" inputmode="decimal" required>
+                                    </div>
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="inversion_aportacion_mensual">Aportación mensual</label>
+                                        <input class="bh-input" type="number" id="inversion_aportacion_mensual" name="aportacion_mensual" min="0" step="0.01" inputmode="decimal" required>
+                                    </div>
+                                </div>
+
+                                <div class="bh-field-row">
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="inversion_rentabilidad_anual">Rentabilidad anual estimada (%)</label>
+                                        <input class="bh-input" type="number" id="inversion_rentabilidad_anual" name="rentabilidad_anual" min="0" step="0.01" inputmode="decimal" required>
+                                    </div>
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="inversion_plazo_anios">Plazo en años</label>
+                                        <input class="bh-input" type="number" id="inversion_plazo_anios" name="plazo_anios" min="1" step="1" required>
+                                    </div>
+                                </div>
+
+                                <div class="bh-field">
+                                    <label class="bh-label" for="inversion_frecuencia_reinversion">Frecuencia de reinversión de beneficios</label>
+                                    <div class="bh-select-shell">
+                                        <select class="bh-select" id="inversion_frecuencia_reinversion" name="frecuencia_reinversion" required>
+                                            <?php foreach ($frecuenciasReinversion as $valorFrecuencia => $labelFrecuencia): ?>
+                                                <option value="<?= htmlspecialchars($valorFrecuencia, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <?= htmlspecialchars($labelFrecuencia, ENT_QUOTES, 'UTF-8') ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <p class="bh-field-help">
+                                        Ejemplo: con una rentabilidad anual del 5%, mensual aplica 5%/12 cada mes y trimestral aplica 5%/4 cada trimestre.
+                                    </p>
+                                </div>
+
+                                <button type="submit" class="bh-btn bh-btn-primary">
+                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                    Guardar escenario
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+
+                    <article class="bh-card bh-investment-list-card">
+                        <div class="bh-card-header bh-meta-list-header">
+                            <div>
+                                <h3 class="titulo m-0">Tus escenarios</h3>
+                                <p class="mb-0">Compara capital aportado, valor final estimado y rendimiento hipotético. Los valores con lápiz se pueden editar.</p>
+                            </div>
+                            <span class="bh-badge bh-badge-saving"><?= count($escenariosInversionPreparados) ?> <?= count($escenariosInversionPreparados) === 1 ? 'guardado' : 'guardados' ?></span>
+                        </div>
+                        <div class="bh-card-body">
+                            <?php if (empty($escenariosInversionPreparados)): ?>
+                                <div class="bh-empty-state bh-meta-empty-state">
+                                    <div class="bh-empty-state-icon" aria-hidden="true">
+                                        <i class="bi bi-graph-up"></i>
+                                    </div>
+                                    <h4 class="bh-empty-state-title">Aún no tienes escenarios de inversión</h4>
+                                    <p class="bh-empty-state-text">
+                                        Crea una primera hipótesis para visualizar el efecto del interés compuesto.
+                                    </p>
+                                </div>
+                            <?php else: ?>
+                                <div class="bh-investment-list">
+                                    <?php foreach ($escenariosInversionPreparados as $escenario): ?>
+                                        <?php $escenarioId = intval($escenario['id']); ?>
+                                        <article class="bh-investment-card" data-investment-card data-investment-id="<?= $escenarioId ?>">
+                                            <div class="bh-meta-card-main">
+                                                <div>
+                                                    <h4><?= htmlspecialchars($escenario['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                                    <p class="bh-investment-card-copy mb-0">
+                                                        Reinversión <?= htmlspecialchars(strtolower($escenario['frecuencia_reinversion_label']), ENT_QUOTES, 'UTF-8') ?>:
+                                                        <?= intval($escenario['periodos_por_anio']) ?> <?= intval($escenario['periodos_por_anio']) === 1 ? 'pago' : 'pagos' ?> al año.
+                                                    </p>
+                                                </div>
+                                                <span class="bh-badge bh-badge-saving">Estimación</span>
+                                            </div>
+
+                                            <div class="bh-meta-metrics bh-investment-metrics">
+                                                <p>
+                                                    <span>Capital inicial</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-investment-field="capital_inicial"
+                                                        data-investment-value="capital_inicial"
+                                                        data-value="<?= htmlspecialchars((string) $escenario['capital_inicial'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar capital inicial">
+                                                        <span data-editable-text><?= $formatearEuros($escenario['capital_inicial']) ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Aportación mensual</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-investment-field="aportacion_mensual"
+                                                        data-investment-value="aportacion_mensual"
+                                                        data-value="<?= htmlspecialchars((string) $escenario['aportacion_mensual'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar aportación mensual">
+                                                        <span data-editable-text><?= $formatearEuros($escenario['aportacion_mensual']) ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Capital total aportado</span>
+                                                    <strong data-investment-value="capital_total_aportado"><?= $formatearEuros($escenario['capital_total_aportado']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Valor final estimado</span>
+                                                    <strong data-investment-value="valor_final_estimado"><?= $formatearEuros($escenario['valor_final_estimado']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Rendimiento estimado</span>
+                                                    <strong data-investment-value="rendimiento_estimado"><?= $formatearEuros($escenario['rendimiento_estimado']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Rendimiento anual</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-investment-field="rentabilidad_anual"
+                                                        data-investment-value="rentabilidad_anual"
+                                                        data-value="<?= htmlspecialchars((string) $escenario['rentabilidad_anual'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-suffix="%"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar rendimiento anual">
+                                                        <span data-editable-text><?= formatearCantidadPHP($escenario['rentabilidad_anual']) ?>%</span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                            </div>
+
+                                            <p class="bh-meta-estimation-copy mb-0">
+                                                Cuanto antes se reinvierten los beneficios, antes forman parte del capital y mayor puede ser el efecto compuesto estimado.
+                                            </p>
+
+                                            <form method="POST" action="index.php?r=simulador/eliminarEscenarioInversion" class="bh-meta-delete-form bh-investment-delete-form">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="id" value="<?= $escenarioId ?>">
+                                                <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar este escenario de inversión no modificará ningún dato real. ¿Quieres continuar?">
+                                                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                                                    Eliminar escenario
+                                                </button>
+                                            </form>
                                         </article>
                                     <?php endforeach; ?>
                                 </div>

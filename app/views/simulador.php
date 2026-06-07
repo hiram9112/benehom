@@ -97,8 +97,8 @@
                         <p class="bh-simulator-kicker">Herramienta educativa</p>
                         <h1 id="simulador-titulo">Simulador</h1>
                         <p>
-                            Visualiza cómo decisiones de ahorro, inversión e inflación pueden influir en objetivos
-                            financieros futuros sin convertir BeneHom en una contabilidad paralela.
+                            Explora cómo tus decisiones de ahorro e inversión, junto con factores externos como la inflación,
+                            pueden afectar a objetivos financieros futuros sin convertir BeneHom en una contabilidad paralela.
                         </p>
                         <p>
                             Tomamos como referencia el ahorro mensual del mes seleccionado en Dashboard. Puedes editar
@@ -167,83 +167,23 @@
             <?php endif; ?>
 
             <section aria-labelledby="metas-ahorro-titulo" class="bh-simulator-goals">
-                <div class="bh-page-header">
-                    <div>
-                        <p class="bh-simulator-kicker">Escenarios guardados</p>
-                        <h2 id="metas-ahorro-titulo">Metas de ahorro</h2>
-                        <p>
-                            Crea metas simuladas para estimar plazos o calcular cuánto necesitarías aportar al mes.
-                            No representan dinero apartado realmente.
-                        </p>
-                    </div>
-                </div>
-
                 <div class="bh-simulator-goals-grid">
-                    <article class="bh-card bh-meta-form-card">
-                        <div class="bh-card-header">
-                            <h3 class="titulo m-0">
-                                <i class="bi bi-piggy-bank me-2" aria-hidden="true"></i>
-                                Nueva meta de ahorro
-                            </h3>
-                        </div>
-                        <div class="bh-card-body">
-                            <form method="POST" action="index.php?r=simulador/crearMetaAhorro" class="bh-form js-meta-form">
-                                <?= csrf_field() ?>
-
-                                <div class="bh-field-row">
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="meta_nombre">Nombre</label>
-                                        <input class="bh-input" type="text" id="meta_nombre" name="nombre" maxlength="100" required placeholder="Ej. Fondo para vacaciones">
-                                    </div>
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="meta_importe_objetivo">Importe objetivo</label>
-                                        <input class="bh-input" type="number" id="meta_importe_objetivo" name="importe_objetivo" min="0.01" step="0.01" inputmode="decimal" required>
-                                    </div>
-                                </div>
-
-                                <fieldset class="bh-meta-mode-fieldset">
-                                    <legend class="bh-label">Modo de cálculo</legend>
-                                    <label class="bh-meta-mode-option">
-                                        <input type="radio" name="modo_calculo" value="aportacion" checked>
-                                        <span>Por aportación mensual</span>
-                                    </label>
-                                    <label class="bh-meta-mode-option">
-                                        <input type="radio" name="modo_calculo" value="fecha">
-                                        <span>Por fecha objetivo</span>
-                                    </label>
-                                </fieldset>
-
-                                <div class="bh-field" data-mode-group="aportacion">
-                                    <label class="bh-label" for="meta_aportacion_mensual">Aportación mensual</label>
-                                    <input class="bh-input" type="number" id="meta_aportacion_mensual" name="aportacion_mensual" min="0.01" step="0.01" inputmode="decimal">
-                                    <p class="bh-field-help">Debe caber dentro de tu capacidad disponible para nuevas metas.</p>
-                                </div>
-
-                                <div class="bh-field" data-mode-group="fecha" hidden>
-                                    <label class="bh-label" for="meta_fecha_objetivo">Fecha objetivo</label>
-                                    <input class="bh-input" type="date" id="meta_fecha_objetivo" name="fecha_objetivo">
-                                    <p class="bh-field-help">Calcularemos la aportación mensual necesaria hasta esa fecha.</p>
-                                </div>
-
-                                <div class="bh-meta-form-note">
-                                    Disponible para nuevas metas: <strong id="meta_capacidad_disponible"><?= $formatearEuros($ahorroDisponibleMetas) ?></strong>.
-                                </div>
-
-                                <button type="submit" class="bh-btn bh-btn-primary">
-                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Guardar meta
-                                </button>
-                            </form>
-                        </div>
-                    </article>
-
                     <article class="bh-card bh-meta-list-card">
-                        <div class="bh-card-header bh-meta-list-header">
+                        <div class="bh-card-header bh-simulator-module-header">
                             <div>
-                                <h3 class="titulo m-0">Tus metas activas</h3>
-                                <p class="mb-0">Cada meta consume parte de la capacidad mensual configurada. Los valores con lápiz se pueden editar.</p>
+                                <h2 id="metas-ahorro-titulo">Metas de ahorro</h2>
+                                <p>
+                                    Crea metas simuladas para estimar plazos o calcular cuánto necesitarías aportar al mes.
+                                    No representan dinero apartado realmente. Cada meta consume parte de la capacidad mensual configurada.
+                                </p>
                             </div>
-                            <span class="bh-badge bh-badge-saving"><?= count($metasAhorroPreparadas) ?> <?= count($metasAhorroPreparadas) === 1 ? 'activa' : 'activas' ?></span>
+                            <div class="bh-simulator-module-actions">
+                                <span class="bh-badge bh-badge-saving"><?= count($metasAhorroPreparadas) ?> <?= count($metasAhorroPreparadas) === 1 ? 'activa' : 'activas' ?></span>
+                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearMetaAhorroPanel" aria-controls="crearMetaAhorroPanel">
+                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                    Nueva meta
+                                </button>
+                            </div>
                         </div>
                         <div class="bh-card-body">
                             <?php if (empty($metasAhorroPreparadas)): ?>
@@ -396,92 +336,23 @@
             </section>
 
             <section aria-labelledby="inversion-educativa-titulo" class="bh-simulator-investments">
-                <div class="bh-page-header">
-                    <div>
-                        <p class="bh-simulator-kicker">Interés compuesto</p>
-                        <h2 id="inversion-educativa-titulo">Escenarios de inversión educativa</h2>
-                        <p>
-                            Guarda hipótesis para entender cómo influye la frecuencia de reinversión de beneficios.
-                            La rentabilidad indicada es anual y BeneHom la reparte según la frecuencia elegida.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="bh-alert bh-alert-info mb-4">
-                    Este módulo no es asesoramiento financiero. No recomienda productos, entidades, activos ni estrategias.
-                    La rentabilidad usada es una hipótesis introducida por ti y el resultado es una estimación.
-                </div>
-
                 <div class="bh-simulator-investments-grid">
-                    <article class="bh-card bh-investment-form-card">
-                        <div class="bh-card-header">
-                            <h3 class="titulo m-0">
-                                <i class="bi bi-graph-up-arrow me-2" aria-hidden="true"></i>
-                                Nuevo escenario de inversión
-                            </h3>
-                        </div>
-                        <div class="bh-card-body">
-                            <form method="POST" action="index.php?r=simulador/crearEscenarioInversion" class="bh-form">
-                                <?= csrf_field() ?>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="inversion_nombre">Nombre</label>
-                                    <input class="bh-input" type="text" id="inversion_nombre" name="nombre" maxlength="100" required placeholder="Ejemplo: Escenario 1">
-                                </div>
-
-                                <div class="bh-field-row">
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="inversion_capital_inicial">Capital inicial</label>
-                                        <input class="bh-input" type="number" id="inversion_capital_inicial" name="capital_inicial" min="0" step="0.01" inputmode="decimal" required>
-                                    </div>
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="inversion_aportacion_mensual">Aportación mensual</label>
-                                        <input class="bh-input" type="number" id="inversion_aportacion_mensual" name="aportacion_mensual" min="0" step="0.01" inputmode="decimal" required>
-                                    </div>
-                                </div>
-
-                                <div class="bh-field-row">
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="inversion_rentabilidad_anual">Rentabilidad anual estimada (%)</label>
-                                        <input class="bh-input" type="number" id="inversion_rentabilidad_anual" name="rentabilidad_anual" min="0" step="0.01" inputmode="decimal" required>
-                                    </div>
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="inversion_plazo_anios">Plazo en años</label>
-                                        <input class="bh-input" type="number" id="inversion_plazo_anios" name="plazo_anios" min="1" step="1" required>
-                                    </div>
-                                </div>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="inversion_frecuencia_reinversion">Frecuencia de reinversión de beneficios</label>
-                                    <div class="bh-select-shell">
-                                        <select class="bh-select" id="inversion_frecuencia_reinversion" name="frecuencia_reinversion" required>
-                                            <?php foreach ($frecuenciasReinversion as $valorFrecuencia => $labelFrecuencia): ?>
-                                                <option value="<?= htmlspecialchars($valorFrecuencia, ENT_QUOTES, 'UTF-8') ?>">
-                                                    <?= htmlspecialchars($labelFrecuencia, ENT_QUOTES, 'UTF-8') ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <p class="bh-field-help">
-                                        Ejemplo: con una rentabilidad anual del 5%, mensual aplica 5%/12 cada mes y trimestral aplica 5%/4 cada trimestre.
-                                    </p>
-                                </div>
-
-                                <button type="submit" class="bh-btn bh-btn-primary">
-                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Guardar escenario
-                                </button>
-                            </form>
-                        </div>
-                    </article>
-
                     <article class="bh-card bh-investment-list-card">
-                        <div class="bh-card-header bh-meta-list-header">
+                        <div class="bh-card-header bh-simulator-module-header">
                             <div>
-                                <h3 class="titulo m-0">Tus escenarios</h3>
-                                <p class="mb-0">Compara capital aportado, valor final estimado y rendimiento hipotético. Los valores con lápiz se pueden editar.</p>
+                                <h2 id="inversion-educativa-titulo">Escenarios de inversión educativa</h2>
+                                <p>
+                                    Guarda hipótesis para entender cómo influye el interés compuesto y la frecuencia de reinversión
+                                    de beneficios. La rentabilidad indicada es anual, educativa y no representa una recomendación financiera.
+                                </p>
                             </div>
-                            <span class="bh-badge bh-badge-saving"><?= count($escenariosInversionPreparados) ?> <?= count($escenariosInversionPreparados) === 1 ? 'guardado' : 'guardados' ?></span>
+                            <div class="bh-simulator-module-actions">
+                                <span class="bh-badge bh-badge-saving"><?= count($escenariosInversionPreparados) ?> <?= count($escenariosInversionPreparados) === 1 ? 'guardado' : 'guardados' ?></span>
+                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearEscenarioInversionPanel" aria-controls="crearEscenarioInversionPanel">
+                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                    Nuevo escenario
+                                </button>
+                            </div>
                         </div>
                         <div class="bh-card-body">
                             <?php if (empty($escenariosInversionPreparados)): ?>
@@ -591,7 +462,214 @@
                     </article>
                 </div>
             </section>
+
+            <section aria-labelledby="inflacion-temporal-titulo" class="bh-simulator-inflation">
+                <article class="bh-card bh-simulator-section-intro bh-simulator-inflation-card">
+                    <div class="bh-card-body">
+                        <h2 id="inflacion-temporal-titulo">Inflación</h2>
+                        <p>
+                            Simula de forma temporal cómo una inflación anual estimada podría afectar al poder adquisitivo
+                            de una cantidad. La inflación no reduce el número de euros, sino lo que esos euros pueden comprar.
+                        </p>
+                        <p class="bh-simulator-section-note">
+                            Si no sabes qué porcentaje usar, puedes consultar la inflación anual publicada por el instituto
+                            de estadística de tu país o buscar la cifra más reciente en una fuente oficial. Esta calculadora
+                            no guarda datos ni crea historial.
+                        </p>
+
+                        <div class="bh-simulator-inflation-grid">
+                            <form class="bh-form bh-inflation-form js-inflation-form" novalidate>
+                                <div class="bh-field">
+                                    <label class="bh-label" for="inflacion_cantidad_inicial">Cantidad inicial</label>
+                                    <input class="bh-input" type="number" id="inflacion_cantidad_inicial" name="cantidad_inicial" min="0.01" step="0.01" inputmode="decimal" required>
+                                </div>
+
+                                <div class="bh-field">
+                                    <label class="bh-label" for="inflacion_anual">Inflación anual estimada (%)</label>
+                                    <input class="bh-input" type="number" id="inflacion_anual" name="inflacion_anual" min="0" step="0.01" inputmode="decimal" required>
+                                </div>
+                                <div class="bh-field">
+                                    <label class="bh-label" for="inflacion_plazo_anios">Plazo en años</label>
+                                    <input class="bh-input" type="number" id="inflacion_plazo_anios" name="plazo_anios" min="1" step="1" required>
+                                </div>
+
+                                <p class="bh-field-help bh-inflation-help">
+                                    Introduce una hipótesis anual. Puedes limpiar la simulación y probar otra cifra cuando quieras.
+                                </p>
+
+                                <p class="bh-alert bh-alert-error mb-0" data-inflation-error role="alert" hidden></p>
+
+                                <div class="bh-inflation-actions">
+                                    <button type="submit" class="bh-btn bh-btn-primary" data-inflation-submit>
+                                        <i class="bi bi-calculator" aria-hidden="true"></i>
+                                        Calcular impacto
+                                    </button>
+                                    <button type="button" class="bh-btn bh-btn-secondary" data-inflation-clear hidden>
+                                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                                        Limpiar simulación
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div class="bh-inflation-result-panel" data-inflation-results hidden aria-live="polite">
+                                <div class="bh-inflation-result-copy">
+                                    <div class="bh-inflation-result-header">
+                                        <div>
+                                            <h4 class="m-0">Comparación aproximada</h4>
+                                            <p class="mb-0">Comparación aproximada entre euros nominales y poder de compra.</p>
+                                        </div>
+                                        <span class="bh-badge bh-badge-saving">Sin guardar</span>
+                                    </div>
+                                </div>
+
+                                <div class="bh-meta-metrics bh-inflation-metrics">
+                                    <p>
+                                        <span>Poder adquisitivo final</span>
+                                        <strong data-inflation-value="poder_final">0 €</strong>
+                                    </p>
+                                    <p>
+                                        <span>Pérdida estimada</span>
+                                        <strong data-inflation-value="perdida">0 €</strong>
+                                    </p>
+                                    <p>
+                                        <span>Cantidad futura necesaria</span>
+                                        <strong data-inflation-value="cantidad_futura">0 €</strong>
+                                    </p>
+                                    <p>
+                                        <span>Diferencia necesaria</span>
+                                        <strong data-inflation-value="diferencia">0 €</strong>
+                                    </p>
+                                </div>
+
+                                <p class="bh-inflation-summary mb-0" data-inflation-summary></p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </section>
         </main>
+    </div>
+
+    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearMetaAhorroPanel" aria-labelledby="crearMetaAhorroPanelLabel">
+        <div class="offcanvas-header">
+            <div>
+                <p class="bh-simulator-kicker mb-1">Meta simulada</p>
+                <h5 class="offcanvas-title" id="crearMetaAhorroPanelLabel">Nueva meta de ahorro</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form method="POST" action="index.php?r=simulador/crearMetaAhorro" class="bh-form js-meta-form">
+                <?= csrf_field() ?>
+
+                <div class="bh-field-row">
+                    <div class="bh-field">
+                        <label class="bh-label" for="meta_nombre">Nombre</label>
+                        <input class="bh-input" type="text" id="meta_nombre" name="nombre" maxlength="100" required placeholder="Ej. Fondo para vacaciones">
+                    </div>
+                    <div class="bh-field">
+                        <label class="bh-label" for="meta_importe_objetivo">Importe objetivo</label>
+                        <input class="bh-input" type="number" id="meta_importe_objetivo" name="importe_objetivo" min="0.01" step="0.01" inputmode="decimal" required>
+                    </div>
+                </div>
+
+                <fieldset class="bh-meta-mode-fieldset">
+                    <legend class="bh-label">Modo de cálculo</legend>
+                    <label class="bh-meta-mode-option">
+                        <input type="radio" name="modo_calculo" value="aportacion" checked>
+                        <span>Por aportación mensual</span>
+                    </label>
+                    <label class="bh-meta-mode-option">
+                        <input type="radio" name="modo_calculo" value="fecha">
+                        <span>Por fecha objetivo</span>
+                    </label>
+                </fieldset>
+
+                <div class="bh-field" data-mode-group="aportacion">
+                    <label class="bh-label" for="meta_aportacion_mensual">Aportación mensual</label>
+                    <input class="bh-input" type="number" id="meta_aportacion_mensual" name="aportacion_mensual" min="0.01" step="0.01" inputmode="decimal">
+                    <p class="bh-field-help">Debe caber dentro de tu capacidad disponible para nuevas metas.</p>
+                </div>
+
+                <div class="bh-field" data-mode-group="fecha" hidden>
+                    <label class="bh-label" for="meta_fecha_objetivo">Fecha objetivo</label>
+                    <input class="bh-input" type="date" id="meta_fecha_objetivo" name="fecha_objetivo">
+                    <p class="bh-field-help">Calcularemos la aportación mensual necesaria hasta esa fecha.</p>
+                </div>
+
+                <div class="bh-meta-form-note">
+                    Disponible para nuevas metas: <strong id="meta_capacidad_disponible"><?= $formatearEuros($ahorroDisponibleMetas) ?></strong>.
+                </div>
+
+                <button type="submit" class="bh-btn bh-btn-primary">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    Guardar meta
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearEscenarioInversionPanel" aria-labelledby="crearEscenarioInversionPanelLabel">
+        <div class="offcanvas-header">
+            <div>
+                <p class="bh-simulator-kicker mb-1">Hipótesis educativa</p>
+                <h5 class="offcanvas-title" id="crearEscenarioInversionPanelLabel">Nuevo escenario de inversión</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form method="POST" action="index.php?r=simulador/crearEscenarioInversion" class="bh-form">
+                <?= csrf_field() ?>
+
+                <div class="bh-field">
+                    <label class="bh-label" for="inversion_nombre">Nombre</label>
+                    <input class="bh-input" type="text" id="inversion_nombre" name="nombre" maxlength="100" required placeholder="Ejemplo: Escenario 1">
+                </div>
+
+                <div class="bh-field-row">
+                    <div class="bh-field">
+                        <label class="bh-label" for="inversion_capital_inicial">Capital inicial</label>
+                        <input class="bh-input" type="number" id="inversion_capital_inicial" name="capital_inicial" min="0" step="0.01" inputmode="decimal" required>
+                    </div>
+                    <div class="bh-field">
+                        <label class="bh-label" for="inversion_aportacion_mensual">Aportación mensual</label>
+                        <input class="bh-input" type="number" id="inversion_aportacion_mensual" name="aportacion_mensual" min="0" step="0.01" inputmode="decimal" required>
+                    </div>
+                </div>
+
+                <div class="bh-field-row">
+                    <div class="bh-field">
+                        <label class="bh-label" for="inversion_rentabilidad_anual">Rentabilidad anual estimada (%)</label>
+                        <input class="bh-input" type="number" id="inversion_rentabilidad_anual" name="rentabilidad_anual" min="0" step="0.01" inputmode="decimal" required>
+                    </div>
+                    <div class="bh-field">
+                        <label class="bh-label" for="inversion_plazo_anios">Plazo en años</label>
+                        <input class="bh-input" type="number" id="inversion_plazo_anios" name="plazo_anios" min="1" step="1" required>
+                    </div>
+                </div>
+
+                <div class="bh-field">
+                    <label class="bh-label" for="inversion_frecuencia_reinversion">Frecuencia de reinversión de beneficios</label>
+                    <div class="bh-select-shell">
+                        <select class="bh-select" id="inversion_frecuencia_reinversion" name="frecuencia_reinversion" required>
+                            <?php foreach ($frecuenciasReinversion as $valorFrecuencia => $labelFrecuencia): ?>
+                                <option value="<?= htmlspecialchars($valorFrecuencia, ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars($labelFrecuencia, ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <p class="bh-field-help">
+                        Ejemplo: con una rentabilidad anual del 5%, mensual aplica 5%/12 cada mes y trimestral aplica 5%/4 cada trimestre.
+                    </p>
+                </div>
+
+                <button type="submit" class="bh-btn bh-btn-primary">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    Guardar escenario
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="modal fade" id="infoSimulacionGastosFlexibles" tabindex="-1" aria-hidden="true">

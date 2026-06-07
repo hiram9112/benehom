@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }).format(numero);
   };
 
+  const formatearEuros = (valor) => `${formatearCantidad(valor)} €`;
+
   const formatearPlazo = (meses) => {
     const mesesEnteros = Number(meses);
 
@@ -105,6 +107,113 @@ document.addEventListener("DOMContentLoaded", () => {
 
     elemento.textContent = texto;
   };
+
+  document.querySelectorAll(".js-inflation-form").forEach((formulario) => {
+    const resultados = document.querySelector("[data-inflation-results]");
+    const errorElemento = formulario.querySelector("[data-inflation-error]");
+    const limpiarBoton = formulario.querySelector("[data-inflation-clear]");
+    const resumenElemento = resultados?.querySelector("[data-inflation-summary]");
+    const cantidadInicialInput = formulario.querySelector('[name="cantidad_inicial"]');
+
+    const setResultado = (campo, valor) => {
+      const elemento = resultados?.querySelector(`[data-inflation-value="${campo}"]`);
+
+      if (elemento) {
+        elemento.textContent = formatearEuros(valor);
+      }
+    };
+
+    const mostrarErrorInflacion = (mensaje) => {
+      if (!errorElemento) return;
+
+      errorElemento.textContent = mensaje;
+      errorElemento.hidden = false;
+
+      if (resultados) {
+        resultados.hidden = true;
+      }
+
+      if (limpiarBoton) {
+        limpiarBoton.hidden = true;
+      }
+    };
+
+    const limpiarErrorInflacion = () => {
+      if (!errorElemento) return;
+
+      errorElemento.textContent = "";
+      errorElemento.hidden = true;
+    };
+
+    formulario.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      if (!resultados) return;
+
+      const datos = new FormData(formulario);
+      const cantidadInicial = Number(datos.get("cantidad_inicial"));
+      const inflacionAnual = Number(datos.get("inflacion_anual"));
+      const plazoAnios = Number(datos.get("plazo_anios"));
+
+      if (!Number.isFinite(cantidadInicial) || cantidadInicial <= 0) {
+        mostrarErrorInflacion("Introduce una cantidad inicial mayor que 0.");
+        return;
+      }
+
+      if (!Number.isFinite(inflacionAnual) || inflacionAnual < 0) {
+        mostrarErrorInflacion("Introduce una inflación anual igual o superior a 0.");
+        return;
+      }
+
+      if (!Number.isFinite(plazoAnios) || plazoAnios <= 0) {
+        mostrarErrorInflacion("Introduce un plazo en años mayor que 0.");
+        return;
+      }
+
+      limpiarErrorInflacion();
+
+      const factor = Math.pow(1 + inflacionAnual / 100, plazoAnios);
+      const poderAdquisitivoFinal = cantidadInicial / factor;
+      const perdidaPoderAdquisitivo = cantidadInicial - poderAdquisitivoFinal;
+      const cantidadFuturaNecesaria = cantidadInicial * factor;
+      const diferenciaNecesaria = cantidadFuturaNecesaria - cantidadInicial;
+
+      setResultado("poder_final", poderAdquisitivoFinal);
+      setResultado("perdida", perdidaPoderAdquisitivo);
+      setResultado("cantidad_futura", cantidadFuturaNecesaria);
+      setResultado("diferencia", diferenciaNecesaria);
+
+      if (resumenElemento) {
+        resumenElemento.textContent = `Este cálculo no significa que tus euros desaparezcan. Si guardas ${formatearEuros(cantidadInicial)}, seguirás teniendo ${formatearEuros(cantidadInicial)}, pero con el paso del tiempo podrían comprar menos cosas. En este escenario, esos ${formatearEuros(cantidadInicial)} tendrían un poder de compra parecido a ${formatearEuros(poderAdquisitivoFinal)} de hoy. Para poder comprar algo similar dentro de ${formatearCantidad(plazoAnios)} años, necesitarías aproximadamente ${formatearEuros(cantidadFuturaNecesaria)}. Más adelante añadiremos una explicación completa sobre inflación en el blog.`;
+      }
+
+      resultados.hidden = false;
+
+      if (limpiarBoton) {
+        limpiarBoton.hidden = false;
+      }
+    });
+
+    limpiarBoton?.addEventListener("click", () => {
+      formulario.reset();
+      limpiarErrorInflacion();
+
+      if (resultados) {
+        resultados.hidden = true;
+      }
+
+      if (resumenElemento) {
+        resumenElemento.textContent = "";
+      }
+
+      ["poder_final", "perdida", "cantidad_futura", "diferencia"].forEach((campo) => {
+        setResultado(campo, 0);
+      });
+
+      limpiarBoton.hidden = true;
+      cantidadInicialInput?.focus();
+    });
+  });
 
   document.querySelectorAll("[data-investment-card]").forEach((card) => {
     const editableElements = card.querySelectorAll("[data-investment-field]");

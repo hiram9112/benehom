@@ -1291,9 +1291,85 @@ textarea:disabled {
     margin-top: var(--bh-space-5);
 }
 
+.bh-simulator-section-intro{
+    margin-bottom: var(--bh-space-5);
+}
+
+.bh-simulator-section-intro .bh-card-body{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--bh-space-4) var(--bh-space-5);
+    padding: clamp(var(--bh-space-5), 3vw, var(--bh-space-6));
+}
+
+.bh-simulator-section-intro h2{
+    grid-column: 1;
+    margin-bottom: 0;
+}
+
+.bh-simulator-section-intro > .bh-card-body > p{
+    grid-column: 1;
+    max-width: 62rem;
+    margin-bottom: 0;
+    color: var(--bh-text-main);
+}
+
+.bh-simulator-section-intro .bh-btn{
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+}
+
+.bh-simulator-section-note{
+    padding-top: var(--bh-space-3);
+    border-top: var(--bh-border-subtle);
+    color: var(--bh-brand-strong) !important;
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-simulator-inflation-card .bh-card-body{
+    grid-template-columns: 1fr;
+}
+
+.bh-simulator-inflation-card .bh-simulator-inflation-grid,
+.bh-simulator-inflation-card .bh-simulator-section-note{
+    grid-column: 1;
+}
+
+.bh-simulator-module-header{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-5);
+}
+
+.bh-simulator-module-header h2{
+    margin-bottom: var(--bh-space-2);
+}
+
+.bh-simulator-module-header p{
+    max-width: 62rem;
+    margin-bottom: 0;
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-md);
+    font-weight: var(--bh-weight-regular);
+    line-height: var(--bh-line-relaxed);
+}
+
+.bh-simulator-module-actions{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+    gap: var(--bh-space-3);
+}
+
 .bh-simulator-goals-grid{
     display: grid;
-    grid-template-columns: minmax(18rem, 0.85fr) minmax(0, 1.35fr);
+    grid-template-columns: 1fr;
     gap: var(--bh-space-5);
     align-items: start;
 }
@@ -1368,6 +1444,8 @@ textarea:disabled {
 
 .bh-meta-list{
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+    align-items: start;
     gap: var(--bh-space-4);
 }
 
@@ -1634,7 +1712,7 @@ textarea:disabled {
 
 .bh-simulator-investments-grid{
     display: grid;
-    grid-template-columns: minmax(18rem, 0.85fr) minmax(0, 1.35fr);
+    grid-template-columns: 1fr;
     gap: var(--bh-space-5);
     align-items: start;
 }
@@ -1646,6 +1724,8 @@ textarea:disabled {
 
 .bh-investment-list{
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+    align-items: start;
     gap: var(--bh-space-4);
 }
 
@@ -1700,8 +1780,121 @@ textarea:disabled {
     margin-left: auto;
 }
 
+.bh-simulator-inflation{
+    margin-top: var(--bh-space-7);
+}
+
+.bh-simulator-inflation-grid{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--bh-space-5);
+    align-items: start;
+}
+
+.bh-inflation-form-card{
+    min-width: 0;
+}
+
+.bh-inflation-form{
+    grid-template-columns: minmax(10rem, 1.1fr) minmax(10rem, 1fr) minmax(8rem, 0.8fr) auto;
+    align-items: end;
+}
+
+.bh-inflation-help,
+.bh-inflation-form [data-inflation-error],
+.bh-inflation-result-panel{
+    grid-column: 1 / -1;
+}
+
+.bh-inflation-actions{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--bh-space-3);
+}
+
+.bh-inflation-result-panel{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-4);
+    margin-top: var(--bh-space-2);
+    padding: var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background:
+        radial-gradient(circle at top right, rgba(22, 63, 127, 0.10), transparent 14rem),
+        linear-gradient(135deg, rgba(253, 254, 253, 0.98), rgba(233, 244, 236, 0.76));
+}
+
+.bh-inflation-result-panel[hidden]{
+    display: none;
+}
+
+.bh-inflation-result-header{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-4);
+}
+
+.bh-inflation-result-copy{
+    display: grid;
+    gap: var(--bh-space-3);
+    min-width: 0;
+}
+
+.bh-inflation-result-header p{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-inflation-metrics{
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bh-inflation-metrics p{
+    grid-column: auto;
+    max-width: none;
+}
+
+.bh-inflation-summary{
+    padding-top: var(--bh-space-3);
+    border-top: var(--bh-border-subtle);
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-simulator-offcanvas{
+    width: min(100%, 34rem);
+    background-color: var(--bh-surface-page);
+    color: var(--bh-text-main);
+}
+
+.bh-simulator-offcanvas .offcanvas-header{
+    align-items: flex-start;
+    padding: var(--bh-space-5);
+    border-bottom: var(--bh-border-subtle);
+    background-color: var(--bh-surface-card);
+}
+
+.bh-simulator-offcanvas .offcanvas-title{
+    color: var(--bh-text-main);
+    font-family: var(--bh-font-heading);
+    font-size: var(--bh-text-xl);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-simulator-offcanvas .offcanvas-body{
+    padding: var(--bh-space-5);
+}
+
 .bh-simulator-goals .bh-label,
-.bh-simulator-investments .bh-label{
+.bh-simulator-investments .bh-label,
+.bh-simulator-inflation .bh-label,
+.bh-simulator-offcanvas .bh-label{
     color: var(--bh-brand-strong);
     font-weight: 800;
 }
@@ -1709,32 +1902,76 @@ textarea:disabled {
 .bh-simulator-goals .bh-input,
 .bh-simulator-goals .bh-select,
 .bh-simulator-investments .bh-input,
-.bh-simulator-investments .bh-select{
+.bh-simulator-investments .bh-select,
+.bh-simulator-inflation .bh-input,
+.bh-simulator-offcanvas .bh-input,
+.bh-simulator-offcanvas .bh-select{
     color: var(--bh-brand-strong);
     font-weight: var(--bh-weight-semibold);
 }
 
 .bh-simulator-goals .bh-input::placeholder,
-.bh-simulator-investments .bh-input::placeholder{
+.bh-simulator-investments .bh-input::placeholder,
+.bh-simulator-inflation .bh-input::placeholder,
+.bh-simulator-offcanvas .bh-input::placeholder{
     color: rgba(22, 63, 127, 0.68);
 }
 
 @media (max-width: 991.98px){
     .bh-simulator-goals-grid,
-    .bh-simulator-investments-grid{
+    .bh-simulator-investments-grid,
+    .bh-simulator-inflation-grid{
         grid-template-columns: 1fr;
     }
 
-    .bh-investment-metrics{
+    .bh-investment-metrics,
+    .bh-inflation-metrics{
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bh-inflation-form{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bh-inflation-actions{
+        grid-column: 1 / -1;
+    }
+
+    .bh-inflation-result-panel{
+        grid-template-columns: 1fr;
+    }
+
+    .bh-simulator-section-intro .bh-card-body{
+        grid-template-columns: 1fr;
+    }
+
+    .bh-simulator-section-intro .bh-btn{
+        grid-column: 1;
+        grid-row: auto;
+        justify-self: start;
+    }
+
+    .bh-simulator-module-header{
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--bh-space-4);
+    }
+
+    .bh-simulator-module-actions{
+        justify-content: flex-start;
     }
 }
 
 @media (max-width: 576px){
     .bh-meta-list-header,
-    .bh-meta-card-main{
+    .bh-meta-card-main,
+    .bh-inflation-result-header{
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .bh-inflation-form{
+        grid-template-columns: 1fr;
     }
 
     .bh-meta-simulation-controls{
@@ -1759,13 +1996,18 @@ textarea:disabled {
         grid-template-columns: 1fr;
     }
 
-    .bh-investment-metrics{
+    .bh-investment-metrics,
+    .bh-inflation-metrics{
         grid-template-columns: 1fr;
     }
 
     .bh-meta-delete-form .bh-btn,
     .bh-meta-form-card .bh-btn,
-    .bh-investment-form-card .bh-btn{
+    .bh-investment-form-card .bh-btn,
+    .bh-simulator-module-actions .bh-btn,
+    .bh-simulator-section-intro .bh-btn,
+    .bh-inflation-form-card .bh-btn,
+    .bh-simulator-offcanvas .bh-btn{
         width: 100%;
     }
 

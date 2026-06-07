@@ -110,7 +110,7 @@ class SimuladorController {
             $this->redirigirAlSimulador();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Escenario de inversión guardado como simulación educativa.';
+        $_SESSION['mensaje_exitoso'] = 'Escenario guardado. Puedes comparar la estimación cuando quieras.';
         $this->redirigirAlSimulador();
     }
 
@@ -156,7 +156,7 @@ class SimuladorController {
             $this->redirigirAlSimulador();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Escenario de inversión actualizado.';
+        $_SESSION['mensaje_exitoso'] = 'Escenario actualizado.';
         $this->redirigirAlSimulador();
     }
 
@@ -261,7 +261,7 @@ class SimuladorController {
             $this->redirigirAlSimulador();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Escenario de inversión eliminado.';
+        $_SESSION['mensaje_exitoso'] = 'Escenario eliminado.';
         $this->redirigirAlSimulador();
     }
 
@@ -292,7 +292,7 @@ class SimuladorController {
             $this->redirigirAlSimulador();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Meta de ahorro creada como escenario simulado.';
+        $_SESSION['mensaje_exitoso'] = 'Meta creada. Ya cuenta en tu capacidad mensual simulada.';
         $this->redirigirAlSimulador();
     }
 
@@ -330,7 +330,7 @@ class SimuladorController {
             $this->redirigirAlSimulador();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Meta eliminada. Su aportación deja de contar como capacidad usada.';
+        $_SESSION['mensaje_exitoso'] = 'Meta eliminada. Su aportación ya no cuenta en la capacidad usada.';
         $this->redirigirAlSimulador();
     }
 
@@ -503,8 +503,9 @@ class SimuladorController {
         if ($aportacionMensual > $capacidadDisponible) {
             $faltante = $aportacionMensual - $capacidadDisponible;
             return $this->errorValidacion(
-                'Esta meta necesita ' . formatearCantidadPHP($aportacionMensual) . ' €/mes y tu capacidad disponible para nuevas metas es ' .
-                formatearCantidadPHP($capacidadDisponible) . ' €/mes. Faltarían ' . formatearCantidadPHP($faltante) . ' €/mes.'
+                'No se pudo crear la meta. Necesita ' . formatearCantidadPHP($aportacionMensual) . ' €/mes y tienes ' .
+                formatearCantidadPHP($capacidadDisponible) . ' €/mes sin asignar. Redistribuye el ahorro asignado a otras metas, reduce gastos para aumentar tu capacidad de ahorro o aumenta ingresos. Faltarían ' .
+                formatearCantidadPHP($faltante) . ' €/mes.'
             );
         }
 

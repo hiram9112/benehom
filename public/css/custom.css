@@ -1002,6 +1002,114 @@ textarea:disabled {
     border-color: var(--bh-info);
 }
 
+.bh-flash-stack{
+    position: fixed;
+    top: var(--bh-space-4);
+    left: 50%;
+    z-index: 1030;
+    display: grid;
+    gap: var(--bh-space-3);
+    width: min(calc(100vw - 2rem), 26rem);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.bh-flash{
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--bh-space-3);
+    padding: var(--bh-space-3) var(--bh-space-3) var(--bh-space-3) var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background-color: var(--bh-brand-strong);
+    box-shadow: var(--bh-shadow-card);
+    color: var(--bh-text-inverse);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-normal);
+    pointer-events: auto;
+    transition:
+        opacity var(--bh-transition-base),
+        transform var(--bh-transition-base);
+}
+
+.bh-flash p{
+    margin: 0;
+    color: inherit;
+    line-height: var(--bh-line-normal);
+}
+
+.bh-flash > i{
+    margin-top: 0.1rem;
+    color: currentColor;
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.bh-flash-success{
+    border-color: var(--bh-brand-strong);
+}
+
+.bh-flash-success > i{
+    color: currentColor;
+}
+
+.bh-flash-error{
+    border-color: var(--bh-error);
+    background-color: var(--bh-error);
+}
+
+.bh-flash-error > i{
+    color: currentColor;
+}
+
+.bh-flash-close{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin: -0.25rem -0.25rem 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bh-radius-pill);
+    background-color: transparent;
+    color: var(--bh-text-inverse);
+    font-size: 0.8rem;
+    line-height: 1;
+}
+
+.bh-flash-close:hover,
+.bh-flash-close:focus-visible{
+    background-color: rgba(253, 254, 253, 0.14);
+}
+
+.bh-flash.is-dismissing{
+    opacity: 0;
+    transform: translateY(-0.35rem);
+}
+
+@media (prefers-reduced-motion: reduce){
+    .bh-flash{
+        transition: opacity var(--bh-transition-fast);
+    }
+
+    .bh-flash.is-dismissing{
+        transform: none;
+    }
+}
+
+@media (max-width: 767.98px){
+    .bh-flash-stack{
+        top: calc(44px + (var(--bh-space-3) * 2) + var(--bh-space-3));
+        right: var(--bh-space-3);
+        left: var(--bh-space-3);
+        width: auto;
+        transform: none;
+    }
+}
+
 .bh-badge {
     display: inline-flex;
     align-items: center;

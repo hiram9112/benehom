@@ -1,4 +1,69 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const dismissFlash = (message) => {
+    if (message.dataset.dismissing === "true") return;
+
+    message.dataset.dismissing = "true";
+    message.classList.add("is-dismissing");
+
+    const removeMessage = () => message.remove();
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion) {
+      removeMessage();
+      return;
+    }
+
+    message.addEventListener("transitionend", removeMessage, { once: true });
+    window.setTimeout(removeMessage, 300);
+  };
+
+  const prepararFlash = (message) => {
+    message.querySelector("[data-flash-dismiss]")?.addEventListener("click", () => dismissFlash(message));
+
+    if (message.hasAttribute("data-flash-autodismiss")) {
+      window.setTimeout(() => dismissFlash(message), 6500);
+    }
+  };
+
+  const mostrarFlash = (texto, tipo = "error") => {
+    if (!texto) return;
+
+    let stack = document.querySelector(".bh-flash-stack");
+
+    if (!stack) {
+      stack = document.createElement("div");
+      stack.className = "bh-flash-stack";
+      stack.setAttribute("aria-live", "polite");
+      stack.setAttribute("aria-atomic", "true");
+      document.body.prepend(stack);
+    }
+
+    const message = document.createElement("div");
+    const isSuccess = tipo === "success";
+
+    message.className = `bh-flash ${isSuccess ? "bh-flash-success" : "bh-flash-error"}`;
+    message.setAttribute("role", isSuccess ? "status" : "alert");
+    message.setAttribute("data-flash-message", "");
+
+    if (isSuccess) {
+      message.setAttribute("data-flash-autodismiss", "");
+    }
+
+    message.innerHTML = `
+      <i class="bi ${isSuccess ? "bi-check-circle" : "bi-exclamation-circle"}" aria-hidden="true"></i>
+      <p></p>
+      <button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    `;
+
+    message.querySelector("p").textContent = texto;
+    stack.append(message);
+    prepararFlash(message);
+  };
+
+  document.querySelectorAll("[data-flash-message]").forEach(prepararFlash);
+
   document.querySelectorAll(".js-meta-form").forEach((formulario) => {
     const actualizarModo = () => {
       const modoSeleccionado = formulario.querySelector('input[name="modo_calculo"]:checked')?.value || "aportacion";
@@ -184,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setResultado("diferencia", diferenciaNecesaria);
 
       if (resumenElemento) {
-        resumenElemento.textContent = `Este cálculo no significa que tus euros desaparezcan. Si guardas ${formatearEuros(cantidadInicial)}, seguirás teniendo ${formatearEuros(cantidadInicial)}, pero con el paso del tiempo podrían comprar menos cosas. En este escenario, esos ${formatearEuros(cantidadInicial)} tendrían un poder de compra parecido a ${formatearEuros(poderAdquisitivoFinal)} de hoy. Para poder comprar algo similar dentro de ${formatearCantidad(plazoAnios)} años, necesitarías aproximadamente ${formatearEuros(cantidadFuturaNecesaria)}. Más adelante añadiremos una explicación completa sobre inflación en el blog.`;
+        resumenElemento.textContent = `Este cálculo no significa que tus euros desaparezcan. Si guardas ${formatearEuros(cantidadInicial)}, seguirás teniendo ${formatearEuros(cantidadInicial)}, pero con el paso del tiempo podrían comprar menos cosas. En este escenario, esos ${formatearEuros(cantidadInicial)} tendrían un poder de compra parecido a ${formatearEuros(poderAdquisitivoFinal)} de hoy. Para poder comprar algo similar dentro de ${formatearCantidad(plazoAnios)} años, necesitarías aproximadamente ${formatearEuros(cantidadFuturaNecesaria)}.`;
       }
 
       resultados.hidden = false;
@@ -292,7 +357,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const newValue = input.value;
 
         if (newValue === "" || Number(newValue) < 0) {
-          element.setAttribute("title", "Introduce un valor igual o superior a 0.");
+          const mensaje = "Introduce un valor igual o superior a 0.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
           restore();
           return;
         }
@@ -311,7 +378,9 @@ document.addEventListener("DOMContentLoaded", () => {
           const data = await response.json();
 
           if (!data.ok) {
-            element.setAttribute("title", data.msg || "No se pudo actualizar el escenario.");
+            const mensaje = data.msg || "No se pudo actualizar el escenario.";
+            element.setAttribute("title", mensaje);
+            mostrarFlash(mensaje);
             restore();
             return;
           }
@@ -320,7 +389,9 @@ document.addEventListener("DOMContentLoaded", () => {
           restore();
           updateCard(data);
         } catch (error) {
-          element.setAttribute("title", "No se pudo contactar con el servidor. Inténtalo de nuevo.");
+          const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
           restore();
         }
       };
@@ -566,7 +637,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const nuevoValor = input.value;
 
         if (nuevoValor === "" || Number(nuevoValor) <= 0) {
-          objetivoElemento.setAttribute("title", "El importe objetivo debe ser mayor que 0.");
+          const mensaje = "El importe objetivo debe ser mayor que 0.";
+          objetivoElemento.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
           restaurar();
           return;
         }
@@ -584,7 +657,9 @@ document.addEventListener("DOMContentLoaded", () => {
           const data = await respuesta.json();
 
           if (!data.ok) {
-            objetivoElemento.setAttribute("title", data.msg || "No se pudo actualizar el importe objetivo.");
+            const mensaje = data.msg || "No se pudo actualizar el importe objetivo.";
+            objetivoElemento.setAttribute("title", mensaje);
+            mostrarFlash(mensaje);
             restaurar();
             return;
           }
@@ -607,7 +682,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
           restaurar();
         } catch (error) {
-          objetivoElemento.setAttribute("title", "No se pudo contactar con el servidor. Inténtalo de nuevo.");
+          const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
+          objetivoElemento.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
           restaurar();
         }
       };
@@ -648,6 +725,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const mostrarError = (mensaje) => {
     ahorroElemento.dataset.error = mensaje;
     ahorroElemento.setAttribute("title", mensaje);
+    mostrarFlash(mensaje);
   };
 
   const limpiarError = () => {

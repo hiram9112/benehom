@@ -71,18 +71,30 @@
     ];
     ?>
 
-    <?php if (isset($_SESSION['mensaje_exitoso'])): ?>
-        <p class="bh-alert bh-alert-success text-center m-3" role="status">
-            <?= htmlspecialchars($_SESSION['mensaje_exitoso'], ENT_QUOTES, 'UTF-8') ?>
-        </p>
-        <?php unset($_SESSION['mensaje_exitoso']); ?>
-    <?php endif; ?>
+    <?php if (isset($_SESSION['mensaje_exitoso']) || isset($_SESSION['mensaje_error'])): ?>
+        <div class="bh-flash-stack" aria-live="polite" aria-atomic="true">
+            <?php if (isset($_SESSION['mensaje_exitoso'])): ?>
+                <div class="bh-flash bh-flash-success" role="status" data-flash-message data-flash-autodismiss>
+                    <i class="bi bi-check-circle" aria-hidden="true"></i>
+                    <p><?= htmlspecialchars($_SESSION['mensaje_exitoso'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <?php unset($_SESSION['mensaje_exitoso']); ?>
+            <?php endif; ?>
 
-    <?php if (isset($_SESSION['mensaje_error'])): ?>
-        <p class="bh-alert bh-alert-error text-center m-3" role="alert">
-            <?= htmlspecialchars($_SESSION['mensaje_error'], ENT_QUOTES, 'UTF-8') ?>
-        </p>
-        <?php unset($_SESSION['mensaje_error']); ?>
+            <?php if (isset($_SESSION['mensaje_error'])): ?>
+                <div class="bh-flash bh-flash-error" role="alert" data-flash-message>
+                    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                    <p><?= htmlspecialchars($_SESSION['mensaje_error'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <?php unset($_SESSION['mensaje_error']); ?>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
 
     <!--Contenedor Principal-->

@@ -443,8 +443,8 @@
                 <aside class="bh-dashboard-aside">
 
                 <!--Gráfico presupuesto mensual-->
-                <div class="bh-card bh-card-chart p-3">
-                    <h5 class="mb-3">
+                <div class="bh-card bh-card-chart">
+                    <h5>
                         Presupuesto mensual
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
@@ -460,8 +460,8 @@
                 </div>
 
                 <!--Gráfico Ahorros 6m-->
-                <div class="bh-card bh-card-chart p-3">
-                    <h5 class="mb-3">
+                <div class="bh-card bh-card-chart">
+                    <h5>
                         Evolución del Ahorro
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
@@ -478,8 +478,8 @@
 
 
                 <!--Gráfico evolución gastos esenciales-->
-                <div class="bh-card bh-card-chart p-3">
-                    <h5 class="mb-3">
+                <div class="bh-card bh-card-chart">
+                    <h5>
                         Evolución gastos esenciales
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
@@ -496,8 +496,8 @@
 
 
                 <!--Gráfico evolución gastos flexibles-->
-                <div class="bh-card bh-card-chart p-3">
-                    <h5 class="mb-3">
+                <div class="bh-card bh-card-chart">
+                    <h5>
                         Evolución gastos flexibles
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"

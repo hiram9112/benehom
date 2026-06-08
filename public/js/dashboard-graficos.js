@@ -1,594 +1,391 @@
-//Variable para destruir  gáficos cuando el usuario cambie de mes
+// Paleta BeneHom central — lee tokens de CSS con fallback
+const BH_COLORS = {
+  income:        getComputedStyle(document.documentElement).getPropertyValue('--bh-income').trim()        || '#33A64D',
+  incomeSoft:    getComputedStyle(document.documentElement).getPropertyValue('--bh-income-soft').trim()   || 'rgba(51,166,77,0.12)',
+  expense:       getComputedStyle(document.documentElement).getPropertyValue('--bh-expense').trim()       || '#B83E3E',
+  expenseSoft:   getComputedStyle(document.documentElement).getPropertyValue('--bh-expense-soft').trim()  || 'rgba(184,62,62,0.10)',
+  saving:        getComputedStyle(document.documentElement).getPropertyValue('--bh-saving').trim()        || '#3EB225',
+  savingSoft:    getComputedStyle(document.documentElement).getPropertyValue('--bh-saving-soft').trim()   || 'rgba(62,178,37,0.12)',
+  info:          getComputedStyle(document.documentElement).getPropertyValue('--bh-info').trim()          || '#163F7F',
+  infoSoft:      getComputedStyle(document.documentElement).getPropertyValue('--bh-info-soft').trim()     || 'rgba(22,63,127,0.08)',
+  neutral:       getComputedStyle(document.documentElement).getPropertyValue('--bh-neutral').trim()       || '#163F7F',
+  neutralSoft:   getComputedStyle(document.documentElement).getPropertyValue('--bh-neutral-soft').trim()  || '#E9F4EC',
+  textMain:      getComputedStyle(document.documentElement).getPropertyValue('--bh-text-main').trim()     || '#163F7F',
+  textMuted:     getComputedStyle(document.documentElement).getPropertyValue('--bh-text-muted').trim()    || 'rgba(22,63,127,0.72)',
+  borderColor:   getComputedStyle(document.documentElement).getPropertyValue('--bh-border-color').trim() || 'rgba(22,63,127,0.14)',
+  surfaceCard:   getComputedStyle(document.documentElement).getPropertyValue('--bh-surface-card').trim() || '#FDFEFD',
+};
+
+// Variable global para destruir gráficos al cambiar de mes
 let graficoPresupuesto = null;
 let graficoGastosFlexibles6m = null;
 let graficoGastosEsenciales6m = null;
 let graficoAhorros6m = null;
 
-// ----------------------------------------------------------------------------------------------------------------------------------------------------------
-// ----------------------Sección para generar gráficos usandoChart.js---------------------------------------
+// ----------------------------------------------------------------------
+// Helpers comunes
+// ----------------------------------------------------------------------
 
-//--------------------------------------------------------------Función para Grafico de presupuesto----------------------------------------------------------------------------------------
+const FONT_FAMILY = "'Nunito Sans', Arial, sans-serif";
+
+function formatearEuros(valor) {
+  var numero = Number(valor) || 0;
+  var opciones = Number.isInteger(numero)
+    ? { maximumFractionDigits: 0 }
+    : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  return new Intl.NumberFormat('es-ES', opciones).format(numero) + ' \u20AC';
+}
+
+function crearTooltipBeneHom() {
+  return {
+    backgroundColor: BH_COLORS.surfaceCard,
+    titleColor: BH_COLORS.textMain,
+    bodyColor: BH_COLORS.textMain,
+    borderColor: BH_COLORS.borderColor,
+    borderWidth: 1,
+    cornerRadius: 10,
+    padding: 10,
+    titleFont: { family: FONT_FAMILY, weight: '600', size: 13 },
+    bodyFont:  { family: FONT_FAMILY, weight: '400', size: 12 },
+  };
+}
+
+function crearLeyendaInferior() {
+  return {
+    position: 'bottom',
+    labels: {
+      font: { family: FONT_FAMILY, size: 12 },
+      color: BH_COLORS.textMain,
+      usePointStyle: true,
+      pointStyle: 'rectRounded',
+      boxWidth: 14,
+      padding: 14,
+    },
+  };
+}
+
+function crearEscalasConEuros(ocultarEjeX) {
+  return {
+    x: {
+      grid: { display: false },
+      ticks: ocultarEjeX
+        ? { display: false }
+        : { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMuted },
+    },
+    y: {
+      beginAtZero: true,
+      grid: { color: BH_COLORS.borderColor },
+      ticks: {
+        font: { family: FONT_FAMILY, size: 11 },
+        color: BH_COLORS.textMuted,
+        padding: 6,
+        callback: function (value) {
+          return value + ' \u20AC';
+        },
+      },
+    },
+  };
+}
+
+function crearOpcionesGrafico(opts) {
+  var plugins = {};
+
+  if (opts.tooltip) {
+    plugins.tooltip = Object.assign(crearTooltipBeneHom(), opts.tooltip);
+  }
+
+  if (opts.legend === true) {
+    plugins.legend = crearLeyendaInferior();
+  } else if (opts.legend === false) {
+    plugins.legend = false;
+  } else if (opts.legend && typeof opts.legend === 'object') {
+    plugins.legend = opts.legend;
+  }
+
+  if (opts.pluginsExtra) {
+    for (var k in opts.pluginsExtra) {
+      if (opts.pluginsExtra.hasOwnProperty(k)) {
+        plugins[k] = opts.pluginsExtra[k];
+      }
+    }
+  }
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: { top: 5, bottom: 20, left: 0, right: 0 },
+    },
+    interaction: { mode: 'nearest', intersect: false },
+    hover: { mode: 'nearest', intersect: false },
+    scales: opts.scales || crearEscalasConEuros(false),
+    plugins: plugins,
+  };
+}
+
+// ----------------------------------------------------------------------
+// Gráfico: Presupuesto mensual
+// ----------------------------------------------------------------------
 async function cargarGraficoPresupuesto() {
-  // Seleccionamos el canvas donde irá el gráfico
-  const ctx = document
-    .getElementById("graficoPresupuestoMensual")
-    .getContext("2d");
-
-  //Recogemos el valor del mes selecionado
-  const mesSeleccionado = document.getElementById("mes").value;
-
-  //Preparamos la consulta
-  const datos = new FormData();
-  datos.append("mes", mesSeleccionado);
-  datos.append("_csrf", window.CSRF_TOKEN);
+  var ctx = document.getElementById('graficoPresupuestoMensual').getContext('2d');
+  var mesSeleccionado = document.getElementById('mes').value;
+  var datos = new FormData();
+  datos.append('mes', mesSeleccionado);
+  datos.append('_csrf', window.CSRF_TOKEN);
 
   try {
-    //Enviamos la consulta y recogemos la respuesta
-    const respuesta = await fetch("index.php?r=graficos/estadoGeneral", {
-      method: "POST",
+    var respuesta = await fetch('index.php?r=graficos/estadoGeneral', {
+      method: 'POST',
       body: datos,
     });
-
-    const data = await respuesta.json();
-
+    var data = await respuesta.json();
     if (!data.ok) {
-      abrirModalInfo({
-        titulo: "No se pudo cargar el gráfico",
-        mensaje:
-          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
-      });
+      abrirModalInfo({ titulo: 'No se pudo cargar el gráfico', mensaje: 'No fue posible obtener los datos. Inténtalo de nuevo más tarde.' });
       return;
     }
 
-    const valores = data.data;
-
-    // Aprovechamos el calculo delos totale y la impletación de esta función para
-    // actualizar  los totales de cada fomulario con una sola línea
+    var valores = data.data;
     actualizarTotales(valores);
 
-    //Si ya había un gráfico lo destruimos para actualizarlo
-    if (graficoPresupuesto) {
-      graficoPresupuesto.destroy();
-      graficoPresupuesto = null;
-    }
+    if (graficoPresupuesto) { graficoPresupuesto.destroy(); graficoPresupuesto = null; }
 
-    //Creamos el gráfico
     graficoPresupuesto = new Chart(ctx, {
-      type: "bar",
+      type: 'bar',
       data: {
-        //Introducimos al gráfico cada dato con su valor correspondiente
-        labels: ["Ingresos", "Gastos totales", "Ahorro real"],
-        datasets: [
-          {
-            data: [valores.ingresos, valores.gastosTotales, valores.ahorroReal],
-
-            //Configuramos el estilo de las barras, si el ahorro es positivo mostramos un color si es negativo mostramos otro
-            backgroundColor: [
-              "#4ECDC4",
-              "#FFA648",
-              valores.ahorroReal >= 0 ? "#4A90E2" : "#FF6B6B",
-            ],
-            borderRadius: 4,
-            barThickness: 28,
-          },
-        ],
+        labels: ['Ingresos', 'Gastos totales', 'Ahorro real'],
+        datasets: [{
+          data: [valores.ingresos, valores.gastosTotales, valores.ahorroReal],
+          backgroundColor: [
+            BH_COLORS.income,
+            BH_COLORS.expense,
+            valores.ahorroReal >= 0 ? BH_COLORS.saving : BH_COLORS.expense,
+          ],
+          borderRadius: 10,
+          barThickness: 28,
+        }],
       },
-      options: {
-        indexAxis: "x",
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: "nearest",
-          intersect: false,
-        },
-        hover: {
-          mode: "nearest",
-          intersect: false,
-        },
-        layout: {
-          padding: {
-            top: 5,
-            bottom: 44,
-            left: 0,
-            right: 0,
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { display: false },
-          },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(0,0,0,0.08)",
-            },
-            ticks: {
-              font: { size: 11 },
-              padding: 6,
-              color: "#000000",
-              //agregamos el simbolo € al eje y
-              callback: function (value) {
-                return value + " €";
-              },
+      options: crearOpcionesGrafico({
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              var nombres = ['Ingresos', 'Gastos totales', 'Ahorro real'];
+              return nombres[context.dataIndex] + ': ' + context.parsed.y + '\u20AC';
             },
           },
         },
-        plugins: {
-          tooltip: {
-            //agragamos simbolo de € a los valores
-            callbacks: {
-              label: function (context) {
-                const nombres = ["Ingresos", "Gastos totales", "Ahorro real"];
-                return nombres[context.dataIndex] + ": " + context.raw + "€";
-              },
-            },
-          },
-          legend: {
-            position: "bottom",
-            //Generamos etiquetas personalizadas con porcentajes
-            labels: {
-              font: {
-                family: "Arial",
-                size: 13,
-              },
-              usePointStyle: true,
-              pointStyle: "rectRounded",
-              pointStyleWidth: 14,
-
-              generateLabels(chart) {
-                // Cremos referencia a nuestro dataset para facilitar el acceso y evitar
-                // repertir código
-                const dataset = chart.data.datasets[0];
-
-                //Recogemos los valroes necesario para los calculos
-                const ingresos = dataset.data[0];
-                const gastosTotales = dataset.data[1];
-                const ahorroReal = dataset.data[2];
-
-                //Creamos un array para alcmacenar las etiquetas personalizadas
-                const etiquetasFinales = [];
-
-                //Recorremos las etiquetas actuales
-                chart.data.labels.forEach((label, index) => {
-                  let valor = dataset.data[index];
-                  let porcentaje = null;
-
-                  //Solo calculamos porcentaje para gastos totales y ahorro
-                  if (index === 1 || index === 2) {
-                    porcentaje =
-                      ingresos > 0 ? ((valor / ingresos) * 100).toFixed(1) : 0;
-                  }
-
-                  //construimos etiqueta
-                  const texto =
-                    porcentaje !== null ? `${label}(${porcentaje}%)` : label;
-
-                  //agregamos al array de etiquetas personalizadas
-                  etiquetasFinales.push({
-                    text: texto,
-                    fillStyle: dataset.backgroundColor[index],
-                    strokeStyle: dataset.backgroundColor[index],
-                    pointStyle: "rectRounded",
-                    pointStyleWidth: 14,
-                    hidden: false,
-                  });
-                });
-
-                return etiquetasFinales;
-              },
-            },
-          },
-        },
-      },
+        legend: true,
+        scales: crearEscalasConEuros(true),
+      }),
     });
   } catch (error) {
-    abrirModalInfo({
-      titulo: "Problema de conexión",
-      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
-    });
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar el gráfico.' });
   }
 }
 
-//---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos flexibles------------------------------------------------
+// ----------------------------------------------------------------------
+// Gráfico: Evolución gastos flexibles 6m
+// ----------------------------------------------------------------------
 async function cargarGraficoGastosFlexibles6m() {
-  // Seleccionamos el canvas donde irá el gráfico
-  const ctx = document.getElementById("graficoGastosFlexibles6m").getContext("2d");
-
-  //Recogemos el valor del mes selecionado
-  const mesSeleccionado = document.getElementById("mes").value;
-
-  //Preparamos la consulta
-  const datos = new FormData();
-  datos.append("mes", mesSeleccionado);
-  datos.append("tipo", "voluntario");
-  datos.append("_csrf", window.CSRF_TOKEN);
+  var ctx = document.getElementById('graficoGastosFlexibles6m').getContext('2d');
+  var mesSeleccionado = document.getElementById('mes').value;
+  var datos = new FormData();
+  datos.append('mes', mesSeleccionado);
+  datos.append('tipo', 'voluntario');
+  datos.append('_csrf', window.CSRF_TOKEN);
 
   try {
-    //Enviamos la consulta y recogemos la respuesta
-    const respuesta = await fetch("index.php?r=graficos/gastos6m", {
-      method: "POST",
+    var respuesta = await fetch('index.php?r=graficos/gastos6m', {
+      method: 'POST',
       body: datos,
     });
-
-    const data = await respuesta.json();
-
+    var data = await respuesta.json();
     if (!data.ok) {
-      abrirModalInfo({
-        titulo: "No se pudo cargar el gráfico",
-        mensaje:
-          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
-      });
+      abrirModalInfo({ titulo: 'No se pudo cargar el gráfico', mensaje: 'No fue posible obtener los datos. Inténtalo de nuevo más tarde.' });
       return;
     }
 
-    //Almacenamos los meses y los valores en variables independientes
-    const meses = data.data.meses;
-    const valores = data.data.valores;
+    var meses = data.data.meses;
+    var valores = data.data.valores;
+    actualizarResumenVariacionGastos('voluntario', valores);
 
-    actualizarResumenVariacionGastos("voluntario", valores);
+    if (graficoGastosFlexibles6m) { graficoGastosFlexibles6m.destroy(); graficoGastosFlexibles6m = null; }
 
-    //Si ya había un gráfico lo destruimos para actualizarlo
-    if (graficoGastosFlexibles6m) {
-      graficoGastosFlexibles6m.destroy();
-      graficoGastosFlexibles6m = null;
-    }
-
-    //Creamos el gráfico
     graficoGastosFlexibles6m = new Chart(ctx, {
-      type: "line",
+      type: 'line',
       data: {
-        //Introducimos al gráfico cada dato con su valor correspondiente
         labels: meses,
-        datasets: [
-          {
-            label: "Gastos flexibles",
-            data: valores,
-            borderColor: "#4ECDC4",
-            backgroundColor: "rgba(74,144,226,0.25)",
-            borderWidth: 2,
-            pointRadius: 4,
-            pointBackgroundColor: "#4ECDC4",
-            tension: 0.35,
-          },
-        ],
+        datasets: [{
+          label: 'Gastos flexibles',
+          data: valores,
+          borderColor: BH_COLORS.expense,
+          backgroundColor: BH_COLORS.expenseSoft,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: BH_COLORS.expense,
+          tension: 0.35,
+        }],
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-          padding: {
-            top: 5,
-            bottom: 16,
-            left: 0,
-            right: 0,
-          },
-        },
-        scales: {
-          x: {
-            ticks: {
-              font: { size: 12 },
-              color: "#000000",
-            },
-            grid: { display: false },
-          },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(0,0,0,0.08)",
-            },
-            ticks: {
-              stepSize: 500,
-              font: { size: 12 },
-              color: "#000000",
-              //Agregamos simbolo € al eje y
-              callback: function (value) {
-                return value + " €";
-              },
+      options: crearOpcionesGrafico({
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return context.dataset.label + ': ' + context.parsed.y + '\u20AC';
             },
           },
         },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                return "Gasto: " + context.raw + "€";
-              },
-            },
-          },
-        },
-      },
+        legend: false,
+        scales: crearEscalasConEuros(false),
+      }),
     });
   } catch (error) {
-    abrirModalInfo({
-      titulo: "Problema de conexión",
-      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
-    });
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar el gráfico.' });
   }
 }
 
-//---------------------------------------------------------------Fucnión para Gráfico de evolución de gastos esenciales------------------------------------------------
+// ----------------------------------------------------------------------
+// Gráfico: Evolución gastos esenciales 6m
+// ----------------------------------------------------------------------
 async function cargarGraficoGastosEsenciales6m() {
-  // Seleccionamos el canvas donde irá el gráfico
-  const ctx = document.getElementById("graficoGastosEsenciales6m").getContext("2d");
-
-  //Recogemos el valor del mes selecionado
-  const mesSeleccionado = document.getElementById("mes").value;
-
-  //Preparamos la consulta
-  const datos = new FormData();
-  datos.append("mes", mesSeleccionado);
-  datos.append("tipo", "obligatorio");
-  datos.append("_csrf", window.CSRF_TOKEN);
+  var ctx = document.getElementById('graficoGastosEsenciales6m').getContext('2d');
+  var mesSeleccionado = document.getElementById('mes').value;
+  var datos = new FormData();
+  datos.append('mes', mesSeleccionado);
+  datos.append('tipo', 'obligatorio');
+  datos.append('_csrf', window.CSRF_TOKEN);
 
   try {
-    //Enviamos la consulta y recogemos la respuesta
-    const respuesta = await fetch("index.php?r=graficos/gastos6m", {
-      method: "POST",
+    var respuesta = await fetch('index.php?r=graficos/gastos6m', {
+      method: 'POST',
       body: datos,
     });
-
-    const data = await respuesta.json();
-
+    var data = await respuesta.json();
     if (!data.ok) {
-      abrirModalInfo({
-        titulo: "No se pudo cargar el gráfico",
-        mensaje:
-          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
-      });
+      abrirModalInfo({ titulo: 'No se pudo cargar el gráfico', mensaje: 'No fue posible obtener los datos. Inténtalo de nuevo más tarde.' });
       return;
     }
 
-    //Almacenamos los meses y los valores en variables independientes
-    const meses = data.data.meses;
-    const valores = data.data.valores;
+    var meses = data.data.meses;
+    var valores = data.data.valores;
+    actualizarResumenVariacionGastos('obligatorio', valores);
 
-    actualizarResumenVariacionGastos("obligatorio", valores);
+    if (graficoGastosEsenciales6m) { graficoGastosEsenciales6m.destroy(); graficoGastosEsenciales6m = null; }
 
-    //Si ya había un gráfico lo destruimos para actualizarlo
-    if (graficoGastosEsenciales6m) {
-      graficoGastosEsenciales6m.destroy();
-      graficoGastosEsenciales6m = null;
-    }
-
-    //Creamos el gráfico
     graficoGastosEsenciales6m = new Chart(ctx, {
-      type: "line",
+      type: 'line',
       data: {
-        //Introducimos al gráfico cada dato con su valor correspondiente
         labels: meses,
-        datasets: [
-          {
-            label: "Gastos esenciales",
-            data: valores,
-            borderColor: "#4ECDC4",
-            backgroundColor: "rgba(74,144,226,0.25)",
-            borderWidth: 2,
-            pointRadius: 4,
-            pointBackgroundColor: "#4ECDC4",
-            tension: 0.35,
-          },
-        ],
+        datasets: [{
+          label: 'Gastos esenciales',
+          data: valores,
+          borderColor: BH_COLORS.info,
+          backgroundColor: BH_COLORS.infoSoft,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: BH_COLORS.info,
+          tension: 0.35,
+        }],
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-          padding: {
-            top: 5,
-            bottom: 16,
-            left: 0,
-            right: 0,
-          },
-        },
-        scales: {
-          x: {
-            ticks: {
-              font: { size: 12 },
-              color: "#000000",
-            },
-            grid: { display: false },
-          },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(0,0,0,0.08)",
-            },
-            ticks: {
-              stepSize: 500,
-              font: { size: 12 },
-              color: "#000000",
-              callback: function (value) {
-                return value + " €";
-              },
+      options: crearOpcionesGrafico({
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return context.dataset.label + ': ' + context.parsed.y + '\u20AC';
             },
           },
         },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                return "Gasto: " + context.raw + "€";
-              },
-            },
-          },
-        },
-      },
+        legend: false,
+        scales: crearEscalasConEuros(false),
+      }),
     });
   } catch (error) {
-    abrirModalInfo({
-      titulo: "Problema de conexión",
-      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
-    });
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar el gráfico.' });
   }
 }
 
+// ----------------------------------------------------------------------
+// Gráfico: Ahorro posible vs real 6m
+// ----------------------------------------------------------------------
 async function cargarGraficoAhorros6m() {
-  // Seleccionamos el canvas donde irá el gráfico
-  const ctx = document.getElementById("graficoAhorros6m").getContext("2d");
-
-  //Recogemos el valor del mes selecionado
-  const mesSeleccionado = document.getElementById("mes").value;
-
-  //Preparamos la consulta
-  const datos = new FormData();
-  datos.append("mes", mesSeleccionado);
-  datos.append("_csrf", window.CSRF_TOKEN);
+  var ctx = document.getElementById('graficoAhorros6m').getContext('2d');
+  var mesSeleccionado = document.getElementById('mes').value;
+  var datos = new FormData();
+  datos.append('mes', mesSeleccionado);
+  datos.append('_csrf', window.CSRF_TOKEN);
 
   try {
-    //Enviamos la consulta y recogemos la respuesta
-    const respuesta = await fetch("index.php?r=graficos/ahorros6m", {
-      method: "POST",
+    var respuesta = await fetch('index.php?r=graficos/ahorros6m', {
+      method: 'POST',
       body: datos,
     });
+    var data = await respuesta.json();
+    if (!data.ok) return;
 
-    const data = await respuesta.json();
+    var meses = data.data.meses;
+    var ahorroPosible = data.data.ahorroPosible;
+    var ahorroReal = data.data.ahorroReal;
 
-    if (!data.ok) {
-      abrirModalInfo({
-        titulo: "No se pudo cargar el gráfico",
-        mensaje:
-          "No fue posible obtener los datos. Inténtalo de nuevo más tarde.",
-      });
-      return;
-    }
+    if (graficoAhorros6m) { graficoAhorros6m.destroy(); graficoAhorros6m = null; }
 
-    const meses = data.data.meses;
-    const ahorroPosible = data.data.ahorroPosible;
-    const ahorroReal = data.data.ahorroReal;
-
-    //Si ya había un gráfico lo destruimos para actualizarlo
-    if (graficoAhorros6m) {
-      graficoAhorros6m.destroy();
-      graficoAhorros6m = null;
-    }
-
-    //Creamos el gráfico
     graficoAhorros6m = new Chart(ctx, {
-      type: "bar",
+      type: 'bar',
       data: {
-        //Introducimos al gráfico cada dato con su valor correspondiente
         labels: meses,
         datasets: [
           {
-            label: "Ahorro posible",
+            label: 'Ahorro posible',
             data: ahorroPosible,
-            backgroundColor: ahorroPosible.map((v) =>
-              v >= 0 ? "#4ECDC4" : "#FF6B6B",
-            ),
+            backgroundColor: ahorroPosible.map(function (v) {
+              return v >= 0 ? BH_COLORS.income : BH_COLORS.expense;
+            }),
             barPercentage: 0.9,
             categoryPercentage: 0.6,
           },
           {
-            label: "Ahorro real",
+            label: 'Ahorro real',
             data: ahorroReal,
-            backgroundColor: ahorroReal.map((v) =>
-              v >= 0 ? "#1A535C" : "#FF6B6B",
-            ),
+            backgroundColor: ahorroReal.map(function (v) {
+              return v >= 0 ? BH_COLORS.info : BH_COLORS.expense;
+            }),
             barPercentage: 0.9,
             categoryPercentage: 0.6,
           },
         ],
       },
-      options: {
-        indexAxis: "x",
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: "point",
-          intersect: true,
-        },
-        hover: {
-          mode: "point",
-          intersect: true,
-        },
-        layout: {
-          padding: {
-            top: 5,
-            bottom: 20,
-            left: 0,
-            right: 0,
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { display: false },
-          },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(0,0,0,0.08)",
-            },
-            ticks: {
-              font: { size: 11 },
-              color: "#000000",
-              padding: 6,
-              callback: function (value) {
-                return value + " €";
-              },
+      options: crearOpcionesGrafico({
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return context.dataset.label + ': ' + context.parsed.y + ' \u20AC';
             },
           },
         },
-
-        plugins: {
-          legend: {
-            position: "bottom",
-            //Generamos leyenda personalizad para mostrar lso tres oclores incluyendo el de valores negativos
-            labels: {
-              font: {
-                family: "Arial",
-                size: 13,
-              },
-              usePointStyle: true,
-              pointStyle: "rectRounded",
-              pointStyleWidth: 14,
-
-              generateLabels() {
-                return [
-                  {
-                    text: "Ahorro posible (+)",
-                    fillStyle: "#4ECDC4",
-                    strokeStyle: "#4ECDC4",
-                    pointStyle: "rectRounded",
-                  },
-                  {
-                    text: "Ahorro (+)",
-                    fillStyle: "#1A535C",
-                    strokeStyle: "#1A535C",
-                    pointStyle: "rectRounded",
-                  },
-                  {
-                    text: "Valores (-)",
-                    fillStyle: "#FF6B6B",
-                    strokeStyle: "#FF6B6B",
-                    pointStyle: "rectRounded",
-                  },
-                ];
-              },
-            },
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                return context.dataset.label + ": " + context.raw + " €";
-              },
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { family: FONT_FAMILY, size: 12 },
+            color: BH_COLORS.textMain,
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            boxWidth: 14,
+            padding: 14,
+            generateLabels: function () {
+              return [
+                { text: 'Ahorro posible (+)', fillStyle: BH_COLORS.income, strokeStyle: BH_COLORS.income, pointStyle: 'rectRounded' },
+                { text: 'Ahorro real (+)',     fillStyle: BH_COLORS.info, strokeStyle: BH_COLORS.info, pointStyle: 'rectRounded' },
+                { text: 'Valores negativos',    fillStyle: BH_COLORS.expense, strokeStyle: BH_COLORS.expense, pointStyle: 'rectRounded' },
+              ];
             },
           },
         },
-      },
+        scales: crearEscalasConEuros(true),
+      }),
     });
   } catch (error) {
-    abrirModalInfo({
-      titulo: "Problema de conexión",
-      mensaje: "No se pudo contactar con el servidor para cargar el gráfico.",
-    });
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar el gráfico.' });
   }
 }
 
-//Hacemos globales las funciones que actualizan los gráficos
+// Exponer globalmente
 window.cargarGraficoPresupuesto = cargarGraficoPresupuesto;
 window.cargarGraficoGastosFlexibles6m = cargarGraficoGastosFlexibles6m;
 window.cargarGraficoGastosEsenciales6m = cargarGraficoGastosEsenciales6m;

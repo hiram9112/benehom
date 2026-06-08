@@ -16,73 +16,66 @@
 
 <body>
 
-    <div class="container-fluid">
-        <div class="row">
+    <main class="py-5">
+        <div class="bh-card bh-card-legal p-4 p-lg-5">
 
-            <main class="col-12 py-5">
+            <h1 class="mb-4">Términos y Condiciones de Uso</h1>
 
-                <div class="container">
-                    <div class="row">
-                        <div class="col-lg-8 mx-auto">
+            <p class="text-muted">
+                Última actualización: <?= date('d/m/Y') ?>
+            </p>
 
-                            <div class="bh-card bh-card-legal p-4">
+            <hr>
 
-                                <h1 class="mb-4">Términos y Condiciones de Uso</h1>
+            <h5 class="mt-4">1. Objeto</h5>
+            <p>
+                BeneHom es una aplicación web destinada a la gestión personal
+                de economía familiar. Su uso es exclusivamente personal y no comercial.
+            </p>
 
-                                <p class="text-muted">
-                                    Última actualización: <?= date('d/m/Y') ?>
-                                </p>
+            <h5 class="mt-4">2. Registro y cuenta de usuario</h5>
+            <p>
+                Para utilizar la aplicación es necesario crear una cuenta proporcionando
+                información veraz. El usuario es responsable de mantener la confidencialidad
+                de sus credenciales de acceso.
+            </p>
 
-                                <hr>
+            <h5 class="mt-4">3. Uso adecuado</h5>
+            <p>
+                El usuario se compromete a utilizar la aplicación conforme a la legislación
+                vigente y a no emplearla para fines ilícitos o contrarios a la buena fe.
+            </p>
 
-                                <h5 class="mt-4">1. Objeto</h5>
-                                <p>
-                                    BeneHom es una aplicación web destinada a la gestión personal
-                                    de economía familiar. Su uso es exclusivamente personal y no comercial.
-                                </p>
+            <h5 class="mt-4">4. Limitación de responsabilidad</h5>
+            <p>
+                La aplicación se proporciona como herramienta de apoyo a la gestión financiera
+                personal. El responsable no garantiza resultados financieros específicos
+                derivados de su uso.
+            </p>
 
-                                <h5 class="mt-4">2. Registro y cuenta de usuario</h5>
-                                <p>
-                                    Para utilizar la aplicación es necesario crear una cuenta proporcionando
-                                    información veraz. El usuario es responsable de mantener la confidencialidad
-                                    de sus credenciales de acceso.
-                                </p>
+            <h5 class="mt-4">5. Eliminación de cuenta</h5>
+            <p>
+                El usuario puede eliminar su cuenta en cualquier momento desde su perfil,
+                lo que supondrá la supresión de los datos asociados.
+            </p>
 
-                                <h5 class="mt-4">3. Uso adecuado</h5>
-                                <p>
-                                    El usuario se compromete a utilizar la aplicación conforme a la legislación
-                                    vigente y a no emplearla para fines ilícitos o contrarios a la buena fe.
-                                </p>
+            <h5 class="mt-4">6. Modificaciones</h5>
+            <p>
+                El responsable podrá actualizar estos términos cuando sea necesario
+                para adaptarlos a cambios legales o funcionales de la aplicación.
+            </p>
 
-                                <h5 class="mt-4">4. Limitación de responsabilidad</h5>
-                                <p>
-                                    La aplicación se proporciona como herramienta de apoyo a la gestión financiera
-                                    personal. El responsable no garantiza resultados financieros específicos
-                                    derivados de su uso.
-                                </p>
+            <hr class="mt-5">
 
-                                <h5 class="mt-4">5. Eliminación de cuenta</h5>
-                                <p>
-                                    El usuario puede eliminar su cuenta en cualquier momento desde su perfil,
-                                    lo que supondrá la supresión de los datos asociados.
-                                </p>
-
-                                <h5 class="mt-4">6. Modificaciones</h5>
-                                <p>
-                                    El responsable podrá actualizar estos términos cuando sea necesario
-                                    para adaptarlos a cambios legales o funcionales de la aplicación.
-                                </p>
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </main>
-
+            <p class="mb-0">
+                <a href="<?= BASE_URL ?>index.php?r=cuenta/index">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    Volver a la cuenta
+                </a>
+            </p>
 
         </div>
-    </div>
+    </main>
 
 </body>
 

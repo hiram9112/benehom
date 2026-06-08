@@ -5,174 +5,162 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Cuenta</title>
-    <!--Bootstrap CSS-->
+    <title>Cuenta - BeneHom</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!--Bootstrap Iconos-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!--Bootstrap JS(componentes interactivos)-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!--Conectamos con archivo CSS propio-->
     <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
 </head>
 
 <body>
 
-    <!--Mensajes para notificar al usuario si la contraseña se ha modificado o no -->
-    <?php
-    //Registro exitoso
-    if (isset($_SESSION['mensaje_exitoso'])) {
-        echo "<p class='alert alert-success text-center'>";
-        echo $_SESSION['mensaje_exitoso'];
-        echo "</p>";
+    <?php if (isset($_SESSION['mensaje_exitoso'])): ?>
+        <div class="bh-alert bh-alert-success text-center" role="status">
+            <?= htmlspecialchars($_SESSION['mensaje_exitoso'], ENT_QUOTES, 'UTF-8') ?>
+        </div>
+        <?php unset($_SESSION['mensaje_exitoso']); ?>
+    <?php endif; ?>
 
-        //eliminamos mensaje para no mostrarlo otra vez
-        unset($_SESSION['mensaje_exitoso']);
-    }
-    //Error registrando ya existe el usuario inicie sesión o el usaurio o la contrasñea son incorrectos, damos dos usos a esta varible.
-    if (isset($_SESSION['mensaje_error'])) {
-        echo "<p class='alert alert-danger text-center'>";
-        echo $_SESSION['mensaje_error'];
-        echo "</p>";
-
-        //eliminamos mensaje para no mostrarlo ota vez;
-        unset($_SESSION['mensaje_error']);
-    }
-    ?>
+    <?php if (isset($_SESSION['mensaje_error'])): ?>
+        <div class="bh-alert bh-alert-error text-center" role="alert">
+            <?= htmlspecialchars($_SESSION['mensaje_error'], ENT_QUOTES, 'UTF-8') ?>
+        </div>
+        <?php unset($_SESSION['mensaje_error']); ?>
+    <?php endif; ?>
 
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
     bh_mobile_nav();
     ?>
 
-
-    <!--Contenedor Principal-->
     <div class="bh-app-shell">
-            <?php bh_sidebar(); ?>
-            <!--Panel Central-->
-            <main class="bh-main bh-main-contained">
+        <?php bh_sidebar(); ?>
 
-                <!--tarjeta cambiar contraseña-->
-                <div class="bh-card mb-3 card-cuenta">
-                    <div class="bh-card-header">
-                        <h4 class=" titulo m-0">Cambiar contraseña</h4>
-                    </div>
+        <main class="bh-main bh-main-contained">
 
-                    <div class="bh-card-body">
-
-                        <form method="POST" action="index.php?r=cuenta/cambiarPassword" class="formulario-bh">
-                            <?= csrf_field() ?>
-
-
-                            <label for="password_actual">Contraseña actual: </label>
-                            <input type="password" id="password_actual" name="password_actual" required>
-                            <button class="btn btn-outline-secondary" type="button"
-                                data-bh-password-toggle="password_actual" aria-label="Mostrar contraseña" aria-pressed="false">
-                                <i class="bi bi-eye" aria-hidden="true"></i>
-                            </button>
-
-
-                            <label for="password_nueva">Contraseña nueva: </label>
-                            <input type="password" id="password_nueva" name="password_nueva" required>
-                            <button class="btn btn-outline-secondary" type="button"
-                                data-bh-password-toggle="password_nueva" aria-label="Mostrar contraseña" aria-pressed="false">
-                                <i class="bi bi-eye" aria-hidden="true"></i>
-                            </button>
-
-                            <button type="submit" class="mt-2">Cambiar contraseña</button>
-                        </form>
-                    </div>
+            <header class="bh-page-header">
+                <div>
+                    <h1>Cuenta</h1>
+                    <p>Gestiona tu contraseña y los datos de tu perfil</p>
                 </div>
+            </header>
 
-                <!--tarjeta eliminar cuenta-->
-                <div class="bh-card mb-3 card-cuenta">
-                    <div class="bh-card-header">
-                        <h4 class=" titulo m-0 text-danger">Eliminar cuenta</h4>
-                    </div>
-
-                    <div class="bh-card-body">
-
-                        <!--Alertamos al usuario -->
-                        <p class="text-danger fw-bold"> Esta acción es irreversible, se eliminarán todos los datos de la cuenta</p>
-
-                        <form id="formEliminarCuenta" method="POST" action="index.php?r=cuenta/eliminarCuenta" class="formulario-bh">
-                            <?= csrf_field() ?>
-
-
-                            <label for="password_confirmacion">Introduce tu contraseña para confirmar: </label>
-                            <input type="password" id="password_confirmacion" name="password_confirmacion" required>
-                            <button class="btn btn-outline-secondary" type="button"
-                                data-bh-password-toggle="password_confirmacion" aria-label="Mostrar contraseña" aria-pressed="false">
-                                <i class="bi bi-eye" aria-hidden="true"></i>
-                            </button>
-
-
-
-                            <button type="submit" class="mt-2 btn btn-danger">
-                                Eliminar cuenta
-                            </button>
-                        </form>
-                    </div>
+            <!-- Cambiar contraseña -->
+            <div class="bh-card mb-4">
+                <div class="bh-card-header">
+                    <h4 class="m-0">Cambiar contraseña</h4>
                 </div>
+                <div class="bh-card-body">
+                    <form method="POST" action="index.php?r=cuenta/cambiarPassword" class="bh-form">
+                        <?= csrf_field() ?>
 
-                <!-- tarjeta documentación legal -->
-                <div class="bh-card bh-card-legal card-cuenta">
-                    <div class="bh-card-header">
-                        <h4 class="titulo m-0">Documentación legal</h4>
-                    </div>
+                        <div class="bh-field">
+                            <label for="password_actual" class="bh-label">Contraseña actual</label>
+                            <div class="bh-password-field">
+                                <input type="password" id="password_actual" name="password_actual" class="bh-input" required>
+                                <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
+                                    data-bh-password-toggle="password_actual" aria-label="Mostrar contraseña" aria-pressed="false">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
 
-                    <div class="bh-card-body">
-                        <p class="mb-3">
-                            Puedes consultar en cualquier momento la información relativa
-                            a la protección de datos y condiciones de uso de la aplicación.
-                        </p>
+                        <div class="bh-field">
+                            <label for="password_nueva" class="bh-label">Contraseña nueva</label>
+                            <div class="bh-password-field">
+                                <input type="password" id="password_nueva" name="password_nueva" class="bh-input" required>
+                                <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
+                                    data-bh-password-toggle="password_nueva" aria-label="Mostrar contraseña" aria-pressed="false">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
 
-                        <ul class="list-unstyled mb-0">
-                            <li>
-                                <a href="index.php?r=legal/privacidad" target="_blank">
-                                    Política de Privacidad
-                                </a>
-                            </li>
-                            <li>
-                                <a href="index.php?r=legal/terminos" target="_blank">
-                                    Términos y Condiciones de Uso
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                        <div class="bh-field">
+                            <button type="submit" class="bh-btn bh-btn-primary">Cambiar contraseña</button>
+                        </div>
+                    </form>
                 </div>
+            </div>
 
-            </main>
+            <!-- Eliminar cuenta -->
+            <div class="bh-card mb-4">
+                <div class="bh-card-header">
+                    <h4 class="m-0">Eliminar cuenta</h4>
+                </div>
+                <div class="bh-card-body">
+                    <div class="bh-alert bh-alert-warning mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                        Esta acción es irreversible. Se eliminarán todos tus datos asociados.
+                    </div>
+
+                    <form id="formEliminarCuenta" method="POST" action="index.php?r=cuenta/eliminarCuenta" class="bh-form">
+                        <?= csrf_field() ?>
+
+                        <div class="bh-field">
+                            <label for="password_confirmacion" class="bh-label">Introduce tu contraseña para confirmar</label>
+                            <div class="bh-password-field">
+                                <input type="password" id="password_confirmacion" name="password_confirmacion" class="bh-input" required>
+                                <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
+                                    data-bh-password-toggle="password_confirmacion" aria-label="Mostrar contraseña" aria-pressed="false">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bh-field">
+                            <button type="submit" class="bh-btn bh-btn-danger">Eliminar cuenta</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Documentación legal -->
+            <div class="bh-card">
+                <div class="bh-card-header">
+                    <h4 class="m-0">Documentación legal</h4>
+                </div>
+                <div class="bh-card-body">
+                    <p>Puedes consultar en cualquier momento la información relativa a la protección de datos y condiciones de uso de la aplicación.</p>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <a href="index.php?r=legal/privacidad" target="_blank">
+                                <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                                Política de Privacidad
+                            </a>
+                        </li>
+                        <li>
+                            <a href="index.php?r=legal/terminos" target="_blank">
+                                <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                                Términos y Condiciones de Uso
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </main>
     </div>
 
     <?php bh_mobile_menu(); ?>
 
-    <!-- Modal de confirmación genérico -->
+    <!-- Modal de confirmación -->
     <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalConfirmacionTitulo">Confirmar acción</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-content bh-modal">
+                <div class="modal-header bh-modal-header">
+                    <h5 class="modal-title bh-modal-title" id="modalConfirmacionTitulo">Confirmar acción</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-
-                <div class="modal-body" id="modalConfirmacionTexto">
+                <div class="modal-body bh-modal-body" id="modalConfirmacionTexto">
                     ¿Estás seguro?
                 </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Cancelar
-                    </button>
-                    <button type="button" class="btn btn-danger" id="modalConfirmacionAceptar">
-                        Aceptar
-                    </button>
+                <div class="modal-footer bh-modal-footer">
+                    <button type="button" class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="bh-btn bh-btn-danger" id="modalConfirmacionAceptar">Aceptar</button>
                 </div>
-
             </div>
         </div>
     </div>

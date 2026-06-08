@@ -28,26 +28,9 @@
 </head>
 
 <body>
-    <!--Mensajes para cuando somos redirigidos  -->
     <?php
-    //Mensaje de éxito
-    if (isset($_SESSION['mensaje_exitoso'])) {
-        echo "<p class='alert alert-success text-center'>";
-        echo $_SESSION['mensaje_exitoso'];
-        echo "</p>";
-
-        //eliminamos mensaje para no mostrarlo otra vez
-        unset($_SESSION['mensaje_exitoso']);
-    }
-    //Mensjae de error
-    if (isset($_SESSION['mensaje_error'])) {
-        echo "<p class='alert alert-danger text-center'>";
-        echo $_SESSION['mensaje_error'];
-        echo "</p>";
-
-        //eliminamos mensaje para no mostrarlo ota vez;
-        unset($_SESSION['mensaje_error']);
-    }
+    require_once APP_PATH . '/views/partials/flash-messages.php';
+    bh_flash_messages();
     ?>
 
     <?php
@@ -935,6 +918,8 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
 
+
+    <script src="<?= BASE_URL ?>js/flash.js"></script>
 
     <!--Enlazamos con nuestros arvhicos js-->
     <script src="<?= BASE_URL ?>js/validaciones.js"></script>

@@ -14,6 +14,9 @@
 
 <body>
     <?php
+    require_once APP_PATH . '/views/partials/flash-messages.php';
+    bh_flash_messages();
+
     require_once APP_PATH . '/views/partials/app-navigation.php';
     bh_mobile_nav();
 
@@ -41,13 +44,6 @@
                     <img src="<?= BASE_URL ?>img/blog-image.png" alt="">
                 </div>
             </header>
-
-            <?php if (isset($_SESSION['mensaje_error'])): ?>
-                <div class="bh-alert bh-alert-error mb-4" role="alert">
-                    <?= htmlspecialchars($_SESSION['mensaje_error'], ENT_QUOTES, 'UTF-8') ?>
-                </div>
-                <?php unset($_SESSION['mensaje_error']); ?>
-            <?php endif; ?>
 
             <?php if (empty($articulos)): ?>
                 <section class="bh-empty-state" aria-labelledby="blog-empty-title">
@@ -103,6 +99,8 @@
     </div>
 
     <?php bh_mobile_menu(); ?>
+
+    <script src="<?= BASE_URL ?>js/flash.js"></script>
 </body>
 
 </html>

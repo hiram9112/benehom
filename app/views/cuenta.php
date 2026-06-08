@@ -16,19 +16,10 @@
 
 <body>
 
-    <?php if (isset($_SESSION['mensaje_exitoso'])): ?>
-        <div class="bh-alert bh-alert-success text-center" role="status">
-            <?= htmlspecialchars($_SESSION['mensaje_exitoso'], ENT_QUOTES, 'UTF-8') ?>
-        </div>
-        <?php unset($_SESSION['mensaje_exitoso']); ?>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['mensaje_error'])): ?>
-        <div class="bh-alert bh-alert-error text-center" role="alert">
-            <?= htmlspecialchars($_SESSION['mensaje_error'], ENT_QUOTES, 'UTF-8') ?>
-        </div>
-        <?php unset($_SESSION['mensaje_error']); ?>
-    <?php endif; ?>
+    <?php
+    require_once APP_PATH . '/views/partials/flash-messages.php';
+    bh_flash_messages();
+    ?>
 
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
@@ -165,6 +156,7 @@
         </div>
     </div>
 
+    <script src="<?= BASE_URL ?>js/flash.js"></script>
     <script src="<?= BASE_URL ?>js/password-toggle.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/cuenta.js?v=<?= time() ?>"></script>
 </body>

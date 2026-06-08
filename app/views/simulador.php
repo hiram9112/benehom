@@ -22,6 +22,8 @@
 <body>
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
+    require_once APP_PATH . '/views/partials/flash-messages.php';
+    bh_flash_messages();
     bh_mobile_nav();
 
     $formatearEuros = static function ($cantidad): string {
@@ -70,32 +72,6 @@
         'anual' => 'Anual',
     ];
     ?>
-
-    <?php if (isset($_SESSION['mensaje_exitoso']) || isset($_SESSION['mensaje_error'])): ?>
-        <div class="bh-flash-stack" aria-live="polite" aria-atomic="true">
-            <?php if (isset($_SESSION['mensaje_exitoso'])): ?>
-                <div class="bh-flash bh-flash-success" role="status" data-flash-message data-flash-autodismiss>
-                    <i class="bi bi-check-circle" aria-hidden="true"></i>
-                    <p><?= htmlspecialchars($_SESSION['mensaje_exitoso'], ENT_QUOTES, 'UTF-8') ?></p>
-                    <button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">
-                        <i class="bi bi-x-lg" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <?php unset($_SESSION['mensaje_exitoso']); ?>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['mensaje_error'])): ?>
-                <div class="bh-flash bh-flash-error" role="alert" data-flash-message>
-                    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
-                    <p><?= htmlspecialchars($_SESSION['mensaje_error'], ENT_QUOTES, 'UTF-8') ?></p>
-                    <button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">
-                        <i class="bi bi-x-lg" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <?php unset($_SESSION['mensaje_error']); ?>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
 
     <!--Contenedor Principal-->
     <div class="bh-app-shell">
@@ -714,6 +690,7 @@
     <script>
         window.CSRF_TOKEN = "<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>";
     </script>
+    <script src="<?= BASE_URL ?>js/flash.js"></script>
     <script src="<?= BASE_URL ?>js/simulador.js?v=<?= time() ?>"></script>
 </body>
 

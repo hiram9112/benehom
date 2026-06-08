@@ -46,24 +46,8 @@ function bh_auth_begin(string $pageTitle, string $heading, string $lead = '', bo
 
 function bh_auth_flash_messages(): void
 {
-    $messages = [
-        'mensaje_exitoso' => ['class' => 'bh-alert-success', 'role' => 'status'],
-        'mensaje_error' => ['class' => 'bh-alert-error', 'role' => 'alert'],
-    ];
-
-    foreach ($messages as $sessionKey => $messageData) {
-        if (!isset($_SESSION[$sessionKey])) {
-            continue;
-        }
-
-        $message = preg_replace('/<br\s*\/?>/i', "\n", (string) $_SESSION[$sessionKey]);
-        $message = nl2br(htmlspecialchars(strip_tags($message), ENT_QUOTES, 'UTF-8'), false);
-        unset($_SESSION[$sessionKey]);
-
-        echo '<div class="bh-alert ' . $messageData['class'] . ' bh-auth-alert" role="' . $messageData['role'] . '">';
-        echo $message;
-        echo '</div>';
-    }
+    require_once APP_PATH . '/views/partials/flash-messages.php';
+    bh_flash_messages();
 }
 
 function bh_auth_end(): void
@@ -76,6 +60,7 @@ function bh_auth_end(): void
         <?php if ($includeBootstrapJs): ?>
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <?php endif; ?>
+        <script src="<?= BASE_URL ?>js/flash.js"></script>
         <script src="<?= BASE_URL ?>js/password-toggle.js?v=<?= time() ?>"></script>
     </body>
 

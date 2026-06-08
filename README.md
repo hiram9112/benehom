@@ -1,177 +1,182 @@
-# BeneHom – Gestor de Economía Familiar
+# BeneHom
 
-🌍 Aplicación en producción:
-https://benehom.es
+BeneHom es una aplicación web para gestionar la economía familiar. Permite registrar ingresos y gastos, diferenciar gastos esenciales y flexibles, calcular el ahorro real del hogar, definir metas de ahorro y proyectar escenarios financieros de forma clara.
 
-BeneHom es una aplicación web para la gestión de la economía familiar, desarrollada como proyecto individual dentro del CFGS de **Desarrollo de Aplicaciones Web (DAW)** y evolucionada hacia una aplicación estructurada y preparada para despliegue real.
+Aplicación en producción: https://benehom.es
 
-El objetivo principal no es únicamente registrar ingresos y gastos, sino ayudar al usuario a comprender su comportamiento financiero y tomar decisiones más conscientes a partir de datos claros y visuales.
+## Características
 
----
+- Registro de ingresos mensuales.
+- Registro de gastos esenciales y gastos flexibles.
+- Cálculo automático de ahorro posible y ahorro real.
+- Panel con resumen financiero mensual.
+- Gráficos de evolución de gastos y ahorro.
+- Metas de ahorro con proyección de aportaciones.
+- Proyección de reducción de gastos flexibles.
+- Calculadora de inflación.
+- Escenarios de inversión con interés compuesto.
+- Calculadora de hipoteca.
+- Blog educativo sobre finanzas del hogar.
+- Autenticación de usuarios y recuperación de contraseña.
+- Diseño responsive para escritorio y móvil.
 
-## 🎯 Objetivo del proyecto
-
-BeneHom adopta un enfoque educativo y minimalista:
-
-- Registro sencillo de ingresos y gastos.
-- Separación clara entre gastos base y gastos ajustables.
-- Cálculo automático de:
-  - Capacidad teórica de ahorro.
-  - Ahorro real.
-- Visualización gráfica de la evolución financiera.
-
-La aplicación está diseñada para que el usuario entienda qué podría ahorrar frente a lo que realmente ahorra.
-
----
-
-## 🧠 Enfoque funcional
-
-La estructura financiera se divide en:
-
-### 1️⃣ Ingresos
-
-- Salario  
-- Inversiones  
-- Otros ingresos  
-
-### 2️⃣ Gastos base
-
-Costes necesarios para mantener el hogar:
-
-- Vivienda  
-- Suministros  
-- Seguros  
-- Alimentación básica  
-- Transporte esencial  
-- Impuestos  
-
-### 3️⃣ Gastos ajustables
-
-Gastos vinculados a decisiones de consumo y hábitos revisables:
-
-- Ocio  
-- Suscripciones  
-- Viajes  
-- Restauración  
-- Compras personales  
-
-A partir de esta clasificación, BeneHom calcula automáticamente:
-
-- Totales dinámicos mensuales.
-- Capacidad de ahorro.
-- Ahorro real.
-- Evolución histórica (últimos meses).
-- Gráficos comparativos y de tendencia.
-
----
-
-## 🛠️ Tecnologías utilizadas
+## Tecnologías
 
 ### Backend
 
-- PHP 8.x  
-- MySQL  
-- Arquitectura MVC (implementación manual)  
-- Protección CSRF  
-- Gestión segura de sesiones  
-- Configuración mediante variables de entorno (.env)  
+- PHP 8
+- MySQL
+- PDO
+- Arquitectura MVC personalizada
+- Sesiones PHP
+- Protección CSRF
+- Variables de entorno mediante `.env`
 
 ### Frontend
 
-- HTML5  
-- CSS3 (estilos personalizados)  
-- Bootstrap 5  
-- JavaScript (Fetch API / AJAX)  
-- Chart.js  
-- Flatpickr (selector de mes)  
+- HTML
+- CSS personalizado
+- Bootstrap 5
+- JavaScript
+- Fetch API
+- Chart.js
+- Flatpickr
 
----
+### Herramientas de desarrollo
 
-## 🏗️ Arquitectura
+- Composer
+- PHPStan
 
-El proyecto sigue una arquitectura MVC estructurada manualmente:
+## Requisitos
 
+- PHP 8.0 o superior
+- MySQL o MariaDB
+- Composer
+- Servidor web con soporte PHP, por ejemplo Apache, Nginx, XAMPP o MAMP
+
+## Instalación
+
+Clona el repositorio:
+
+```bash
+git clone https://github.com/hiram9112/benehom.git
+cd benehom
 ```
-/app
-    /controllers
-    /models
-    /views
-/config
-/public
+
+Instala las dependencias de Composer:
+
+```bash
+composer install
 ```
 
-### Características técnicas relevantes:
+Crea el archivo de entorno:
 
-- Separación clara entre lógica de negocio y presentación.
-- Validaciones en frontend y backend.
-- Manejo de errores preparado para entorno producción.
-- Configuración desacoplada mediante variables de entorno.
-- Protección contra CSRF en todos los formularios.
+```bash
+cp .env.example .env
+```
 
----
+Configura las variables de entorno:
 
-## 🔐 Seguridad implementada
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=benehom
+DB_USER=usuario
+DB_PASS=contraseña
 
-- Protección CSRF en formularios.
-- Sanitización de datos con htmlspecialchars.
-- Gestión reforzada de sesiones.
-- Control de acceso por autenticación.
-- Uso de consultas preparadas con PDO (prepared statements) para prevenir inyecciones SQL.
-- Variables sensibles fuera del repositorio (.env).
+APP_ENV=local
+APP_URL=http://localhost/benehom/public/
 
----
+SMTP_USER=user_smtp
+SMTP_PASS=contraseña_smtp
+```
 
-## 📱 Responsive
+Crea la base de datos e importa la estructura:
 
-- Menú lateral adaptado a dispositivos móviles mediante Bootstrap Offcanvas.
-- Diseño optimizado para evitar desbordamientos horizontales.
-- Estructura fluida basada en grid de Bootstrap.
+```bash
+mysql -u usuario -p benehom < database/schema.sql
+```
 
----
+Opcionalmente, importa datos de prueba:
 
-## 📦 Estado actual
+```bash
+mysql -u usuario -p benehom < database/seed.sql
+```
 
-- ✔ Aplicación completamente funcional.
-- ✔ Sistema de autenticación operativo.
-- ✔ Panel dinámico con gráficos y cálculos en tiempo real.
-- ✔ Diseño responsive estable.
-- ✔ Desplegada en entorno real (https://benehom.es).
-- 🚧 Secciones futuras: Metas y Blog en desarrollo.
+Usuario demo incluido en `database/seed.sql`:
 
----
+- Email: `demo@benehom.local`
+- Contraseña: `Demo1234`
 
-## 💻 Instalación en entorno local
+## Ejecución local
 
-### Requisitos
+Configura el servidor web para servir la aplicación desde el directorio `public/`.
 
-- PHP 8.x  
-- MySQL  
-- Servidor local (XAMPP, MAMP, Apache, etc.)  
+La aplicación usa rutas mediante el parámetro `r`, por ejemplo:
 
-### Configuración
+```text
+http://localhost/benehom/public/index.php?r=landing/index
+```
 
-1. Clonar el repositorio.
-2. Crear archivo `.env` a partir de `.env.example`.
-3. Configurar variables de entorno.
-4. Importar la base de datos incluida en el proyecto (estructura + datos seed).
+Si usas un entorno como XAMPP o MAMP, asegúrate de que el proyecto tenga acceso a PHP, MySQL y al archivo `.env`.
 
-La aplicación estará disponible en entorno local tras configurar el servidor.
+## Estructura del proyecto
 
----
+```text
+app/
+  controllers/
+  helpers/
+  models/
+  views/
+config/
+database/
+public/
+  css/
+  img/
+  js/
+```
 
-## 📈 Evolución futura
+## Seguridad
 
-- Sistema de metas de ahorro.
-- Panel comparativo anual.
-- Exportación de datos.
-- Mejora progresiva de seguridad en producción.
-- Optimización continua de experiencia móvil.
+BeneHom incluye medidas básicas de seguridad para una aplicación web con autenticación:
 
----
+- Consultas preparadas con PDO.
+- Protección CSRF en formularios POST.
+- Hash seguro de contraseñas.
+- Tokens seguros para recuperación de contraseña.
+- Cookies de sesión con `HttpOnly` y `SameSite=Lax`.
+- Separación de credenciales mediante variables de entorno.
+- Control de acceso para rutas privadas.
+- Sanitización de salida HTML en puntos relevantes.
 
-## 👨‍💻 Autor
+## Análisis estático
 
-**Hiram González González**  
-Desarrollador Web – CFGS Desarrollo de Aplicaciones Web (DAW)
+El proyecto incluye PHPStan como dependencia de desarrollo. Para ejecutarlo:
 
-Proyecto desarrollado de forma individual como aplicación real orientada a producción y portfolio profesional.
+```bash
+vendor/bin/phpstan analyse app public config
+```
+
+## Variables de entorno
+
+| Variable | Descripción |
+| --- | --- |
+| `DB_HOST` | Host de la base de datos |
+| `DB_PORT` | Puerto de la base de datos |
+| `DB_NAME` | Nombre de la base de datos |
+| `DB_USER` | Usuario de la base de datos |
+| `DB_PASS` | Contraseña de la base de datos |
+| `APP_ENV` | Entorno de ejecución: `local` o `production` |
+| `APP_URL` | URL base de la aplicación |
+| `SMTP_USER` | Usuario SMTP para recuperación de contraseña |
+| `SMTP_PASS` | Contraseña SMTP |
+
+## Contribución
+
+Las contribuciones deben mantener la estructura MVC actual, validar datos tanto en cliente como en servidor y preservar las medidas de seguridad existentes.
+
+Antes de proponer cambios, revisa que la aplicación siga funcionando en entorno local y que no se expongan credenciales ni datos sensibles.
+
+## Licencia
+
+Este repositorio no incluye actualmente un archivo de licencia. Hasta que se añada una licencia explícita, el código queda bajo derechos reservados del autor.

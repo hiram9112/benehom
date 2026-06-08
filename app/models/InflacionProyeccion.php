@@ -1,14 +1,14 @@
 <?php
 require_once __DIR__ . '/Database.php';
 
-class InflacionSimulacion{
+class InflacionProyeccion{
 
     public static function obtenerPorUsuario($usuario_id){
         try{
             $db = Database::getConnection();
 
             $sql = "SELECT *
-                    FROM simulaciones_inflacion
+                    FROM proyecciones_inflacion
                     WHERE usuario_id = :usuario_id
                     ORDER BY fecha_creacion DESC, id DESC";
 
@@ -31,7 +31,7 @@ class InflacionSimulacion{
             $db = Database::getConnection();
 
             $sql = "SELECT *
-                    FROM simulaciones_inflacion
+                    FROM proyecciones_inflacion
                     WHERE id = :id
                     AND usuario_id = :usuario_id
                     LIMIT 1";
@@ -41,9 +41,9 @@ class InflacionSimulacion{
             $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
             $stmt->execute();
 
-            $simulacion = $stmt->fetch(PDO::FETCH_ASSOC);
+            $proyeccion = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            return $simulacion ?: null;
+            return $proyeccion ?: null;
         }catch(Exception $e){
             if (self::tablaNoExiste($e)) {
                 return null;
@@ -57,7 +57,7 @@ class InflacionSimulacion{
         try{
             $db = Database::getConnection();
 
-            $sql = "INSERT INTO simulaciones_inflacion
+            $sql = "INSERT INTO proyecciones_inflacion
                     (usuario_id, nombre, cantidad_inicial, inflacion_anual, plazo_anios)
                     VALUES
                     (:usuario_id, :nombre, :cantidad_inicial, :inflacion_anual, :plazo_anios)";
@@ -81,7 +81,7 @@ class InflacionSimulacion{
         try{
             $db = Database::getConnection();
 
-            $sql = "UPDATE simulaciones_inflacion
+            $sql = "UPDATE proyecciones_inflacion
                     SET nombre = :nombre,
                         cantidad_inicial = :cantidad_inicial,
                         inflacion_anual = :inflacion_anual,
@@ -107,7 +107,7 @@ class InflacionSimulacion{
         try{
             $db = Database::getConnection();
 
-            $sql = "DELETE FROM simulaciones_inflacion
+            $sql = "DELETE FROM proyecciones_inflacion
                     WHERE id = :id
                     AND usuario_id = :usuario_id";
 
@@ -125,7 +125,7 @@ class InflacionSimulacion{
         try{
             $db = Database::getConnection();
 
-            $sql = "DELETE FROM simulaciones_inflacion WHERE usuario_id = :usuario_id";
+            $sql = "DELETE FROM proyecciones_inflacion WHERE usuario_id = :usuario_id";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);

@@ -36,7 +36,7 @@
                     <h1 id="blog-title">Entiende mejor el dinero que forma parte de tu día a día</h1>
                     <p>
                         Artículos claros sobre conceptos financieros cotidianos: inflación, hipotecas, activos financieros y otros temas
-                        que influyen en cómo decides, ahorras y planificas. Comprenderlos ayuda a evitar errores habituales y a construir
+                        que influyen en cómo decides, ahorras, planificas y proyectas escenarios. Comprenderlos ayuda a evitar errores habituales y a construir
                         una relación más consciente con tu economía.
                     </p>
                 </div>
@@ -52,7 +52,7 @@
                     </div>
                     <h2 id="blog-empty-title" class="bh-empty-state-title">Aún no hay artículos publicados</h2>
                     <p class="bh-empty-state-text">
-                        Cuando añadas contenido educativo, aparecerá aquí para acompañar las decisiones financieras del hogar.
+                        Los artículos sobre inflación, hipotecas y activos financieros estarán disponibles aquí para ayudarte a entender conceptos clave para tu economía doméstica.
                     </p>
                 </section>
             <?php else: ?>

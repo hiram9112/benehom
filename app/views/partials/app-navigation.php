@@ -15,9 +15,9 @@ function bh_navigation_items(): array
             'icon' => 'bi-house-door',
         ],
         [
-            'label' => 'Simulador',
-            'route' => 'simulador/index',
-            'href' => 'index.php?r=simulador/index',
+            'label' => 'Proyecciones',
+            'route' => 'proyecciones/index',
+            'href' => 'index.php?r=proyecciones/index',
             'icon' => 'bi-sliders2',
         ],
         [

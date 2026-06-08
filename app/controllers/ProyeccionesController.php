@@ -3,10 +3,10 @@ require_once APP_PATH . '/models/Ingreso.php';
 require_once APP_PATH . '/models/Gasto.php';
 require_once APP_PATH . '/models/MetaAhorro.php';
 require_once APP_PATH . '/models/EscenarioInversion.php';
-require_once APP_PATH . '/models/InflacionSimulacion.php';
+require_once APP_PATH . '/models/InflacionProyeccion.php';
 require_once APP_PATH . '/models/CalculadoraHipoteca.php';
 
-class SimuladorController {
+class ProyeccionesController {
 
     public function index(){
         if(!isset($_SESSION['usuario_id'])){
@@ -31,11 +31,11 @@ class SimuladorController {
         $ahorroAsignadoMetas = MetaAhorro::totalAportacionesActivas($usuario_id);
         $metasAhorro = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
         $escenariosInversion = EscenarioInversion::obtenerPorUsuario($usuario_id);
-        $simulacionesInflacion = InflacionSimulacion::obtenerPorUsuario($usuario_id);
+        $proyeccionesInflacion = InflacionProyeccion::obtenerPorUsuario($usuario_id);
         $calculadorasHipoteca = CalculadoraHipoteca::obtenerPorUsuario($usuario_id);
 
         if ($ingresosMes === false || $gastosEsencialesMes === false || $gastosFlexiblesMes === false) {
-            $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos del Simulador.';
+            $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos de Proyecciones.';
             header("Location: " . BASE_URL . "index.php?r=dashboard/index");
             exit;
         }
@@ -54,7 +54,7 @@ class SimuladorController {
 
         if ($gastosFlexiblesPorCategoria === false) {
             $gastosFlexiblesPorCategoria = [];
-            $avisoGastosFlexibles = 'No se pudieron cargar los gastos flexibles para simular reducciones.';
+            $avisoGastosFlexibles = 'No se pudieron cargar los gastos flexibles para proyectar reducciones.';
         } else {
             $avisoGastosFlexibles = '';
         }
@@ -66,11 +66,11 @@ class SimuladorController {
             $avisoEscenariosInversion = '';
         }
 
-        if ($simulacionesInflacion === false) {
-            $simulacionesInflacion = [];
-            $avisoSimulacionesInflacion = 'No se pudieron cargar las simulaciones de inflación. Inténtalo de nuevo más tarde.';
+        if ($proyeccionesInflacion === false) {
+            $proyeccionesInflacion = [];
+            $avisoProyeccionesInflacion = 'No se pudieron cargar las proyecciones de inflación. Inténtalo de nuevo más tarde.';
         } else {
-            $avisoSimulacionesInflacion = '';
+            $avisoProyeccionesInflacion = '';
         }
 
         if ($calculadorasHipoteca === false) {
@@ -84,21 +84,21 @@ class SimuladorController {
         $ahorroMensualDisponible = max(0, $ahorroMensualDelMes);
 
         if (
-            isset($_SESSION['simulador_ahorro_mensual_manual'], $_SESSION['simulador_ahorro_mensual_manual_mes']) &&
-            $_SESSION['simulador_ahorro_mensual_manual_mes'] === $mesSeleccionado &&
-            is_numeric($_SESSION['simulador_ahorro_mensual_manual'])
+            isset($_SESSION['proyecciones_ahorro_mensual_manual'], $_SESSION['proyecciones_ahorro_mensual_manual_mes']) &&
+            $_SESSION['proyecciones_ahorro_mensual_manual_mes'] === $mesSeleccionado &&
+            is_numeric($_SESSION['proyecciones_ahorro_mensual_manual'])
         ) {
-            $ahorroMensualDisponible = max(0, floatval($_SESSION['simulador_ahorro_mensual_manual']));
+            $ahorroMensualDisponible = max(0, floatval($_SESSION['proyecciones_ahorro_mensual_manual']));
         }
 
         $ahorroDisponibleMetas = max(0, $ahorroMensualDisponible - $ahorroAsignadoMetas);
         $ahorroAsignadoSuperaDisponible = $ahorroAsignadoMetas > $ahorroMensualDisponible;
         $metasAhorroPreparadas = array_map([$this, 'prepararMetaParaVista'], $metasAhorro);
         $escenariosInversionPreparados = array_map([$this, 'prepararEscenarioInversionParaVista'], $escenariosInversion);
-        $simulacionesInflacionPreparadas = array_map([$this, 'prepararInflacionSimulacionParaVista'], $simulacionesInflacion);
+        $proyeccionesInflacionPreparadas = array_map([$this, 'prepararInflacionProyeccionParaVista'], $proyeccionesInflacion);
         $calculadorasHipotecaPreparadas = array_map([$this, 'prepararCalculadoraHipotecaParaVista'], $calculadorasHipoteca);
 
-        require_once APP_PATH . "/views/simulador.php";
+        require_once APP_PATH . "/views/proyecciones.php";
     }
 
     public function crearEscenarioInversion(){
@@ -111,7 +111,7 @@ class SimuladorController {
 
         if (!$resultado['ok']) {
             $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $datos = $resultado['datos'];
@@ -127,11 +127,11 @@ class SimuladorController {
 
         if (!$nuevoEscenario) {
             $_SESSION['mensaje_error'] = 'No se pudo guardar el escenario de inversión. Revisa los datos e inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $_SESSION['mensaje_exitoso'] = 'Escenario guardado. Puedes comparar la estimación cuando quieras.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     public function actualizarEscenarioInversion(){
@@ -144,19 +144,19 @@ class SimuladorController {
 
         if ($id <= 0) {
             $_SESSION['mensaje_error'] = 'No se recibió un escenario válido para editar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         if (!EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id)) {
             $_SESSION['mensaje_error'] = 'No se encontró el escenario de inversión que quieres editar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $resultado = $this->validarDatosEscenarioInversion();
 
         if (!$resultado['ok']) {
             $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $datos = $resultado['datos'];
@@ -173,11 +173,11 @@ class SimuladorController {
 
         if (!$actualizado) {
             $_SESSION['mensaje_error'] = 'No se pudo actualizar el escenario de inversión. Inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $_SESSION['mensaje_exitoso'] = 'Escenario actualizado.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     public function actualizarEscenarioInversionAjax(){
@@ -266,23 +266,23 @@ class SimuladorController {
 
         if ($id <= 0) {
             $_SESSION['mensaje_error'] = 'No se recibió un escenario válido para eliminar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         if (!EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id)) {
             $_SESSION['mensaje_error'] = 'No se encontró el escenario de inversión que quieres eliminar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $eliminado = EscenarioInversion::eliminarPorUsuario($id, $usuario_id);
 
         if (!$eliminado) {
             $_SESSION['mensaje_error'] = 'No se pudo eliminar el escenario de inversión. Inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $_SESSION['mensaje_exitoso'] = 'Escenario eliminado.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     public function crearMetaAhorro(){
@@ -295,7 +295,7 @@ class SimuladorController {
 
         if (!$resultado['ok']) {
             $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $datos = $resultado['datos'];
@@ -309,11 +309,11 @@ class SimuladorController {
 
         if (!$nuevaMeta) {
             $_SESSION['mensaje_error'] = 'No se pudo guardar la meta. Revisa los datos e inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Meta creada. Ya cuenta en tu capacidad mensual simulada.';
-        $this->redirigirAlSimulador();
+        $_SESSION['mensaje_exitoso'] = 'Meta creada. Ya cuenta en tu capacidad mensual proyectada.';
+        $this->redirigirAProyecciones();
     }
 
     public function actualizarMetaAhorro(){
@@ -322,7 +322,7 @@ class SimuladorController {
         }
 
         $_SESSION['mensaje_error'] = 'Solo puedes editar el importe objetivo de una meta desde la propia card.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     public function eliminarMetaAhorro(){
@@ -335,23 +335,23 @@ class SimuladorController {
 
         if ($id <= 0) {
             $_SESSION['mensaje_error'] = 'No se recibió una meta válida para eliminar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         if (!MetaAhorro::obtenerPorIdYUsuario($id, $usuario_id)) {
             $_SESSION['mensaje_error'] = 'No se encontró la meta que quieres eliminar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $eliminada = MetaAhorro::eliminarPorUsuario($id, $usuario_id);
 
         if (!$eliminada) {
             $_SESSION['mensaje_error'] = 'No se pudo eliminar la meta. Inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $_SESSION['mensaje_exitoso'] = 'Meta eliminada. Su aportación ya no cuenta en la capacidad usada.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     public function actualizarImporteMetaAjax(){
@@ -433,8 +433,8 @@ class SimuladorController {
         }
 
         $ahorroMensualDisponible = round(floatval($ahorroMensual), 2);
-        $_SESSION['simulador_ahorro_mensual_manual'] = $ahorroMensualDisponible;
-        $_SESSION['simulador_ahorro_mensual_manual_mes'] = $mesSeleccionado;
+        $_SESSION['proyecciones_ahorro_mensual_manual'] = $ahorroMensualDisponible;
+        $_SESSION['proyecciones_ahorro_mensual_manual_mes'] = $mesSeleccionado;
 
         $ahorroAsignadoMetas = MetaAhorro::totalAportacionesActivas($_SESSION['usuario_id']);
 
@@ -450,21 +450,21 @@ class SimuladorController {
         ]);
     }
 
-    public function crearInflacionSimulacion(){
+    public function crearInflacionProyeccion(){
         if (!$this->peticionPostAutenticada()) {
             return;
         }
 
         $usuario_id = $_SESSION['usuario_id'];
-        $resultado = $this->validarDatosInflacionSimulacion();
+        $resultado = $this->validarDatosInflacionProyeccion();
 
         if (!$resultado['ok']) {
             $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $datos = $resultado['datos'];
-        $nuevaSimulacion = InflacionSimulacion::crear(
+        $nuevaProyeccion = InflacionProyeccion::crear(
             $usuario_id,
             $datos['nombre'],
             $datos['cantidad_inicial'],
@@ -472,16 +472,16 @@ class SimuladorController {
             $datos['plazo_anios']
         );
 
-        if (!$nuevaSimulacion) {
-            $_SESSION['mensaje_error'] = 'No se pudo guardar la simulación de inflación. Revisa los datos e inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+        if (!$nuevaProyeccion) {
+            $_SESSION['mensaje_error'] = 'No se pudo guardar la proyección de inflación. Revisa los datos e inténtalo de nuevo.';
+            $this->redirigirAProyecciones();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Simulación de inflación guardada. Puedes consultarla cuando quieras.';
-        $this->redirigirAlSimulador();
+        $_SESSION['mensaje_exitoso'] = 'Proyección de inflación guardada. Puedes consultarla cuando quieras.';
+        $this->redirigirAProyecciones();
     }
 
-    public function actualizarInflacionSimulacion(){
+    public function actualizarInflacionProyeccion(){
         if (!$this->peticionPostAutenticada()) {
             return;
         }
@@ -490,24 +490,24 @@ class SimuladorController {
         $id = intval($_POST['id'] ?? 0);
 
         if ($id <= 0) {
-            $_SESSION['mensaje_error'] = 'No se recibió una simulación válida para editar.';
-            $this->redirigirAlSimulador();
+            $_SESSION['mensaje_error'] = 'No se recibió una proyección válida para editar.';
+            $this->redirigirAProyecciones();
         }
 
-        if (!InflacionSimulacion::obtenerPorIdYUsuario($id, $usuario_id)) {
-            $_SESSION['mensaje_error'] = 'No se encontró la simulación de inflación que quieres editar.';
-            $this->redirigirAlSimulador();
+        if (!InflacionProyeccion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró la proyección de inflación que quieres editar.';
+            $this->redirigirAProyecciones();
         }
 
-        $resultado = $this->validarDatosInflacionSimulacion();
+        $resultado = $this->validarDatosInflacionProyeccion();
 
         if (!$resultado['ok']) {
             $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $datos = $resultado['datos'];
-        $actualizado = InflacionSimulacion::actualizar(
+        $actualizado = InflacionProyeccion::actualizar(
             $id,
             $usuario_id,
             $datos['nombre'],
@@ -517,15 +517,15 @@ class SimuladorController {
         );
 
         if (!$actualizado) {
-            $_SESSION['mensaje_error'] = 'No se pudo actualizar la simulación de inflación. Inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $_SESSION['mensaje_error'] = 'No se pudo actualizar la proyección de inflación. Inténtalo de nuevo.';
+            $this->redirigirAProyecciones();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Simulación de inflación actualizada.';
-        $this->redirigirAlSimulador();
+        $_SESSION['mensaje_exitoso'] = 'Proyección de inflación actualizada.';
+        $this->redirigirAProyecciones();
     }
 
-    public function actualizarInflacionSimulacionAjax(){
+    public function actualizarInflacionProyeccionAjax(){
         if($_SERVER['REQUEST_METHOD'] !== 'POST'){
             echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
             return;
@@ -543,7 +543,7 @@ class SimuladorController {
         $camposPermitidos = ['cantidad_inicial', 'inflacion_anual', 'plazo_anios'];
 
         if ($id <= 0) {
-            echo json_encode(['ok' => false, 'msg' => 'No se recibió una simulación válida.']);
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió una proyección válida.']);
             return;
         }
 
@@ -571,44 +571,44 @@ class SimuladorController {
             }
         }
 
-        $simulacion = InflacionSimulacion::obtenerPorIdYUsuario($id, $usuario_id);
+        $proyeccion = InflacionProyeccion::obtenerPorIdYUsuario($id, $usuario_id);
 
-        if (!$simulacion) {
-            echo json_encode(['ok' => false, 'msg' => 'No se encontró la simulación que quieres actualizar.']);
+        if (!$proyeccion) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró la proyección que quieres actualizar.']);
             return;
         }
 
-        $simulacion[$campo] = $campo === 'plazo_anios' ? intval($valor) : round(floatval($valor), 2);
+        $proyeccion[$campo] = $campo === 'plazo_anios' ? intval($valor) : round(floatval($valor), 2);
 
-        $actualizado = InflacionSimulacion::actualizar(
+        $actualizado = InflacionProyeccion::actualizar(
             $id,
             $usuario_id,
-            $simulacion['nombre'],
-            round(floatval($simulacion['cantidad_inicial']), 2),
-            round(floatval($simulacion['inflacion_anual']), 2),
-            intval($simulacion['plazo_anios'])
+            $proyeccion['nombre'],
+            round(floatval($proyeccion['cantidad_inicial']), 2),
+            round(floatval($proyeccion['inflacion_anual']), 2),
+            intval($proyeccion['plazo_anios'])
         );
 
         if (!$actualizado) {
-            echo json_encode(['ok' => false, 'msg' => 'No se pudo actualizar la simulación de inflación.']);
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo actualizar la proyección de inflación.']);
             return;
         }
 
-        $simulacionPreparada = $this->prepararInflacionSimulacionParaVista($simulacion);
+        $proyeccionPreparada = $this->prepararInflacionProyeccionParaVista($proyeccion);
 
         echo json_encode([
             'ok' => true,
-            'cantidadInicial' => floatval($simulacionPreparada['cantidad_inicial']),
-            'inflacionAnual' => floatval($simulacionPreparada['inflacion_anual']),
-            'plazoAnios' => intval($simulacionPreparada['plazo_anios']),
-            'poderAdquisitivoFinal' => floatval($simulacionPreparada['poder_adquisitivo_final']),
-            'perdidaEstimada' => floatval($simulacionPreparada['perdida_estimada']),
-            'cantidadFuturaNecesaria' => floatval($simulacionPreparada['cantidad_futura_necesaria']),
-            'diferenciaNecesaria' => floatval($simulacionPreparada['diferencia_necesaria']),
+            'cantidadInicial' => floatval($proyeccionPreparada['cantidad_inicial']),
+            'inflacionAnual' => floatval($proyeccionPreparada['inflacion_anual']),
+            'plazoAnios' => intval($proyeccionPreparada['plazo_anios']),
+            'poderAdquisitivoFinal' => floatval($proyeccionPreparada['poder_adquisitivo_final']),
+            'perdidaEstimada' => floatval($proyeccionPreparada['perdida_estimada']),
+            'cantidadFuturaNecesaria' => floatval($proyeccionPreparada['cantidad_futura_necesaria']),
+            'diferenciaNecesaria' => floatval($proyeccionPreparada['diferencia_necesaria']),
         ]);
     }
 
-    public function eliminarInflacionSimulacion(){
+    public function eliminarInflacionProyeccion(){
         if (!$this->peticionPostAutenticada()) {
             return;
         }
@@ -617,24 +617,24 @@ class SimuladorController {
         $id = intval($_POST['id'] ?? 0);
 
         if ($id <= 0) {
-            $_SESSION['mensaje_error'] = 'No se recibió una simulación válida para eliminar.';
-            $this->redirigirAlSimulador();
+            $_SESSION['mensaje_error'] = 'No se recibió una proyección válida para eliminar.';
+            $this->redirigirAProyecciones();
         }
 
-        if (!InflacionSimulacion::obtenerPorIdYUsuario($id, $usuario_id)) {
-            $_SESSION['mensaje_error'] = 'No se encontró la simulación de inflación que quieres eliminar.';
-            $this->redirigirAlSimulador();
+        if (!InflacionProyeccion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró la proyección de inflación que quieres eliminar.';
+            $this->redirigirAProyecciones();
         }
 
-        $eliminado = InflacionSimulacion::eliminarPorUsuario($id, $usuario_id);
+        $eliminado = InflacionProyeccion::eliminarPorUsuario($id, $usuario_id);
 
         if (!$eliminado) {
-            $_SESSION['mensaje_error'] = 'No se pudo eliminar la simulación de inflación. Inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $_SESSION['mensaje_error'] = 'No se pudo eliminar la proyección de inflación. Inténtalo de nuevo.';
+            $this->redirigirAProyecciones();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Simulación de inflación eliminada.';
-        $this->redirigirAlSimulador();
+        $_SESSION['mensaje_exitoso'] = 'Proyección de inflación eliminada.';
+        $this->redirigirAProyecciones();
     }
 
     public function crearCalculadoraHipoteca(){
@@ -647,7 +647,7 @@ class SimuladorController {
 
         if (!$resultado['ok']) {
             $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $datos = $resultado['datos'];
@@ -661,11 +661,11 @@ class SimuladorController {
 
         if (!$nuevaCalculadora) {
             $_SESSION['mensaje_error'] = 'No se pudo guardar la calculadora de hipoteca. Revisa los datos e inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $_SESSION['mensaje_exitoso'] = 'Calculadora de hipoteca guardada. Puedes consultarla cuando quieras.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     public function actualizarCalculadoraHipoteca(){
@@ -678,19 +678,19 @@ class SimuladorController {
 
         if ($id <= 0) {
             $_SESSION['mensaje_error'] = 'No se recibió una calculadora válida para editar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         if (!CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id)) {
             $_SESSION['mensaje_error'] = 'No se encontró la calculadora de hipoteca que quieres editar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $resultado = $this->validarDatosCalculadoraHipoteca();
 
         if (!$resultado['ok']) {
             $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $datos = $resultado['datos'];
@@ -705,11 +705,11 @@ class SimuladorController {
 
         if (!$actualizado) {
             $_SESSION['mensaje_error'] = 'No se pudo actualizar la calculadora de hipoteca. Inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $_SESSION['mensaje_exitoso'] = 'Calculadora de hipoteca actualizada.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     public function actualizarCalculadoraHipotecaAjax(){
@@ -804,23 +804,23 @@ class SimuladorController {
 
         if ($id <= 0) {
             $_SESSION['mensaje_error'] = 'No se recibió una calculadora válida para eliminar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         if (!CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id)) {
             $_SESSION['mensaje_error'] = 'No se encontró la calculadora de hipoteca que quieres eliminar.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $eliminado = CalculadoraHipoteca::eliminarPorUsuario($id, $usuario_id);
 
         if (!$eliminado) {
             $_SESSION['mensaje_error'] = 'No se pudo eliminar la calculadora de hipoteca. Inténtalo de nuevo.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         $_SESSION['mensaje_exitoso'] = 'Calculadora de hipoteca eliminada.';
-        $this->redirigirAlSimulador();
+        $this->redirigirAProyecciones();
     }
 
     private function mesValido($mes): bool{
@@ -830,7 +830,7 @@ class SimuladorController {
     private function peticionPostAutenticada(): bool{
         if($_SERVER['REQUEST_METHOD'] !== 'POST'){
             $_SESSION['mensaje_error'] = 'Método no permitido.';
-            $this->redirigirAlSimulador();
+            $this->redirigirAProyecciones();
         }
 
         if(!isset($_SESSION['usuario_id'])){
@@ -921,11 +921,11 @@ class SimuladorController {
         }
 
         if (
-            isset($_SESSION['simulador_ahorro_mensual_manual'], $_SESSION['simulador_ahorro_mensual_manual_mes']) &&
-            $_SESSION['simulador_ahorro_mensual_manual_mes'] === $mesSeleccionado &&
-            is_numeric($_SESSION['simulador_ahorro_mensual_manual'])
+            isset($_SESSION['proyecciones_ahorro_mensual_manual'], $_SESSION['proyecciones_ahorro_mensual_manual_mes']) &&
+            $_SESSION['proyecciones_ahorro_mensual_manual_mes'] === $mesSeleccionado &&
+            is_numeric($_SESSION['proyecciones_ahorro_mensual_manual'])
         ) {
-            return max(0, floatval($_SESSION['simulador_ahorro_mensual_manual']));
+            return max(0, floatval($_SESSION['proyecciones_ahorro_mensual_manual']));
         }
 
         $fechaInicio = $mesSeleccionado . '-01';
@@ -1123,14 +1123,14 @@ class SimuladorController {
         };
     }
 
-    private function validarDatosInflacionSimulacion(): array{
+    private function validarDatosInflacionProyeccion(): array{
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
         $cantidadInicial = $this->normalizarCantidad($_POST['cantidad_inicial'] ?? null);
         $inflacionAnual = $this->normalizarCantidad($_POST['inflacion_anual'] ?? null);
         $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
 
         if ($nombre === '') {
-            return $this->errorValidacion('El nombre de la simulación es obligatorio.');
+            return $this->errorValidacion('El nombre de la proyección es obligatorio.');
         }
 
         if (strlen($nombre) > 100) {
@@ -1197,23 +1197,23 @@ class SimuladorController {
         ];
     }
 
-    private function prepararInflacionSimulacionParaVista($simulacion): array{
-        $cantidadInicial = floatval($simulacion['cantidad_inicial']);
-        $inflacionAnual = floatval($simulacion['inflacion_anual']);
-        $plazoAnios = intval($simulacion['plazo_anios']);
+    private function prepararInflacionProyeccionParaVista($proyeccion): array{
+        $cantidadInicial = floatval($proyeccion['cantidad_inicial']);
+        $inflacionAnual = floatval($proyeccion['inflacion_anual']);
+        $plazoAnios = intval($proyeccion['plazo_anios']);
 
-        $resultado = $this->calcularInflacionSimulacion(
+        $resultado = $this->calcularInflacionProyeccion(
             $cantidadInicial,
             $inflacionAnual,
             $plazoAnios
         );
 
-        $simulacion['poder_adquisitivo_final'] = $resultado['poder_adquisitivo_final'];
-        $simulacion['perdida_estimada'] = $resultado['perdida_estimada'];
-        $simulacion['cantidad_futura_necesaria'] = $resultado['cantidad_futura_necesaria'];
-        $simulacion['diferencia_necesaria'] = $resultado['diferencia_necesaria'];
+        $proyeccion['poder_adquisitivo_final'] = $resultado['poder_adquisitivo_final'];
+        $proyeccion['perdida_estimada'] = $resultado['perdida_estimada'];
+        $proyeccion['cantidad_futura_necesaria'] = $resultado['cantidad_futura_necesaria'];
+        $proyeccion['diferencia_necesaria'] = $resultado['diferencia_necesaria'];
 
-        return $simulacion;
+        return $proyeccion;
     }
 
     private function prepararCalculadoraHipotecaParaVista($calculadora): array{
@@ -1234,7 +1234,7 @@ class SimuladorController {
         return $calculadora;
     }
 
-    private function calcularInflacionSimulacion($cantidadInicial, $inflacionAnual, $plazoAnios): array{
+    private function calcularInflacionProyeccion($cantidadInicial, $inflacionAnual, $plazoAnios): array{
         $factor = pow(1 + $inflacionAnual / 100, $plazoAnios);
         $poderAdquisitivoFinal = $cantidadInicial / $factor;
         $perdidaEstimada = $cantidadInicial - $poderAdquisitivoFinal;
@@ -1277,8 +1277,8 @@ class SimuladorController {
         ];
     }
 
-    private function redirigirAlSimulador(): void{
-        header("Location: " . BASE_URL . "index.php?r=simulador/index");
+    private function redirigirAProyecciones(): void{
+        header("Location: " . BASE_URL . "index.php?r=proyecciones/index");
         exit;
     }
 

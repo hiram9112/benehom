@@ -104,6 +104,6 @@ return [
                 ],
             ],
         ],
-        'conexion' => 'Antes de simular una inversión, revisa en BeneHom qué parte de tu ahorro real puedes destinar a objetivos sin comprometer gastos esenciales.',
+        'conexion' => 'Antes de proyectar una inversión, revisa en BeneHom qué parte de tu ahorro real puedes destinar a objetivos sin comprometer gastos esenciales.',
     ],
 ];

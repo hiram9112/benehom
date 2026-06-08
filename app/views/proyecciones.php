@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Simulador</title>
+    <title>Proyecciones - BeneHom</title>
     <!--Bootstrap CSS-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -26,16 +26,16 @@
     bh_flash_messages();
     bh_mobile_nav();
 
-    $formatearCantidadSimulador = static function ($cantidad): string {
+    $formatearCantidadProyecciones = static function ($cantidad): string {
         return number_format((float) $cantidad, 0, ',', '.');
     };
 
-    $formatearEuros = static function ($cantidad) use ($formatearCantidadSimulador): string {
-        return $formatearCantidadSimulador($cantidad) . ' €';
+    $formatearEuros = static function ($cantidad) use ($formatearCantidadProyecciones): string {
+        return $formatearCantidadProyecciones($cantidad) . ' €';
     };
 
-    $formatearPorcentaje = static function ($cantidad) use ($formatearCantidadSimulador): string {
-        return $formatearCantidadSimulador($cantidad) . '%';
+    $formatearPorcentaje = static function ($cantidad) use ($formatearCantidadProyecciones): string {
+        return $formatearCantidadProyecciones($cantidad) . '%';
     };
 
     $formatearFecha = static function ($fecha): string {
@@ -66,9 +66,9 @@
         return $anios . ($anios === 1 ? ' año' : ' años') . ' y ' . $restoMeses . ($restoMeses === 1 ? ' mes' : ' meses');
     };
 
-    $formatearOpcionConImporte = static function ($texto, $importe, $prefijo = '') use ($formatearCantidadSimulador): string {
+    $formatearOpcionConImporte = static function ($texto, $importe, $prefijo = '') use ($formatearCantidadProyecciones): string {
         $texto = trim((string) $texto);
-        $importeTexto = $prefijo . $formatearCantidadSimulador($importe) . ' €';
+        $importeTexto = $prefijo . $formatearCantidadProyecciones($importe) . ' €';
 
         return $texto . ' --> ' . $importeTexto;
     };
@@ -87,18 +87,18 @@
 
         <!--Panel Central-->
         <main class="bh-main">
-            <section class="bh-simulator-hero mb-4" aria-labelledby="simulador-titulo">
-                <article class="bh-card bh-card-finance bh-simulator-intro-card">
+            <section class="bh-projections-hero mb-4" aria-labelledby="proyecciones-titulo">
+                <article class="bh-card bh-card-finance bh-projections-intro-card">
                     <div class="bh-card-body">
-                        <p class="bh-simulator-kicker">Herramienta educativa</p>
-                        <h1 id="simulador-titulo">Simulador</h1>
+                        <p class="bh-projections-kicker">Planificación y proyecciones</p>
+                        <h1 id="proyecciones-titulo">Proyecciones</h1>
                         <p>
-                            Explora cómo tus decisiones de ahorro e inversión, junto con factores externos como la inflación,
-                            pueden afectar a objetivos financieros futuros sin convertir BeneHom en una contabilidad paralela.
+                            Crea metas de ahorro, proyecta reducciones de gastos flexibles, explora escenarios de inversión educativa,
+                            calcula el impacto de la inflación o estima cuotas hipotecarias. Todo sin modificar tus datos reales.
                         </p>
                         <p>
-                            Tomamos como referencia el ahorro mensual del mes seleccionado en Dashboard. Puedes editar
-                            esa cantidad manualmente para probar escenarios sin modificar tus ingresos, gastos ni el Dashboard.
+                            BeneHom usa como referencia el ahorro mensual del mes seleccionado en el Dashboard. Puedes editar
+                            esa cantidad para probar escenarios sin alterar tus ingresos, gastos ni el resumen del mes.
                         </p>
                         <p class="mb-0">
                             Los resultados son estimaciones orientativas, no garantías ni recomendaciones financieras.
@@ -106,24 +106,24 @@
                     </div>
                 </article>
 
-                <article class="bh-card bh-simulator-savings-card" aria-labelledby="ahorro-mensual-disponible-label">
+                <article class="bh-card bh-projections-savings-card" aria-labelledby="ahorro-mensual-disponible-label">
                     <div class="bh-card-body">
-                        <p id="ahorro-mensual-disponible-label" class="bh-simulator-savings-label">Ahorro mensual disponible</p>
-                        <div class="bh-simulator-savings-value">
+                        <p id="ahorro-mensual-disponible-label" class="bh-projections-savings-label">Ahorro mensual disponible</p>
+                        <div class="bh-projections-savings-value">
                             <span
                                 id="ahorro_mensual_disponible"
-                                class="bh-simulator-savings-amount"
+                                class="bh-projections-savings-amount"
                                 role="button"
                                 tabindex="0"
                                 aria-label="Editar ahorro mensual disponible"
                                 data-value="<?= htmlspecialchars((string) $ahorroMensualDisponible, ENT_QUOTES, 'UTF-8') ?>">
-                                <?= $formatearCantidadSimulador($ahorroMensualDisponible) ?>
+                                <?= $formatearCantidadProyecciones($ahorroMensualDisponible) ?>
                             </span>
-                            <span class="bh-simulator-currency">€</span>
+                            <span class="bh-projections-currency">€</span>
                         </div>
-                        <p class="bh-simulator-edit-hint">Haz clic en el importe para editarlo.</p>
+                        <p class="bh-projections-edit-hint">Haz clic en el importe para editarlo.</p>
 
-                        <div class="bh-simulator-savings-breakdown">
+                        <div class="bh-projections-savings-breakdown">
                             <p>
                                 <span>Asignado a metas</span>
                                 <strong id="ahorro_asignado_metas"><?= $formatearEuros($ahorroAsignadoMetas) ?></strong>
@@ -157,27 +157,27 @@
 
             <?php if ($ahorroAsignadoSuperaDisponible): ?>
                 <div class="bh-alert bh-alert-warning mb-4">
-                    El ahorro asignado a metas supera el ahorro mensual disponible. Puedes ajustar el importe para simular
+                    El ahorro asignado a metas supera el ahorro mensual disponible. Puedes ajustar el importe para proyectar
                     sin cambiar tus datos reales.
                 </div>
             <?php endif; ?>
 
-            <section aria-labelledby="metas-ahorro-titulo" class="bh-simulator-goals">
-                <div class="bh-simulator-goals-grid">
+            <section aria-labelledby="metas-ahorro-titulo" class="bh-projections-goals">
+                <div class="bh-projections-goals-grid">
                     <article class="bh-card bh-meta-list-card">
-                        <div class="bh-card-header bh-simulator-module-header">
+                        <div class="bh-card-header bh-projections-module-header">
                             <div>
                                 <h2 id="metas-ahorro-titulo">Metas de ahorro</h2>
                                 <p>
-                                    Crea metas simuladas para estimar plazos o calcular cuánto necesitarías aportar al mes.
+                                    Crea metas proyectadas para estimar plazos o calcular cuánto necesitarías aportar al mes.
                                     No representan dinero apartado realmente. Cada meta consume parte de la capacidad mensual configurada.
                                 </p>
                             </div>
-                            <div class="bh-simulator-module-actions">
+                            <div class="bh-projections-module-actions">
                                 <span class="bh-badge bh-badge-saving"><?= count($metasAhorroPreparadas) ?> <?= count($metasAhorroPreparadas) === 1 ? 'activa' : 'activas' ?></span>
                                 <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearMetaAhorroPanel" aria-controls="crearMetaAhorroPanel">
                                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva simulación
+                                    Nueva proyección
                                 </button>
                             </div>
                         </div>
@@ -189,7 +189,7 @@
                                     </div>
                                     <h4 class="bh-empty-state-title">Aún no tienes metas guardadas</h4>
                                     <p class="bh-empty-state-text">
-                                        Crea una primera meta para comparar plazos de ahorro con tu capacidad mensual actual.
+                                        Define un objetivo, indica cuánto puedes aportar al mes y BeneHom estima el plazo para alcanzarlo.
                                     </p>
                                 </div>
                             <?php else: ?>
@@ -209,9 +209,9 @@
                                                 <div>
                                                     <div class="bh-meta-title-row">
                                                         <h4><?= htmlspecialchars($meta['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
-                                                        <span class="bh-meta-simulation-badge" data-simulation-badge hidden>
-                                                            Simulación
-                                                            <button type="button" class="bh-meta-simulation-clear" data-simulation-clear aria-label="Limpiar simulación">
+                                                        <span class="bh-meta-projection-badge" data-projection-badge hidden>
+                                                            Proyección
+                                                            <button type="button" class="bh-meta-projection-clear" data-projection-clear aria-label="Limpiar proyección">
                                                                 &times;
                                                             </button>
                                                         </span>
@@ -238,18 +238,18 @@
                                                 </p>
                                                 <p>
                                                     <span>Aportación mensual</span>
-                                                    <strong data-simulation-value="aportacion"><?= $formatearEuros($meta['aportacion_mensual']) ?></strong>
+                                                    <strong data-projection-value="aportacion"><?= $formatearEuros($meta['aportacion_mensual']) ?></strong>
                                                 </p>
                                                 <p>
                                                     <span>Plazo estimado</span>
                                                     <strong>
-                                                        <span data-simulation-value="plazo"><?= htmlspecialchars($formatearPlazo($meta['plazo_meses_estimado']), ENT_QUOTES, 'UTF-8') ?></span>
-                                                        <span class="bh-meta-simulation-improvement" data-simulation-value="mejora" hidden></span>
+                                                        <span data-projection-value="plazo"><?= htmlspecialchars($formatearPlazo($meta['plazo_meses_estimado']), ENT_QUOTES, 'UTF-8') ?></span>
+                                                        <span class="bh-meta-projection-improvement" data-projection-value="mejora" hidden></span>
                                                     </strong>
                                                 </p>
                                                 <p>
                                                     <span>Finalización estimada</span>
-                                                    <strong data-simulation-value="fecha"><?= htmlspecialchars($formatearFecha($meta['fecha_finalizacion_estimada']), ENT_QUOTES, 'UTF-8') ?></strong>
+                                                    <strong data-projection-value="fecha"><?= htmlspecialchars($formatearFecha($meta['fecha_finalizacion_estimada']), ENT_QUOTES, 'UTF-8') ?></strong>
                                                 </p>
                                             </div>
 
@@ -257,27 +257,27 @@
                                                 Resultado orientativo: no garantiza que la meta se alcance en esa fecha ni modifica tus datos reales.
                                             </p>
 
-                                            <div class="bh-meta-flex-simulation" aria-label="Simulación de reducción de gastos flexibles">
-                                                <div class="bh-meta-simulation-header">
-                                                    <h5 class="bh-meta-simulation-title">Simular reducción de gastos flexible</h5>
+                                            <div class="bh-meta-flex-projection" aria-label="Proyección de reducción de gastos flexibles">
+                                                <div class="bh-meta-projection-header">
+                                                    <h5 class="bh-meta-projection-title">Proyectar reducción de gastos flexible</h5>
                                                     <button type="button"
                                                         class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                                         data-bs-toggle="modal"
-                                                        data-bs-target="#infoSimulacionGastosFlexibles"
-                                                        aria-label="Información sobre simulación de gastos flexibles">
+                                                        data-bs-target="#infoProyeccionGastosFlexibles"
+                                                        aria-label="Información sobre proyección de gastos flexibles">
                                                         <i class="bi bi-info-circle" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
 
                                                 <?php if (empty($gastosFlexiblesPorCategoria)): ?>
-                                                    <p class="bh-field-help mb-0">No hay gastos flexibles registrados en el mes seleccionado para simular una reducción.</p>
+                                                    <p class="bh-field-help mb-0">No hay gastos flexibles registrados en el mes seleccionado para proyectar una reducción.</p>
                                                 <?php else: ?>
-                                                    <div class="bh-category-picker bh-meta-simulation-controls" data-simulation-picker>
+                                                    <div class="bh-category-picker bh-meta-projection-controls" data-projection-picker>
                                                         <div class="bh-field">
-                                                            <label class="bh-label" for="meta_sim_categoria_<?= $metaId ?>">Categoría flexible</label>
+                                                            <label class="bh-label" for="meta_proyeccion_categoria_<?= $metaId ?>">Categoría flexible</label>
                                                             <div class="bh-select-shell">
-                                                                <select class="bh-select" id="meta_sim_categoria_<?= $metaId ?>" data-simulation-category>
-                                                                    <option value="">Sin simulación</option>
+                                                                <select class="bh-select" id="meta_proyeccion_categoria_<?= $metaId ?>" data-projection-category>
+                                                                    <option value="">Sin proyección</option>
                                                                     <?php foreach ($gastosFlexiblesPorCategoria as $gastoFlexibleCategoria): ?>
                                                                         <?php
                                                                         $categoriaFlexible = (string) $gastoFlexibleCategoria['categoria'];
@@ -295,9 +295,9 @@
                                                         </div>
 
                                                         <div class="bh-field">
-                                                            <label class="bh-label" for="meta_sim_porcentaje_<?= $metaId ?>">Reducción simulada</label>
+                                                            <label class="bh-label" for="meta_proyeccion_porcentaje_<?= $metaId ?>">Reducción proyectada</label>
                                                             <div class="bh-select-shell">
-                                                                <select class="bh-select" id="meta_sim_porcentaje_<?= $metaId ?>" data-simulation-percent disabled>
+                                                                <select class="bh-select" id="meta_proyeccion_porcentaje_<?= $metaId ?>" data-projection-percent disabled>
                                                                     <option value="">Elige primero una categoría</option>
                                                                     <option value="25" data-percent-label="25%">25%</option>
                                                                     <option value="50" data-percent-label="50%">50%</option>
@@ -308,12 +308,12 @@
                                                         </div>
                                                     </div>
 
-                                                    <p class="bh-meta-simulation-result" data-simulation-message hidden></p>
+                                                    <p class="bh-meta-projection-result" data-projection-message hidden></p>
                                                 <?php endif; ?>
                                             </div>
 
                                             <div class="bh-meta-actions">
-                                                <form method="POST" action="index.php?r=simulador/eliminarMetaAhorro" class="bh-meta-delete-form">
+                                                <form method="POST" action="index.php?r=proyecciones/eliminarMetaAhorro" class="bh-meta-delete-form">
                                                     <?= csrf_field() ?>
                                                     <input type="hidden" name="id" value="<?= $metaId ?>">
                                                     <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta meta retirará su aportación de la capacidad usada. ¿Quieres continuar?">
@@ -331,10 +331,10 @@
                 </div>
             </section>
 
-            <section aria-labelledby="inversion-educativa-titulo" class="bh-simulator-investments">
-                <div class="bh-simulator-investments-grid">
+            <section aria-labelledby="inversion-educativa-titulo" class="bh-projections-investments">
+                <div class="bh-projections-investments-grid">
                     <article class="bh-card bh-investment-list-card">
-                        <div class="bh-card-header bh-simulator-module-header">
+                        <div class="bh-card-header bh-projections-module-header">
                             <div>
                                 <h2 id="inversion-educativa-titulo">Escenarios de inversión educativa</h2>
                                 <p>
@@ -342,11 +342,11 @@
                                     de beneficios. La rentabilidad indicada es anual, educativa y no representa una recomendación financiera.
                                 </p>
                             </div>
-                            <div class="bh-simulator-module-actions">
+                            <div class="bh-projections-module-actions">
                                 <span class="bh-badge bh-badge-saving"><?= count($escenariosInversionPreparados) ?> <?= count($escenariosInversionPreparados) === 1 ? 'guardado' : 'guardados' ?></span>
                                 <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearEscenarioInversionPanel" aria-controls="crearEscenarioInversionPanel">
                                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva simulación
+                                    Nueva proyección
                                 </button>
                             </div>
                         </div>
@@ -358,7 +358,7 @@
                                     </div>
                                     <h4 class="bh-empty-state-title">Aún no tienes escenarios de inversión</h4>
                                     <p class="bh-empty-state-text">
-                                        Crea una primera hipótesis para visualizar el efecto del interés compuesto.
+                                        Crea una hipótesis para visualizar cómo el interés compuesto y la frecuencia de reinversión afectan al valor final estimado.
                                     </p>
                                 </div>
                             <?php else: ?>
@@ -442,7 +442,7 @@
                                                 Cuanto antes se reinvierten los beneficios, antes forman parte del capital y mayor puede ser el efecto compuesto estimado.
                                             </p>
 
-                                            <form method="POST" action="index.php?r=simulador/eliminarEscenarioInversion" class="bh-meta-delete-form bh-investment-delete-form">
+                                            <form method="POST" action="index.php?r=proyecciones/eliminarEscenarioInversion" class="bh-meta-delete-form bh-investment-delete-form">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="id" value="<?= $escenarioId ?>">
                                                 <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar este escenario de inversión no modificará ningún dato real. ¿Quieres continuar?">
@@ -459,50 +459,50 @@
                 </div>
             </section>
 
-            <?php if (!empty($avisoSimulacionesInflacion)): ?>
+            <?php if (!empty($avisoProyeccionesInflacion)): ?>
                 <div class="bh-alert bh-alert-warning mb-4">
-                    <?= htmlspecialchars($avisoSimulacionesInflacion, ENT_QUOTES, 'UTF-8') ?>
+                    <?= htmlspecialchars($avisoProyeccionesInflacion, ENT_QUOTES, 'UTF-8') ?>
                 </div>
             <?php endif; ?>
 
-            <section aria-labelledby="inflacion-temporal-titulo" class="bh-simulator-inflation">
-                <div class="bh-simulator-inflation-grid">
+            <section aria-labelledby="inflacion-temporal-titulo" class="bh-projections-inflation">
+                <div class="bh-projections-inflation-grid">
                     <article class="bh-card bh-inflation-list-card">
-                        <div class="bh-card-header bh-simulator-module-header">
+                        <div class="bh-card-header bh-projections-module-header">
                             <div>
                                 <h2 id="inflacion-temporal-titulo">Calculadora de inflación</h2>
                                 <p>
-                                    Simula cómo una inflación anual estimada podría afectar al poder adquisitivo
+                                    Proyecta cómo una inflación anual estimada podría afectar al poder adquisitivo
                                     de una cantidad. La inflación no reduce el número de euros, sino lo que esos euros pueden comprar.
                                 </p>
                             </div>
-                            <div class="bh-simulator-module-actions">
-                                <span class="bh-badge bh-badge-saving"><?= count($simulacionesInflacionPreparadas) ?> <?= count($simulacionesInflacionPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
-                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearInflacionSimulacionPanel" aria-controls="crearInflacionSimulacionPanel">
+                            <div class="bh-projections-module-actions">
+                                <span class="bh-badge bh-badge-saving"><?= count($proyeccionesInflacionPreparadas) ?> <?= count($proyeccionesInflacionPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
+                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearInflacionProyeccionPanel" aria-controls="crearInflacionProyeccionPanel">
                                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva simulación
+                                    Nueva proyección
                                 </button>
                             </div>
                         </div>
                         <div class="bh-card-body">
-                            <?php if (empty($simulacionesInflacionPreparadas)): ?>
+                            <?php if (empty($proyeccionesInflacionPreparadas)): ?>
                                 <div class="bh-empty-state bh-meta-empty-state">
                                     <div class="bh-empty-state-icon" aria-hidden="true">
                                         <i class="bi bi-cash-stack"></i>
                                     </div>
-                                    <h4 class="bh-empty-state-title">Aún no tienes simulaciones de inflación</h4>
+                                    <h4 class="bh-empty-state-title">Aún no tienes proyecciones de inflación</h4>
                                     <p class="bh-empty-state-text">
-                                        Crea una primera simulación para visualizar cómo la inflación afecta al poder adquisitivo.
+                                        Crea una proyección para ver cómo una inflación anual estimada reduce lo que tus euros pueden comprar con el tiempo.
                                     </p>
                                 </div>
                             <?php else: ?>
                                 <div class="bh-inflation-list">
-                                    <?php foreach ($simulacionesInflacionPreparadas as $simulacion): ?>
-                                        <?php $simulacionId = intval($simulacion['id']); ?>
-                                        <article class="bh-inflation-card" data-inflacion-card data-inflacion-id="<?= $simulacionId ?>">
+                                    <?php foreach ($proyeccionesInflacionPreparadas as $proyeccion): ?>
+                                        <?php $proyeccionId = intval($proyeccion['id']); ?>
+                                        <article class="bh-inflation-card" data-inflacion-card data-inflacion-id="<?= $proyeccionId ?>">
                                             <div class="bh-meta-card-main">
                                                 <div>
-                                                    <h4><?= htmlspecialchars($simulacion['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                                    <h4><?= htmlspecialchars($proyeccion['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
                                                 </div>
                                                 <span class="bh-badge bh-badge-saving">Estimación</span>
                                             </div>
@@ -514,12 +514,12 @@
                                                         class="bh-editable-value"
                                                         data-inflacion-field="cantidad_inicial"
                                                         data-inflacion-value="cantidad_inicial"
-                                                        data-value="<?= htmlspecialchars((string) $simulacion['cantidad_inicial'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-value="<?= htmlspecialchars((string) $proyeccion['cantidad_inicial'], ENT_QUOTES, 'UTF-8') ?>"
                                                         title="Haz clic para editar"
                                                         role="button"
                                                         tabindex="0"
                                                         aria-label="Editar cantidad inicial">
-                                                        <span data-editable-text><?= $formatearEuros($simulacion['cantidad_inicial']) ?></span>
+                                                        <span data-editable-text><?= $formatearEuros($proyeccion['cantidad_inicial']) ?></span>
                                                         <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
                                                     </strong>
                                                 </p>
@@ -529,13 +529,13 @@
                                                         class="bh-editable-value"
                                                         data-inflacion-field="inflacion_anual"
                                                         data-inflacion-value="inflacion_anual"
-                                                        data-value="<?= htmlspecialchars((string) $simulacion['inflacion_anual'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-value="<?= htmlspecialchars((string) $proyeccion['inflacion_anual'], ENT_QUOTES, 'UTF-8') ?>"
                                                         data-suffix="%"
                                                         title="Haz clic para editar"
                                                         role="button"
                                                         tabindex="0"
                                                         aria-label="Editar inflación anual">
-                                                        <span data-editable-text><?= $formatearPorcentaje($simulacion['inflacion_anual']) ?></span>
+                                                        <span data-editable-text><?= $formatearPorcentaje($proyeccion['inflacion_anual']) ?></span>
                                                         <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
                                                     </strong>
                                                 </p>
@@ -545,30 +545,30 @@
                                                         class="bh-editable-value"
                                                         data-inflacion-field="plazo_anios"
                                                         data-inflacion-value="plazo_anios"
-                                                        data-value="<?= htmlspecialchars((string) $simulacion['plazo_anios'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-value="<?= htmlspecialchars((string) $proyeccion['plazo_anios'], ENT_QUOTES, 'UTF-8') ?>"
                                                         title="Haz clic para editar"
                                                         role="button"
                                                         tabindex="0"
                                                         aria-label="Editar plazo en años">
-                                                        <span data-editable-text><?= intval($simulacion['plazo_anios']) ?> <?= intval($simulacion['plazo_anios']) === 1 ? 'año' : 'años' ?></span>
+                                                        <span data-editable-text><?= intval($proyeccion['plazo_anios']) ?> <?= intval($proyeccion['plazo_anios']) === 1 ? 'año' : 'años' ?></span>
                                                         <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
                                                     </strong>
                                                 </p>
                                                 <p>
                                                     <span>Poder adquisitivo final</span>
-                                                    <strong data-inflacion-value="poder_adquisitivo_final"><?= $formatearEuros($simulacion['poder_adquisitivo_final']) ?></strong>
+                                                    <strong data-inflacion-value="poder_adquisitivo_final"><?= $formatearEuros($proyeccion['poder_adquisitivo_final']) ?></strong>
                                                 </p>
                                                 <p>
                                                     <span>Pérdida estimada</span>
-                                                    <strong data-inflacion-value="perdida_estimada"><?= $formatearEuros($simulacion['perdida_estimada']) ?></strong>
+                                                    <strong data-inflacion-value="perdida_estimada"><?= $formatearEuros($proyeccion['perdida_estimada']) ?></strong>
                                                 </p>
                                                 <p>
                                                     <span>Cantidad futura necesaria</span>
-                                                    <strong data-inflacion-value="cantidad_futura_necesaria"><?= $formatearEuros($simulacion['cantidad_futura_necesaria']) ?></strong>
+                                                    <strong data-inflacion-value="cantidad_futura_necesaria"><?= $formatearEuros($proyeccion['cantidad_futura_necesaria']) ?></strong>
                                                 </p>
                                                 <p>
                                                     <span>Diferencia necesaria</span>
-                                                    <strong data-inflacion-value="diferencia_necesaria"><?= $formatearEuros($simulacion['diferencia_necesaria']) ?></strong>
+                                                    <strong data-inflacion-value="diferencia_necesaria"><?= $formatearEuros($proyeccion['diferencia_necesaria']) ?></strong>
                                                 </p>
                                             </div>
 
@@ -576,12 +576,12 @@
                                                 La inflación no reduce el número de euros, sino lo que esos euros pueden comprar. Este cálculo es una estimación educativa.
                                             </p>
 
-                                            <form method="POST" action="index.php?r=simulador/eliminarInflacionSimulacion" class="bh-meta-delete-form bh-inflation-delete-form">
+                                            <form method="POST" action="index.php?r=proyecciones/eliminarInflacionProyeccion" class="bh-meta-delete-form bh-inflation-delete-form">
                                                 <?= csrf_field() ?>
-                                                <input type="hidden" name="id" value="<?= $simulacionId ?>">
-                                                <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta simulación de inflación no modificará ningún dato real. ¿Quieres continuar?">
+                                                <input type="hidden" name="id" value="<?= $proyeccionId ?>">
+                                                <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta proyección de inflación no modificará ningún dato real. ¿Quieres continuar?">
                                                     <i class="bi bi-trash3" aria-hidden="true"></i>
-                                                    Eliminar simulación
+                                                    Eliminar proyección
                                                 </button>
                                             </form>
                                         </article>
@@ -599,22 +599,22 @@
                 </div>
             <?php endif; ?>
 
-            <section aria-labelledby="hipoteca-calculadora-titulo" class="bh-simulator-mortgage">
-                <div class="bh-simulator-mortgage-grid">
+            <section aria-labelledby="hipoteca-calculadora-titulo" class="bh-projections-mortgage">
+                <div class="bh-projections-mortgage-grid">
                     <article class="bh-card bh-mortgage-list-card">
-                        <div class="bh-card-header bh-simulator-module-header">
+                        <div class="bh-card-header bh-projections-module-header">
                             <div>
                                 <h2 id="hipoteca-calculadora-titulo">Calculadora de hipoteca</h2>
                                 <p>
-                                    Simula cuotas mensuales, intereses totales y coste total de un préstamo hipotecario
+                                    Proyecta cuotas mensuales, intereses totales y coste total de un préstamo hipotecario
                                     según el importe, el interés anual y el plazo. No representa una oferta vinculante ni una recomendación financiera.
                                 </p>
                             </div>
-                            <div class="bh-simulator-module-actions">
+                            <div class="bh-projections-module-actions">
                                 <span class="bh-badge bh-badge-saving"><?= count($calculadorasHipotecaPreparadas) ?> <?= count($calculadorasHipotecaPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
                                 <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearCalculadoraHipotecaPanel" aria-controls="crearCalculadoraHipotecaPanel">
                                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva simulación
+                                    Nueva proyección
                                 </button>
                             </div>
                         </div>
@@ -626,7 +626,7 @@
                                     </div>
                                     <h4 class="bh-empty-state-title">Aún no tienes calculadoras de hipoteca</h4>
                                     <p class="bh-empty-state-text">
-                                        Crea una primera simulación para estimar cuotas mensuales y coste total de una hipoteca.
+                                        Proyecta cuotas mensuales, intereses totales y coste total de un préstamo hipotecario según importe, interés y plazo.
                                     </p>
                                 </div>
                             <?php else: ?>
@@ -706,7 +706,7 @@
                                                 Este cálculo es una estimación educativa. No representa una oferta vinculante ni una recomendación financiera. Consulta siempre condiciones reales con tu entidad.
                                             </p>
 
-                                            <form method="POST" action="index.php?r=simulador/eliminarCalculadoraHipoteca" class="bh-meta-delete-form bh-mortgage-delete-form">
+                                            <form method="POST" action="index.php?r=proyecciones/eliminarCalculadoraHipoteca" class="bh-meta-delete-form bh-mortgage-delete-form">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="id" value="<?= $calculadoraId ?>">
                                                 <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta calculadora de hipoteca no modificará ningún dato real. ¿Quieres continuar?">
@@ -725,16 +725,16 @@
         </main>
     </div>
 
-    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearMetaAhorroPanel" aria-labelledby="crearMetaAhorroPanelLabel">
+    <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearMetaAhorroPanel" aria-labelledby="crearMetaAhorroPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-simulator-kicker mb-1">Meta simulada</p>
+                <p class="bh-projections-kicker mb-1">Meta proyectada</p>
                 <h5 class="offcanvas-title" id="crearMetaAhorroPanelLabel">Nueva meta de ahorro</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
         <div class="offcanvas-body">
-            <form method="POST" action="index.php?r=simulador/crearMetaAhorro" class="bh-form js-meta-form">
+            <form method="POST" action="index.php?r=proyecciones/crearMetaAhorro" class="bh-form js-meta-form">
                 <?= csrf_field() ?>
 
                 <div class="bh-field-row">
@@ -778,22 +778,22 @@
 
                 <button type="submit" class="bh-btn bh-btn-primary">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                    Crear simulación
+                    Crear proyección
                 </button>
             </form>
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearEscenarioInversionPanel" aria-labelledby="crearEscenarioInversionPanelLabel">
+    <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearEscenarioInversionPanel" aria-labelledby="crearEscenarioInversionPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-simulator-kicker mb-1">Hipótesis educativa</p>
+                <p class="bh-projections-kicker mb-1">Hipótesis educativa</p>
                 <h5 class="offcanvas-title" id="crearEscenarioInversionPanelLabel">Nuevo escenario de inversión</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
         <div class="offcanvas-body">
-            <form method="POST" action="index.php?r=simulador/crearEscenarioInversion" class="bh-form">
+            <form method="POST" action="index.php?r=proyecciones/crearEscenarioInversion" class="bh-form">
                 <?= csrf_field() ?>
 
                 <div class="bh-field">
@@ -841,22 +841,22 @@
 
                 <button type="submit" class="bh-btn bh-btn-primary">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                    Crear simulación
+                    Crear proyección
                 </button>
             </form>
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearInflacionSimulacionPanel" aria-labelledby="crearInflacionSimulacionPanelLabel">
+    <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearInflacionProyeccionPanel" aria-labelledby="crearInflacionProyeccionPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-simulator-kicker mb-1">Simulación educativa</p>
-                <h5 class="offcanvas-title" id="crearInflacionSimulacionPanelLabel">Nueva simulación de inflación</h5>
+                <p class="bh-projections-kicker mb-1">Proyección educativa</p>
+                <h5 class="offcanvas-title" id="crearInflacionProyeccionPanelLabel">Nueva proyección de inflación</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
         <div class="offcanvas-body">
-            <form method="POST" action="index.php?r=simulador/crearInflacionSimulacion" class="bh-form">
+            <form method="POST" action="index.php?r=proyecciones/crearInflacionProyeccion" class="bh-form">
                 <?= csrf_field() ?>
 
                 <div class="bh-field">
@@ -882,22 +882,22 @@
 
                 <button type="submit" class="bh-btn bh-btn-primary">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                    Crear simulación
+                    Crear proyección
                 </button>
             </form>
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearCalculadoraHipotecaPanel" aria-labelledby="crearCalculadoraHipotecaPanelLabel">
+    <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearCalculadoraHipotecaPanel" aria-labelledby="crearCalculadoraHipotecaPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-simulator-kicker mb-1">Simulación educativa</p>
+                <p class="bh-projections-kicker mb-1">Proyección educativa</p>
                 <h5 class="offcanvas-title" id="crearCalculadoraHipotecaPanelLabel">Nueva calculadora de hipoteca</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
         <div class="offcanvas-body">
-            <form method="POST" action="index.php?r=simulador/crearCalculadoraHipoteca" class="bh-form">
+            <form method="POST" action="index.php?r=proyecciones/crearCalculadoraHipoteca" class="bh-form">
                 <?= csrf_field() ?>
 
                 <div class="bh-field">
@@ -923,17 +923,17 @@
 
                 <button type="submit" class="bh-btn bh-btn-primary">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                    Crear simulación
+                    Crear proyección
                 </button>
             </form>
         </div>
     </div>
 
-    <div class="modal fade" id="infoSimulacionGastosFlexibles" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="infoProyeccionGastosFlexibles" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Simular reducción de gastos flexible</h5>
+                    <h5 class="modal-title">Proyectar reducción de gastos flexible</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
 
@@ -943,7 +943,7 @@
                         BeneHom calcula cuánto podrías aportar de forma adicional a esa meta.
                     </p>
                     <p>
-                        La comparación actualiza solo la card: muestra la aportación simulada, el nuevo plazo estimado
+                        La comparación actualiza solo la card: muestra la aportación proyectada, el nuevo plazo estimado
                         y la fecha aproximada. No modifica tus gastos reales ni cambia la meta guardada.
                     </p>
                 </div>
@@ -960,7 +960,7 @@
         window.CSRF_TOKEN = "<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>";
     </script>
     <script src="<?= BASE_URL ?>js/flash.js"></script>
-    <script src="<?= BASE_URL ?>js/simulador.js?v=<?= time() ?>"></script>
+    <script src="<?= BASE_URL ?>js/proyecciones.js?v=<?= time() ?>"></script>
 </body>
 
 </html>

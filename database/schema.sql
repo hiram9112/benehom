@@ -59,7 +59,7 @@ CREATE TABLE escenarios_inversion (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE simulaciones_inflacion (
+CREATE TABLE proyecciones_inflacion (
   id INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NOT NULL,
   nombre VARCHAR(100) NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE simulaciones_inflacion (
   plazo_anios INT NOT NULL,
   fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   fecha_actualizacion TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT simulaciones_inflacion_usuario_fk
+  CONSTRAINT proyecciones_inflacion_usuario_fk
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

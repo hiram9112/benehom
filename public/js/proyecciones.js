@@ -215,14 +215,14 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
         formData.append("_csrf", window.CSRF_TOKEN || "");
 
         try {
-          const response = await fetch("index.php?r=simulador/actualizarInflacionSimulacionAjax", {
+          const response = await fetch("index.php?r=proyecciones/actualizarInflacionProyeccionAjax", {
             method: "POST",
             body: formData,
           });
           const data = await response.json();
 
           if (!data.ok) {
-            const mensaje = data.msg || "No se pudo actualizar la simulación.";
+            const mensaje = data.msg || "No se pudo actualizar la proyección.";
             element.setAttribute("title", mensaje);
             mostrarFlash(mensaje);
             restore();
@@ -357,7 +357,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
         formData.append("_csrf", window.CSRF_TOKEN || "");
 
         try {
-          const response = await fetch("index.php?r=simulador/actualizarEscenarioInversionAjax", {
+          const response = await fetch("index.php?r=proyecciones/actualizarEscenarioInversionAjax", {
             method: "POST",
             body: formData,
           });
@@ -516,7 +516,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
         formData.append("_csrf", window.CSRF_TOKEN || "");
 
         try {
-          const response = await fetch("index.php?r=simulador/actualizarCalculadoraHipotecaAjax", {
+          const response = await fetch("index.php?r=proyecciones/actualizarCalculadoraHipotecaAjax", {
             method: "POST",
             body: formData,
           });
@@ -568,20 +568,20 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
   });
 
   document.querySelectorAll("[data-meta-card]").forEach((card) => {
-    const categoriaSelect = card.querySelector("[data-simulation-category]");
-    const porcentajeSelect = card.querySelector("[data-simulation-percent]");
-    const mensaje = card.querySelector("[data-simulation-message]");
-    const badgeSimulacion = card.querySelector("[data-simulation-badge]");
-    const limpiarBoton = card.querySelector("[data-simulation-clear]");
+    const categoriaSelect = card.querySelector("[data-projection-category]");
+    const porcentajeSelect = card.querySelector("[data-projection-percent]");
+    const mensaje = card.querySelector("[data-projection-message]");
+    const badgeProyeccion = card.querySelector("[data-projection-badge]");
+    const limpiarBoton = card.querySelector("[data-projection-clear]");
     const objetivoElemento = card.querySelector("[data-meta-target-amount]");
-    const aportacionElemento = card.querySelector('[data-simulation-value="aportacion"]');
-    const plazoElemento = card.querySelector('[data-simulation-value="plazo"]');
-    const mejoraElemento = card.querySelector('[data-simulation-value="mejora"]');
-    const fechaElemento = card.querySelector('[data-simulation-value="fecha"]');
+    const aportacionElemento = card.querySelector('[data-projection-value="aportacion"]');
+    const plazoElemento = card.querySelector('[data-projection-value="plazo"]');
+    const mejoraElemento = card.querySelector('[data-projection-value="mejora"]');
+    const fechaElemento = card.querySelector('[data-projection-value="fecha"]');
 
     if (!categoriaSelect || !porcentajeSelect || !aportacionElemento || !plazoElemento || !fechaElemento) return;
 
-    const elementosSimulados = [aportacionElemento, plazoElemento, fechaElemento];
+    const elementosProyectados = [aportacionElemento, plazoElemento, fechaElemento];
     const obtenerEtiqueta = (elemento) => elemento.closest("p")?.querySelector("span") || null;
 
     const actualizarEstadoPorcentaje = () => {
@@ -615,7 +615,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
       });
     };
 
-    elementosSimulados.forEach((elemento) => {
+    elementosProyectados.forEach((elemento) => {
       const etiqueta = obtenerEtiqueta(elemento);
 
       elemento.dataset.originalText = elemento.textContent;
@@ -625,12 +625,12 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
       }
     });
 
-    const limpiarSimulacion = (texto = "") => {
-      elementosSimulados.forEach((elemento) => {
+    const limpiarProyeccion = (texto = "") => {
+      elementosProyectados.forEach((elemento) => {
         const etiqueta = obtenerEtiqueta(elemento);
 
         elemento.textContent = elemento.dataset.originalText || elemento.textContent;
-        elemento.closest("p")?.classList.remove("is-simulated");
+        elemento.closest("p")?.classList.remove("is-projected");
 
         if (etiqueta?.dataset.originalText) {
           etiqueta.textContent = etiqueta.dataset.originalText;
@@ -649,19 +649,19 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
 
       porcentajeSelect.classList.remove("is-saving-selected");
 
-      if (badgeSimulacion) {
-        badgeSimulacion.hidden = true;
+      if (badgeProyeccion) {
+        badgeProyeccion.hidden = true;
       }
     };
 
-    const resetearControlesYSimulacion = () => {
+    const resetearControlesYProyeccion = () => {
       categoriaSelect.value = "";
       porcentajeSelect.value = "";
       actualizarEstadoPorcentaje();
-      limpiarSimulacion();
+      limpiarProyeccion();
     };
 
-    const aplicarSimulacion = () => {
+    const aplicarProyeccion = () => {
       const opcionCategoria = categoriaSelect.selectedOptions[0];
       const totalCategoria = Number(opcionCategoria?.dataset.total || 0);
       const porcentaje = Number(porcentajeSelect.value || 0);
@@ -670,22 +670,22 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
       const plazoOriginal = Number(card.dataset.plazoOriginal || 0);
 
       if (!opcionCategoria?.value || porcentaje <= 0) {
-        limpiarSimulacion();
+        limpiarProyeccion();
         return;
       }
 
       if (totalCategoria <= 0 || importeObjetivo <= 0 || aportacionOriginal <= 0 || plazoOriginal <= 0) {
-        limpiarSimulacion("No hay impacto calculable para esta meta con los datos actuales.");
+        limpiarProyeccion("No hay impacto calculable para esta meta con los datos actuales.");
         return;
       }
 
       const aportacionExtra = totalCategoria * (porcentaje / 100);
-      const aportacionSimulada = aportacionOriginal + aportacionExtra;
-      const plazoSimulado = Math.ceil(importeObjetivo / aportacionSimulada);
-      const mejoraMeses = plazoOriginal - plazoSimulado;
+      const aportacionProyectada = aportacionOriginal + aportacionExtra;
+      const plazoProyectado = Math.ceil(importeObjetivo / aportacionProyectada);
+      const mejoraMeses = plazoOriginal - plazoProyectado;
 
       if (mejoraMeses <= 0) {
-        limpiarSimulacion("Con esa reducción no se aprecia una mejora de plazo en esta estimación.");
+        limpiarProyeccion("Con esa reducción no se aprecia una mejora de plazo en esta estimación.");
         return;
       }
 
@@ -694,16 +694,16 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
       const plazoEtiqueta = obtenerEtiqueta(plazoElemento);
       const fechaEtiqueta = obtenerEtiqueta(fechaElemento);
 
-      if (aportacionEtiqueta) aportacionEtiqueta.textContent = "Aportación simulada";
-      if (plazoEtiqueta) plazoEtiqueta.textContent = "Plazo simulado";
-      if (fechaEtiqueta) fechaEtiqueta.textContent = "Fecha simulada";
+      if (aportacionEtiqueta) aportacionEtiqueta.textContent = "Aportación proyectada";
+      if (plazoEtiqueta) plazoEtiqueta.textContent = "Plazo proyectado";
+      if (fechaEtiqueta) fechaEtiqueta.textContent = "Fecha proyectada";
 
-      aportacionElemento.textContent = `${formatearCantidad(aportacionSimulada)} €`;
-      plazoElemento.textContent = formatearPlazo(plazoSimulado);
-      fechaElemento.textContent = formatearFechaDesdeHoy(plazoSimulado);
+      aportacionElemento.textContent = `${formatearCantidad(aportacionProyectada)} €`;
+      plazoElemento.textContent = formatearPlazo(plazoProyectado);
+      fechaElemento.textContent = formatearFechaDesdeHoy(plazoProyectado);
 
-      elementosSimulados.forEach((elemento) => {
-        elemento.closest("p")?.classList.add("is-simulated");
+      elementosProyectados.forEach((elemento) => {
+        elemento.closest("p")?.classList.add("is-projected");
       });
 
       if (mejoraElemento) {
@@ -712,38 +712,38 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
       }
 
       if (mensaje) {
-        mensaje.textContent = `Si redujeras aproximadamente ${formatearCantidad(aportacionExtra)} € al mes en ${categoriaTexto}, podrías aportarlos a esta meta. Esta simulación no modifica tus gastos ni la meta guardada.`;
+        mensaje.textContent = `Si redujeras aproximadamente ${formatearCantidad(aportacionExtra)} € al mes en ${categoriaTexto}, podrías aportarlos a esta meta. Esta proyección no modifica tus gastos ni la meta guardada.`;
         mensaje.hidden = false;
       }
 
 
       porcentajeSelect.classList.add("is-saving-selected");
 
-      if (badgeSimulacion) {
-        badgeSimulacion.hidden = false;
+      if (badgeProyeccion) {
+        badgeProyeccion.hidden = false;
       }
     };
 
     categoriaSelect.addEventListener("change", () => {
-      limpiarSimulacion();
+      limpiarProyeccion();
       porcentajeSelect.value = "";
       actualizarEstadoPorcentaje();
     });
 
     porcentajeSelect.addEventListener("change", () => {
       if (porcentajeSelect.value === "") {
-        limpiarSimulacion();
+        limpiarProyeccion();
         return;
       }
 
-      aplicarSimulacion();
+      aplicarProyeccion();
     });
 
     if (limpiarBoton) {
       limpiarBoton.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        resetearControlesYSimulacion();
+        resetearControlesYProyeccion();
       });
     }
 
@@ -795,7 +795,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
         datos.append("_csrf", window.CSRF_TOKEN || "");
 
         try {
-          const respuesta = await fetch("index.php?r=simulador/actualizarImporteMetaAjax", {
+          const respuesta = await fetch("index.php?r=proyecciones/actualizarImporteMetaAjax", {
             method: "POST",
             body: datos,
           });
@@ -809,7 +809,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
             return;
           }
 
-          resetearControlesYSimulacion();
+          resetearControlesYProyeccion();
 
           const importeObjetivo = Number(data.importeObjetivo) || 0;
           const plazoTexto = formatearPlazo(data.plazoMesesEstimado);
@@ -893,7 +893,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
     input.min = "0";
     input.inputMode = "decimal";
     input.value = normalizarCantidadParaInput(valorAnterior);
-    input.classList.add("bh-input", "bh-inline-edit-input", "bh-simulator-inline-input");
+    input.classList.add("bh-input", "bh-inline-edit-input", "bh-projections-inline-input");
     input.setAttribute("aria-label", "Ahorro mensual disponible");
 
     ahorroElemento.replaceWith(input);
@@ -923,7 +923,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
       datos.append("_csrf", window.CSRF_TOKEN || "");
 
       try {
-        const respuesta = await fetch("index.php?r=simulador/actualizarAhorroMensualAjax", {
+        const respuesta = await fetch("index.php?r=proyecciones/actualizarAhorroMensualAjax", {
           method: "POST",
           body: datos,
         });

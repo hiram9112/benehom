@@ -9,7 +9,7 @@ function bh_navigation_items(): array
 {
     return [
         [
-            'label' => 'Dasboard',
+            'label' => 'Dashboard',
             'route' => 'dashboard/index',
             'href' => 'index.php?r=dashboard/index',
             'icon' => 'bi-house-door',
@@ -37,7 +37,10 @@ function bh_navigation_items(): array
 
 function bh_navigation_link(array $item): string
 {
-    $isActive = bh_current_route() === $item['route'];
+    $currentRoute = bh_current_route();
+    $isActive = $currentRoute === $item['route'] || (
+        $item['route'] === 'blog/index' && str_starts_with($currentRoute, 'blog/')
+    );
     $class = 'nav-link' . ($isActive ? ' is-active' : '');
     $ariaCurrent = $isActive ? ' aria-current="page"' : '';
 

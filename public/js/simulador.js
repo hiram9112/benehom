@@ -30,8 +30,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
     const numero = Number(valor) || 0;
 
     return new Intl.NumberFormat("es-ES", {
-      minimumFractionDigits: Number.isInteger(numero) ? 0 : 2,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: 0,
     }).format(numero);
   };
 
@@ -107,110 +106,163 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
     elemento.textContent = texto;
   };
 
-  document.querySelectorAll(".js-inflation-form").forEach((formulario) => {
-    const resultados = document.querySelector("[data-inflation-results]");
-    const errorElemento = formulario.querySelector("[data-inflation-error]");
-    const limpiarBoton = formulario.querySelector("[data-inflation-clear]");
-    const resumenElemento = resultados?.querySelector("[data-inflation-summary]");
-    const cantidadInicialInput = formulario.querySelector('[name="cantidad_inicial"]');
+  document.querySelectorAll("[data-inflacion-card]").forEach((card) => {
+    const editableElements = card.querySelectorAll("[data-inflacion-field]");
 
-    const setResultado = (campo, valor) => {
-      const elemento = resultados?.querySelector(`[data-inflation-value="${campo}"]`);
+    const moneyFields = ["cantidad_inicial", "poder_adquisitivo_final", "perdida_estimada", "cantidad_futura_necesaria", "diferencia_necesaria"];
+    const updateMoneyValue = (field, value) => {
+      const element = card.querySelector(`[data-inflacion-value="${field}"]`);
 
-      if (elemento) {
-        elemento.textContent = formatearEuros(valor);
+      if (!element) return;
+
+      actualizarTextoEditable(element, `${formatearCantidad(value)} €`);
+
+      if (element.dataset.inflacionField) {
+        element.dataset.value = value;
       }
     };
 
-    const mostrarErrorInflacion = (mensaje) => {
-      if (!errorElemento) return;
+    const updatePercentValue = (field, value) => {
+      const element = card.querySelector(`[data-inflacion-value="${field}"]`);
 
-      errorElemento.textContent = mensaje;
-      errorElemento.hidden = false;
+      if (!element) return;
 
-      if (resultados) {
-        resultados.hidden = true;
-      }
-
-      if (limpiarBoton) {
-        limpiarBoton.hidden = true;
-      }
+      actualizarTextoEditable(element, `${formatearCantidad(value)}%`);
+      element.dataset.value = value;
     };
 
-    const limpiarErrorInflacion = () => {
-      if (!errorElemento) return;
+    const updateYearsValue = (field, value) => {
+      const element = card.querySelector(`[data-inflacion-value="${field}"]`);
 
-      errorElemento.textContent = "";
-      errorElemento.hidden = true;
+      if (!element) return;
+
+      const anios = Number(value);
+      actualizarTextoEditable(element, `${anios} ${anios === 1 ? "año" : "años"}`);
+      element.dataset.value = value;
     };
 
-    formulario.addEventListener("submit", (event) => {
-      event.preventDefault();
+    const updateCard = (data) => {
+      moneyFields.forEach((field) => {
+        const responseKey = {
+          cantidad_inicial: "cantidadInicial",
+          poder_adquisitivo_final: "poderAdquisitivoFinal",
+          perdida_estimada: "perdidaEstimada",
+          cantidad_futura_necesaria: "cantidadFuturaNecesaria",
+          diferencia_necesaria: "diferenciaNecesaria",
+        }[field];
 
-      if (!resultados) return;
-
-      const datos = new FormData(formulario);
-      const cantidadInicial = Number(datos.get("cantidad_inicial"));
-      const inflacionAnual = Number(datos.get("inflacion_anual"));
-      const plazoAnios = Number(datos.get("plazo_anios"));
-
-      if (!Number.isFinite(cantidadInicial) || cantidadInicial <= 0) {
-        mostrarErrorInflacion("Introduce una cantidad inicial mayor que 0.");
-        return;
-      }
-
-      if (!Number.isFinite(inflacionAnual) || inflacionAnual < 0) {
-        mostrarErrorInflacion("Introduce una inflación anual igual o superior a 0.");
-        return;
-      }
-
-      if (!Number.isFinite(plazoAnios) || plazoAnios <= 0) {
-        mostrarErrorInflacion("Introduce un plazo en años mayor que 0.");
-        return;
-      }
-
-      limpiarErrorInflacion();
-
-      const factor = Math.pow(1 + inflacionAnual / 100, plazoAnios);
-      const poderAdquisitivoFinal = cantidadInicial / factor;
-      const perdidaPoderAdquisitivo = cantidadInicial - poderAdquisitivoFinal;
-      const cantidadFuturaNecesaria = cantidadInicial * factor;
-      const diferenciaNecesaria = cantidadFuturaNecesaria - cantidadInicial;
-
-      setResultado("poder_final", poderAdquisitivoFinal);
-      setResultado("perdida", perdidaPoderAdquisitivo);
-      setResultado("cantidad_futura", cantidadFuturaNecesaria);
-      setResultado("diferencia", diferenciaNecesaria);
-
-      if (resumenElemento) {
-        resumenElemento.textContent = `Este cálculo no significa que tus euros desaparezcan. Si guardas ${formatearEuros(cantidadInicial)}, seguirás teniendo ${formatearEuros(cantidadInicial)}, pero con el paso del tiempo podrían comprar menos cosas. En este escenario, esos ${formatearEuros(cantidadInicial)} tendrían un poder de compra parecido a ${formatearEuros(poderAdquisitivoFinal)} de hoy. Para poder comprar algo similar dentro de ${formatearCantidad(plazoAnios)} años, necesitarías aproximadamente ${formatearEuros(cantidadFuturaNecesaria)}.`;
-      }
-
-      resultados.hidden = false;
-
-      if (limpiarBoton) {
-        limpiarBoton.hidden = false;
-      }
-    });
-
-    limpiarBoton?.addEventListener("click", () => {
-      formulario.reset();
-      limpiarErrorInflacion();
-
-      if (resultados) {
-        resultados.hidden = true;
-      }
-
-      if (resumenElemento) {
-        resumenElemento.textContent = "";
-      }
-
-      ["poder_final", "perdida", "cantidad_futura", "diferencia"].forEach((campo) => {
-        setResultado(campo, 0);
+        updateMoneyValue(field, data[responseKey]);
       });
 
-      limpiarBoton.hidden = true;
-      cantidadInicialInput?.focus();
+      updatePercentValue("inflacion_anual", data.inflacionAnual);
+      updateYearsValue("plazo_anios", data.plazoAnios);
+    };
+
+    const editInline = (element) => {
+      if (element.dataset.editing === "true") return;
+
+      element.dataset.editing = "true";
+
+      const field = element.dataset.inflacionField || "";
+      const previousValue = String(element.dataset.value || "");
+      const input = document.createElement("input");
+      let saving = false;
+      let cancelled = false;
+
+      input.type = "number";
+
+      if (field === "plazo_anios") {
+        input.step = "1";
+        input.min = "1";
+      } else {
+        input.step = "0.01";
+        input.min = "0";
+      }
+
+      input.inputMode = "decimal";
+      input.value = previousValue;
+      input.classList.add("bh-input", "bh-inline-edit-input", "bh-inflation-inline-input");
+      input.setAttribute("aria-label", element.getAttribute("aria-label") || "Editar valor");
+
+      element.replaceWith(input);
+      input.focus();
+      input.select();
+
+      const restore = () => {
+        input.replaceWith(element);
+        element.dataset.editing = "false";
+      };
+
+      const save = async () => {
+        if (cancelled || saving) return;
+
+        saving = true;
+
+        const newValue = input.value;
+
+        if (newValue === "" || Number(newValue) < 0) {
+          const mensaje = "Introduce un valor igual o superior a 0.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
+          restore();
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("id", card.dataset.inflacionId || "");
+        formData.append("campo", field);
+        formData.append("valor", newValue);
+        formData.append("_csrf", window.CSRF_TOKEN || "");
+
+        try {
+          const response = await fetch("index.php?r=simulador/actualizarInflacionSimulacionAjax", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+
+          if (!data.ok) {
+            const mensaje = data.msg || "No se pudo actualizar la simulación.";
+            element.setAttribute("title", mensaje);
+            mostrarFlash(mensaje);
+            restore();
+            return;
+          }
+
+          element.setAttribute("title", "Haz clic para editar");
+          restore();
+          updateCard(data);
+        } catch (error) {
+          const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
+          restore();
+        }
+      };
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          save();
+        }
+
+        if (event.key === "Escape") {
+          cancelled = true;
+          restore();
+        }
+      });
+
+      input.addEventListener("blur", save);
+    };
+
+    editableElements.forEach((element) => {
+      element.addEventListener("click", () => editInline(element));
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+
+        event.preventDefault();
+        editInline(element);
+      });
     });
   });
 
@@ -313,6 +365,165 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
 
           if (!data.ok) {
             const mensaje = data.msg || "No se pudo actualizar el escenario.";
+            element.setAttribute("title", mensaje);
+            mostrarFlash(mensaje);
+            restore();
+            return;
+          }
+
+          element.setAttribute("title", "Haz clic para editar");
+          restore();
+          updateCard(data);
+        } catch (error) {
+          const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
+          restore();
+        }
+      };
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          save();
+        }
+
+        if (event.key === "Escape") {
+          cancelled = true;
+          restore();
+        }
+      });
+
+      input.addEventListener("blur", save);
+    };
+
+    editableElements.forEach((element) => {
+      element.addEventListener("click", () => editInline(element));
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+
+        event.preventDefault();
+        editInline(element);
+      });
+    });
+  });
+
+  document.querySelectorAll("[data-hipoteca-card]").forEach((card) => {
+    const editableElements = card.querySelectorAll("[data-hipoteca-field]");
+
+    const moneyFields = ["importe_prestamo", "cuota_mensual", "total_intereses", "total_pagado"];
+    const updateMoneyValue = (field, value) => {
+      const element = card.querySelector(`[data-hipoteca-value="${field}"]`);
+
+      if (!element) return;
+
+      actualizarTextoEditable(element, `${formatearCantidad(value)} €`);
+
+      if (element.dataset.hipotecaField) {
+        element.dataset.value = value;
+      }
+    };
+
+    const updatePercentValue = (field, value) => {
+      const element = card.querySelector(`[data-hipoteca-value="${field}"]`);
+
+      if (!element) return;
+
+      actualizarTextoEditable(element, `${formatearCantidad(value)}%`);
+      element.dataset.value = value;
+    };
+
+    const updateYearsValue = (field, value) => {
+      const element = card.querySelector(`[data-hipoteca-value="${field}"]`);
+
+      if (!element) return;
+
+      const anios = Number(value);
+      actualizarTextoEditable(element, `${anios} ${anios === 1 ? "año" : "años"}`);
+      element.dataset.value = value;
+    };
+
+    const updateCard = (data) => {
+      moneyFields.forEach((field) => {
+        const responseKey = {
+          importe_prestamo: "importePrestamo",
+          cuota_mensual: "cuotaMensual",
+          total_intereses: "totalIntereses",
+          total_pagado: "totalPagado",
+        }[field];
+
+        updateMoneyValue(field, data[responseKey]);
+      });
+
+      updatePercentValue("interes_anual", data.interesAnual);
+      updateYearsValue("plazo_anios", data.plazoAnios);
+    };
+
+    const editInline = (element) => {
+      if (element.dataset.editing === "true") return;
+
+      element.dataset.editing = "true";
+
+      const field = element.dataset.hipotecaField || "";
+      const previousValue = String(element.dataset.value || "");
+      const input = document.createElement("input");
+      let saving = false;
+      let cancelled = false;
+
+      input.type = "number";
+
+      if (field === "plazo_anios") {
+        input.step = "1";
+        input.min = "1";
+      } else {
+        input.step = "0.01";
+        input.min = "0";
+      }
+
+      input.inputMode = "decimal";
+      input.value = previousValue;
+      input.classList.add("bh-input", "bh-inline-edit-input", "bh-hipoteca-inline-input");
+      input.setAttribute("aria-label", element.getAttribute("aria-label") || "Editar valor");
+
+      element.replaceWith(input);
+      input.focus();
+      input.select();
+
+      const restore = () => {
+        input.replaceWith(element);
+        element.dataset.editing = "false";
+      };
+
+      const save = async () => {
+        if (cancelled || saving) return;
+
+        saving = true;
+
+        const newValue = input.value;
+
+        if (newValue === "" || Number(newValue) < 0) {
+          const mensaje = "Introduce un valor igual o superior a 0.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje);
+          restore();
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("id", card.dataset.hipotecaId || "");
+        formData.append("campo", field);
+        formData.append("valor", newValue);
+        formData.append("_csrf", window.CSRF_TOKEN || "");
+
+        try {
+          const response = await fetch("index.php?r=simulador/actualizarCalculadoraHipotecaAjax", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+
+          if (!data.ok) {
+            const mensaje = data.msg || "No se pudo actualizar la calculadora.";
             element.setAttribute("title", mensaje);
             mostrarFlash(mensaje);
             restore();

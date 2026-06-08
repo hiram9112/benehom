@@ -26,8 +26,16 @@
     bh_flash_messages();
     bh_mobile_nav();
 
-    $formatearEuros = static function ($cantidad): string {
-        return formatearCantidadPHP($cantidad) . ' €';
+    $formatearCantidadSimulador = static function ($cantidad): string {
+        return number_format((float) $cantidad, 0, ',', '.');
+    };
+
+    $formatearEuros = static function ($cantidad) use ($formatearCantidadSimulador): string {
+        return $formatearCantidadSimulador($cantidad) . ' €';
+    };
+
+    $formatearPorcentaje = static function ($cantidad) use ($formatearCantidadSimulador): string {
+        return $formatearCantidadSimulador($cantidad) . '%';
     };
 
     $formatearFecha = static function ($fecha): string {
@@ -58,9 +66,9 @@
         return $anios . ($anios === 1 ? ' año' : ' años') . ' y ' . $restoMeses . ($restoMeses === 1 ? ' mes' : ' meses');
     };
 
-    $formatearOpcionConImporte = static function ($texto, $importe, $prefijo = ''): string {
+    $formatearOpcionConImporte = static function ($texto, $importe, $prefijo = '') use ($formatearCantidadSimulador): string {
         $texto = trim((string) $texto);
-        $importeTexto = $prefijo . formatearCantidadPHP($importe) . ' €';
+        $importeTexto = $prefijo . $formatearCantidadSimulador($importe) . ' €';
 
         return $texto . ' --> ' . $importeTexto;
     };
@@ -109,7 +117,7 @@
                                 tabindex="0"
                                 aria-label="Editar ahorro mensual disponible"
                                 data-value="<?= htmlspecialchars((string) $ahorroMensualDisponible, ENT_QUOTES, 'UTF-8') ?>">
-                                <?= formatearCantidadPHP($ahorroMensualDisponible) ?>
+                                <?= $formatearCantidadSimulador($ahorroMensualDisponible) ?>
                             </span>
                             <span class="bh-simulator-currency">€</span>
                         </div>
@@ -169,7 +177,7 @@
                                 <span class="bh-badge bh-badge-saving"><?= count($metasAhorroPreparadas) ?> <?= count($metasAhorroPreparadas) === 1 ? 'activa' : 'activas' ?></span>
                                 <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearMetaAhorroPanel" aria-controls="crearMetaAhorroPanel">
                                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva meta
+                                    Nueva simulación
                                 </button>
                             </div>
                         </div>
@@ -338,7 +346,7 @@
                                 <span class="bh-badge bh-badge-saving"><?= count($escenariosInversionPreparados) ?> <?= count($escenariosInversionPreparados) === 1 ? 'guardado' : 'guardados' ?></span>
                                 <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearEscenarioInversionPanel" aria-controls="crearEscenarioInversionPanel">
                                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nuevo escenario
+                                    Nueva simulación
                                 </button>
                             </div>
                         </div>
@@ -424,7 +432,7 @@
                                                         role="button"
                                                         tabindex="0"
                                                         aria-label="Editar rendimiento anual">
-                                                        <span data-editable-text><?= formatearCantidadPHP($escenario['rentabilidad_anual']) ?>%</span>
+                                                        <span data-editable-text><?= $formatearPorcentaje($escenario['rentabilidad_anual']) ?></span>
                                                         <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
                                                     </strong>
                                                 </p>
@@ -451,89 +459,268 @@
                 </div>
             </section>
 
+            <?php if (!empty($avisoSimulacionesInflacion)): ?>
+                <div class="bh-alert bh-alert-warning mb-4">
+                    <?= htmlspecialchars($avisoSimulacionesInflacion, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
+
             <section aria-labelledby="inflacion-temporal-titulo" class="bh-simulator-inflation">
-                <article class="bh-card bh-simulator-section-intro bh-simulator-inflation-card">
-                    <div class="bh-card-body">
-                        <h2 id="inflacion-temporal-titulo">Inflación</h2>
-                        <p>
-                            Simula de forma temporal cómo una inflación anual estimada podría afectar al poder adquisitivo
-                            de una cantidad. La inflación no reduce el número de euros, sino lo que esos euros pueden comprar.
-                        </p>
-                        <p class="bh-simulator-section-note">
-                            Si no sabes qué porcentaje usar, puedes consultar la inflación anual publicada por el instituto
-                            de estadística de tu país o buscar la cifra más reciente en una fuente oficial. Esta calculadora
-                            no guarda datos ni crea historial.
-                        </p>
-
-                        <div class="bh-simulator-inflation-grid">
-                            <form class="bh-form bh-inflation-form js-inflation-form" novalidate>
-                                <div class="bh-field">
-                                    <label class="bh-label" for="inflacion_cantidad_inicial">Cantidad inicial</label>
-                                    <input class="bh-input" type="number" id="inflacion_cantidad_inicial" name="cantidad_inicial" min="0.01" step="0.01" inputmode="decimal" required>
-                                </div>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="inflacion_anual">Inflación anual estimada (%)</label>
-                                    <input class="bh-input" type="number" id="inflacion_anual" name="inflacion_anual" min="0" step="0.01" inputmode="decimal" required>
-                                </div>
-                                <div class="bh-field">
-                                    <label class="bh-label" for="inflacion_plazo_anios">Plazo en años</label>
-                                    <input class="bh-input" type="number" id="inflacion_plazo_anios" name="plazo_anios" min="1" step="1" required>
-                                </div>
-
-                                <p class="bh-field-help bh-inflation-help">
-                                    Introduce una hipótesis anual. Puedes limpiar la simulación y probar otra cifra cuando quieras.
+                <div class="bh-simulator-inflation-grid">
+                    <article class="bh-card bh-inflation-list-card">
+                        <div class="bh-card-header bh-simulator-module-header">
+                            <div>
+                                <h2 id="inflacion-temporal-titulo">Calculadora de inflación</h2>
+                                <p>
+                                    Simula cómo una inflación anual estimada podría afectar al poder adquisitivo
+                                    de una cantidad. La inflación no reduce el número de euros, sino lo que esos euros pueden comprar.
                                 </p>
-
-                                <p class="bh-alert bh-alert-error mb-0" data-inflation-error role="alert" hidden></p>
-
-                                <div class="bh-inflation-actions">
-                                    <button type="submit" class="bh-btn bh-btn-primary" data-inflation-submit>
-                                        <i class="bi bi-calculator" aria-hidden="true"></i>
-                                        Calcular impacto
-                                    </button>
-                                    <button type="button" class="bh-btn bh-btn-secondary" data-inflation-clear hidden>
-                                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                                        Limpiar simulación
-                                    </button>
-                                </div>
-                            </form>
-
-                            <div class="bh-inflation-result-panel" data-inflation-results hidden aria-live="polite">
-                                <div class="bh-inflation-result-copy">
-                                    <div class="bh-inflation-result-header">
-                                        <div>
-                                            <h4 class="m-0">Comparación aproximada</h4>
-                                            <p class="mb-0">Comparación aproximada entre euros nominales y poder de compra.</p>
-                                        </div>
-                                        <span class="bh-badge bh-badge-saving">Sin guardar</span>
-                                    </div>
-                                </div>
-
-                                <div class="bh-meta-metrics bh-inflation-metrics">
-                                    <p>
-                                        <span>Poder adquisitivo final</span>
-                                        <strong data-inflation-value="poder_final">0 €</strong>
-                                    </p>
-                                    <p>
-                                        <span>Pérdida estimada</span>
-                                        <strong data-inflation-value="perdida">0 €</strong>
-                                    </p>
-                                    <p>
-                                        <span>Cantidad futura necesaria</span>
-                                        <strong data-inflation-value="cantidad_futura">0 €</strong>
-                                    </p>
-                                    <p>
-                                        <span>Diferencia necesaria</span>
-                                        <strong data-inflation-value="diferencia">0 €</strong>
-                                    </p>
-                                </div>
-
-                                <p class="bh-inflation-summary mb-0" data-inflation-summary></p>
+                            </div>
+                            <div class="bh-simulator-module-actions">
+                                <span class="bh-badge bh-badge-saving"><?= count($simulacionesInflacionPreparadas) ?> <?= count($simulacionesInflacionPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
+                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearInflacionSimulacionPanel" aria-controls="crearInflacionSimulacionPanel">
+                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                    Nueva simulación
+                                </button>
                             </div>
                         </div>
-                    </div>
-                </article>
+                        <div class="bh-card-body">
+                            <?php if (empty($simulacionesInflacionPreparadas)): ?>
+                                <div class="bh-empty-state bh-meta-empty-state">
+                                    <div class="bh-empty-state-icon" aria-hidden="true">
+                                        <i class="bi bi-cash-stack"></i>
+                                    </div>
+                                    <h4 class="bh-empty-state-title">Aún no tienes simulaciones de inflación</h4>
+                                    <p class="bh-empty-state-text">
+                                        Crea una primera simulación para visualizar cómo la inflación afecta al poder adquisitivo.
+                                    </p>
+                                </div>
+                            <?php else: ?>
+                                <div class="bh-inflation-list">
+                                    <?php foreach ($simulacionesInflacionPreparadas as $simulacion): ?>
+                                        <?php $simulacionId = intval($simulacion['id']); ?>
+                                        <article class="bh-inflation-card" data-inflacion-card data-inflacion-id="<?= $simulacionId ?>">
+                                            <div class="bh-meta-card-main">
+                                                <div>
+                                                    <h4><?= htmlspecialchars($simulacion['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                                </div>
+                                                <span class="bh-badge bh-badge-saving">Estimación</span>
+                                            </div>
+
+                                            <div class="bh-meta-metrics bh-inflation-metrics">
+                                                <p>
+                                                    <span>Cantidad inicial</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-inflacion-field="cantidad_inicial"
+                                                        data-inflacion-value="cantidad_inicial"
+                                                        data-value="<?= htmlspecialchars((string) $simulacion['cantidad_inicial'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar cantidad inicial">
+                                                        <span data-editable-text><?= $formatearEuros($simulacion['cantidad_inicial']) ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Inflación anual</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-inflacion-field="inflacion_anual"
+                                                        data-inflacion-value="inflacion_anual"
+                                                        data-value="<?= htmlspecialchars((string) $simulacion['inflacion_anual'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-suffix="%"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar inflación anual">
+                                                        <span data-editable-text><?= $formatearPorcentaje($simulacion['inflacion_anual']) ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Plazo en años</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-inflacion-field="plazo_anios"
+                                                        data-inflacion-value="plazo_anios"
+                                                        data-value="<?= htmlspecialchars((string) $simulacion['plazo_anios'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar plazo en años">
+                                                        <span data-editable-text><?= intval($simulacion['plazo_anios']) ?> <?= intval($simulacion['plazo_anios']) === 1 ? 'año' : 'años' ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Poder adquisitivo final</span>
+                                                    <strong data-inflacion-value="poder_adquisitivo_final"><?= $formatearEuros($simulacion['poder_adquisitivo_final']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Pérdida estimada</span>
+                                                    <strong data-inflacion-value="perdida_estimada"><?= $formatearEuros($simulacion['perdida_estimada']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Cantidad futura necesaria</span>
+                                                    <strong data-inflacion-value="cantidad_futura_necesaria"><?= $formatearEuros($simulacion['cantidad_futura_necesaria']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Diferencia necesaria</span>
+                                                    <strong data-inflacion-value="diferencia_necesaria"><?= $formatearEuros($simulacion['diferencia_necesaria']) ?></strong>
+                                                </p>
+                                            </div>
+
+                                            <p class="bh-meta-estimation-copy mb-0">
+                                                La inflación no reduce el número de euros, sino lo que esos euros pueden comprar. Este cálculo es una estimación educativa.
+                                            </p>
+
+                                            <form method="POST" action="index.php?r=simulador/eliminarInflacionSimulacion" class="bh-meta-delete-form bh-inflation-delete-form">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="id" value="<?= $simulacionId ?>">
+                                                <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta simulación de inflación no modificará ningún dato real. ¿Quieres continuar?">
+                                                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                                                    Eliminar simulación
+                                                </button>
+                                            </form>
+                                        </article>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <?php if (!empty($avisoCalculadorasHipoteca)): ?>
+                <div class="bh-alert bh-alert-warning mb-4">
+                    <?= htmlspecialchars($avisoCalculadorasHipoteca, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
+
+            <section aria-labelledby="hipoteca-calculadora-titulo" class="bh-simulator-mortgage">
+                <div class="bh-simulator-mortgage-grid">
+                    <article class="bh-card bh-mortgage-list-card">
+                        <div class="bh-card-header bh-simulator-module-header">
+                            <div>
+                                <h2 id="hipoteca-calculadora-titulo">Calculadora de hipoteca</h2>
+                                <p>
+                                    Simula cuotas mensuales, intereses totales y coste total de un préstamo hipotecario
+                                    según el importe, el interés anual y el plazo. No representa una oferta vinculante ni una recomendación financiera.
+                                </p>
+                            </div>
+                            <div class="bh-simulator-module-actions">
+                                <span class="bh-badge bh-badge-saving"><?= count($calculadorasHipotecaPreparadas) ?> <?= count($calculadorasHipotecaPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
+                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearCalculadoraHipotecaPanel" aria-controls="crearCalculadoraHipotecaPanel">
+                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                    Nueva simulación
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bh-card-body">
+                            <?php if (empty($calculadorasHipotecaPreparadas)): ?>
+                                <div class="bh-empty-state bh-meta-empty-state">
+                                    <div class="bh-empty-state-icon" aria-hidden="true">
+                                        <i class="bi bi-house"></i>
+                                    </div>
+                                    <h4 class="bh-empty-state-title">Aún no tienes calculadoras de hipoteca</h4>
+                                    <p class="bh-empty-state-text">
+                                        Crea una primera simulación para estimar cuotas mensuales y coste total de una hipoteca.
+                                    </p>
+                                </div>
+                            <?php else: ?>
+                                <div class="bh-mortgage-list">
+                                    <?php foreach ($calculadorasHipotecaPreparadas as $calculadora): ?>
+                                        <?php $calculadoraId = intval($calculadora['id']); ?>
+                                        <article class="bh-mortgage-card" data-hipoteca-card data-hipoteca-id="<?= $calculadoraId ?>">
+                                            <div class="bh-meta-card-main">
+                                                <div>
+                                                    <h4><?= htmlspecialchars($calculadora['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                                </div>
+                                                <span class="bh-badge bh-badge-saving">Estimación</span>
+                                            </div>
+
+                                            <div class="bh-meta-metrics bh-mortgage-metrics">
+                                                <p>
+                                                    <span>Importe del préstamo</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-hipoteca-field="importe_prestamo"
+                                                        data-hipoteca-value="importe_prestamo"
+                                                        data-value="<?= htmlspecialchars((string) $calculadora['importe_prestamo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar importe del préstamo">
+                                                        <span data-editable-text><?= $formatearEuros($calculadora['importe_prestamo']) ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Interés anual</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-hipoteca-field="interes_anual"
+                                                        data-hipoteca-value="interes_anual"
+                                                        data-value="<?= htmlspecialchars((string) $calculadora['interes_anual'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-suffix="%"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar interés anual">
+                                                        <span data-editable-text><?= $formatearPorcentaje($calculadora['interes_anual']) ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Plazo en años</span>
+                                                    <strong
+                                                        class="bh-editable-value"
+                                                        data-hipoteca-field="plazo_anios"
+                                                        data-hipoteca-value="plazo_anios"
+                                                        data-value="<?= htmlspecialchars((string) $calculadora['plazo_anios'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        title="Haz clic para editar"
+                                                        role="button"
+                                                        tabindex="0"
+                                                        aria-label="Editar plazo en años">
+                                                        <span data-editable-text><?= intval($calculadora['plazo_anios']) ?> <?= intval($calculadora['plazo_anios']) === 1 ? 'año' : 'años' ?></span>
+                                                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                                                    </strong>
+                                                </p>
+                                                <p>
+                                                    <span>Cuota mensual</span>
+                                                    <strong data-hipoteca-value="cuota_mensual"><?= $formatearEuros($calculadora['cuota_mensual']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Total intereses</span>
+                                                    <strong data-hipoteca-value="total_intereses"><?= $formatearEuros($calculadora['total_intereses']) ?></strong>
+                                                </p>
+                                                <p>
+                                                    <span>Total pagado</span>
+                                                    <strong data-hipoteca-value="total_pagado"><?= $formatearEuros($calculadora['total_pagado']) ?></strong>
+                                                </p>
+                                            </div>
+
+                                            <p class="bh-meta-estimation-copy mb-0">
+                                                Este cálculo es una estimación educativa. No representa una oferta vinculante ni una recomendación financiera. Consulta siempre condiciones reales con tu entidad.
+                                            </p>
+
+                                            <form method="POST" action="index.php?r=simulador/eliminarCalculadoraHipoteca" class="bh-meta-delete-form bh-mortgage-delete-form">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="id" value="<?= $calculadoraId ?>">
+                                                <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta calculadora de hipoteca no modificará ningún dato real. ¿Quieres continuar?">
+                                                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                                                    Eliminar calculadora
+                                                </button>
+                                            </form>
+                                        </article>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                </div>
             </section>
         </main>
     </div>
@@ -591,7 +778,7 @@
 
                 <button type="submit" class="bh-btn bh-btn-primary">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                    Guardar meta
+                    Crear simulación
                 </button>
             </form>
         </div>
@@ -654,7 +841,89 @@
 
                 <button type="submit" class="bh-btn bh-btn-primary">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                    Guardar escenario
+                    Crear simulación
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearInflacionSimulacionPanel" aria-labelledby="crearInflacionSimulacionPanelLabel">
+        <div class="offcanvas-header">
+            <div>
+                <p class="bh-simulator-kicker mb-1">Simulación educativa</p>
+                <h5 class="offcanvas-title" id="crearInflacionSimulacionPanelLabel">Nueva simulación de inflación</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form method="POST" action="index.php?r=simulador/crearInflacionSimulacion" class="bh-form">
+                <?= csrf_field() ?>
+
+                <div class="bh-field">
+                    <label class="bh-label" for="inflacion_nombre">Nombre</label>
+                    <input class="bh-input" type="text" id="inflacion_nombre" name="nombre" maxlength="100" required placeholder="Ej. Escenario de inflación 1">
+                </div>
+
+                <div class="bh-field-row">
+                    <div class="bh-field">
+                        <label class="bh-label" for="inflacion_cantidad_inicial">Cantidad inicial</label>
+                        <input class="bh-input" type="number" id="inflacion_cantidad_inicial" name="cantidad_inicial" min="0.01" step="0.01" inputmode="decimal" required>
+                    </div>
+                    <div class="bh-field">
+                        <label class="bh-label" for="inflacion_inflacion_anual">Inflación anual estimada (%)</label>
+                        <input class="bh-input" type="number" id="inflacion_inflacion_anual" name="inflacion_anual" min="0" step="0.01" inputmode="decimal" required>
+                    </div>
+                </div>
+
+                <div class="bh-field">
+                    <label class="bh-label" for="inflacion_plazo_anios">Plazo en años</label>
+                    <input class="bh-input" type="number" id="inflacion_plazo_anios" name="plazo_anios" min="1" step="1" required>
+                </div>
+
+                <button type="submit" class="bh-btn bh-btn-primary">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    Crear simulación
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end bh-simulator-offcanvas" tabindex="-1" id="crearCalculadoraHipotecaPanel" aria-labelledby="crearCalculadoraHipotecaPanelLabel">
+        <div class="offcanvas-header">
+            <div>
+                <p class="bh-simulator-kicker mb-1">Simulación educativa</p>
+                <h5 class="offcanvas-title" id="crearCalculadoraHipotecaPanelLabel">Nueva calculadora de hipoteca</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form method="POST" action="index.php?r=simulador/crearCalculadoraHipoteca" class="bh-form">
+                <?= csrf_field() ?>
+
+                <div class="bh-field">
+                    <label class="bh-label" for="hipoteca_nombre">Nombre</label>
+                    <input class="bh-input" type="text" id="hipoteca_nombre" name="nombre" maxlength="100" required placeholder="Ej. Mi hipoteca">
+                </div>
+
+                <div class="bh-field-row">
+                    <div class="bh-field">
+                        <label class="bh-label" for="hipoteca_importe_prestamo">Importe del préstamo</label>
+                        <input class="bh-input" type="number" id="hipoteca_importe_prestamo" name="importe_prestamo" min="0.01" step="0.01" inputmode="decimal" required>
+                    </div>
+                    <div class="bh-field">
+                        <label class="bh-label" for="hipoteca_interes_anual">Interés anual (%)</label>
+                        <input class="bh-input" type="number" id="hipoteca_interes_anual" name="interes_anual" min="0" step="0.01" inputmode="decimal" required>
+                    </div>
+                </div>
+
+                <div class="bh-field">
+                    <label class="bh-label" for="hipoteca_plazo_anios">Plazo en años</label>
+                    <input class="bh-input" type="number" id="hipoteca_plazo_anios" name="plazo_anios" min="1" step="1" required>
+                </div>
+
+                <button type="submit" class="bh-btn bh-btn-primary">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    Crear simulación
                 </button>
             </form>
         </div>

@@ -3,6 +3,8 @@ require_once APP_PATH . '/models/Ingreso.php';
 require_once APP_PATH . '/models/Gasto.php';
 require_once APP_PATH . '/models/MetaAhorro.php';
 require_once APP_PATH . '/models/EscenarioInversion.php';
+require_once APP_PATH . '/models/InflacionSimulacion.php';
+require_once APP_PATH . '/models/CalculadoraHipoteca.php';
 
 class SimuladorController {
 
@@ -29,6 +31,8 @@ class SimuladorController {
         $ahorroAsignadoMetas = MetaAhorro::totalAportacionesActivas($usuario_id);
         $metasAhorro = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
         $escenariosInversion = EscenarioInversion::obtenerPorUsuario($usuario_id);
+        $simulacionesInflacion = InflacionSimulacion::obtenerPorUsuario($usuario_id);
+        $calculadorasHipoteca = CalculadoraHipoteca::obtenerPorUsuario($usuario_id);
 
         if ($ingresosMes === false || $gastosEsencialesMes === false || $gastosFlexiblesMes === false) {
             $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos del Simulador.';
@@ -62,6 +66,20 @@ class SimuladorController {
             $avisoEscenariosInversion = '';
         }
 
+        if ($simulacionesInflacion === false) {
+            $simulacionesInflacion = [];
+            $avisoSimulacionesInflacion = 'No se pudieron cargar las simulaciones de inflación. Inténtalo de nuevo más tarde.';
+        } else {
+            $avisoSimulacionesInflacion = '';
+        }
+
+        if ($calculadorasHipoteca === false) {
+            $calculadorasHipoteca = [];
+            $avisoCalculadorasHipoteca = 'No se pudieron cargar las calculadoras de hipoteca. Inténtalo de nuevo más tarde.';
+        } else {
+            $avisoCalculadorasHipoteca = '';
+        }
+
         $ahorroMensualDelMes = $ingresosMes - $gastosEsencialesMes - $gastosFlexiblesMes;
         $ahorroMensualDisponible = max(0, $ahorroMensualDelMes);
 
@@ -77,6 +95,8 @@ class SimuladorController {
         $ahorroAsignadoSuperaDisponible = $ahorroAsignadoMetas > $ahorroMensualDisponible;
         $metasAhorroPreparadas = array_map([$this, 'prepararMetaParaVista'], $metasAhorro);
         $escenariosInversionPreparados = array_map([$this, 'prepararEscenarioInversionParaVista'], $escenariosInversion);
+        $simulacionesInflacionPreparadas = array_map([$this, 'prepararInflacionSimulacionParaVista'], $simulacionesInflacion);
+        $calculadorasHipotecaPreparadas = array_map([$this, 'prepararCalculadoraHipotecaParaVista'], $calculadorasHipoteca);
 
         require_once APP_PATH . "/views/simulador.php";
     }
@@ -430,6 +450,379 @@ class SimuladorController {
         ]);
     }
 
+    public function crearInflacionSimulacion(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $resultado = $this->validarDatosInflacionSimulacion();
+
+        if (!$resultado['ok']) {
+            $_SESSION['mensaje_error'] = $resultado['mensaje'];
+            $this->redirigirAlSimulador();
+        }
+
+        $datos = $resultado['datos'];
+        $nuevaSimulacion = InflacionSimulacion::crear(
+            $usuario_id,
+            $datos['nombre'],
+            $datos['cantidad_inicial'],
+            $datos['inflacion_anual'],
+            $datos['plazo_anios']
+        );
+
+        if (!$nuevaSimulacion) {
+            $_SESSION['mensaje_error'] = 'No se pudo guardar la simulación de inflación. Revisa los datos e inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Simulación de inflación guardada. Puedes consultarla cuando quieras.';
+        $this->redirigirAlSimulador();
+    }
+
+    public function actualizarInflacionSimulacion(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['mensaje_error'] = 'No se recibió una simulación válida para editar.';
+            $this->redirigirAlSimulador();
+        }
+
+        if (!InflacionSimulacion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró la simulación de inflación que quieres editar.';
+            $this->redirigirAlSimulador();
+        }
+
+        $resultado = $this->validarDatosInflacionSimulacion();
+
+        if (!$resultado['ok']) {
+            $_SESSION['mensaje_error'] = $resultado['mensaje'];
+            $this->redirigirAlSimulador();
+        }
+
+        $datos = $resultado['datos'];
+        $actualizado = InflacionSimulacion::actualizar(
+            $id,
+            $usuario_id,
+            $datos['nombre'],
+            $datos['cantidad_inicial'],
+            $datos['inflacion_anual'],
+            $datos['plazo_anios']
+        );
+
+        if (!$actualizado) {
+            $_SESSION['mensaje_error'] = 'No se pudo actualizar la simulación de inflación. Inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Simulación de inflación actualizada.';
+        $this->redirigirAlSimulador();
+    }
+
+    public function actualizarInflacionSimulacionAjax(){
+        if($_SERVER['REQUEST_METHOD'] !== 'POST'){
+            echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
+            return;
+        }
+
+        if(!isset($_SESSION['usuario_id'])){
+            echo json_encode(['ok' => false, 'msg' => 'Sesión no válida']);
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+        $campo = trim((string) ($_POST['campo'] ?? ''));
+        $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
+        $camposPermitidos = ['cantidad_inicial', 'inflacion_anual', 'plazo_anios'];
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió una simulación válida.']);
+            return;
+        }
+
+        if (!in_array($campo, $camposPermitidos, true)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió un campo editable válido.']);
+            return;
+        }
+
+        if ($campo === 'plazo_anios') {
+            $valor = intval($_POST['valor'] ?? 0);
+
+            if ($valor <= 0) {
+                echo json_encode(['ok' => false, 'msg' => 'El plazo en años debe ser mayor que 0.']);
+                return;
+            }
+        } elseif ($campo === 'inflacion_anual') {
+            if ($valor === null || $valor < 0) {
+                echo json_encode(['ok' => false, 'msg' => 'La inflación anual debe ser igual o superior a 0.']);
+                return;
+            }
+        } else {
+            if ($valor === null || $valor <= 0) {
+                echo json_encode(['ok' => false, 'msg' => 'La cantidad inicial debe ser mayor que 0.']);
+                return;
+            }
+        }
+
+        $simulacion = InflacionSimulacion::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$simulacion) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró la simulación que quieres actualizar.']);
+            return;
+        }
+
+        $simulacion[$campo] = $campo === 'plazo_anios' ? intval($valor) : round(floatval($valor), 2);
+
+        $actualizado = InflacionSimulacion::actualizar(
+            $id,
+            $usuario_id,
+            $simulacion['nombre'],
+            round(floatval($simulacion['cantidad_inicial']), 2),
+            round(floatval($simulacion['inflacion_anual']), 2),
+            intval($simulacion['plazo_anios'])
+        );
+
+        if (!$actualizado) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo actualizar la simulación de inflación.']);
+            return;
+        }
+
+        $simulacionPreparada = $this->prepararInflacionSimulacionParaVista($simulacion);
+
+        echo json_encode([
+            'ok' => true,
+            'cantidadInicial' => floatval($simulacionPreparada['cantidad_inicial']),
+            'inflacionAnual' => floatval($simulacionPreparada['inflacion_anual']),
+            'plazoAnios' => intval($simulacionPreparada['plazo_anios']),
+            'poderAdquisitivoFinal' => floatval($simulacionPreparada['poder_adquisitivo_final']),
+            'perdidaEstimada' => floatval($simulacionPreparada['perdida_estimada']),
+            'cantidadFuturaNecesaria' => floatval($simulacionPreparada['cantidad_futura_necesaria']),
+            'diferenciaNecesaria' => floatval($simulacionPreparada['diferencia_necesaria']),
+        ]);
+    }
+
+    public function eliminarInflacionSimulacion(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['mensaje_error'] = 'No se recibió una simulación válida para eliminar.';
+            $this->redirigirAlSimulador();
+        }
+
+        if (!InflacionSimulacion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró la simulación de inflación que quieres eliminar.';
+            $this->redirigirAlSimulador();
+        }
+
+        $eliminado = InflacionSimulacion::eliminarPorUsuario($id, $usuario_id);
+
+        if (!$eliminado) {
+            $_SESSION['mensaje_error'] = 'No se pudo eliminar la simulación de inflación. Inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Simulación de inflación eliminada.';
+        $this->redirigirAlSimulador();
+    }
+
+    public function crearCalculadoraHipoteca(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $resultado = $this->validarDatosCalculadoraHipoteca();
+
+        if (!$resultado['ok']) {
+            $_SESSION['mensaje_error'] = $resultado['mensaje'];
+            $this->redirigirAlSimulador();
+        }
+
+        $datos = $resultado['datos'];
+        $nuevaCalculadora = CalculadoraHipoteca::crear(
+            $usuario_id,
+            $datos['nombre'],
+            $datos['importe_prestamo'],
+            $datos['interes_anual'],
+            $datos['plazo_anios']
+        );
+
+        if (!$nuevaCalculadora) {
+            $_SESSION['mensaje_error'] = 'No se pudo guardar la calculadora de hipoteca. Revisa los datos e inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Calculadora de hipoteca guardada. Puedes consultarla cuando quieras.';
+        $this->redirigirAlSimulador();
+    }
+
+    public function actualizarCalculadoraHipoteca(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['mensaje_error'] = 'No se recibió una calculadora válida para editar.';
+            $this->redirigirAlSimulador();
+        }
+
+        if (!CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró la calculadora de hipoteca que quieres editar.';
+            $this->redirigirAlSimulador();
+        }
+
+        $resultado = $this->validarDatosCalculadoraHipoteca();
+
+        if (!$resultado['ok']) {
+            $_SESSION['mensaje_error'] = $resultado['mensaje'];
+            $this->redirigirAlSimulador();
+        }
+
+        $datos = $resultado['datos'];
+        $actualizado = CalculadoraHipoteca::actualizar(
+            $id,
+            $usuario_id,
+            $datos['nombre'],
+            $datos['importe_prestamo'],
+            $datos['interes_anual'],
+            $datos['plazo_anios']
+        );
+
+        if (!$actualizado) {
+            $_SESSION['mensaje_error'] = 'No se pudo actualizar la calculadora de hipoteca. Inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Calculadora de hipoteca actualizada.';
+        $this->redirigirAlSimulador();
+    }
+
+    public function actualizarCalculadoraHipotecaAjax(){
+        if($_SERVER['REQUEST_METHOD'] !== 'POST'){
+            echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
+            return;
+        }
+
+        if(!isset($_SESSION['usuario_id'])){
+            echo json_encode(['ok' => false, 'msg' => 'Sesión no válida']);
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+        $campo = trim((string) ($_POST['campo'] ?? ''));
+        $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
+        $camposPermitidos = ['importe_prestamo', 'interes_anual', 'plazo_anios'];
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió una calculadora válida.']);
+            return;
+        }
+
+        if (!in_array($campo, $camposPermitidos, true)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió un campo editable válido.']);
+            return;
+        }
+
+        if ($campo === 'plazo_anios') {
+            $valor = intval($_POST['valor'] ?? 0);
+
+            if ($valor <= 0) {
+                echo json_encode(['ok' => false, 'msg' => 'El plazo en años debe ser mayor que 0.']);
+                return;
+            }
+        } elseif ($campo === 'interes_anual') {
+            if ($valor === null || $valor < 0) {
+                echo json_encode(['ok' => false, 'msg' => 'El interés anual debe ser igual o superior a 0.']);
+                return;
+            }
+        } else {
+            if ($valor === null || $valor <= 0) {
+                echo json_encode(['ok' => false, 'msg' => 'El importe del préstamo debe ser mayor que 0.']);
+                return;
+            }
+        }
+
+        $calculadora = CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$calculadora) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró la calculadora que quieres actualizar.']);
+            return;
+        }
+
+        $calculadora[$campo] = $campo === 'plazo_anios' ? intval($valor) : round(floatval($valor), 2);
+
+        $actualizado = CalculadoraHipoteca::actualizar(
+            $id,
+            $usuario_id,
+            $calculadora['nombre'],
+            round(floatval($calculadora['importe_prestamo']), 2),
+            round(floatval($calculadora['interes_anual']), 2),
+            intval($calculadora['plazo_anios'])
+        );
+
+        if (!$actualizado) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo actualizar la calculadora de hipoteca.']);
+            return;
+        }
+
+        $calculadoraPreparada = $this->prepararCalculadoraHipotecaParaVista($calculadora);
+
+        echo json_encode([
+            'ok' => true,
+            'importePrestamo' => floatval($calculadoraPreparada['importe_prestamo']),
+            'interesAnual' => floatval($calculadoraPreparada['interes_anual']),
+            'plazoAnios' => intval($calculadoraPreparada['plazo_anios']),
+            'cuotaMensual' => floatval($calculadoraPreparada['cuota_mensual']),
+            'totalIntereses' => floatval($calculadoraPreparada['total_intereses']),
+            'totalPagado' => floatval($calculadoraPreparada['total_pagado']),
+        ]);
+    }
+
+    public function eliminarCalculadoraHipoteca(){
+        if (!$this->peticionPostAutenticada()) {
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['mensaje_error'] = 'No se recibió una calculadora válida para eliminar.';
+            $this->redirigirAlSimulador();
+        }
+
+        if (!CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id)) {
+            $_SESSION['mensaje_error'] = 'No se encontró la calculadora de hipoteca que quieres eliminar.';
+            $this->redirigirAlSimulador();
+        }
+
+        $eliminado = CalculadoraHipoteca::eliminarPorUsuario($id, $usuario_id);
+
+        if (!$eliminado) {
+            $_SESSION['mensaje_error'] = 'No se pudo eliminar la calculadora de hipoteca. Inténtalo de nuevo.';
+            $this->redirigirAlSimulador();
+        }
+
+        $_SESSION['mensaje_exitoso'] = 'Calculadora de hipoteca eliminada.';
+        $this->redirigirAlSimulador();
+    }
+
     private function mesValido($mes): bool{
         return is_string($mes) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes) === 1;
     }
@@ -728,6 +1121,153 @@ class SimuladorController {
             'anual' => 1,
             default => 12,
         };
+    }
+
+    private function validarDatosInflacionSimulacion(): array{
+        $nombre = trim((string) ($_POST['nombre'] ?? ''));
+        $cantidadInicial = $this->normalizarCantidad($_POST['cantidad_inicial'] ?? null);
+        $inflacionAnual = $this->normalizarCantidad($_POST['inflacion_anual'] ?? null);
+        $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
+
+        if ($nombre === '') {
+            return $this->errorValidacion('El nombre de la simulación es obligatorio.');
+        }
+
+        if (strlen($nombre) > 100) {
+            return $this->errorValidacion('El nombre no puede superar 100 caracteres.');
+        }
+
+        if ($cantidadInicial === null || $cantidadInicial <= 0) {
+            return $this->errorValidacion('La cantidad inicial debe ser mayor que 0.');
+        }
+
+        if ($inflacionAnual === null || $inflacionAnual < 0) {
+            return $this->errorValidacion('La inflación anual estimada debe ser igual o superior a 0.');
+        }
+
+        if ($plazoAnios === '' || !ctype_digit($plazoAnios) || intval($plazoAnios) <= 0) {
+            return $this->errorValidacion('El plazo en años debe ser mayor que 0.');
+        }
+
+        return [
+            'ok' => true,
+            'datos' => [
+                'nombre' => $nombre,
+                'cantidad_inicial' => round($cantidadInicial, 2),
+                'inflacion_anual' => round($inflacionAnual, 2),
+                'plazo_anios' => intval($plazoAnios),
+            ],
+        ];
+    }
+
+    private function validarDatosCalculadoraHipoteca(): array{
+        $nombre = trim((string) ($_POST['nombre'] ?? ''));
+        $importePrestamo = $this->normalizarCantidad($_POST['importe_prestamo'] ?? null);
+        $interesAnual = $this->normalizarCantidad($_POST['interes_anual'] ?? null);
+        $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
+
+        if ($nombre === '') {
+            return $this->errorValidacion('El nombre de la calculadora es obligatorio.');
+        }
+
+        if (strlen($nombre) > 100) {
+            return $this->errorValidacion('El nombre no puede superar 100 caracteres.');
+        }
+
+        if ($importePrestamo === null || $importePrestamo <= 0) {
+            return $this->errorValidacion('El importe del préstamo debe ser mayor que 0.');
+        }
+
+        if ($interesAnual === null || $interesAnual < 0) {
+            return $this->errorValidacion('El interés anual debe ser igual o superior a 0.');
+        }
+
+        if ($plazoAnios === '' || !ctype_digit($plazoAnios) || intval($plazoAnios) <= 0) {
+            return $this->errorValidacion('El plazo en años debe ser mayor que 0.');
+        }
+
+        return [
+            'ok' => true,
+            'datos' => [
+                'nombre' => $nombre,
+                'importe_prestamo' => round($importePrestamo, 2),
+                'interes_anual' => round($interesAnual, 2),
+                'plazo_anios' => intval($plazoAnios),
+            ],
+        ];
+    }
+
+    private function prepararInflacionSimulacionParaVista($simulacion): array{
+        $cantidadInicial = floatval($simulacion['cantidad_inicial']);
+        $inflacionAnual = floatval($simulacion['inflacion_anual']);
+        $plazoAnios = intval($simulacion['plazo_anios']);
+
+        $resultado = $this->calcularInflacionSimulacion(
+            $cantidadInicial,
+            $inflacionAnual,
+            $plazoAnios
+        );
+
+        $simulacion['poder_adquisitivo_final'] = $resultado['poder_adquisitivo_final'];
+        $simulacion['perdida_estimada'] = $resultado['perdida_estimada'];
+        $simulacion['cantidad_futura_necesaria'] = $resultado['cantidad_futura_necesaria'];
+        $simulacion['diferencia_necesaria'] = $resultado['diferencia_necesaria'];
+
+        return $simulacion;
+    }
+
+    private function prepararCalculadoraHipotecaParaVista($calculadora): array{
+        $importePrestamo = floatval($calculadora['importe_prestamo']);
+        $interesAnual = floatval($calculadora['interes_anual']);
+        $plazoAnios = intval($calculadora['plazo_anios']);
+
+        $resultado = $this->calcularCalculadoraHipoteca(
+            $importePrestamo,
+            $interesAnual,
+            $plazoAnios
+        );
+
+        $calculadora['cuota_mensual'] = $resultado['cuota_mensual'];
+        $calculadora['total_intereses'] = $resultado['total_intereses'];
+        $calculadora['total_pagado'] = $resultado['total_pagado'];
+
+        return $calculadora;
+    }
+
+    private function calcularInflacionSimulacion($cantidadInicial, $inflacionAnual, $plazoAnios): array{
+        $factor = pow(1 + $inflacionAnual / 100, $plazoAnios);
+        $poderAdquisitivoFinal = $cantidadInicial / $factor;
+        $perdidaEstimada = $cantidadInicial - $poderAdquisitivoFinal;
+        $cantidadFuturaNecesaria = $cantidadInicial * $factor;
+        $diferenciaNecesaria = $cantidadFuturaNecesaria - $cantidadInicial;
+
+        return [
+            'poder_adquisitivo_final' => round($poderAdquisitivoFinal, 2),
+            'perdida_estimada' => round($perdidaEstimada, 2),
+            'cantidad_futura_necesaria' => round($cantidadFuturaNecesaria, 2),
+            'diferencia_necesaria' => round($diferenciaNecesaria, 2),
+        ];
+    }
+
+    private function calcularCalculadoraHipoteca($importePrestamo, $interesAnual, $plazoAnios): array{
+        if ($interesAnual <= 0) {
+            $cuotaMensual = $importePrestamo / ($plazoAnios * 12);
+            $totalPagado = $importePrestamo;
+            $totalIntereses = 0;
+        } else {
+            $tasaMensual = ($interesAnual / 100) / 12;
+            $meses = $plazoAnios * 12;
+            $factor = pow(1 + $tasaMensual, $meses);
+            $cuotaMensual = $importePrestamo * ($tasaMensual * $factor) / ($factor - 1);
+            $totalPagado = $cuotaMensual * $meses;
+            $totalIntereses = $totalPagado - $importePrestamo;
+        }
+
+        return [
+            'cuota_mensual' => round($cuotaMensual, 2),
+            'total_intereses' => round($totalIntereses, 2),
+            'total_pagado' => round($totalPagado, 2),
+        ];
     }
 
     private function errorValidacion($mensaje): array{

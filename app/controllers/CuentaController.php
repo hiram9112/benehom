@@ -5,6 +5,8 @@ require_once APP_PATH."/models/Gasto.php";
 require_once APP_PATH."/models/Ingreso.php";
 require_once APP_PATH."/models/MetaAhorro.php";
 require_once APP_PATH."/models/EscenarioInversion.php";
+require_once APP_PATH."/models/InflacionSimulacion.php";
+require_once APP_PATH."/models/CalculadoraHipoteca.php";
 
 class CuentaController{    
     
@@ -125,6 +127,10 @@ class CuentaController{
         $eliminarMetas=MetaAhorro::eliminarTodosPorUsuario($id);
         //Eliminamos los escenarios de inversión del usuario
         $eliminarEscenarios=EscenarioInversion::eliminarTodosPorUsuario($id);
+        //Eliminamos las simulaciones de inflación del usuario
+        $eliminarInflacion=InflacionSimulacion::eliminarTodosPorUsuario($id);
+        //Eliminamos las calculadoras de hipoteca del usuario
+        $eliminarHipoteca=CalculadoraHipoteca::eliminarTodosPorUsuario($id);
         //Eliminamos los ingresos del usuario
         $eliminarIngresos=Ingreso::eliminarTodosPorUsuario($id);
         //Eliminamos los gastos del usuario
@@ -133,7 +139,7 @@ class CuentaController{
         $eliminarUsuario=Usuario::eliminar($id);
 
         //Comprobamos que todo salió bien antes de confirmar la transacción
-        if ($eliminarMetas && $eliminarEscenarios && $eliminarIngresos && $eliminarGastos && $eliminarUsuario) {
+        if ($eliminarMetas && $eliminarEscenarios && $eliminarInflacion && $eliminarHipoteca && $eliminarIngresos && $eliminarGastos && $eliminarUsuario) {
 
             // CONFIRMAMOS CAMBIOS
             $db->commit();

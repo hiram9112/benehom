@@ -171,7 +171,7 @@
                                             <option value="" selected disabled>Selecciona un tipo de ingreso</option>
                                             <option value="salario">Salario</option>
                                             <option value="inversiones">Inversiones</option>
-                                            <option value="otros">Otros</option>
+                                            <option value="otros">Otros ingresos</option>
                                         </select>
                                     </div>
                                 </div>

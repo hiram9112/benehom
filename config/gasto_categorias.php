@@ -11,6 +11,7 @@ return [
                 'ibi_tasas_hogar' => 'IBI, tasas y tributos del hogar',
                 'seguro_hogar' => 'Seguro de hogar',
                 'mantenimiento_esencial_hogar' => 'Mantenimiento esencial del hogar',
+                'otros_gastos_vivienda' => 'Otros gastos de vivienda',
             ],
         ],
         'suministros' => [
@@ -21,6 +22,7 @@ return [
                 'electricidad' => 'Electricidad',
                 'gas' => 'Gas',
                 'internet_telefonia_basica' => 'Internet y telefonía básica',
+                'otros_gastos_suministros' => 'Otros gastos de suministros',
             ],
         ],
         'alimentacion_hogar' => [
@@ -30,6 +32,7 @@ return [
                 'compra_basica' => 'Compra básica de alimentación',
                 'limpieza_higiene_hogar' => 'Limpieza e higiene del hogar',
                 'equipamiento_basico_hogar' => 'Equipamiento básico del hogar',
+                'otros_gastos_alimentacion_hogar' => 'Otros gastos de alimentación y hogar',
             ],
         ],
         'salud_cuidados' => [
@@ -39,6 +42,7 @@ return [
                 'salud_farmacia' => 'Salud y farmacia',
                 'seguro_medico' => 'Seguro médico',
                 'mascotas_alimentacion_salud' => 'Alimentación y salud de mascotas',
+                'otros_gastos_salud_cuidados' => 'Otros gastos de salud y cuidados',
             ],
         ],
         'familia_educacion' => [
@@ -49,6 +53,7 @@ return [
                 'alimentacion_higiene_infantil' => 'Alimentación e higiene infantil',
                 'educacion_material_escolar' => 'Educación y material escolar',
                 'ayuda_familiar_cuidados' => 'Ayuda familiar o cuidados',
+                'otros_gastos_familia_educacion' => 'Otros gastos de familia y educación',
             ],
         ],
         'transporte_necesario' => [
@@ -59,6 +64,7 @@ return [
                 'combustible_trabajo_estudios' => 'Combustible por trabajo o estudios',
                 'mantenimiento_necesario_vehiculo' => 'Mantenimiento necesario del vehículo',
                 'seguro_vehiculo' => 'Seguro del vehículo',
+                'otros_gastos_transporte_necesario' => 'Otros gastos de transporte necesario',
             ],
         ],
         'trabajo_obligaciones' => [
@@ -70,6 +76,7 @@ return [
                 'impuestos_tasas' => 'Impuestos y tasas',
                 'comisiones_bancarias_necesarias' => 'Comisiones bancarias necesarias',
                 'pagos_familiares_obligatorios' => 'Pagos familiares esenciales',
+                'otros_gastos_trabajo_obligaciones' => 'Otros gastos de trabajo y obligaciones',
             ],
         ],
         'urgencias' => [
@@ -78,6 +85,7 @@ return [
             'items' => [
                 'urgencias_esenciales_hogar' => 'Urgencias esenciales del hogar',
                 'otro_gasto_base' => 'Otro gasto esencial',
+                'otros_gastos_urgencias' => 'Otros gastos de urgencias',
             ],
         ],
     ],
@@ -89,6 +97,7 @@ return [
                 'ocio_entretenimiento' => 'Ocio y entretenimiento',
                 'eventos_planes_sociales' => 'Eventos y planes sociales',
                 'juegos_loteria_apuestas' => 'Juegos, lotería o apuestas',
+                'otros_gastos_ocio' => 'Otros gastos de ocio',
             ],
         ],
         'restauracion' => [
@@ -97,6 +106,7 @@ return [
             'items' => [
                 'restaurantes_bares_cafeterias' => 'Restaurantes, bares y cafeterías',
                 'comida_domicilio' => 'Comida a domicilio',
+                'otros_gastos_restauracion' => 'Otros gastos de restauración',
             ],
         ],
         'suscripciones_bienestar' => [
@@ -106,6 +116,7 @@ return [
                 'streaming_contenido_digital' => 'Streaming y contenido digital',
                 'apps_software_servicios' => 'Apps, software y servicios online',
                 'gimnasio_deporte_bienestar' => 'Gimnasio, deporte y bienestar',
+                'otros_gastos_suscripciones_bienestar' => 'Otros gastos de suscripciones y bienestar',
             ],
         ],
         'compras' => [
@@ -118,6 +129,7 @@ return [
                 'decoracion_hogar_no_esencial' => 'Decoración y mejoras no esenciales del hogar',
                 'compras_online_marketplace' => 'Compras online y marketplace',
                 'regalos' => 'Regalos',
+                'otros_gastos_compras' => 'Otros gastos de compras',
             ],
         ],
         'viajes' => [
@@ -126,6 +138,7 @@ return [
             'items' => [
                 'viajes_escapadas' => 'Viajes y escapadas',
                 'vacaciones' => 'Vacaciones',
+                'otros_gastos_viajes' => 'Otros gastos de viajes',
             ],
         ],
         'movilidad_personal' => [
@@ -134,6 +147,7 @@ return [
             'items' => [
                 'combustible_personal' => 'Combustible de uso personal',
                 'taxi_vtc_movilidad' => 'Taxi, VTC y movilidad ocasional',
+                'otros_gastos_movilidad_personal' => 'Otros gastos de movilidad personal',
             ],
         ],
         'financiacion' => [
@@ -144,6 +158,7 @@ return [
                 'prestamo_consumo' => 'Préstamo personal de consumo',
                 'tecnologia_financiada' => 'Móvil o tecnología financiada',
                 'renting_financiacion_vehiculo' => 'Renting o financiación de vehículo',
+                'otros_gastos_financiacion' => 'Otros gastos de financiación',
             ],
         ],
         'aportaciones_otros' => [
@@ -153,6 +168,7 @@ return [
                 'donaciones_aportaciones' => 'Donaciones y aportaciones voluntarias',
                 'consumos_personales' => 'Consumos personales',
                 'otro_gasto_ajustable' => 'Otro gasto flexible',
+                'otros_gastos_aportaciones_otros' => 'Otros gastos de aportaciones y otros',
             ],
         ],
     ],

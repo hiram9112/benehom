@@ -123,6 +123,57 @@ function crearOpcionesGrafico(opts) {
   };
 }
 
+function redimensionarGraficoEvolucionGastos(tipo) {
+  var grafico = tipo === 'obligatorio'
+    ? graficoGastosEsenciales6m
+    : graficoGastosFlexibles6m;
+
+  if (!grafico) return;
+
+  requestAnimationFrame(function () {
+    grafico.resize();
+  });
+}
+
+function inicializarSelectorEvolucionGastos() {
+  var botones = document.querySelectorAll('[data-evolucion-gastos-tab]');
+  var botonInfo = document.querySelector('[data-evolucion-gastos-info]');
+
+  if (!botones.length) return;
+
+  function activar(tipo) {
+    botones.forEach(function (boton) {
+      var activo = boton.dataset.evolucionGastosTab === tipo;
+      var panel = document.getElementById(boton.getAttribute('aria-controls'));
+
+      boton.classList.toggle('is-active', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+
+      if (panel) {
+        panel.hidden = !activo;
+      }
+    });
+
+    if (botonInfo) {
+      botonInfo.dataset.bsTarget = tipo === 'obligatorio'
+        ? '#infoEvolucionEsenciales'
+        : '#infoEvolucionFlexibles';
+    }
+
+    redimensionarGraficoEvolucionGastos(tipo);
+  }
+
+  botones.forEach(function (boton) {
+    boton.addEventListener('click', function () {
+      activar(boton.dataset.evolucionGastosTab);
+    });
+  });
+
+  activar('voluntario');
+}
+
+document.addEventListener('DOMContentLoaded', inicializarSelectorEvolucionGastos);
+
 // ----------------------------------------------------------------------
 // Gráfico: Presupuesto mensual
 // ----------------------------------------------------------------------

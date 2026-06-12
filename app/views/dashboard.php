@@ -460,38 +460,51 @@
                 </div>
 
 
-                <!--Gráfico evolución gastos esenciales-->
+                <!--Gráfico evolución de gastos-->
                 <div class="bh-card bh-card-chart">
-                    <h5>
-                        Evolución gastos esenciales
-                        <button type="button"
-                            class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
-                            data-bs-toggle="modal"
-                            data-bs-target="#infoEvolucionEsenciales"
-                            aria-label="Información sobre la evolución de los gastos esenciales">
-                            <i class="bi bi-info-circle"></i>
-                        </button>
-                    </h5>
-                    <div class="contenedor-grafico">
-                        <canvas id="graficoGastosEsenciales6m"></canvas>
+                    <div class="bh-card-chart-header">
+                        <h5>
+                            Evolución de gastos
+                            <button type="button"
+                                class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#infoEvolucionFlexibles"
+                                data-evolucion-gastos-info
+                                aria-label="Información sobre la evolución de gastos">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </h5>
+
+                        <div class="bh-segmented" role="group" aria-label="Seleccionar tipo de gasto">
+                            <button type="button"
+                                id="btnEvolucionFlexibles"
+                                class="bh-segmented-button is-active"
+                                data-evolucion-gastos-tab="voluntario"
+                                aria-controls="panelEvolucionFlexibles"
+                                aria-pressed="true">
+                                Flexibles
+                            </button>
+                            <button type="button"
+                                id="btnEvolucionEsenciales"
+                                class="bh-segmented-button"
+                                data-evolucion-gastos-tab="obligatorio"
+                                aria-controls="panelEvolucionEsenciales"
+                                aria-pressed="false">
+                                Esenciales
+                            </button>
+                        </div>
                     </div>
-                </div>
 
+                    <div id="panelEvolucionFlexibles" class="bh-chart-panel" role="region" aria-labelledby="btnEvolucionFlexibles">
+                        <div class="contenedor-grafico">
+                            <canvas id="graficoGastosFlexibles6m"></canvas>
+                        </div>
+                    </div>
 
-                <!--Gráfico evolución gastos flexibles-->
-                <div class="bh-card bh-card-chart">
-                    <h5>
-                        Evolución gastos flexibles
-                        <button type="button"
-                            class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
-                            data-bs-toggle="modal"
-                            data-bs-target="#infoEvolucionFlexibles"
-                            aria-label="Información sobre gastos flexibles">
-                            <i class="bi bi-info-circle"></i>
-                        </button>
-                    </h5>
-                    <div class="contenedor-grafico">
-                        <canvas id="graficoGastosFlexibles6m"></canvas>
+                    <div id="panelEvolucionEsenciales" class="bh-chart-panel" role="region" aria-labelledby="btnEvolucionEsenciales" hidden>
+                        <div class="contenedor-grafico">
+                            <canvas id="graficoGastosEsenciales6m"></canvas>
+                        </div>
                     </div>
                 </div>
                 </aside>

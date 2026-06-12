@@ -917,6 +917,68 @@ textarea:disabled {
     font-size: var(--bh-text-sm);
 }
 
+.bh-card-chart-header{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-3);
+    margin-bottom: var(--bh-space-2);
+}
+
+.bh-card-chart-header h5{
+    margin-bottom: 0;
+}
+
+.bh-segmented{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bh-space-1);
+    padding: 0.25rem;
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-pill);
+    background-color: var(--bh-surface-soft);
+}
+
+.bh-segmented-button{
+    min-height: 2rem;
+    padding: 0.35rem 0.75rem;
+    border: 0;
+    border-radius: var(--bh-radius-pill);
+    color: var(--bh-text-muted);
+    background: transparent;
+    font: inherit;
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: 1.1;
+    cursor: pointer;
+    transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.bh-segmented-button:hover{
+    color: var(--bh-text-main);
+    background-color: var(--bh-surface-card);
+}
+
+.bh-segmented-button:focus-visible{
+    outline: var(--bh-focus-ring);
+    outline-offset: 2px;
+}
+
+.bh-segmented-button.is-active,
+.bh-segmented-button[aria-pressed="true"]{
+    color: var(--bh-text-main);
+    background-color: var(--bh-surface-card);
+    box-shadow: var(--bh-shadow-soft);
+}
+
+.bh-segmented-button:active{
+    transform: translateY(1px);
+}
+
+.bh-chart-panel[hidden]{
+    display: none;
+}
+
 .bh-card-form {
     background-color: var(--bh-surface-card);
     max-width: 520px;
@@ -2826,6 +2888,21 @@ textarea:disabled {
 #graficoPresupuestoMensual,#graficoGastosFlexibles6m,#graficoGastosEsenciales6m,#graficoAhorros6m{
     height: 100% !important;
     display: block;
+}
+
+@media (max-width: 575.98px){
+    .bh-card-chart-header{
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .bh-segmented{
+        width: 100%;
+    }
+
+    .bh-segmented-button{
+        flex: 1 1 0;
+    }
 }
 
 

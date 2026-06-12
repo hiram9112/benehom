@@ -731,6 +731,10 @@ function renderizarGraficoEscalaHabitos() {
 
   var opcionesEscalaHabitos = crearOpcionesGrafico({
     tooltip: {
+      position: 'nearest',
+      yAlign: 'bottom',
+      xAlign: 'center',
+      caretPadding: 12,
       callbacks: {
         label: function (context) {
           return context.dataset.label + ': ' + formatearEuros(context.parsed.x);
@@ -755,6 +759,7 @@ function renderizarGraficoEscalaHabitos() {
     },
   });
 
+  opcionesEscalaHabitos.layout.padding.top = 28;
   opcionesEscalaHabitos.indexAxis = 'y';
   opcionesEscalaHabitos.animation = { duration: 180, easing: 'easeOutQuart' };
   opcionesEscalaHabitos.onHover = function (event, elementos) {

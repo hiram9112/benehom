@@ -38,8 +38,8 @@ class DashboardController{
         if($usuario_id){
             try {
                 $ingresos = Ingreso::obtenerPorMes($usuario_id, $fechaInicio, $fechaFin);
-                $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "obligatorio", $fechaInicio, $fechaFin);
-                $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "voluntario", $fechaInicio, $fechaFin);
+                $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "esencial", $fechaInicio, $fechaFin);
+                $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "flexible", $fechaInicio, $fechaFin);
             } catch (PDOException $e) {
 
                 if (($_ENV['APP_ENV'] ?? 'production') === 'local') {

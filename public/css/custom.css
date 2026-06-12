@@ -885,16 +885,44 @@ textarea:disabled {
 
 .bh-dashboard-empty-state{
     max-width: none;
-    margin-top: var(--bh-space-4);
-    padding: var(--bh-space-4);
-    background-color: var(--bh-surface-soft);
+    margin-top: var(--bh-space-3);
+    padding: var(--bh-space-2) 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "icon title"
+        "icon text";
+    align-items: center;
+    justify-items: start;
+    column-gap: var(--bh-space-2);
+    row-gap: 0;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
     box-shadow: none;
+    text-align: left;
 }
 
 .bh-dashboard-empty-state .bh-empty-state-icon{
-    width: 44px;
-    height: 44px;
-    font-size: var(--bh-text-lg);
+    grid-area: icon;
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--bh-text-sm);
+    background-color: var(--bh-surface-soft);
+}
+
+.bh-dashboard-empty-state .bh-empty-state-title{
+    grid-area: title;
+    font-family: var(--bh-font-body);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+    line-height: var(--bh-line-tight);
+}
+
+.bh-dashboard-empty-state .bh-empty-state-text{
+    grid-area: text;
+    font-size: var(--bh-text-sm);
+    line-height: var(--bh-line-normal);
 }
 
 .bh-card-chart {
@@ -994,6 +1022,13 @@ textarea:disabled {
     align-items: center;
     justify-content: center;
     text-align: center;
+    padding: var(--bh-space-4) 0;
+}
+
+.bh-chart-empty-state .bh-empty-state-icon,
+.bh-chart-empty-state .bh-empty-state-title,
+.bh-chart-empty-state .bh-empty-state-text{
+    grid-area: auto;
 }
 
 .bh-chart-empty-state[hidden]{
@@ -1451,6 +1486,15 @@ textarea:disabled {
 
 .bh-empty-state-action {
     margin-top: var(--bh-space-2);
+}
+
+.bh-form-empty-state {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    margin: 0.5rem 0;
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-base);
+    font-weight: 500;
 }
 
 

@@ -2,21 +2,18 @@ function crearEstadoVacioDashboard(tipo) {
   const estados = {
     ingresos: {
       icono: "bi-wallet2",
-      titulo: "Sin ingresos este mes",
-      texto:
-        "Añade tu primer ingreso para calcular el ahorro posible y el balance real del mes.",
+      titulo: "Sin ingresos",
+      texto: "Añade un ingreso.",
     },
     esenciales: {
       icono: "bi-house-heart",
       titulo: "Sin gastos esenciales",
-      texto:
-        "Registra vivienda, suministros o gastos necesarios para ver tu ahorro posible.",
+      texto: "Añade un gasto esencial.",
     },
     flexibles: {
       icono: "bi-basket2",
       titulo: "Sin gastos flexibles",
-      texto:
-        "Añade ocio, compras o decisiones variables para comparar ahorro posible y ahorro real.",
+      texto: "Añade un gasto flexible.",
     },
   };
 
@@ -117,7 +114,7 @@ function agregarGastoEsencialAlDOM(gastoEsencial) {
 
   //le asignamos el id correspondiente y tipo correspondiente
   li.id = `gasto-${gastoEsencial.id}`;
-  li.dataset.tipo = "obligatorio";
+  li.dataset.tipo = "esencial";
 
   //Agregamos el nuevo gasto esencial al elemento li
   li.innerHTML = `
@@ -161,7 +158,7 @@ function agregarGastoFlexibleAlDOM(gastoFlexible) {
 
   //le asignamos el id y el tipo correspondiente
   li.id = `gasto-${gastoFlexible.id}`;
-  li.dataset.tipo = "voluntario";
+  li.dataset.tipo = "flexible";
 
   //Agregamos el nuevo gasto flexible al elemento li
   li.innerHTML = `
@@ -195,7 +192,7 @@ function eliminarGastoDelDOM(id) {
 
   //Determinamos que contenedor revisaremos
   const contenedorID =
-    tipo === "obligatorio"
+    tipo === "esencial"
       ? "lista_gastos_esenciales"
       : "lista_gastos_flexibles";
 
@@ -203,7 +200,7 @@ function eliminarGastoDelDOM(id) {
   const lista = document.querySelector(`#${contenedorID} ul`);
 
   if (!lista || lista.children.length === 0) {
-    const nombreTipo = tipo === "obligatorio" ? "esenciales" : "flexibles";
+    const nombreTipo = tipo === "esencial" ? "esenciales" : "flexibles";
     document.getElementById(contenedorID).innerHTML =
       crearEstadoVacioDashboard(nombreTipo);
   }

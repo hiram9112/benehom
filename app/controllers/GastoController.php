@@ -27,7 +27,7 @@ class GastoController{
         $categoria=trim($_POST['categoria_gasto_esencial']??'');
         $cantidad=trim($_POST['cantidad_gasto_esencial']??'');
         $fecha=$_POST['mes_seleccionado']."-01";
-        $tipo="obligatorio";
+        $tipo="esencial";
 
         //Validación básica de los datos
         if($categoria ===''||$cantidad===''||!is_numeric($cantidad)||$cantidad<=0){
@@ -183,7 +183,7 @@ class GastoController{
         $categoria=trim($_POST['categoria_gasto_flexible']??'');
         $cantidad=trim($_POST['cantidad_gasto_flexible']??'');
         $fecha=$_POST['mes_seleccionado']."-01";
-        $tipo="voluntario";
+        $tipo="flexible";
 
         //Validación básica de los datos
         if($categoria ===''||$cantidad===''||!is_numeric($cantidad)||$cantidad<=0){

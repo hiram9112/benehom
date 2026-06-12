@@ -38,8 +38,8 @@ class GraficosController{
         //Obtenemos datos filtrados por mes
         try {
             $ingresos = Ingreso::obtenerPorMes($usuario_id, $fechaInicio, $fechaFin);
-            $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "obligatorio", $fechaInicio, $fechaFin);
-            $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "voluntario", $fechaInicio, $fechaFin);
+            $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "esencial", $fechaInicio, $fechaFin);
+            $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "flexible", $fechaInicio, $fechaFin);
         } catch (PDOException $e) {
 
             if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
@@ -111,6 +111,14 @@ class GraficosController{
         $mesSeleccionado = $_POST['mes'];
         $tipo = $_POST['tipo'];
         $usuario_id = $_SESSION['usuario_id'];
+
+        if (!in_array($tipo, ['esencial', 'flexible'], true)) {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "Tipo de gasto no válido"
+            ]);
+            return;
+        }
 
         // Generamos los últimos 6 meses
         $meses = [];
@@ -190,6 +198,7 @@ class GraficosController{
         // Efectuamos los cálculos para cada mes
         $ahorroPosible = [];
         $ahorroReal = [];
+        $tieneDatos = [];
 
         foreach ($meses as $mes) {
 
@@ -199,8 +208,8 @@ class GraficosController{
 
             // Hacemos las consultas al modelo
             $tIngresos = Ingreso::totalPorRango($usuario_id, $fechaInicio, $fechaFin);
-            $tGastosEsenciales = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "obligatorio");
-            $tGastosFlexibles = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "voluntario");
+            $tGastosEsenciales = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "esencial");
+            $tGastosFlexibles = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, "flexible");
 
             // control explícito de errores del modelo
             if ($tIngresos === false) {
@@ -233,6 +242,7 @@ class GraficosController{
 
             $ahorroPosible[] = $posible;
             $ahorroReal[] = $real;
+            $tieneDatos[] = ($tIngresos > 0 || $tGastosEsenciales > 0 || $tGastosFlexibles > 0);
         }
 
         // Enviamos respuesta
@@ -241,7 +251,8 @@ class GraficosController{
             "data" => [
                 "meses" => $meses,
                 "ahorroPosible" => $ahorroPosible,
-                "ahorroReal" => $ahorroReal
+                "ahorroReal" => $ahorroReal,
+                "tieneDatos" => $tieneDatos
             ]
         ]);
 
@@ -290,8 +301,8 @@ class GraficosController{
         $fechaInicio = date('Y-m-01', strtotime('-5 months', strtotime($mesSeleccionado . '-01')));
         $fechaFin = date('Y-m-t', strtotime($mesSeleccionado . '-01'));
 
-        $totales = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
-        $mesesUsados = Gasto::mesesConMovimientosPorRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+        $totales = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
+        $mesesUsados = Gasto::mesesConMovimientosPorRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
 
         if ($totales === false || $mesesUsados === false) {
             echo json_encode([

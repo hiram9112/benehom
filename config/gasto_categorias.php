@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'obligatorio' => [
+    'esencial' => [
         'vivienda' => [
             'label' => 'Vivienda',
             'help' => 'Pagos relacionados con mantener tu vivienda principal.',
@@ -75,7 +75,7 @@ return [
                 'cuota_autonomo' => 'Cuota de autónomo o actividad profesional',
                 'impuestos_tasas' => 'Impuestos y tasas',
                 'comisiones_bancarias_necesarias' => 'Comisiones bancarias necesarias',
-                'pagos_familiares_obligatorios' => 'Pagos familiares esenciales',
+                'pagos_familiares_esenciales' => 'Pagos familiares esenciales',
                 'otros_gastos_trabajo_obligaciones' => 'Otros gastos de trabajo y obligaciones',
             ],
         ],
@@ -84,12 +84,12 @@ return [
             'help' => 'Situaciones puntuales necesarias para mantener la estabilidad del hogar.',
             'items' => [
                 'urgencias_esenciales_hogar' => 'Urgencias esenciales del hogar',
-                'otro_gasto_base' => 'Otro gasto esencial',
+                'otro_gasto_esencial' => 'Otro gasto esencial',
                 'otros_gastos_urgencias' => 'Otros gastos de urgencias',
             ],
         ],
     ],
-    'voluntario' => [
+    'flexible' => [
         'ocio' => [
             'label' => 'Ocio',
             'help' => 'Planes y actividades que forman parte del tiempo libre.',
@@ -167,7 +167,7 @@ return [
             'items' => [
                 'donaciones_aportaciones' => 'Donaciones y aportaciones voluntarias',
                 'consumos_personales' => 'Consumos personales',
-                'otro_gasto_ajustable' => 'Otro gasto flexible',
+                'otro_gasto_flexible' => 'Otro gasto flexible',
                 'otros_gastos_aportaciones_otros' => 'Otros gastos de aportaciones y otros',
             ],
         ],

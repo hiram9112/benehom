@@ -38,6 +38,8 @@
     bh_mobile_nav();
     $categoriasGasto = gastoCategorias();
     $labelsCategoriasGasto = gastoCategoriaLabels();
+    $categoriasIngreso = ingresoCategorias();
+    $labelsCategorias = array_merge($labelsCategoriasGasto, $categoriasIngreso);
     $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
     ?>
 
@@ -169,9 +171,9 @@
                                     <div class="bh-select-shell">
                                         <select name="categoria_ingreso" id="categoria_ingreso" class="bh-select" required>
                                             <option value="" selected disabled>Selecciona un tipo de ingreso</option>
-                                            <option value="salario">Salario</option>
-                                            <option value="inversiones">Inversiones</option>
-                                            <option value="otros">Otros ingresos</option>
+                                            <?php foreach ($categoriasIngreso as $valorCategoriaIngreso => $labelCategoriaIngreso): ?>
+                                                <option value="<?= htmlspecialchars($valorCategoriaIngreso, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($labelCategoriaIngreso, ENT_QUOTES, 'UTF-8') ?></option>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                 </div>
@@ -207,11 +209,7 @@
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <div class="bh-empty-state bh-dashboard-empty-state">
-                                        <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-wallet2"></i></span>
-                                        <h4 class="bh-empty-state-title">Sin ingresos este mes</h4>
-                                        <p class="bh-empty-state-text">Añade tu primer ingreso para calcular el ahorro posible y el balance real del mes.</p>
-                                    </div>
+                                    <p class="bh-form-empty-state">Añade un ingreso.</p>
                                 <?php endif; ?>
                             </div>
 
@@ -240,7 +238,7 @@
                             <form id="formGastosEsenciales" class="bh-form bh-guided-form">
                                 <?= csrf_field() ?>
 
-                                <div class="bh-category-picker" data-category-picker data-category-type="obligatorio">
+                                <div class="bh-category-picker" data-category-picker data-category-type="esencial">
                                     <div class="bh-field">
                                         <label class="bh-label" for="area_gasto_esencial">Área del gasto</label>
                                         <div class="bh-select-shell">
@@ -296,11 +294,7 @@
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <div class="bh-empty-state bh-dashboard-empty-state">
-                                        <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-house-heart"></i></span>
-                                        <h4 class="bh-empty-state-title">Sin gastos esenciales</h4>
-                                        <p class="bh-empty-state-text">Registra vivienda, suministros o gastos necesarios para ver tu ahorro posible.</p>
-                                    </div>
+                                    <p class="bh-form-empty-state">Añade un gasto esencial.</p>
                                 <?php endif; ?>
                             </div>
 
@@ -342,7 +336,7 @@
                             <form id="formGastosFlexibles" class="bh-form bh-guided-form">
                                 <?= csrf_field() ?>
 
-                                <div class="bh-category-picker" data-category-picker data-category-type="voluntario">
+                                <div class="bh-category-picker" data-category-picker data-category-type="flexible">
                                     <div class="bh-field">
                                         <label class="bh-label" for="area_gasto_flexible">Área del gasto</label>
                                         <div class="bh-select-shell">
@@ -397,11 +391,7 @@
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php else: ?>
-                                    <div class="bh-empty-state bh-dashboard-empty-state">
-                                        <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-basket2"></i></span>
-                                        <h4 class="bh-empty-state-title">Sin gastos flexibles</h4>
-                                        <p class="bh-empty-state-text">Añade ocio, compras o decisiones variables para comparar ahorro posible y ahorro real.</p>
-                                    </div>
+                                    <p class="bh-form-empty-state">Añade un gasto flexible.</p>
                                 <?php endif; ?>
                             </div>
 
@@ -479,7 +469,7 @@
                             <button type="button"
                                 id="btnEvolucionFlexibles"
                                 class="bh-segmented-button is-active"
-                                data-evolucion-gastos-tab="voluntario"
+                                data-evolucion-gastos-tab="flexible"
                                 aria-controls="panelEvolucionFlexibles"
                                 aria-pressed="true">
                                 Flexibles
@@ -487,7 +477,7 @@
                             <button type="button"
                                 id="btnEvolucionEsenciales"
                                 class="bh-segmented-button"
-                                data-evolucion-gastos-tab="obligatorio"
+                                data-evolucion-gastos-tab="esencial"
                                 aria-controls="panelEvolucionEsenciales"
                                 aria-pressed="false">
                                 Esenciales
@@ -543,11 +533,6 @@
 
                     <div class="contenedor-grafico bh-scale-chart-container">
                         <canvas id="graficoEscalaHabitos"></canvas>
-                        <div id="escalaHabitosEmpty" class="bh-empty-state bh-dashboard-empty-state bh-chart-empty-state" hidden>
-                            <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-bar-chart-steps"></i></span>
-                            <h4 class="bh-empty-state-title">Sin gastos flexibles todavía</h4>
-                            <p class="bh-empty-state-text">Registra tus gastos flexibles para descubrir qué hábitos pesan más en tu presupuesto.</p>
-                        </div>
                     </div>
 
                     <p class="bh-chart-hint"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i> Toca una barra y descubre qué pasaría si invirtieras ese dinero en lugar de gastarlo</p>
@@ -1074,7 +1059,7 @@
     <script>
         window.CSRF_TOKEN = "<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>";
         window.BH_GASTO_CATEGORIAS = <?= json_encode($categoriasGasto, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
-        window.BH_GASTO_CATEGORIA_LABELS = <?= json_encode($labelsCategoriasGasto, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+        window.BH_GASTO_CATEGORIA_LABELS = <?= json_encode($labelsCategorias, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     </script>
 
 

@@ -78,7 +78,7 @@ function actualizarTotales(valores) {
 
 function actualizarResumenVariacionGastos(tipo, valores) {
   const elemento = document.getElementById(
-    tipo === "obligatorio"
+    tipo === "esencial"
       ? "resumen_variacion_esenciales"
       : "resumen_variacion_flexibles",
   );

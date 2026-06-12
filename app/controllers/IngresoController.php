@@ -34,7 +34,15 @@ class IngresoController{
                 "ok"=>false,
                 "msg"=>"Datos inválidos"
             ]);
-            return;    
+            return;
+        }
+
+        if(!ingresoCategoriaPermitida($categoria)){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Categoría de ingreso no válida"
+            ]);
+            return;
         }
 
         //Insertamos en la base de datos el nuevo ingreso(devolverá el ID del recién creado ingreso)

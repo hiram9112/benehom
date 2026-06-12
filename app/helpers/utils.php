@@ -44,12 +44,34 @@ function gastoCategoriaPermitida(string $tipo, string $categoria): bool
     return false;
 }
 
+function ingresoCategorias(): array
+{
+    static $categorias = null;
+
+    if ($categorias === null) {
+        $categorias = require CONFIG_PATH . '/ingreso_categorias.php';
+    }
+
+    return $categorias;
+}
+
+function ingresoCategoriaPermitida(string $categoria): bool
+{
+    return isset(ingresoCategorias()[$categoria]);
+}
+
 //Funcion para formatear las categorias
 function formatearCategoria($texto){
     $labels = gastoCategoriaLabels();
 
     if (isset($labels[$texto])) {
         return $labels[$texto];
+    }
+
+    $labelsIngresos = ingresoCategorias();
+
+    if (isset($labelsIngresos[$texto])) {
+        return $labelsIngresos[$texto];
     }
 
     //Reemplazamos "_" por espacios

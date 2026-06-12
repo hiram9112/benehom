@@ -25,9 +25,9 @@ class ProyeccionesController {
         $fechaFin = date('Y-m-t', strtotime($fechaInicio));
 
         $ingresosMes = Ingreso::totalPorRango($usuario_id, $fechaInicio, $fechaFin);
-        $gastosEsencialesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'obligatorio');
-        $gastosFlexiblesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
-        $gastosFlexiblesPorCategoria = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+        $gastosEsencialesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'esencial');
+        $gastosFlexiblesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
+        $gastosFlexiblesPorCategoria = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
         $ahorroAsignadoMetas = MetaAhorro::totalAportacionesActivas($usuario_id);
         $metasAhorro = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
         $escenariosInversion = EscenarioInversion::obtenerPorUsuario($usuario_id);
@@ -121,15 +121,15 @@ class ProyeccionesController {
             return;
         }
 
-        if ($categoria === '' || !gastoCategoriaPermitida('voluntario', $categoria)) {
+        if ($categoria === '' || !gastoCategoriaPermitida('flexible', $categoria)) {
             echo json_encode(['ok' => false, 'msg' => 'Categoría no válida']);
             return;
         }
 
         $fechaInicio = date('Y-m-01', strtotime('-5 months', strtotime($mesSeleccionado . '-01')));
         $fechaFin = date('Y-m-t', strtotime($mesSeleccionado . '-01'));
-        $totales = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
-        $mesesUsados = Gasto::mesesConMovimientosPorRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+        $totales = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
+        $mesesUsados = Gasto::mesesConMovimientosPorRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
 
         if ($totales === false || $mesesUsados === false) {
             echo json_encode(['ok' => false, 'msg' => 'No se pudieron calcular los datos de la instantánea.']);
@@ -1020,8 +1020,8 @@ class ProyeccionesController {
         $fechaInicio = $mesSeleccionado . '-01';
         $fechaFin = date('Y-m-t', strtotime($fechaInicio));
         $ingresosMes = Ingreso::totalPorRango($usuario_id, $fechaInicio, $fechaFin);
-        $gastosEsencialesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'obligatorio');
-        $gastosFlexiblesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+        $gastosEsencialesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'esencial');
+        $gastosFlexiblesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
 
         if ($ingresosMes === false || $gastosEsencialesMes === false || $gastosFlexiblesMes === false) {
             return 0;

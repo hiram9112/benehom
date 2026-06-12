@@ -320,7 +320,7 @@ async function editarGastoInline(span) {
         nuevoSpan.dataset.id = id;
 
         //Agregamos la clase según el tipo de gasto
-        if (tipo === "obligatorio") {
+        if (tipo === "esencial") {
           nuevoSpan.classList.add(
             "bh-movement-amount",
             "cantidad_gasto_esencial",

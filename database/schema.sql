@@ -22,7 +22,7 @@ CREATE TABLE ingresos (
 CREATE TABLE gastos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NOT NULL,
-  tipo ENUM('obligatorio','voluntario') NOT NULL,
+  tipo ENUM('esencial','flexible') NOT NULL,
   categoria VARCHAR(50) NOT NULL,
   cantidad DECIMAL(10,2) NOT NULL,
   fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

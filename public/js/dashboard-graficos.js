@@ -86,7 +86,7 @@ function crearEscalasConEuros(ocultarEjeX) {
         color: BH_COLORS.textMuted,
         padding: 6,
         callback: function (value) {
-          return value + ' \u20AC';
+          return formatearEuros(value);
         },
       },
     },
@@ -456,7 +456,7 @@ async function cargarGraficoPresupuesto() {
           callbacks: {
             label: function (context) {
               var nombres = ['Ingresos', 'Gastos totales', 'Ahorro real'];
-              return nombres[context.dataIndex] + ': ' + context.parsed.y + '\u20AC';
+              return nombres[context.dataIndex] + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },
@@ -519,7 +519,7 @@ async function cargarGraficoGastosFlexibles6m() {
         tooltip: {
           callbacks: {
             label: function (context) {
-              return context.dataset.label + ': ' + context.parsed.y + '\u20AC';
+              return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },
@@ -582,7 +582,7 @@ async function cargarGraficoGastosEsenciales6m() {
         tooltip: {
           callbacks: {
             label: function (context) {
-              return context.dataset.label + ': ' + context.parsed.y + '\u20AC';
+              return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },
@@ -650,7 +650,7 @@ async function cargarGraficoAhorros6m() {
         tooltip: {
           callbacks: {
             label: function (context) {
-              return context.dataset.label + ': ' + context.parsed.y + ' \u20AC';
+              return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },

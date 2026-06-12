@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
               cargarGraficoGastosFlexibles6m();
               cargarGraficoGastosEsenciales6m();
               cargarGraficoAhorros6m();
+              cargarGraficoEscalaHabitos();
             } else {
               abrirModalInfo({
                 titulo: "No se pudo eliminar el ingreso",
@@ -99,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
               cargarGraficoGastosFlexibles6m();
               cargarGraficoGastosEsenciales6m();
               cargarGraficoAhorros6m();
+              cargarGraficoEscalaHabitos();
             } else {
               abrirModalInfo({
                 titulo: "No se pudo eliminar el gasto",
@@ -135,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cargarGraficoPresupuesto();
   cargarGraficoGastosFlexibles6m();
   cargarGraficoGastosEsenciales6m();
+  cargarGraficoEscalaHabitos();
 
   //Actulizamos el gráfico al cambiar el mes
   document.getElementById("mes").addEventListener("change", () => {
@@ -142,5 +145,6 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarGraficoGastosFlexibles6m();
     cargarGraficoGastosEsenciales6m();
     cargarGraficoAhorros6m();
+    cargarGraficoEscalaHabitos();
   });
 });

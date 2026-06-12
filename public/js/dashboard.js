@@ -225,6 +225,7 @@ async function editarIngresoInline(span) {
         window.cargarGraficoGastosFlexibles6m();
         window.cargarGraficoGastosEsenciales6m();
         window.cargarGraficoAhorros6m();
+        window.cargarGraficoEscalaHabitos();
       } else {
         //SI falla la edición restauramos el valor anterior
         abrirModalInfo({
@@ -341,6 +342,7 @@ async function editarGastoInline(span) {
         window.cargarGraficoGastosFlexibles6m();
         window.cargarGraficoGastosEsenciales6m();
         window.cargarGraficoAhorros6m();
+        window.cargarGraficoEscalaHabitos();
       } else {
         //SI falla la edición restauramos el valor anterior
         abrirModalInfo({

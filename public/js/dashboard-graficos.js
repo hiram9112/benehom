@@ -21,6 +21,12 @@ let graficoPresupuesto = null;
 let graficoGastosFlexibles6m = null;
 let graficoGastosEsenciales6m = null;
 let graficoAhorros6m = null;
+let graficoEscalaHabitos = null;
+let datosEscalaHabitos = [];
+let escalaHabitosActiva = 'mes';
+let datosInstantaneaInversion = null;
+let estadoInstantaneaInversion = { aportacion: 'todo', rentabilidad: '3' };
+let ultimoDisparadorInstantanea = null;
 
 // ----------------------------------------------------------------------
 // Helpers comunes
@@ -173,6 +179,166 @@ function inicializarSelectorEvolucionGastos() {
 }
 
 document.addEventListener('DOMContentLoaded', inicializarSelectorEvolucionGastos);
+
+function inicializarSelectorEscalaHabitos() {
+  var botones = document.querySelectorAll('[data-escala-habitos]');
+  var botonInfo = document.querySelector('[data-escala-habitos-info]');
+
+  if (!botones.length) return;
+
+  botones.forEach(function (boton) {
+    boton.addEventListener('click', function () {
+      escalaHabitosActiva = boton.dataset.escalaHabitos;
+
+      botones.forEach(function (botonInterno) {
+        var activo = botonInterno.dataset.escalaHabitos === escalaHabitosActiva;
+        botonInterno.classList.toggle('is-active', activo);
+        botonInterno.setAttribute('aria-pressed', activo ? 'true' : 'false');
+      });
+
+      if (botonInfo) {
+        botonInfo.dataset.bsTarget = escalaHabitosActiva === 'anio'
+          ? '#infoEscalaHabitosProyeccion'
+          : '#infoEscalaHabitosMedia';
+      }
+
+      renderizarGraficoEscalaHabitos();
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', inicializarSelectorEscalaHabitos);
+
+function inicializarInstantaneaInversion() {
+  var modal = document.getElementById('modalInstantaneaInversion');
+  var botonesAportacion = document.querySelectorAll('[data-instantanea-aportacion]');
+  var botonesRentabilidad = document.querySelectorAll('[data-instantanea-rentabilidad]');
+
+  if (!modal) return;
+
+  function activarBotones(botones, atributo, valorActivo) {
+    botones.forEach(function (boton) {
+      var activo = boton.dataset[atributo] === valorActivo;
+      boton.classList.toggle('is-active', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
+  }
+
+  botonesAportacion.forEach(function (boton) {
+    boton.addEventListener('click', function () {
+      estadoInstantaneaInversion.aportacion = boton.dataset.instantaneaAportacion;
+      activarBotones(botonesAportacion, 'instantaneaAportacion', estadoInstantaneaInversion.aportacion);
+      renderizarInstantaneaInversion();
+    });
+  });
+
+  botonesRentabilidad.forEach(function (boton) {
+    boton.addEventListener('click', function () {
+      estadoInstantaneaInversion.rentabilidad = boton.dataset.instantaneaRentabilidad;
+      activarBotones(botonesRentabilidad, 'instantaneaRentabilidad', estadoInstantaneaInversion.rentabilidad);
+      renderizarInstantaneaInversion();
+    });
+  });
+
+  modal.addEventListener('shown.bs.modal', function () {
+    var primerBoton = modal.querySelector('[data-instantanea-aportacion="todo"]');
+    if (primerBoton) primerBoton.focus();
+  });
+
+  modal.addEventListener('hidden.bs.modal', function () {
+    if (ultimoDisparadorInstantanea && typeof ultimoDisparadorInstantanea.focus === 'function') {
+      ultimoDisparadorInstantanea.focus({ preventScroll: true });
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', inicializarInstantaneaInversion);
+
+function resetearInstantaneaInversion() {
+  estadoInstantaneaInversion = { aportacion: 'todo', rentabilidad: '3' };
+
+  document.querySelectorAll('[data-instantanea-aportacion]').forEach(function (boton) {
+    var activo = boton.dataset.instantaneaAportacion === 'todo';
+    boton.classList.toggle('is-active', activo);
+    boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+  });
+
+  document.querySelectorAll('[data-instantanea-rentabilidad]').forEach(function (boton) {
+    var activo = boton.dataset.instantaneaRentabilidad === '3';
+    boton.classList.toggle('is-active', activo);
+    boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+  });
+}
+
+async function abrirInstantaneaCategoria(categoria, label, disparador) {
+  var mesInput = document.getElementById('mes');
+
+  if (!categoria || !mesInput) return;
+
+  ultimoDisparadorInstantanea = disparador || document.activeElement;
+
+  var datos = new FormData();
+  datos.append('categoria', categoria);
+  datos.append('mes', mesInput.value);
+  datos.append('_csrf', window.CSRF_TOKEN);
+
+  try {
+    var respuesta = await fetch('index.php?r=proyecciones/simularCategoriaAjax', {
+      method: 'POST',
+      body: datos,
+    });
+    var data = await respuesta.json();
+
+    if (!data.ok) {
+      abrirModalInfo({ titulo: 'No se pudo calcular la instantánea', mensaje: data.msg || 'Inténtalo de nuevo más tarde.' });
+      return;
+    }
+
+    datosInstantaneaInversion = data.data;
+    resetearInstantaneaInversion();
+    pintarCabeceraInstantaneaInversion(label || data.data.label);
+    renderizarInstantaneaInversion();
+
+    var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalInstantaneaInversion'));
+    modal.show();
+  } catch (error) {
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para calcular la instantánea.' });
+  }
+}
+
+function pintarCabeceraInstantaneaInversion(label) {
+  var titulo = document.getElementById('modalInstantaneaTitulo');
+  var subtitulo = document.getElementById('modalInstantaneaSubtitulo');
+
+  if (!datosInstantaneaInversion) return;
+
+  if (titulo) {
+    titulo.textContent = 'Si invirtieras tu gasto en ' + (label || datosInstantaneaInversion.label);
+  }
+
+  if (subtitulo) {
+    var meses = Number(datosInstantaneaInversion.mesesUsados) || 0;
+    subtitulo.textContent = 'Media mensual: ' + formatearEuros(datosInstantaneaInversion.mediaMensual) + '. Calculada con ' + meses + (meses === 1 ? ' mes con datos.' : ' meses con datos.');
+  }
+}
+
+function renderizarInstantaneaInversion() {
+  if (!datosInstantaneaInversion || !datosInstantaneaInversion.escenarios) return;
+
+  var escenario = datosInstantaneaInversion.escenarios[estadoInstantaneaInversion.aportacion]?.[estadoInstantaneaInversion.rentabilidad];
+
+  if (!escenario) return;
+
+  [5, 10, 15].forEach(function (plazo) {
+    var resultado = escenario[String(plazo)];
+    var valor = document.getElementById('instantaneaValor' + plazo);
+    var generado = document.getElementById('instantaneaGenerado' + plazo);
+
+    if (!resultado) return;
+    if (valor) valor.textContent = formatearEuros(resultado.valorFinalEstimado);
+    if (generado) generado.textContent = formatearEuros(resultado.eurosGenerados) + ' generados';
+  });
+}
 
 // ----------------------------------------------------------------------
 // Gráfico: Presupuesto mensual
@@ -436,8 +602,128 @@ async function cargarGraficoAhorros6m() {
   }
 }
 
+// ----------------------------------------------------------------------
+// Gráfico: La escala real de tus hábitos
+// ----------------------------------------------------------------------
+async function cargarGraficoEscalaHabitos() {
+  var canvas = document.getElementById('graficoEscalaHabitos');
+  var mesInput = document.getElementById('mes');
+
+  if (!canvas || !mesInput) return;
+
+  var datos = new FormData();
+  datos.append('mes', mesInput.value);
+  datos.append('_csrf', window.CSRF_TOKEN);
+
+  try {
+    var respuesta = await fetch('index.php?r=graficos/topCategorias', {
+      method: 'POST',
+      body: datos,
+    });
+    var data = await respuesta.json();
+
+    if (!data.ok) {
+      abrirModalInfo({ titulo: 'No se pudo cargar el gráfico', mensaje: 'No fue posible obtener los datos. Inténtalo de nuevo más tarde.' });
+      return;
+    }
+
+    datosEscalaHabitos = data.data.categorias || [];
+    renderizarGraficoEscalaHabitos();
+  } catch (error) {
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar el gráfico.' });
+  }
+}
+
+function renderizarGraficoEscalaHabitos() {
+  var canvas = document.getElementById('graficoEscalaHabitos');
+  var empty = document.getElementById('escalaHabitosEmpty');
+
+  if (!canvas) return;
+
+  var hayDatos = datosEscalaHabitos.length > 0;
+
+  if (empty) {
+    empty.hidden = hayDatos;
+  }
+
+  canvas.style.display = hayDatos ? 'block' : 'none';
+
+  if (!hayDatos) {
+    if (graficoEscalaHabitos) { graficoEscalaHabitos.destroy(); graficoEscalaHabitos = null; }
+    return;
+  }
+
+  var labels = datosEscalaHabitos.map(function (item) { return item.label; });
+  var valores = datosEscalaHabitos.map(function (item) {
+    return escalaHabitosActiva === 'anio' ? item.anual : item.mediaMensual;
+  });
+  var colores = datosEscalaHabitos.map(function (_item, index) {
+    var paleta = [BH_COLORS.expense, BH_COLORS.info, BH_COLORS.saving, BH_COLORS.neutral, BH_COLORS.income];
+    return paleta[index % paleta.length];
+  });
+
+  if (graficoEscalaHabitos) { graficoEscalaHabitos.destroy(); graficoEscalaHabitos = null; }
+
+  var opcionesEscalaHabitos = crearOpcionesGrafico({
+    tooltip: {
+      callbacks: {
+        label: function (context) {
+          return context.dataset.label + ': ' + formatearEuros(context.parsed.x);
+        },
+      },
+    },
+    legend: false,
+    scales: {
+      x: {
+        beginAtZero: true,
+        grid: { color: BH_COLORS.borderColor },
+        ticks: {
+          font: { family: FONT_FAMILY, size: 11 },
+          color: BH_COLORS.textMuted,
+          callback: function (value) { return formatearEuros(value); },
+        },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMain },
+      },
+    },
+  });
+
+  opcionesEscalaHabitos.indexAxis = 'y';
+  opcionesEscalaHabitos.animation = { duration: 180, easing: 'easeOutQuart' };
+  opcionesEscalaHabitos.onHover = function (event, elementos) {
+    if (event.native && event.native.target) {
+      event.native.target.style.cursor = elementos.length ? 'pointer' : 'default';
+    }
+  };
+  opcionesEscalaHabitos.onClick = function (_event, elementos) {
+    if (!elementos.length || typeof window.abrirInstantaneaCategoria !== 'function') return;
+
+    var item = datosEscalaHabitos[elementos[0].index];
+    window.abrirInstantaneaCategoria(item.categoria, item.label, canvas);
+  };
+
+  graficoEscalaHabitos = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: escalaHabitosActiva === 'anio' ? 'Proyección a 12 meses' : 'Media mensual',
+        data: valores,
+        backgroundColor: colores,
+        borderRadius: 12,
+        barThickness: 24,
+      }],
+    },
+    options: opcionesEscalaHabitos,
+  });
+}
+
 // Exponer globalmente
 window.cargarGraficoPresupuesto = cargarGraficoPresupuesto;
 window.cargarGraficoGastosFlexibles6m = cargarGraficoGastosFlexibles6m;
 window.cargarGraficoGastosEsenciales6m = cargarGraficoGastosEsenciales6m;
 window.cargarGraficoAhorros6m = cargarGraficoAhorros6m;
+window.cargarGraficoEscalaHabitos = cargarGraficoEscalaHabitos;
+window.abrirInstantaneaCategoria = abrirInstantaneaCategoria;

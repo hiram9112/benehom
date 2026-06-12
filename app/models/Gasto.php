@@ -215,6 +215,39 @@ class Gasto{
 
     }
 
+    //Método para contar meses con movimientos de un tipo en un rango
+    public static function mesesConMovimientosPorRango($usuario_id,$fechaInicio,$fechaFin,$tipo){
+
+        try{
+
+            //Establecemos conexión
+            $db=Database::getConnection();
+
+            $sql="SELECT COUNT(DISTINCT DATE_FORMAT(fecha, '%Y-%m')) AS total
+                  FROM gastos
+                  WHERE usuario_id= :usuario_id
+                  AND tipo= :tipo
+                  AND fecha BETWEEN :inicio AND :fin";
+
+            $stmt=$db->prepare($sql);
+
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+            $stmt->bindParam(':tipo',$tipo,PDO::PARAM_STR);
+            $stmt->bindParam(':inicio',$fechaInicio);
+            $stmt->bindParam(':fin',$fechaFin);
+
+            $stmt->execute();
+
+            $resultado=$stmt->fetch(PDO::FETCH_ASSOC);
+
+            return intval($resultado['total'] ?? 0);
+        }catch (Exception $e){
+
+            return false;
+        }
+
+    }
+
     //Función para eliminar todos los gastos de un usuario
     public static function eliminarTodosPorUsuario($id){
         try{

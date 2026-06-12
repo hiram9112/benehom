@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cargarGraficoGastosFlexibles6m();
           cargarGraficoGastosEsenciales6m();
           cargarGraficoAhorros6m();
+          cargarGraficoEscalaHabitos();
 
           //Limpiamos campos  del formulario
           formIngresos.reset();
@@ -99,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cargarGraficoGastosFlexibles6m();
           cargarGraficoGastosEsenciales6m();
           cargarGraficoAhorros6m();
+          cargarGraficoEscalaHabitos();
 
           //Limpiamos campos  del formulario
           formGastosEsenciales.reset();
@@ -160,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cargarGraficoGastosFlexibles6m();
           cargarGraficoGastosEsenciales6m();
           cargarGraficoAhorros6m();
+          cargarGraficoEscalaHabitos();
 
           //Limpiamos campos  del formulario
           formGastosFlexibles.reset();

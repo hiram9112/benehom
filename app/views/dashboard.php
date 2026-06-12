@@ -507,6 +507,51 @@
                         </div>
                     </div>
                 </div>
+
+                <!--Gráfico top 5 de gastos flexibles-->
+                <div class="bh-card bh-card-chart bh-card-habits-scale">
+                    <div class="bh-card-chart-header">
+                        <h5>
+                            Top de gastos flexibles
+                            <button type="button"
+                                class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#infoEscalaHabitosMedia"
+                                data-escala-habitos-info
+                                aria-label="Información sobre el top 5 de gastos flexibles">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </h5>
+
+                        <div class="bh-segmented" role="group" aria-label="Seleccionar vista del gráfico">
+                            <button type="button"
+                                id="btnEscalaHabitosMes"
+                                class="bh-segmented-button is-active"
+                                data-escala-habitos="mes"
+                                aria-pressed="true">
+                                Media mensual
+                            </button>
+                            <button type="button"
+                                id="btnEscalaHabitosAnio"
+                                class="bh-segmented-button"
+                                data-escala-habitos="anio"
+                                aria-pressed="false">
+                                Proyección anual
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="contenedor-grafico bh-scale-chart-container">
+                        <canvas id="graficoEscalaHabitos"></canvas>
+                        <div id="escalaHabitosEmpty" class="bh-empty-state bh-dashboard-empty-state bh-chart-empty-state" hidden>
+                            <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi bi-bar-chart-steps"></i></span>
+                            <h4 class="bh-empty-state-title">Sin gastos flexibles todavía</h4>
+                            <p class="bh-empty-state-text">Registra tus gastos flexibles para descubrir qué hábitos pesan más en tu presupuesto.</p>
+                        </div>
+                    </div>
+
+                    <p class="bh-chart-hint"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i> Toca una barra y descubre qué pasaría si invirtieras ese dinero en lugar de gastarlo</p>
+                </div>
                 </aside>
                 </div>
                 </div>
@@ -852,6 +897,118 @@
 
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal Gráfico top 5 de gastos flexibles: vista media mensual-->
+    <div class="modal fade" id="infoEscalaHabitosMedia" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">¿Qué muestra la media mensual?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>Estás viendo lo que te cuesta cada uno de estos hábitos en un <strong>mes típico</strong>.</p>
+
+                    <p><strong>No es el gasto de este mes</strong>: es el promedio de tus últimos meses con gastos (hasta 6). Si solo llevas un mes registrando, la cifra coincide con ese mes y se irá afinando a medida que añadas más datos.</p>
+
+                    <p class="mt-2">Es tu punto de partida: conocer el tamaño real de cada hábito antes de decidir si quieres cambiarlo.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal Gráfico top 5 de gastos flexibles: vista proyección anual-->
+    <div class="modal fade" id="infoEscalaHabitosProyeccion" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">¿Qué muestra la proyección anual?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>Estás viendo una <strong>estimación de futuro</strong>: lo que te costará cada hábito durante los próximos 12 meses <strong>si mantienes tu ritmo de gasto actual</strong>.</p>
+
+                    <p><strong>No es lo que has gastado este año</strong>: se calcula multiplicando tu media mensual por 12.</p>
+
+                    <p class="mt-2">Un gasto que parece pequeño mes a mes puede convertirse en una cifra importante al cabo de un año. Verlo a tiempo te permite decidir antes de que ocurra.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal de instantánea de inversión efímera-->
+    <div class="modal fade" id="modalInstantaneaInversion" tabindex="-1" aria-labelledby="modalInstantaneaTitulo" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bh-modal bh-investment-snapshot-modal">
+                <div class="modal-header bh-modal-header">
+                    <div>
+                        <p class="bh-modal-eyebrow">Instantánea educativa</p>
+                        <h5 class="modal-title bh-modal-title" id="modalInstantaneaTitulo">Si invirtieras tu gasto en esta categoría</h5>
+                        <p class="bh-investment-snapshot-subtitle" id="modalInstantaneaSubtitulo"></p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body bh-modal-body">
+                    <div class="bh-investment-snapshot-controls">
+                        <div>
+                            <span class="bh-control-label">Aportación</span>
+                            <div class="bh-segmented" role="group" aria-label="Seleccionar aportación simulada">
+                                <button type="button" class="bh-segmented-button is-active" data-instantanea-aportacion="todo" aria-pressed="true">Todo</button>
+                                <button type="button" class="bh-segmented-button" data-instantanea-aportacion="mitad" aria-pressed="false">La mitad</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="bh-control-label">Rentabilidad orientativa</span>
+                            <div class="bh-segmented" role="group" aria-label="Seleccionar rentabilidad orientativa">
+                                <button type="button" class="bh-segmented-button is-active" data-instantanea-rentabilidad="3" aria-pressed="true">3%</button>
+                                <button type="button" class="bh-segmented-button" data-instantanea-rentabilidad="6" aria-pressed="false">6%</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bh-investment-snapshot-results" aria-live="polite">
+                        <div class="bh-investment-snapshot-row">
+                            <span class="bh-investment-snapshot-years">5 años</span>
+                            <strong id="instantaneaValor5">0 €</strong>
+                            <span><span id="instantaneaGenerado5" class="bh-investment-generated">0 € generados</span></span>
+                        </div>
+                        <div class="bh-investment-snapshot-row">
+                            <span class="bh-investment-snapshot-years">10 años</span>
+                            <strong id="instantaneaValor10">0 €</strong>
+                            <span><span id="instantaneaGenerado10" class="bh-investment-generated">0 € generados</span></span>
+                        </div>
+                        <div class="bh-investment-snapshot-row">
+                            <span class="bh-investment-snapshot-years">15 años</span>
+                            <strong id="instantaneaValor15">0 €</strong>
+                            <span><span id="instantaneaGenerado15" class="bh-investment-generated">0 € generados</span></span>
+                        </div>
+                    </div>
+
+                    <p class="bh-investment-disclaimer">
+                        Estimación orientativa con fines educativos, no es una recomendación de inversión, no representa ningún producto concreto y nada se guarda ni modifica los datos reales.
+                    </p>
+                </div>
+
+                <div class="modal-footer bh-modal-footer">
+                    <button type="button" class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>

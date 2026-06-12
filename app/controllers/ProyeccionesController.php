@@ -101,6 +101,95 @@ class ProyeccionesController {
         require_once APP_PATH . "/views/proyecciones.php";
     }
 
+    public function simularCategoriaAjax(){
+        if($_SERVER['REQUEST_METHOD'] !== 'POST'){
+            echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
+            return;
+        }
+
+        if(!isset($_SESSION['usuario_id'])){
+            echo json_encode(['ok' => false, 'msg' => 'Sesión no válida']);
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $categoria = trim((string) ($_POST['categoria'] ?? ''));
+        $mesSeleccionado = trim((string) ($_POST['mes'] ?? ''));
+
+        if (!$this->mesValido($mesSeleccionado)) {
+            echo json_encode(['ok' => false, 'msg' => 'Mes no válido']);
+            return;
+        }
+
+        if ($categoria === '' || !gastoCategoriaPermitida('voluntario', $categoria)) {
+            echo json_encode(['ok' => false, 'msg' => 'Categoría no válida']);
+            return;
+        }
+
+        $fechaInicio = date('Y-m-01', strtotime('-5 months', strtotime($mesSeleccionado . '-01')));
+        $fechaFin = date('Y-m-t', strtotime($mesSeleccionado . '-01'));
+        $totales = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+        $mesesUsados = Gasto::mesesConMovimientosPorRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+
+        if ($totales === false || $mesesUsados === false) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudieron calcular los datos de la instantánea.']);
+            return;
+        }
+
+        $totalCategoria = 0.0;
+
+        foreach ($totales as $fila) {
+            if (($fila['categoria'] ?? '') === $categoria) {
+                $totalCategoria = floatval($fila['total']);
+                break;
+            }
+        }
+
+        if ($mesesUsados <= 0 || $totalCategoria <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No hay gastos suficientes en esta categoría para simular.']);
+            return;
+        }
+
+        $mediaMensual = round($totalCategoria / $mesesUsados, 2);
+        $escenarios = [];
+
+        foreach (['todo' => 1, 'mitad' => 0.5] as $aportacionClave => $factorAportacion) {
+            $aportacionMensual = round($mediaMensual * $factorAportacion, 2);
+
+            foreach ([3, 6] as $rentabilidad) {
+                foreach ([5, 10, 15] as $plazoAnios) {
+                    $resultado = $this->calcularEscenarioInversion(
+                        0,
+                        $aportacionMensual,
+                        $rentabilidad,
+                        $plazoAnios,
+                        'anual'
+                    );
+
+                    $escenarios[$aportacionClave][(string) $rentabilidad][(string) $plazoAnios] = [
+                        'aportacionMensual' => $aportacionMensual,
+                        'valorFinalEstimado' => $resultado['valor_final_estimado'],
+                        'eurosGenerados' => $resultado['rendimiento_estimado'],
+                        'totalAportado' => $resultado['capital_total_aportado'],
+                    ];
+                }
+            }
+        }
+
+        echo json_encode([
+            'ok' => true,
+            'data' => [
+                'categoria' => $categoria,
+                'label' => formatearCategoria($categoria),
+                'mediaMensual' => $mediaMensual,
+                'mesesUsados' => $mesesUsados,
+                'fechaInicio' => substr($fechaInicio, 0, 7),
+                'fechaFin' => substr($fechaFin, 0, 7),
+                'escenarios' => $escenarios,
+            ],
+        ]);
+    }
+
     public function crearEscenarioInversion(){
         if (!$this->peticionPostAutenticada()) {
             return;

@@ -246,7 +246,89 @@ class GraficosController{
         ]);
 
         return;
-           
+
     }
-    
+
+    public function topCategorias(){
+        // Comprobaciones de seguridad, nos aseguramos que la petición sea POST y haya una sesión activa
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "Método no permitido"
+            ]);
+            return;
+        }
+
+        if (!isset($_SESSION['usuario_id'])) {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "Sesión no válida"
+            ]);
+            return;
+        }
+
+        if (!isset($_POST['mes']) || !preg_match('/^\d{4}-\d{2}$/', $_POST['mes'])) {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "Mes no válido"
+            ]);
+            return;
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $mesSeleccionado = $_POST['mes'];
+        $fechaSeleccionada = DateTime::createFromFormat('Y-m-d', $mesSeleccionado . '-01');
+
+        if (!$fechaSeleccionada || $fechaSeleccionada->format('Y-m') !== $mesSeleccionado) {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "Mes no válido"
+            ]);
+            return;
+        }
+
+        $fechaInicio = date('Y-m-01', strtotime('-5 months', strtotime($mesSeleccionado . '-01')));
+        $fechaFin = date('Y-m-t', strtotime($mesSeleccionado . '-01'));
+
+        $totales = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+        $mesesUsados = Gasto::mesesConMovimientosPorRango($usuario_id, $fechaInicio, $fechaFin, 'voluntario');
+
+        if ($totales === false || $mesesUsados === false) {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "No se pudieron obtener los datos del gráfico."
+            ]);
+            return;
+        }
+
+        $categorias = [];
+
+        if ($mesesUsados > 0) {
+            foreach (array_slice($totales, 0, 5) as $fila) {
+                $total = floatval($fila['total']);
+                $mediaMensual = $total / $mesesUsados;
+
+                $categorias[] = [
+                    "categoria" => $fila['categoria'],
+                    "label" => formatearCategoria($fila['categoria']),
+                    "total" => $total,
+                    "mediaMensual" => $mediaMensual,
+                    "anual" => $mediaMensual * 12
+                ];
+            }
+        }
+
+        echo json_encode([
+            "ok" => true,
+            "data" => [
+                "categorias" => $categorias,
+                "mesesUsados" => $mesesUsados,
+                "fechaInicio" => substr($fechaInicio, 0, 7),
+                "fechaFin" => substr($fechaFin, 0, 7)
+            ]
+        ]);
+
+        return;
+    }
+
 }

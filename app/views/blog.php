@@ -24,7 +24,10 @@
         return date('d/m/Y', strtotime($fecha));
     };
 
-    $articulosListado = $articulos;
+    $slugDestacado = (string) ($articuloDestacado['slug'] ?? '');
+    $articulosListado = array_values(array_filter($articulos, static function (array $articulo) use ($slugDestacado): bool {
+        return $slugDestacado === '' || ($articulo['slug'] ?? '') !== $slugDestacado;
+    }));
     ?>
 
     <div class="bh-app-shell">
@@ -62,7 +65,43 @@
                             <h2 id="blog-library-title">Biblioteca educativa</h2>
                             <p>Contenido preparado para crecer sin cambiar la estructura cuando añadas nuevos artículos.</p>
                         </div>
+                        <?php if (!empty($categorias)): ?>
+                            <div class="bh-blog-category-list" aria-label="Categorías visibles">
+                                <?php foreach ($categorias as $categoria): ?>
+                                    <span class="bh-badge bh-badge-neutral"><?= htmlspecialchars($categoria, ENT_QUOTES, 'UTF-8') ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
+
+                    <?php if (!empty($articuloDestacado)): ?>
+                        <article class="bh-card bh-blog-featured-card" aria-label="Artículo destacado">
+                            <div class="bh-blog-featured-marker" aria-hidden="true">
+                                <i class="bi <?= htmlspecialchars($articuloDestacado['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>"></i>
+                            </div>
+                            <div class="bh-blog-featured-copy">
+                                <span class="bh-badge bh-badge-saving">Destacado · <?= htmlspecialchars($articuloDestacado['categoria'], ENT_QUOTES, 'UTF-8') ?></span>
+                                <h2><?= htmlspecialchars($articuloDestacado['titulo'], ENT_QUOTES, 'UTF-8') ?></h2>
+                                <p><?= htmlspecialchars($articuloDestacado['resumen'], ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
+                            <div class="bh-blog-featured-aside">
+                                <div class="bh-blog-meta-list">
+                                    <p>
+                                        <span>Publicado</span>
+                                        <strong><?= htmlspecialchars($formatearFechaBlog($articuloDestacado['fecha']), ENT_QUOTES, 'UTF-8') ?></strong>
+                                    </p>
+                                    <p>
+                                        <span>Lectura</span>
+                                        <strong><?= intval($articuloDestacado['lectura_min']) ?> min</strong>
+                                    </p>
+                                </div>
+                                <a class="bh-btn bh-btn-primary bh-blog-card-action" href="index.php?r=blog/detalle&amp;slug=<?= urlencode($articuloDestacado['slug']) ?>">
+                                    Leer destacado
+                                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                        </article>
+                    <?php endif; ?>
 
                     <div class="bh-blog-article-grid" aria-label="Artículos educativos">
                         <?php foreach ($articulosListado as $articulo): ?>
@@ -71,6 +110,7 @@
                                     <i class="bi <?= htmlspecialchars($articulo['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>"></i>
                                 </div>
                                 <div class="bh-blog-article-copy">
+                                    <span class="bh-badge bh-badge-neutral"><?= htmlspecialchars($articulo['categoria'], ENT_QUOTES, 'UTF-8') ?></span>
                                     <h2><?= htmlspecialchars($articulo['titulo'], ENT_QUOTES, 'UTF-8') ?></h2>
                                     <p><?= htmlspecialchars($articulo['resumen'], ENT_QUOTES, 'UTF-8') ?></p>
                                 </div>

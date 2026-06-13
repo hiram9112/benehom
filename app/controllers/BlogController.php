@@ -28,10 +28,7 @@ class BlogController {
             exit;
         }
 
-        $articulosRelacionados = array_values(array_filter(
-            ArticuloBlog::publicados(),
-            static fn (array $item): bool => ($item['slug'] ?? '') !== $slug
-        ));
+        $articulosRelacionados = ArticuloBlog::relacionadosPara($articulo);
 
         require_once APP_PATH . '/views/blog-detalle.php';
     }

@@ -405,7 +405,7 @@ function renderizarInstantaneaInversion() {
 
     if (!resultado) return;
     if (valor) valor.textContent = formatearEuros(resultado.valorFinalEstimado);
-    if (generado) generado.textContent = formatearEuros(resultado.eurosGenerados) + ' generados';
+    if (generado) generado.textContent = formatearEuros(resultado.eurosGenerados);
   });
 }
 

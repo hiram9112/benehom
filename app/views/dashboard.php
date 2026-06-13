@@ -943,11 +943,11 @@
             <div class="modal-content bh-modal bh-investment-snapshot-modal">
                 <div class="modal-header bh-modal-header">
                     <div>
-                        <p class="bh-modal-eyebrow">Instantánea educativa</p>
+                        <p class="bh-modal-eyebrow">Simulación educativa</p>
                         <h5 class="modal-title bh-modal-title" id="modalInstantaneaTitulo">Si invirtieras tu gasto en esta categoría</h5>
                         <p class="bh-investment-snapshot-subtitle" id="modalInstantaneaSubtitulo"></p>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
 
                 <div class="modal-body bh-modal-body">
@@ -965,35 +965,37 @@
                             <div class="bh-segmented" role="group" aria-label="Seleccionar rentabilidad orientativa">
                                 <button type="button" class="bh-segmented-button is-active" data-instantanea-rentabilidad="3" aria-pressed="true">3%</button>
                                 <button type="button" class="bh-segmented-button" data-instantanea-rentabilidad="6" aria-pressed="false">6%</button>
+                                <button type="button" class="bh-segmented-button" data-instantanea-rentabilidad="9" aria-pressed="false">9%</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="bh-investment-snapshot-results" aria-live="polite">
+                        <div class="bh-investment-snapshot-head">
+                            <span>Plazo</span>
+                            <span>Total acumulado</span>
+                            <span>Beneficio generado</span>
+                        </div>
                         <div class="bh-investment-snapshot-row">
                             <span class="bh-investment-snapshot-years">5 años</span>
                             <strong id="instantaneaValor5">0 €</strong>
-                            <span><span id="instantaneaGenerado5" class="bh-investment-generated">0 € generados</span></span>
+                            <span><span id="instantaneaGenerado5" class="bh-investment-generated">0 €</span></span>
                         </div>
                         <div class="bh-investment-snapshot-row">
                             <span class="bh-investment-snapshot-years">10 años</span>
                             <strong id="instantaneaValor10">0 €</strong>
-                            <span><span id="instantaneaGenerado10" class="bh-investment-generated">0 € generados</span></span>
+                            <span><span id="instantaneaGenerado10" class="bh-investment-generated">0 €</span></span>
                         </div>
                         <div class="bh-investment-snapshot-row">
                             <span class="bh-investment-snapshot-years">15 años</span>
                             <strong id="instantaneaValor15">0 €</strong>
-                            <span><span id="instantaneaGenerado15" class="bh-investment-generated">0 € generados</span></span>
+                            <span><span id="instantaneaGenerado15" class="bh-investment-generated">0 €</span></span>
                         </div>
                     </div>
 
                     <p class="bh-investment-disclaimer">
                         Estimación orientativa con fines educativos, no es una recomendación de inversión, no representa ningún producto concreto y nada se guarda ni modifica los datos reales.
                     </p>
-                </div>
-
-                <div class="modal-footer bh-modal-footer">
-                    <button type="button" class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>

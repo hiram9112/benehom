@@ -1402,6 +1402,18 @@ textarea:disabled {
     gap: var(--bh-space-3);
 }
 
+.bh-investment-snapshot-head{
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 0.6fr) minmax(7rem, 1fr) minmax(7rem, 1fr);
+    gap: var(--bh-space-3);
+    padding: 0 var(--bh-space-4);
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-xs);
+    font-weight: var(--bh-weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 .bh-investment-snapshot-row{
     display: grid;
     grid-template-columns: minmax(4.5rem, 0.6fr) minmax(7rem, 1fr) minmax(7rem, 1fr);
@@ -1443,6 +1455,69 @@ textarea:disabled {
     color: var(--bh-text-muted);
     background-color: var(--bh-surface-card);
     font-size: var(--bh-text-sm);
+}
+
+/* ==========================================================================
+   Instantánea de inversión — variante azul de marca
+   ========================================================================== */
+
+.bh-investment-snapshot-modal{
+    background-color: var(--bh-brand-strong);
+    color: #fff;
+}
+
+.bh-investment-snapshot-modal .bh-modal-header{
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.bh-investment-snapshot-modal .bh-modal-title,
+.bh-investment-snapshot-modal .bh-investment-snapshot-years,
+.bh-investment-snapshot-modal .bh-investment-snapshot-row strong{
+    color: #fff;
+}
+
+.bh-investment-snapshot-modal .bh-modal-eyebrow,
+.bh-investment-snapshot-modal .bh-investment-snapshot-subtitle,
+.bh-investment-snapshot-modal .bh-investment-snapshot-head,
+.bh-investment-snapshot-modal .bh-control-label{
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.bh-investment-snapshot-modal .bh-segmented{
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.bh-investment-snapshot-modal .bh-segmented-button{
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.bh-investment-snapshot-modal .bh-segmented-button:hover{
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.bh-investment-snapshot-modal .bh-segmented-button.is-active,
+.bh-investment-snapshot-modal .bh-segmented-button[aria-pressed="true"]{
+    color: var(--bh-brand-strong);
+    background-color: #fff;
+}
+
+.bh-investment-snapshot-modal .bh-investment-snapshot-row{
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.bh-investment-snapshot-modal .bh-investment-generated{
+    color: #1B5E20;
+    background-color: #fff;
+}
+
+.bh-investment-snapshot-modal .bh-investment-disclaimer{
+    color: rgba(255, 255, 255, 0.72);
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.18);
 }
 
 .bh-empty-state {
@@ -3082,6 +3157,29 @@ textarea:disabled {
 
     .bh-investment-snapshot-row{
         align-items: flex-start;
+    }
+
+    .bh-investment-snapshot-head{
+        display: none;
+    }
+
+    .bh-investment-snapshot-row > strong::before,
+    .bh-investment-snapshot-row > span:last-child::before{
+        display: block;
+        margin-bottom: var(--bh-space-1);
+        font-size: var(--bh-text-xs);
+        font-weight: var(--bh-weight-bold);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        opacity: 0.7;
+    }
+
+    .bh-investment-snapshot-row > strong::before{
+        content: "Total acumulado";
+    }
+
+    .bh-investment-snapshot-row > span:last-child::before{
+        content: "Beneficio generado";
     }
 }
 

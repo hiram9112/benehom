@@ -156,7 +156,7 @@ class ProyeccionesController {
         foreach (['todo' => 1, 'mitad' => 0.5] as $aportacionClave => $factorAportacion) {
             $aportacionMensual = round($mediaMensual * $factorAportacion, 2);
 
-            foreach ([3, 6] as $rentabilidad) {
+            foreach ([3, 6, 9] as $rentabilidad) {
                 foreach ([5, 10, 15] as $plazoAnios) {
                     $resultado = $this->calcularEscenarioInversion(
                         0,

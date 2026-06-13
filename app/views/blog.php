@@ -36,11 +36,11 @@
         <main class="bh-main bh-blog-page">
             <header class="bh-card bh-blog-hero" aria-labelledby="blog-title">
                 <div class="bh-blog-hero-copy">
-                    <h1 id="blog-title">Entiende mejor el dinero que forma parte de tu día a día</h1>
+                    <h1 id="blog-title">Aprende a manejar el dinero de tu hogar, sin complicaciones</h1>
                     <p>
-                        Artículos claros sobre conceptos financieros cotidianos: inflación, hipotecas, activos financieros y otros temas
-                        que influyen en cómo decides, ahorras, planificas y proyectas escenarios. Comprenderlos ayuda a evitar errores habituales y a construir
-                        una relación más consciente con tu economía.
+                        Guías claras y prácticas sobre lo que de verdad te preguntas: cómo hacer un presupuesto, cuánto puedes ahorrar,
+                        en qué se va el dinero, qué es el interés compuesto o cuánta hipoteca puedes pagar. Sin jerga y sin promesas:
+                        solo ideas para decidir con más calma y construir margen.
                     </p>
                 </div>
                 <div class="bh-blog-hero-visual" aria-hidden="true">
@@ -55,27 +55,35 @@
                     </div>
                     <h2 id="blog-empty-title" class="bh-empty-state-title">Aún no hay artículos publicados</h2>
                     <p class="bh-empty-state-text">
-                        Los artículos sobre inflación, hipotecas y activos financieros estarán disponibles aquí para ayudarte a entender conceptos clave para tu economía doméstica.
+                        Las guías sobre presupuesto, ahorro, gastos y proyecciones estarán disponibles aquí para ayudarte a tomar mejores decisiones con el dinero de tu hogar.
                     </p>
                 </section>
             <?php else: ?>
                 <section class="bh-card bh-blog-library" aria-labelledby="blog-library-title">
                     <div class="bh-blog-section-heading">
                         <div>
-                            <h2 id="blog-library-title">Biblioteca educativa</h2>
-                            <p>Contenido preparado para crecer sin cambiar la estructura cuando añadas nuevos artículos.</p>
+                            <h2 id="blog-library-title">Explora por tema</h2>
+                            <p class="bh-blog-result-count" data-blog-count aria-live="polite">
+                                <span data-blog-count-value><?= count($articulos) ?></span> artículos<span data-blog-count-temas> · <?= count($categorias) ?> temas</span>
+                            </p>
                         </div>
-                        <?php if (!empty($categorias)): ?>
-                            <div class="bh-blog-category-list" aria-label="Categorías visibles">
-                                <?php foreach ($categorias as $categoria): ?>
-                                    <span class="bh-badge bh-badge-neutral"><?= htmlspecialchars($categoria, ENT_QUOTES, 'UTF-8') ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
+                        <div class="bh-blog-search">
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <input type="search" class="bh-blog-search-input" data-blog-search placeholder="Buscar por título o tema" aria-label="Buscar artículos por título o tema">
+                        </div>
                     </div>
 
+                    <?php if (!empty($categorias)): ?>
+                        <div class="bh-blog-filter-list" role="group" aria-label="Filtrar artículos por tema">
+                            <button type="button" class="bh-blog-filter is-active" data-blog-filter="" aria-pressed="true">Todos</button>
+                            <?php foreach ($categorias as $categoria): ?>
+                                <button type="button" class="bh-blog-filter" data-blog-filter="<?= htmlspecialchars($categoria, ENT_QUOTES, 'UTF-8') ?>" aria-pressed="false"><?= htmlspecialchars($categoria, ENT_QUOTES, 'UTF-8') ?></button>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if (!empty($articuloDestacado)): ?>
-                        <article class="bh-card bh-blog-featured-card" aria-label="Artículo destacado">
+                        <article class="bh-card bh-blog-featured-card bh-blog-filterable" aria-label="Artículo destacado" data-blog-featured data-categoria="<?= htmlspecialchars($articuloDestacado['categoria'], ENT_QUOTES, 'UTF-8') ?>" data-busqueda="<?= htmlspecialchars($articuloDestacado['titulo'] . ' ' . $articuloDestacado['resumen'], ENT_QUOTES, 'UTF-8') ?>">
                             <div class="bh-blog-featured-marker" aria-hidden="true">
                                 <i class="bi <?= htmlspecialchars($articuloDestacado['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>"></i>
                             </div>
@@ -105,7 +113,7 @@
 
                     <div class="bh-blog-article-grid" aria-label="Artículos educativos">
                         <?php foreach ($articulosListado as $articulo): ?>
-                            <article class="bh-blog-article-card">
+                            <article class="bh-blog-article-card bh-blog-filterable" data-categoria="<?= htmlspecialchars($articulo['categoria'], ENT_QUOTES, 'UTF-8') ?>" data-busqueda="<?= htmlspecialchars($articulo['titulo'] . ' ' . $articulo['resumen'], ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="bh-blog-article-marker" aria-hidden="true">
                                     <i class="bi <?= htmlspecialchars($articulo['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>"></i>
                                 </div>
@@ -133,6 +141,10 @@
                             </article>
                         <?php endforeach; ?>
                     </div>
+
+                    <p class="bh-blog-no-results" data-blog-empty hidden role="status">
+                        No hay artículos que coincidan con tu búsqueda. Prueba con otro tema o término.
+                    </p>
                 </section>
             <?php endif; ?>
         </main>
@@ -141,6 +153,7 @@
     <?php bh_mobile_menu(); ?>
 
     <script src="<?= BASE_URL ?>js/flash.js"></script>
+    <script src="<?= BASE_URL ?>js/blog-filtros.js"></script>
 </body>
 
 </html>

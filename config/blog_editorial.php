@@ -2,7 +2,7 @@
 
 return [
     'linea_editorial' => [
-        'proposito' => 'Cada artículo explica un concepto financiero cotidiano con lenguaje de hogar y termina con una aplicación práctica dentro de BeneHom.',
+        'proposito' => 'Cada artículo responde a una pregunta real sobre el dinero del hogar (la que la gente busca de verdad) con lenguaje cercano, y muestra cómo aplicarla en BeneHom como remate natural, no como argumento de venta.',
         'tono' => [
             'cercano',
             'claro',
@@ -16,8 +16,14 @@ return [
             'alarmismo',
             'promesas de rentabilidad',
             'recomendaciones de productos concretos',
+            'títulos centrados en vocabulario interno que nadie busca',
         ],
-        'cierre' => 'El campo conexion es requerido y debe vincular el tema con una funcionalidad real: dashboard, metas, proyecciones o gráficos.',
+        'cierre' => 'El campo conexion sigue siendo obligatorio y enlaza el tema con una funcionalidad real (dashboard, metas, proyecciones o gráficos), pero como aplicación práctica al final del recorrido, no como reclamo.',
+    ],
+    'enfoque_captacion' => [
+        'objetivo' => 'El blog es el principal activo SEO del producto: capta a quien aún no conoce BeneHom respondiendo a lo que busca y lo acerca a la herramienta.',
+        'principio_puente' => 'El título usa el término que la gente teclea en un buscador; el vocabulario propio (ahorro posible, ahorro real, esencial, flexible) vive dentro del texto como marco que resuelve la pregunta, no en el titular.',
+        'recorrido' => 'pregunta real (intención de búsqueda) → marco que la resuelve (concepto BeneHom) → aplicación práctica con la conexion.',
     ],
     'categorias_oficiales' => [
         'ahorro' => 'Ahorro',
@@ -37,12 +43,14 @@ return [
             'minimo' => 4,
             'maximo' => 6,
         ],
-        'resumen' => 'Una frase que anticipe el aprendizaje práctico del artículo.',
+        'resumen' => 'Una frase que anticipe el aprendizaje práctico del artículo, usando el lenguaje de la consulta de búsqueda.',
+        'enfoque' => 'Sección 1: plantea la pregunta tal como la vive y la busca el lector. Sección 2: la resuelve introduciendo el concepto BeneHom como marco. Sección 3: la aplica y remata con la conexion.',
         'campos_requeridos' => [
             'slug',
             'categoria',
             'titulo',
             'resumen',
+            'intencion_busqueda',
             'fecha',
             'estado',
             'lectura_min',
@@ -52,24 +60,26 @@ return [
             'conexion',
         ],
     ],
-    'auditoria_articulos_existentes' => [
-        'inflacion-y-presupuesto-del-hogar' => [
-            'terminologia' => 'Usa gastos esenciales, gastos flexibles y ahorro real de forma alineada con el producto.',
-            'tono' => 'Explica la inflación sin alarmismo y conecta la lectura con decisiones mensuales del hogar.',
-            'estructura' => 'Cumple 3 secciones, 2 párrafos por sección, resumen de una frase, lectura de 4 minutos y conexion requerida.',
-            'conexion' => 'Dashboard: comparación de ahorro real y gastos flexibles entre meses.',
+    'reenfoque_seo' => [
+        'fecha' => '2026-06-13',
+        'motivo' => 'Los artículos del Sprint 15 estaban escritos para explicar conceptos internos de BeneHom (contenido de retención), con títulos sobre vocabulario propio que nadie busca. Se reorientan a intención de búsqueda real (contenido de captación) sin perder voz, concepto ni conexion.',
+        'titulos_reenfocados' => [
+            'ahorro-posible-y-ahorro-real => cuanto-puedes-ahorrar-cada-mes',
+            'gastos-esenciales-y-gastos-flexibles => gastos-fijos-y-variables',
+            'metas-de-ahorro-realistas => metas-de-ahorro-como-cumplirlas',
+            'interes-compuesto-explicado-para-tu-hogar => que-es-el-interes-compuesto',
+            'pequenos-habitos-grandes-cifras => gastos-hormiga',
+            'colchon-de-emergencia-antes-de-invertir => fondo-de-emergencia',
+            'inflacion-y-presupuesto-del-hogar => que-es-la-inflacion',
+            'hipotecas-cuota-y-decision-familiar => cuanta-hipoteca-puedes-pagar',
+            'activos-financieros-basicos => como-empezar-a-invertir-desde-cero',
         ],
-        'hipotecas-cuota-y-decision-familiar' => [
-            'terminologia' => 'Usa gastos esenciales y ahorro real como referencias funcionales del producto.',
-            'tono' => 'Mantiene una orientación calmada y práctica sin inducir decisiones hipotecarias concretas.',
-            'estructura' => 'Cumple 3 secciones, 2 párrafos por sección, resumen de una frase, lectura de 5 minutos y conexion requerida.',
-            'conexion' => 'Dashboard: registro de gastos esenciales y revisión del ahorro real antes de simular una cuota.',
+        'articulos_captacion_nuevos' => [
+            'como-hacer-un-presupuesto-familiar (destacado)',
+            'regla-50-30-20',
+            'como-ahorrar-dinero-cada-mes',
+            'vivir-por-debajo-de-tus-posibilidades',
         ],
-        'activos-financieros-basicos' => [
-            'terminologia' => 'Usa ahorro real y gastos esenciales antes de hablar de proyecciones o inversión.',
-            'tono' => 'Es educativo y prudente: no promete rentabilidad ni recomienda productos concretos.',
-            'estructura' => 'Cumple 3 secciones, 2 párrafos por sección, resumen de una frase, lectura de 5 minutos y conexion requerida.',
-            'conexion' => 'Proyecciones: revisión previa del ahorro real antes de estimar escenarios educativos.',
-        ],
+        'nota' => 'Cambiar slugs y títulos ahora no rompe SEO: el blog aún redirige a login y no está indexado. Conviene aplicarlo antes del Sprint 16, que publica el blog y genera meta descriptions, Open Graph y sitemap a partir de titulo, resumen e intencion_busqueda.',
     ],
 ];

@@ -115,7 +115,7 @@ Configura el servidor web para servir la aplicación desde el directorio `public
 La aplicación usa rutas mediante el parámetro `r`, por ejemplo:
 
 ```text
-http://localhost/benehom/public/index.php?r=landing/index
+http://localhost/benehom/public/index.php?r=home/index
 ```
 
 Si usas un entorno como XAMPP o MAMP, asegúrate de que el proyecto tenga acceso a PHP, MySQL y al archivo `.env`.

@@ -26,23 +26,23 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
     <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
 </head>
 
-<body class="bh-landing-body">
+<body class="bh-home-body">
     <a class="bh-skip-link" href="#contenido">Saltar al contenido</a>
 
-    <div class="bh-landing-top">
-        <header class="bh-landing-nav" aria-label="Navegación principal">
-            <div class="bh-landing-wrap">
-                <a class="bh-landing-brand" href="<?= BASE_URL ?>index.php" aria-label="BeneHom, ir al inicio">
+    <div class="bh-home-top">
+        <header class="bh-home-nav" aria-label="Navegación principal">
+            <div class="bh-home-wrap">
+                <a class="bh-home-brand" href="<?= BASE_URL ?>index.php" aria-label="BeneHom, ir al inicio">
                     <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="BeneHom" width="120" height="80">
                 </a>
                 <nav aria-label="Secciones de la página">
-                    <ul class="bh-landing-nav-links">
+                    <ul class="bh-home-nav-links">
                         <li><a href="#como-funciona">Cómo funciona</a></li>
                         <li><a href="#simuladores">Simuladores</a></li>
                         <li><a href="#blog">Blog</a></li>
                     </ul>
                 </nav>
-                <nav class="bh-landing-nav-actions" aria-label="Acceso a la cuenta">
+                <nav class="bh-home-nav-actions" aria-label="Acceso a la cuenta">
                     <?php if (!$usuarioLogueado): ?>
                         <a class="bh-btn bh-btn-ghost" href="<?= $loginUrl ?>">Iniciar sesión</a>
                         <a class="bh-btn bh-btn-primary" href="<?= $registerUrl ?>">Crear cuenta</a>
@@ -53,12 +53,12 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
             </div>
         </header>
 
-        <section class="bh-landing-hero" id="contenido" aria-labelledby="hero-title">
-            <div class="bh-landing-wrap">
-                <div class="bh-landing-hero-copy">
+        <section class="bh-home-hero" id="contenido" aria-labelledby="hero-title">
+            <div class="bh-home-wrap">
+                <div class="bh-home-hero-copy">
                     <h1 id="hero-title">Las cuentas de casa, claras mes a mes.</h1>
-                    <p class="bh-landing-lead">BeneHom es un cuaderno de cuentas para el hogar: apuntas lo que entra y lo que sale, ves cuánto ahorras de verdad y, antes de tomar una decisión con tu dinero, la pruebas con números en una proyección.</p>
-                    <div class="bh-landing-cta">
+                    <p class="bh-home-lead">BeneHom es un cuaderno de cuentas para el hogar: apuntas lo que entra y lo que sale, ves cuánto ahorras de verdad y, antes de tomar una decisión con tu dinero, la pruebas con números en una proyección.</p>
+                    <div class="bh-home-cta">
                         <a class="bh-btn bh-btn-primary" href="<?= $primaryUrl ?>"><?= $primaryLabel ?></a>
                         <?php if (!$usuarioLogueado): ?>
                             <a class="bh-btn bh-btn-ghost" href="<?= $loginUrl ?>">Ya tengo cuenta</a>
@@ -66,13 +66,13 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
                     </div>
                 </div>
 
-                <div class="bh-landing-ledger" aria-label="Ejemplo del resumen mensual de BeneHom">
-                    <article class="bh-landing-ledger-card">
-                        <header class="bh-landing-ledger-head">
+                <div class="bh-home-ledger" aria-label="Ejemplo del resumen mensual de BeneHom">
+                    <article class="bh-home-ledger-card">
+                        <header class="bh-home-ledger-head">
                             <h2>Resumen del mes</h2>
                             <span>Junio</span>
                         </header>
-                        <dl class="bh-landing-ledger-rows">
+                        <dl class="bh-home-ledger-rows">
                             <div>
                                 <dt class="is-income">Ingresos</dt>
                                 <dd>2.450&nbsp;€</dd>
@@ -86,20 +86,20 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
                                 <dd>445&nbsp;€</dd>
                             </div>
                         </dl>
-                        <div class="bh-landing-ledger-total">
+                        <div class="bh-home-ledger-total">
                             <span>Ahorro real del mes</span>
                             <strong>585&nbsp;€</strong>
                             <small>Un 24&nbsp;% de lo que ha entrado.</small>
                         </div>
                     </article>
-                    <aside class="bh-landing-slip" aria-label="Ejemplo de proyección guardada">
-                        <span class="bh-landing-slip-tag">Proyección guardada</span>
-                        <p class="bh-landing-slip-question">¿Y si aparto 150&nbsp;€ al mes?</p>
-                        <p class="bh-landing-slip-result">La meta de 3.600&nbsp;€ se cumpliría en 24 meses.</p>
+                    <aside class="bh-home-slip" aria-label="Ejemplo de proyección guardada">
+                        <span class="bh-home-slip-tag">Proyección guardada</span>
+                        <p class="bh-home-slip-question">¿Y si aparto 150&nbsp;€ al mes?</p>
+                        <p class="bh-home-slip-result">La meta de 3.600&nbsp;€ se cumpliría en 24 meses.</p>
                     </aside>
                 </div>
 
-                <ul class="bh-landing-claims" aria-label="Qué hace BeneHom">
+                <ul class="bh-home-claims" aria-label="Qué hace BeneHom">
                     <li>Gastos esenciales y flexibles, separados desde el primer apunte.</li>
                     <li>Ahorro posible frente a ahorro real, comparados cada mes.</li>
                     <li>Proyecciones de metas, inversión, hipoteca e inflación, guardadas aparte.</li>
@@ -109,13 +109,13 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
     </div>
 
     <main>
-        <section class="bh-landing-method" id="como-funciona" aria-labelledby="method-title">
-            <div class="bh-landing-wrap">
-                <div class="bh-landing-section-head">
+        <section class="bh-home-method" id="como-funciona" aria-labelledby="method-title">
+            <div class="bh-home-wrap">
+                <div class="bh-home-section-head">
                     <h2 id="method-title">Cómo funciona</h2>
                     <p>La idea es sencilla: registrar cada mes tal y como ha sido, sin maquillarlo, y dejar que los números cuenten el resto. Lo que ya ha pasado y lo que te gustaría probar viven en espacios distintos.</p>
                 </div>
-                <ol class="bh-landing-steps">
+                <ol class="bh-home-steps">
                     <li>
                         <span aria-hidden="true">1</span>
                         <h3>Apunta el mes</h3>
@@ -135,13 +135,13 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
             </div>
         </section>
 
-        <section class="bh-landing-simulators" id="simuladores" aria-labelledby="simulators-title">
-            <div class="bh-landing-wrap">
-                <div class="bh-landing-simulators-copy">
+        <section class="bh-home-simulators" id="simuladores" aria-labelledby="simulators-title">
+            <div class="bh-home-wrap">
+                <div class="bh-home-simulators-copy">
                     <h2 id="simulators-title">Un simulador para cada pregunta</h2>
                     <p>Cada proyección parte de tu capacidad de ahorro mensual y devuelve una estimación orientativa. No es asesoramiento financiero: es una forma de ver los números con calma antes de mover dinero de verdad.</p>
                 </div>
-                <div class="bh-landing-sim-list">
+                <div class="bh-home-sim-list">
                     <article>
                         <span>Meta de ahorro</span>
                         <h3>¿Cuánto tendría que apartar cada mes para reunir 6.000&nbsp;€?</h3>
@@ -171,24 +171,24 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
             </div>
         </section>
 
-        <section class="bh-landing-blog" id="blog" aria-labelledby="blog-title">
-            <div class="bh-landing-wrap">
-                <div class="bh-landing-section-head">
+        <section class="bh-home-blog" id="blog" aria-labelledby="blog-title">
+            <div class="bh-home-wrap">
+                <div class="bh-home-section-head">
                     <h2 id="blog-title">Para entender lo que estás mirando</h2>
                     <p>El blog explica los conceptos que aparecen al revisar tus cuentas o al preparar una proyección. Artículos breves, sin tecnicismos y con ejemplos de andar por casa.</p>
                 </div>
-                <div class="bh-landing-blog-grid">
-                    <article class="bh-landing-blog-card">
+                <div class="bh-home-blog-grid">
+                    <article class="bh-home-blog-card">
                         <span>Inflación</span>
                         <h3>Por qué sube todo y cómo afecta a tu presupuesto</h3>
                         <p>Una explicación con ejemplos domésticos, lejos de la jerga económica.</p>
                     </article>
-                    <article class="bh-landing-blog-card">
+                    <article class="bh-home-blog-card">
                         <span>Hipotecas</span>
                         <h3>Lo que conviene mirar antes de firmar</h3>
                         <p>La cuota es solo una parte: el plazo y el interés deciden el coste final.</p>
                     </article>
-                    <article class="bh-landing-blog-card">
+                    <article class="bh-home-blog-card">
                         <span>Activos financieros</span>
                         <h3>Renta fija, variable y fondos, en lenguaje llano</h3>
                         <p>Qué es cada cosa y qué papel juegan el riesgo y el plazo.</p>
@@ -197,14 +197,14 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
             </div>
         </section>
 
-        <section class="bh-landing-band" aria-labelledby="band-title">
-            <div class="bh-landing-wrap">
-                <div class="bh-landing-band-inner">
+        <section class="bh-home-band" aria-labelledby="band-title">
+            <div class="bh-home-wrap">
+                <div class="bh-home-band-inner">
                     <div>
                         <h2 id="band-title">Empieza por este mes</h2>
                         <p>Crear una cuenta lleva un minuto. Apunta los primeros movimientos y, cuando el mes termine, sabrás exactamente dónde ha ido tu dinero.</p>
                     </div>
-                    <div class="bh-landing-band-actions">
+                    <div class="bh-home-band-actions">
                         <a class="bh-btn bh-btn-primary" href="<?= $primaryUrl ?>"><?= $primaryLabel ?></a>
                         <?php if (!$usuarioLogueado): ?>
                             <a class="bh-btn bh-btn-secondary" href="<?= $loginUrl ?>">Iniciar sesión</a>
@@ -215,8 +215,8 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
         </section>
     </main>
 
-    <footer class="bh-landing-footer">
-        <div class="bh-landing-wrap">
+    <footer class="bh-home-footer">
+        <div class="bh-home-wrap">
             <span>BeneHom</span>
             <a href="<?= BASE_URL ?>index.php?r=legal/privacidad" target="_blank" rel="noopener">Privacidad</a>
             <a href="<?= BASE_URL ?>index.php?r=legal/terminos" target="_blank" rel="noopener">Términos</a>

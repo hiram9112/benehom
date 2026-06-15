@@ -19,14 +19,6 @@
     actualizarModo();
   });
 
-  document.querySelectorAll("[data-confirm]").forEach((boton) => {
-    boton.addEventListener("click", (event) => {
-      if (!window.confirm(boton.dataset.confirm)) {
-        event.preventDefault();
-      }
-    });
-  });
-
   const formatearCantidad = (valor) => {
     const numero = Number(valor) || 0;
 
@@ -107,7 +99,7 @@
     elemento.textContent = texto;
   };
 
-  document.querySelectorAll("[data-inflacion-card]").forEach((card) => {
+  const inicializarTarjetaInflacion = (card) => {
     const editableElements = card.querySelectorAll("[data-inflacion-field]");
 
     const moneyFields = ["cantidad_inicial", "poder_adquisitivo_final", "perdida_estimada", "cantidad_futura_necesaria", "diferencia_necesaria"];
@@ -265,9 +257,11 @@
         editInline(element);
       });
     });
-  });
+  };
 
-  document.querySelectorAll("[data-investment-card]").forEach((card) => {
+  document.querySelectorAll("[data-inflacion-card]").forEach(inicializarTarjetaInflacion);
+
+  const inicializarTarjetaInversion = (card) => {
     const editableElements = card.querySelectorAll("[data-investment-field]");
 
     const moneyFields = ["capital_inicial", "aportacion_mensual", "capital_total_aportado", "valor_final_estimado", "rendimiento_estimado"];
@@ -407,9 +401,11 @@
         editInline(element);
       });
     });
-  });
+  };
 
-  document.querySelectorAll("[data-hipoteca-card]").forEach((card) => {
+  document.querySelectorAll("[data-investment-card]").forEach(inicializarTarjetaInversion);
+
+  const inicializarTarjetaHipoteca = (card) => {
     const editableElements = card.querySelectorAll("[data-hipoteca-field]");
 
     const moneyFields = ["importe_prestamo", "cuota_mensual", "total_intereses", "total_pagado"];
@@ -566,9 +562,11 @@
         editInline(element);
       });
     });
-  });
+  };
 
-  document.querySelectorAll("[data-meta-card]").forEach((card) => {
+  document.querySelectorAll("[data-hipoteca-card]").forEach(inicializarTarjetaHipoteca);
+
+  const inicializarTarjetaMeta = (card) => {
     const categoriaSelect = card.querySelector("[data-projection-category]");
     const porcentajeSelect = card.querySelector("[data-projection-percent]");
     const mensaje = card.querySelector("[data-projection-message]");
@@ -857,6 +855,164 @@
     }
 
     actualizarEstadoPorcentaje();
+  };
+
+  document.querySelectorAll("[data-meta-card]").forEach(inicializarTarjetaMeta);
+
+  // ---- Crear / eliminar proyecciones sin recargar (AJAX) ----
+  // Evita la recarga completa (y el salto de scroll): inserta o quita la card,
+  // refresca contadores y capacidad, y muestra el flash fijo en la parte superior.
+
+  const inicializadoresPorSeccion = {
+    meta: inicializarTarjetaMeta,
+    inversion: inicializarTarjetaInversion,
+    inflacion: inicializarTarjetaInflacion,
+    hipoteca: inicializarTarjetaHipoteca,
+  };
+
+  const cerrarOffcanvas = (elemento) => {
+    const panel = elemento.closest(".offcanvas");
+
+    if (!panel || !window.bootstrap || !window.bootstrap.Offcanvas) return;
+
+    window.bootstrap.Offcanvas.getOrCreateInstance(panel).hide();
+  };
+
+  const actualizarBadgeSeccion = (seccion, total) => {
+    const badge = document.querySelector(`[data-section-count="${seccion}"]`);
+
+    if (!badge) return;
+
+    const palabra = total === 1 ? badge.dataset.countOne : badge.dataset.countMany;
+    badge.textContent = `${total} ${palabra || ""}`.trim();
+  };
+
+  const actualizarCapacidadMetas = (data) => {
+    if (typeof data.ahorroAsignadoMetas === "undefined") return;
+
+    const asignado = document.getElementById("ahorro_asignado_metas");
+    const disponible = document.getElementById("ahorro_disponible_metas");
+    const capacidad = document.getElementById("meta_capacidad_disponible");
+
+    if (asignado) asignado.textContent = formatearEuros(data.ahorroAsignadoMetas);
+    if (disponible) disponible.textContent = formatearEuros(data.ahorroDisponibleMetas);
+    if (capacidad) capacidad.textContent = formatearEuros(data.ahorroDisponibleMetas);
+  };
+
+  const sincronizarEstadoVacio = (seccion) => {
+    const lista = document.querySelector(`[data-section-list="${seccion}"]`);
+    const vacio = document.querySelector(`[data-section-empty="${seccion}"]`);
+
+    if (!lista || !vacio) return;
+
+    vacio.hidden = lista.children.length > 0;
+  };
+
+  const enviarFormularioCreacion = async (form) => {
+    const seccion = form.dataset.section;
+    const url = form.dataset.ajaxAction;
+    const lista = document.querySelector(`[data-section-list="${seccion}"]`);
+
+    if (!url || !lista) return;
+
+    const boton = form.querySelector('button[type="submit"]');
+
+    if (boton) boton.disabled = true;
+
+    try {
+      const respuesta = await fetch(url, { method: "POST", body: new FormData(form) });
+      const data = await respuesta.json();
+
+      if (!data.ok) {
+        mostrarFlash(data.msg || "No se pudo crear la proyección.");
+        return;
+      }
+
+      lista.insertAdjacentHTML("afterbegin", (data.cardHtml || "").trim());
+
+      const nuevaCard = lista.firstElementChild;
+      const inicializar = inicializadoresPorSeccion[seccion];
+
+      if (nuevaCard && typeof inicializar === "function") inicializar(nuevaCard);
+
+      sincronizarEstadoVacio(seccion);
+
+      if (typeof data.count === "number") actualizarBadgeSeccion(seccion, data.count);
+
+      actualizarCapacidadMetas(data);
+
+      form.reset();
+
+      const modoMarcado = form.querySelector('input[name="modo_calculo"]:checked');
+
+      if (modoMarcado) modoMarcado.dispatchEvent(new Event("change", { bubbles: true }));
+
+      cerrarOffcanvas(form);
+      mostrarFlash(data.msg, "success");
+    } catch (error) {
+      mostrarFlash("No se pudo contactar con el servidor. Inténtalo de nuevo.");
+    } finally {
+      if (boton) boton.disabled = false;
+    }
+  };
+
+  const seccionesEliminacion = [
+    { clase: "bh-mortgage-delete-form", seccion: "hipoteca", url: "index.php?r=proyecciones/eliminarCalculadoraHipotecaAjax" },
+    { clase: "bh-inflation-delete-form", seccion: "inflacion", url: "index.php?r=proyecciones/eliminarInflacionProyeccionAjax" },
+    { clase: "bh-investment-delete-form", seccion: "inversion", url: "index.php?r=proyecciones/eliminarEscenarioInversionAjax" },
+    { clase: "bh-meta-delete-form", seccion: "meta", url: "index.php?r=proyecciones/eliminarMetaAhorroAjax" },
+  ];
+
+  const resolverEliminacion = (form) => seccionesEliminacion.find((item) => form.classList.contains(item.clase));
+
+  const enviarFormularioEliminacion = async (form, config, boton) => {
+    if (boton && boton.dataset.confirm && !window.confirm(boton.dataset.confirm)) return;
+
+    const card = form.closest("[data-meta-card], [data-investment-card], [data-inflacion-card], [data-hipoteca-card]");
+
+    if (boton) boton.disabled = true;
+
+    try {
+      const respuesta = await fetch(config.url, { method: "POST", body: new FormData(form) });
+      const data = await respuesta.json();
+
+      if (!data.ok) {
+        mostrarFlash(data.msg || "No se pudo eliminar la proyección.");
+        if (boton) boton.disabled = false;
+        return;
+      }
+
+      if (card) card.remove();
+
+      sincronizarEstadoVacio(config.seccion);
+
+      if (typeof data.count === "number") actualizarBadgeSeccion(config.seccion, data.count);
+
+      actualizarCapacidadMetas(data);
+      mostrarFlash(data.msg, "success");
+    } catch (error) {
+      mostrarFlash("No se pudo contactar con el servidor. Inténtalo de nuevo.");
+      if (boton) boton.disabled = false;
+    }
+  };
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+
+    if (!(form instanceof HTMLFormElement)) return;
+
+    if (form.matches("[data-ajax-create]")) {
+      event.preventDefault();
+      enviarFormularioCreacion(form);
+      return;
+    }
+
+    const config = resolverEliminacion(form);
+
+    if (config) {
+      event.preventDefault();
+      enviarFormularioEliminacion(form, config, event.submitter);
+    }
   });
 
   const ahorroElemento = document.getElementById("ahorro_mensual_disponible");

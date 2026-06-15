@@ -1366,6 +1366,383 @@ class ProyeccionesController {
         ];
     }
 
+    /**
+     * Comprueba que la petición AJAX es un POST autenticado. Devuelve el
+     * id de usuario o null (habiendo emitido ya el JSON de error).
+     */
+    private function peticionAjaxAutenticada(): ?int{
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
+            return null;
+        }
+
+        if (!isset($_SESSION['usuario_id'])) {
+            echo json_encode(['ok' => false, 'msg' => 'Sesión no válida']);
+            return null;
+        }
+
+        return (int) $_SESSION['usuario_id'];
+    }
+
+    private function gastosFlexiblesPorCategoriaActual($usuario_id): array{
+        $mesSeleccionado = $_SESSION['dashboard_mes_seleccionado'] ?? date('Y-m');
+
+        if (!$this->mesValido($mesSeleccionado)) {
+            $mesSeleccionado = date('Y-m');
+        }
+
+        $fechaInicio = $mesSeleccionado . '-01';
+        $fechaFin = date('Y-m-t', strtotime($fechaInicio));
+        $categorias = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
+
+        return $categorias === false ? [] : $categorias;
+    }
+
+    private function calcularCapacidadMetas($usuario_id): array{
+        $capacidadMensual = $this->obtenerAhorroMensualConfigurado($usuario_id);
+        $asignado = MetaAhorro::totalAportacionesActivas($usuario_id);
+
+        if ($asignado === false) {
+            $asignado = 0;
+        }
+
+        return [
+            'asignado' => round((float) $asignado, 2),
+            'disponible' => round(max(0, $capacidadMensual - $asignado), 2),
+        ];
+    }
+
+    public function crearMetaAhorroAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $resultado = $this->validarDatosMeta($usuario_id, null);
+
+        if (!$resultado['ok']) {
+            echo json_encode(['ok' => false, 'msg' => $resultado['mensaje']]);
+            return;
+        }
+
+        $datos = $resultado['datos'];
+        $id = MetaAhorro::crear(
+            $usuario_id,
+            $datos['nombre'],
+            $datos['importe_objetivo'],
+            $datos['aportacion_mensual'],
+            $datos['fecha_objetivo']
+        );
+
+        if (!$id) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo guardar la meta. Revisa los datos e inténtalo de nuevo.']);
+            return;
+        }
+
+        $meta = MetaAhorro::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$meta) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo cargar la meta creada.']);
+            return;
+        }
+
+        require_once APP_PATH . '/views/partials/proyecciones-cards.php';
+        $cardHtml = bh_render_meta_card(
+            $this->prepararMetaParaVista($meta),
+            $this->gastosFlexiblesPorCategoriaActual($usuario_id)
+        );
+        $capacidad = $this->calcularCapacidadMetas($usuario_id);
+        $metas = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Meta creada. Ya cuenta en tu capacidad mensual proyectada.',
+            'cardHtml' => $cardHtml,
+            'count' => is_array($metas) ? count($metas) : 0,
+            'ahorroAsignadoMetas' => $capacidad['asignado'],
+            'ahorroDisponibleMetas' => $capacidad['disponible'],
+        ]);
+    }
+
+    public function eliminarMetaAhorroAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió una meta válida para eliminar.']);
+            return;
+        }
+
+        if (!MetaAhorro::obtenerPorIdYUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró la meta que quieres eliminar.']);
+            return;
+        }
+
+        if (!MetaAhorro::eliminarPorUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo eliminar la meta. Inténtalo de nuevo.']);
+            return;
+        }
+
+        $capacidad = $this->calcularCapacidadMetas($usuario_id);
+        $metas = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Meta eliminada. Su aportación ya no cuenta en la capacidad usada.',
+            'count' => is_array($metas) ? count($metas) : 0,
+            'ahorroAsignadoMetas' => $capacidad['asignado'],
+            'ahorroDisponibleMetas' => $capacidad['disponible'],
+        ]);
+    }
+
+    public function crearEscenarioInversionAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $resultado = $this->validarDatosEscenarioInversion();
+
+        if (!$resultado['ok']) {
+            echo json_encode(['ok' => false, 'msg' => $resultado['mensaje']]);
+            return;
+        }
+
+        $datos = $resultado['datos'];
+        $id = EscenarioInversion::crear(
+            $usuario_id,
+            $datos['nombre'],
+            $datos['capital_inicial'],
+            $datos['aportacion_mensual'],
+            $datos['rentabilidad_anual'],
+            $datos['plazo_anios'],
+            $datos['frecuencia_reinversion']
+        );
+
+        if (!$id) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo guardar el escenario de inversión. Revisa los datos e inténtalo de nuevo.']);
+            return;
+        }
+
+        $escenario = EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$escenario) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo cargar el escenario creado.']);
+            return;
+        }
+
+        require_once APP_PATH . '/views/partials/proyecciones-cards.php';
+        $cardHtml = bh_render_escenario_inversion_card($this->prepararEscenarioInversionParaVista($escenario));
+        $escenarios = EscenarioInversion::obtenerPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Escenario guardado. Puedes comparar la estimación cuando quieras.',
+            'cardHtml' => $cardHtml,
+            'count' => is_array($escenarios) ? count($escenarios) : 0,
+        ]);
+    }
+
+    public function eliminarEscenarioInversionAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió un escenario válido para eliminar.']);
+            return;
+        }
+
+        if (!EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró el escenario de inversión que quieres eliminar.']);
+            return;
+        }
+
+        if (!EscenarioInversion::eliminarPorUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo eliminar el escenario de inversión. Inténtalo de nuevo.']);
+            return;
+        }
+
+        $escenarios = EscenarioInversion::obtenerPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Escenario eliminado.',
+            'count' => is_array($escenarios) ? count($escenarios) : 0,
+        ]);
+    }
+
+    public function crearInflacionProyeccionAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $resultado = $this->validarDatosInflacionProyeccion();
+
+        if (!$resultado['ok']) {
+            echo json_encode(['ok' => false, 'msg' => $resultado['mensaje']]);
+            return;
+        }
+
+        $datos = $resultado['datos'];
+        $id = InflacionProyeccion::crear(
+            $usuario_id,
+            $datos['nombre'],
+            $datos['cantidad_inicial'],
+            $datos['inflacion_anual'],
+            $datos['plazo_anios']
+        );
+
+        if (!$id) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo guardar la proyección de inflación. Revisa los datos e inténtalo de nuevo.']);
+            return;
+        }
+
+        $proyeccion = InflacionProyeccion::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$proyeccion) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo cargar la proyección creada.']);
+            return;
+        }
+
+        require_once APP_PATH . '/views/partials/proyecciones-cards.php';
+        $cardHtml = bh_render_inflacion_card($this->prepararInflacionProyeccionParaVista($proyeccion));
+        $proyecciones = InflacionProyeccion::obtenerPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Proyección de inflación guardada. Puedes consultarla cuando quieras.',
+            'cardHtml' => $cardHtml,
+            'count' => is_array($proyecciones) ? count($proyecciones) : 0,
+        ]);
+    }
+
+    public function eliminarInflacionProyeccionAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió una proyección válida para eliminar.']);
+            return;
+        }
+
+        if (!InflacionProyeccion::obtenerPorIdYUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró la proyección de inflación que quieres eliminar.']);
+            return;
+        }
+
+        if (!InflacionProyeccion::eliminarPorUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo eliminar la proyección de inflación. Inténtalo de nuevo.']);
+            return;
+        }
+
+        $proyecciones = InflacionProyeccion::obtenerPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Proyección de inflación eliminada.',
+            'count' => is_array($proyecciones) ? count($proyecciones) : 0,
+        ]);
+    }
+
+    public function crearCalculadoraHipotecaAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $resultado = $this->validarDatosCalculadoraHipoteca();
+
+        if (!$resultado['ok']) {
+            echo json_encode(['ok' => false, 'msg' => $resultado['mensaje']]);
+            return;
+        }
+
+        $datos = $resultado['datos'];
+        $id = CalculadoraHipoteca::crear(
+            $usuario_id,
+            $datos['nombre'],
+            $datos['importe_prestamo'],
+            $datos['interes_anual'],
+            $datos['plazo_anios']
+        );
+
+        if (!$id) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo guardar la calculadora de hipoteca. Revisa los datos e inténtalo de nuevo.']);
+            return;
+        }
+
+        $calculadora = CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id);
+
+        if (!$calculadora) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo cargar la calculadora creada.']);
+            return;
+        }
+
+        require_once APP_PATH . '/views/partials/proyecciones-cards.php';
+        $cardHtml = bh_render_calculadora_hipoteca_card($this->prepararCalculadoraHipotecaParaVista($calculadora));
+        $calculadoras = CalculadoraHipoteca::obtenerPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Calculadora de hipoteca guardada. Puedes consultarla cuando quieras.',
+            'cardHtml' => $cardHtml,
+            'count' => is_array($calculadoras) ? count($calculadoras) : 0,
+        ]);
+    }
+
+    public function eliminarCalculadoraHipotecaAjax(){
+        $usuario_id = $this->peticionAjaxAutenticada();
+
+        if ($usuario_id === null) {
+            return;
+        }
+
+        $id = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'No se recibió una calculadora válida para eliminar.']);
+            return;
+        }
+
+        if (!CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se encontró la calculadora de hipoteca que quieres eliminar.']);
+            return;
+        }
+
+        if (!CalculadoraHipoteca::eliminarPorUsuario($id, $usuario_id)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se pudo eliminar la calculadora de hipoteca. Inténtalo de nuevo.']);
+            return;
+        }
+
+        $calculadoras = CalculadoraHipoteca::obtenerPorUsuario($usuario_id);
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => 'Calculadora de hipoteca eliminada.',
+            'count' => is_array($calculadoras) ? count($calculadoras) : 0,
+        ]);
+    }
+
     private function redirigirAProyecciones(): void{
         header("Location: " . BASE_URL . "index.php?r=proyecciones/index");
         exit;

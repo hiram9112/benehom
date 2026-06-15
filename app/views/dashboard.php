@@ -89,7 +89,7 @@
                                         <small>Clic para ver detalle</small>
                                     </div>
                                     <div class="bh-summary-card-face bh-summary-card-back">
-                                        <p>Indica qué parte de lo que entra en casa termina quedándose como ahorro real. Te ayuda a ver si tus ingresos dejan margen al final del mes.</p>
+                                        <p>Indica qué parte de lo que entra en casa termina quedándose como ahorro real. Te ayuda a ver si tus gastos dejan margen al final del mes.</p>
                                     </div>
                                 </div>
                             </div>
@@ -104,7 +104,7 @@
                                         <small>Clic para ver detalle</small>
                                     </div>
                                     <div class="bh-summary-card-face bh-summary-card-back">
-                                        <p>Muestra cuánto presupuesto depende de decisiones de consumo. Cuanto más alto sea, más oportunidades tienes para ajustar sin tocar gastos básicos.</p>
+                                        <p>Muestra cuánto ingreso es destinado a decisiones de consumo. Cuanto más alto sea, más oportunidades tienes para ajustar sin tocar gastos básicos.</p>
                                     </div>
                                 </div>
                             </div>
@@ -195,7 +195,9 @@
                                     <ul>
                                         <?php foreach ($ingresos as $ingreso): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="ingreso-<?= $ingreso['id'] ?>" class="bh-movement-item">
+                                            <li id="ingreso-<?= $ingreso['id'] ?>" class="bh-movement-item"
+                                                data-id="<?= $ingreso['id'] ?>"
+                                                data-cantidad="<?= htmlspecialchars((string) $ingreso['cantidad'], ENT_QUOTES, 'UTF-8') ?>">
                                                 <div class="bh-movement-main">
                                                     <span class="bh-movement-label categoria_ingreso_individual"><?= htmlspecialchars(formatearCategoria($ingreso['categoria'])) ?></span>
                                                 </div>
@@ -280,6 +282,8 @@
                                         <?php foreach ($gastosEsenciales as $gastoEsencial): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
                                             <li id="gasto-<?= $gastoEsencial['id'] ?>" class="bh-movement-item"
+                                                data-id="<?= $gastoEsencial['id'] ?>"
+                                                data-cantidad="<?= htmlspecialchars((string) $gastoEsencial['cantidad'], ENT_QUOTES, 'UTF-8') ?>"
                                                 data-tipo="<?= $gastoEsencial['tipo'] ?>">
                                                 <div class="bh-movement-main">
                                                     <span class="bh-movement-label categoria_gasto_esencial"><?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria'])) ?></span>
@@ -377,6 +381,8 @@
                                         <?php foreach ($gastosFlexibles as $gastoFlexible): ?>
                                             <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
                                             <li id="gasto-<?= $gastoFlexible['id'] ?>" class="bh-movement-item"
+                                                data-id="<?= $gastoFlexible['id'] ?>"
+                                                data-cantidad="<?= htmlspecialchars((string) $gastoFlexible['cantidad'], ENT_QUOTES, 'UTF-8') ?>"
                                                 data-tipo="<?= $gastoFlexible['tipo'] ?>">
                                                 <div class="bh-movement-main">
                                                     <span class="bh-movement-label categoria_gasto_flexible"><?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria'])) ?></span>
@@ -564,8 +570,7 @@
                         <li>Ingresos por inversiones</li>
                     </ul>
 
-                    <p class="mt-2">Registrar correctamente los ingresos es clave para entender tu ahorro posible y tu ahorro real
-                        y analizar si tus gastos están equilibrados.</p>
+                    <p class="mt-2">Registrar correctamente los ingresos es clave para preparar de forma correcta el presupuesto familiar</p>
                 </div>
 
                 <div class="modal-footer">
@@ -701,10 +706,6 @@
                     </p>
 
 
-                    <p>Los porcentajes te ayudan a entender qué parte de tus ingresos
-                        se destina a gastos y qué parte se convierte en ahorro.
-                    </p>
-
                     <p>Si el <strong>ahorro es positivo</strong>, significa que <strong>gastas menos de lo que ingresas</strong>.
                         Si es <strong>negativo</strong>, estás en déficit: estás <strong>gastando más dinero del que entra</strong>.
                     </p>
@@ -811,7 +812,7 @@
 
                     <p class="mt-2">
                         Identificar estas variaciones a tiempo te permite
-                        <strong>corregir errores</strong> y tener una visión más real
+                        <strong>corregir errores</strong> y tener una visión más clara
                         de cuánto te cuesta mantener tu hogar cada mes.
                     </p>
 

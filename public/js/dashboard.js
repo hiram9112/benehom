@@ -101,32 +101,31 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.querySelectorAll("[data-summary-flip]").forEach((card) => {
-    const alternarCard = () => {
-      const estaGirada = card.classList.toggle("is-flipped");
-      card.setAttribute("aria-expanded", estaGirada ? "true" : "false");
-    };
+    let temporizadorRetorno = null;
 
     const cerrarCard = () => {
       if (!card.classList.contains("is-flipped")) {
         return;
       }
 
-      card.classList.add("is-returning");
       card.classList.remove("is-flipped");
       card.setAttribute("aria-expanded", "false");
+      clearTimeout(temporizadorRetorno);
+      temporizadorRetorno = null;
     };
 
-    const limpiarRetorno = (event) => {
-      if (event.target !== card.querySelector(".bh-summary-card-inner")) {
-        return;
-      }
+    const alternarCard = () => {
+      const estaGirada = card.classList.toggle("is-flipped");
+      card.setAttribute("aria-expanded", estaGirada ? "true" : "false");
+      clearTimeout(temporizadorRetorno);
+      temporizadorRetorno = null;
 
-      card.classList.remove("is-returning");
+      if (estaGirada) {
+        temporizadorRetorno = setTimeout(cerrarCard, 10000);
+      }
     };
 
     card.addEventListener("click", alternarCard);
-    card.addEventListener("mouseleave", cerrarCard);
-    card.addEventListener("transitionend", limpiarRetorno);
     card.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") {
         return;
@@ -211,6 +210,8 @@ async function editarIngresoInline(span) {
       const data = await respuesta.json();
 
       if (data.ok) {
+        const li = input.closest("li");
+
         //Creamos nuevo span actualizado
         const nuevoSpan = document.createElement("span");
         nuevoSpan.textContent = formatearCantidad(nuevoValor);
@@ -219,6 +220,11 @@ async function editarIngresoInline(span) {
 
         //Reemplazamos el input con el span que contiene el nuevo valor
         input.replaceWith(nuevoSpan);
+
+        if (li) {
+          li.dataset.cantidad = nuevoValor;
+          ordenarMovimientosPorCantidadDesc("lista_ingresos");
+        }
 
         //Actualizamos gráficos
         window.cargarGraficoPresupuesto();
@@ -336,6 +342,13 @@ async function editarGastoInline(span) {
 
         //Reemplazamos el input con el span que contiene el nuevo valor
         input.replaceWith(nuevoSpan);
+
+        li.dataset.cantidad = nuevoValor;
+        ordenarMovimientosPorCantidadDesc(
+          tipo === "esencial"
+            ? "lista_gastos_esenciales"
+            : "lista_gastos_flexibles",
+        );
 
         //Actualizamos gráficos
         window.cargarGraficoPresupuesto();

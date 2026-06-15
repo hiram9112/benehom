@@ -445,7 +445,7 @@ async function cargarGraficoPresupuesto() {
           backgroundColor: [
             BH_COLORS.income,
             BH_COLORS.expense,
-            valores.ahorroReal >= 0 ? BH_COLORS.saving : BH_COLORS.expense,
+            valores.ahorroReal >= 0 ? BH_COLORS.info : BH_COLORS.expense,
           ],
           borderRadius: 10,
           barThickness: 28,
@@ -460,7 +460,25 @@ async function cargarGraficoPresupuesto() {
             },
           },
         },
-        legend: true,
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { family: FONT_FAMILY, size: 12 },
+            color: BH_COLORS.textMain,
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            boxWidth: 14,
+            padding: 14,
+            generateLabels: function () {
+              var colorAhorro = valores.ahorroReal >= 0 ? BH_COLORS.info : BH_COLORS.expense;
+              return [
+                { text: 'Ingresos',       fillStyle: BH_COLORS.income,  strokeStyle: BH_COLORS.income,  pointStyle: 'rectRounded' },
+                { text: 'Gastos totales', fillStyle: BH_COLORS.expense, strokeStyle: BH_COLORS.expense, pointStyle: 'rectRounded' },
+                { text: 'Ahorro real',    fillStyle: colorAhorro,       strokeStyle: colorAhorro,       pointStyle: 'rectRounded' },
+              ];
+            },
+          },
+        },
         scales: crearEscalasConEuros(true),
       }),
     });

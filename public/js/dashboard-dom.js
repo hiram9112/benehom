@@ -27,6 +27,43 @@ function crearEstadoVacioDashboard(tipo) {
     </div>`;
 }
 
+function obtenerCantidadMovimiento(li) {
+  const cantidad = Number(li.dataset.cantidad);
+
+  if (!Number.isNaN(cantidad)) {
+    return cantidad;
+  }
+
+  const textoCantidad = li
+    .querySelector(".bh-movement-amount")
+    ?.textContent.trim()
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  return Number(textoCantidad) || 0;
+}
+
+function ordenarMovimientosPorCantidadDesc(contenedorId) {
+  const lista = document.querySelector(`#${contenedorId} ul`);
+
+  if (!lista) {
+    return;
+  }
+
+  [...lista.children]
+    .sort((a, b) => {
+      const diferenciaCantidad =
+        obtenerCantidadMovimiento(b) - obtenerCantidadMovimiento(a);
+
+      if (diferenciaCantidad !== 0) {
+        return diferenciaCantidad;
+      }
+
+      return (Number(b.dataset.id) || 0) - (Number(a.dataset.id) || 0);
+    })
+    .forEach((li) => lista.appendChild(li));
+}
+
 function agregarIngresoAlDOM(ingreso) {
   //Intentamos seleccionar  la lista existente
   let lista = document.querySelector("#lista_ingresos ul");
@@ -47,6 +84,8 @@ function agregarIngresoAlDOM(ingreso) {
 
   //le asignamos el id correspondiente
   li.id = `ingreso-${ingreso.id}`;
+  li.dataset.id = ingreso.id;
+  li.dataset.cantidad = ingreso.cantidad;
 
   //Agregamos el nuevo ingreso al elemento li
   li.innerHTML = `
@@ -63,6 +102,7 @@ function agregarIngresoAlDOM(ingreso) {
 
   //Insertamos el nuevo elemento al inicio de la lista
   lista.prepend(li);
+  ordenarMovimientosPorCantidadDesc("lista_ingresos");
 }
 
 // -------------------------------------Función para eliminar  ingreso del
@@ -114,6 +154,8 @@ function agregarGastoEsencialAlDOM(gastoEsencial) {
 
   //le asignamos el id correspondiente y tipo correspondiente
   li.id = `gasto-${gastoEsencial.id}`;
+  li.dataset.id = gastoEsencial.id;
+  li.dataset.cantidad = gastoEsencial.cantidad;
   li.dataset.tipo = "esencial";
 
   //Agregamos el nuevo gasto esencial al elemento li
@@ -131,6 +173,7 @@ function agregarGastoEsencialAlDOM(gastoEsencial) {
 
   //Insertamos el nuevo elemento al inicio de la lista
   lista.prepend(li);
+  ordenarMovimientosPorCantidadDesc("lista_gastos_esenciales");
 }
 
 // -------------------------------------------Función para agregar el nuevo
@@ -158,6 +201,8 @@ function agregarGastoFlexibleAlDOM(gastoFlexible) {
 
   //le asignamos el id y el tipo correspondiente
   li.id = `gasto-${gastoFlexible.id}`;
+  li.dataset.id = gastoFlexible.id;
+  li.dataset.cantidad = gastoFlexible.cantidad;
   li.dataset.tipo = "flexible";
 
   //Agregamos el nuevo gasto flexible al elemento li
@@ -175,6 +220,7 @@ function agregarGastoFlexibleAlDOM(gastoFlexible) {
 
   //Insertamos el nuevo elemento al inicio de la lista
   lista.prepend(li);
+  ordenarMovimientosPorCantidadDesc("lista_gastos_flexibles");
 }
 
 // -------------------------------------Función para eliminar  gasto del

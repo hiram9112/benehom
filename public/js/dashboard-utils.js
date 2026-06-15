@@ -105,11 +105,11 @@ function formatearPorcentajeConSigno(valor) {
 //Función para formatear cantidades
 function formatearCantidad(valor) {
   const numero = Number(valor) || 0;
-  const opciones = Number.isInteger(numero)
-    ? { maximumFractionDigits: 0 }
-    : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
-  return new Intl.NumberFormat("es-ES", opciones).format(numero);
+  return new Intl.NumberFormat("es-ES", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numero);
 }
 
 function formatearPorcentaje(valor) {

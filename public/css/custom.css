@@ -449,11 +449,6 @@ textarea:disabled {
     transform: rotateY(180deg);
 }
 
-.bh-summary-flip-card.is-returning .bh-summary-card-inner{
-    transition-duration: 1s;
-    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 .bh-summary-card-face{
     position: absolute;
     inset: 0;

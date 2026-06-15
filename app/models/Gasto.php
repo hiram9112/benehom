@@ -12,11 +12,11 @@ class Gasto{
             $db=Database::getConnection();
 
             //Preparamos la consulta usando marcadores para mayor seguridad
-            $stmt=$db->prepare("Select * FROM gastos 
-                                WHERE usuario_id= :usuario_id 
-                                AND tipo= :tipo 
+            $stmt=$db->prepare("Select * FROM gastos
+                                WHERE usuario_id= :usuario_id
+                                AND tipo= :tipo
                                 AND fecha BETWEEN :inicio AND :fin
-                                ORDER BY fecha DESC");
+                                ORDER BY cantidad DESC, id DESC");
             
             //VInculamos parámetros
             $stmt->bindParam(':usuario_id', $usuario_id,PDO::PARAM_INT);

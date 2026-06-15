@@ -84,9 +84,6 @@ function formatearCategoria($texto){
 //Función para formatear cantidades
 function formatearCantidadPHP($valor)
 {
-    if (intval($valor) == $valor) {
-        return (string)intval($valor);
-    }
     return number_format($valor, 2, ',', '');
 }
 

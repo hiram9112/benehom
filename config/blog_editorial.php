@@ -34,7 +34,7 @@ return [
         'inflacion' => 'Inflación',
         'hipotecas' => 'Hipotecas',
         'conceptos_basicos' => 'Conceptos básicos',
-        'activos_financieros' => 'Activos financieros',
+        'inversion' => 'Inversión',
     ],
     'estructura_articulo' => [
         'secciones' => 3,

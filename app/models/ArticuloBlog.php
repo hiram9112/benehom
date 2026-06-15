@@ -2,18 +2,6 @@
 
 class ArticuloBlog
 {
-    private const CATEGORIAS_RELACIONADAS = [
-        'Ahorro' => ['Gastos', 'Metas', 'Hábitos', 'Conceptos básicos', 'Inflación'],
-        'Gastos' => ['Ahorro', 'Hábitos', 'Inflación', 'Hipotecas'],
-        'Metas' => ['Ahorro', 'Conceptos básicos', 'Proyecciones'],
-        'Proyecciones' => ['Conceptos básicos', 'Activos financieros', 'Metas', 'Ahorro'],
-        'Hábitos' => ['Gastos', 'Ahorro'],
-        'Conceptos básicos' => ['Ahorro', 'Metas', 'Proyecciones', 'Activos financieros'],
-        'Inflación' => ['Gastos', 'Ahorro', 'Hipotecas'],
-        'Hipotecas' => ['Gastos', 'Inflación', 'Ahorro'],
-        'Activos financieros' => ['Proyecciones', 'Conceptos básicos', 'Ahorro'],
-    ];
-
     public static function publicados(): array
     {
         $articulos = array_filter(self::todos(), static function (array $articulo): bool {
@@ -70,22 +58,27 @@ class ArticuloBlog
     public static function relacionadosPara(array $articulo): array
     {
         $slug = (string) ($articulo['slug'] ?? '');
-        $relacionados = array_filter(self::publicados(), static function (array $item) use ($slug): bool {
-            return ($item['slug'] ?? '') !== $slug;
-        });
+        $articulos = self::publicados();
 
-        usort($relacionados, static function (array $a, array $b) use ($articulo): int {
-            $puntuacionB = self::puntuacionRelacion($articulo, $b);
-            $puntuacionA = self::puntuacionRelacion($articulo, $a);
-
-            if ($puntuacionB !== $puntuacionA) {
-                return $puntuacionB <=> $puntuacionA;
+        foreach ($articulos as $indice => $item) {
+            if (($item['slug'] ?? '') !== $slug) {
+                continue;
             }
 
-            return strcmp((string) ($b['fecha'] ?? ''), (string) ($a['fecha'] ?? ''));
-        });
+            $relacionados = [];
 
-        return array_values($relacionados);
+            if (isset($articulos[$indice - 1])) {
+                $relacionados[] = $articulos[$indice - 1];
+            }
+
+            if (isset($articulos[$indice + 1])) {
+                $relacionados[] = $articulos[$indice + 1];
+            }
+
+            return $relacionados;
+        }
+
+        return [];
     }
 
     public static function categoriasOficiales(): array
@@ -130,42 +123,4 @@ class ArticuloBlog
         return is_array($editorial) ? $editorial : [];
     }
 
-    private static function puntuacionRelacion(array $actual, array $candidato): int
-    {
-        $categoriaActual = (string) ($actual['categoria'] ?? '');
-        $categoriaCandidata = (string) ($candidato['categoria'] ?? '');
-        $puntuacion = 0;
-
-        if ($categoriaActual !== '' && $categoriaActual === $categoriaCandidata) {
-            $puntuacion += 30;
-        }
-
-        if (in_array($categoriaCandidata, self::CATEGORIAS_RELACIONADAS[$categoriaActual] ?? [], true)) {
-            $puntuacion += 20;
-        }
-
-        $funcionalidadActual = self::funcionalidadConexion($actual);
-        if ($funcionalidadActual !== '' && $funcionalidadActual === self::funcionalidadConexion($candidato)) {
-            $puntuacion += 10;
-        }
-
-        return $puntuacion;
-    }
-
-    private static function funcionalidadConexion(array $articulo): string
-    {
-        $conexion = strtolower((string) ($articulo['conexion'] ?? ''));
-
-        foreach (['dashboard', 'metas', 'meta', 'proyecciones', 'grafico', 'gráfico'] as $funcionalidad) {
-            if (str_contains($conexion, $funcionalidad)) {
-                if ($funcionalidad === 'meta') {
-                    return 'metas';
-                }
-
-                return $funcionalidad === 'grafico' ? 'gráfico' : $funcionalidad;
-            }
-        }
-
-        return '';
-    }
 }

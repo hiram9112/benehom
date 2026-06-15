@@ -352,10 +352,10 @@ return [
                 ],
             ],
             [
-                'titulo' => 'El orden que ordena las decisiones',
+                'titulo' => 'El orden que protege tus decisiones',
                 'parrafos' => [
-                    'Una secuencia prudente suele ser: conocer tus gastos esenciales y flexibles, generar ahorro real, construir el fondo de emergencia, definir metas y, después, explorar proyecciones educativas si queda margen compatible con el hogar.',
-                    'Seguir ese orden evita saltar a escenarios futuros sin haber protegido el presente. Invertir puede ser una conversación posterior; el fondo es la base que te permite mantener la calma cuando el mes se complica.',
+                    'Antes de pensar en metas grandes o en escenarios de inversión, conviene asegurar una base mínima. Primero necesitas entender cuánto cuesta sostener tu hogar, cuánto margen real queda cada mes y qué parte puedes reservar sin poner en tensión tu día a día.',
+                    'El fondo de emergencia cumple justamente ese papel: proteger el presente antes de construir el futuro. No es una meta vistosa, pero sí una de las más importantes, porque reduce la presión cuando aparece un imprevisto y evita que una urgencia desordene todas tus decisiones.',
                 ],
             ],
         ],
@@ -390,12 +390,12 @@ return [
             [
                 'titulo' => 'Qué vigilar mes a mes',
                 'parrafos' => [
-                    'La señal más clara de que la inflación está presionando tu hogar es sencilla: tu ahorro real baja aunque ingreses lo mismo. Si eso se repite varios meses, no es mala suerte, es el coste de la vida subiendo por debajo del radar.',
-                    'El objetivo no es reaccionar con alarma, sino detectar el cambio a tiempo y decidir qué ajustes tienen sentido. Comparar varios meses seguidos te da esa perspectiva mucho mejor que mirar un mes aislado.',
+                    'La señal más clara de que la inflación está afectando tu presupuesto suele verse en los gastos esenciales: alimentación, suministros, transporte, vivienda o servicios básicos empiezan a costar más aunque tu forma de vida no haya cambiado demasiado.',
+                    'Después viene el efecto en cadena: si ingresas lo mismo y tus gastos esenciales suben, queda menos margen para gastos flexibles, ahorro real o metas. Por eso conviene comparar varios meses seguidos, no para alarmarse, sino para detectar a tiempo qué parte del presupuesto se está estrechando.',
                 ],
             ],
         ],
-        'conexion' => 'Usa el Dashboard para comparar tu ahorro real de varios meses y detectar si los gastos flexibles están absorbiendo subidas de precios antes de que el problema crezca.',
+        'conexion' => 'Usa el Dashboard para comparar tus gastos esenciales mes a mes y detectar si el coste de vida está reduciendo tu margen antes de que afecte a tus metas o a tu ahorro real.',
     ],
     [
         'slug' => 'cuanta-hipoteca-puedes-pagar',
@@ -413,31 +413,31 @@ return [
                 'titulo' => 'La pregunta correcta no es solo si puedes pagar la cuota',
                 'parrafos' => [
                     'Antes de comprometerte con una hipoteca, la pregunta habitual es si puedes pagar la cuota hoy. Es una pregunta incompleta. La mejor es si podrías seguir pagándola ante una subida de gastos, una bajada de ingresos o una reparación inesperada, sin que el resto de tu vida financiera se resienta.',
-                    'Una hipoteca suele ser uno de los compromisos más largos de un hogar. Una cuota cómoda deja espacio para vivir, ahorrar y absorber imprevistos; una cuota demasiado ajustada convierte cualquier cambio pequeño en un problema mensual recurrente.',
+                    'Una hipoteca suele ser uno de los compromisos más largos de un hogar. Una cuota cómoda deja espacio para vivir, cubrir tus gastos habituales, ahorrar y absorber imprevistos; una cuota demasiado ajustada convierte cualquier cambio pequeño en un problema mensual recurrente.',
                 ],
             ],
             [
-                'titulo' => 'Cuánto margen dejar',
+                'titulo' => 'La cuota no vive sola dentro del presupuesto',
                 'parrafos' => [
-                    'Existen referencias orientativas, como no destinar más de un tercio de los ingresos a vivienda, pero ninguna sustituye a mirar tus números. Lo que de verdad importa es cuánto ahorro real te queda una vez pagada la cuota y el resto de gastos esenciales del hogar.',
-                    'Si al simular la cuota tu ahorro real desaparece por completo, la señal es clara: el precio, el plazo o el momento probablemente necesitan otra vuelta. Una vivienda que elimina tu capacidad de ahorrar y tu margen de maniobra cambia tu casa, pero también tu tranquilidad.',
+                    'Existen referencias orientativas, como no destinar más de un tercio de los ingresos a vivienda, pero ninguna sustituye a mirar tus propios números. La cuota debe convivir con tus gastos esenciales, tus gastos flexibles y una parte mínima de ahorro real.',
+                    'Además, tener una hipoteca no significa pagar solo al banco. Pueden aparecer seguros vinculados o recomendados, impuestos de propiedad, gastos de comunidad, derramas, mantenimiento y reparaciones que antes quizá asumía el casero. Todo eso también forma parte del coste real de la vivienda.',
                 ],
             ],
             [
-                'titulo' => 'Fijo, variable y mixto, en una frase cada uno',
+                'titulo' => 'El margen que deberías proteger',
                 'parrafos' => [
-                    'En una hipoteca a tipo fijo la cuota se mantiene estable durante la vida del préstamo: aporta previsibilidad, aunque pueda partir de un interés más alto. En una variable, la cuota cambia según el índice de referencia: puede empezar más baja, pero exige margen para soportar subidas.',
-                    'La mixta combina un periodo fijo inicial y luego condiciones variables. No hay una opción mejor para todos: la adecuada es la que encaja con tu tolerancia a la incertidumbre y con el margen que de verdad tiene tu presupuesto.',
+                    'Una hipoteca razonable no es solo la que el banco aprueba, sino la que tu hogar puede sostener sin quedarse sin aire. Después de pagar la cuota, los gastos esenciales, los costes recurrentes de la vivienda y una parte prudente de gastos flexibles, debería seguir quedando algo de ahorro real.',
+                    'Si al simular la cuota tu ahorro desaparece por completo, la señal es clara: el precio, el plazo, la entrada o el momento necesitan otra vuelta. Comprar una vivienda puede darte estabilidad, pero no debería dejarte sin margen ante imprevistos ni cerrar la puerta a tus objetivos de futuro.',
                 ],
             ],
         ],
-        'conexion' => 'Registra tus gastos esenciales en el Dashboard y usa tu ahorro real como referencia para comprobar si una cuota hipotecaria concreta te dejaría margen suficiente antes de comprometerte.',
+        'conexion' => 'Usa la calculadora de hipoteca para comparar las distintas condiciones que te ofrecen los bancos y ver cómo quedaría cada cuota. Después, añade esa cuota a tu presupuesto mensual junto con los demás gastos de la vivienda y elimina cualquier gasto que ya no aplicaría, como el alquiler, para evitar duplicados y comprobar cómo quedaría el balance real del mes.',
     ],
     [
         'slug' => 'como-empezar-a-invertir-desde-cero',
-        'categoria' => 'Activos financieros',
+        'categoria' => 'Inversión',
         'titulo' => 'Cómo empezar a invertir desde cero',
-        'resumen' => 'Empezar a invertir desde cero es más fácil cuando entiendes unos pocos conceptos básicos y ordenas antes tu situación, sin prisa ni promesas.',
+        'resumen' => 'Empezar a invertir desde cero requiere ordenar tu dinero, formarte con calma y no tomar decisiones reales solo por una explicación breve o una promesa atractiva.',
         'intencion_busqueda' => 'cómo empezar a invertir desde cero para principiantes',
         'fecha' => '2026-06-08',
         'estado' => 'publicado',
@@ -448,25 +448,68 @@ return [
             [
                 'titulo' => 'Antes de invertir, ordena la base',
                 'parrafos' => [
-                    'La pregunta cómo empiezo a invertir llega muchas veces antes de tiempo. Invertir sin conocer tu ahorro real puede llevar a comprometer dinero que quizá necesites para gastos próximos. Primero conviene tener claro cuánto entra, cuánto sale y qué margen queda cada mes.',
-                    'Una base ordenada incluye también un fondo de emergencia y las metas cercanas cubiertas. Invertir es una decisión sobre dinero que no vas a necesitar pronto; si toca el dinero del día a día, deja de ser inversión y se convierte en un riesgo innecesario.',
+                    'La pregunta cómo empiezo a invertir llega muchas veces antes de tiempo. Invertir sin conocer tu ahorro real puede llevarte a comprometer dinero que quizá necesites para gastos próximos, imprevistos o metas importantes. Primero conviene tener claro cuánto entra, cuánto sale y qué margen queda cada mes.',
+                    'Una base ordenada incluye también un fondo de emergencia y cierta estabilidad en tus gastos. Invertir debería hacerse con dinero que no necesitas pronto; si toca el dinero del día a día, deja de ser una decisión de inversión y se convierte en una presión añadida sobre tu hogar.',
                 ],
             ],
             [
-                'titulo' => 'Qué es un activo financiero y los dos grandes tipos',
+                'titulo' => 'Este artículo es solo una puerta de entrada',
                 'parrafos' => [
-                    'Un activo financiero es un instrumento que representa dinero, deuda o participación. La renta fija suele asociarse a prestar dinero a un emisor, como un Estado o una empresa, a cambio de intereses: puede fluctuar y no está libre de riesgo, pero tiende a comportarse de forma más previsible.',
-                    'La renta variable implica participar en empresas, por ejemplo a través de acciones o fondos. Puede crecer más a largo plazo, pero también caer con fuerza. Por eso el plazo y tu tolerancia al riesgo son las dos preguntas que conviene responder antes que en qué invierto.',
+                    'Leer una explicación breve sobre inversión no te da, ni de cerca, los conocimientos necesarios para empezar a invertir dinero real. Sirve para ubicarte, entender algunas palabras y saber qué preguntas deberías hacerte antes de avanzar.',
+                    'Invertir requiere informarse, estudiar los conceptos básicos, comparar fuentes, entender los riesgos y aceptar que no existe una decisión perfecta ni garantizada. Si no sabes explicar con tus propias palabras dónde pones tu dinero y qué podría salir mal, todavía no estás listo para invertir.',
                 ],
             ],
             [
-                'titulo' => 'Plazo, diversificación y calma',
+                'titulo' => 'Entender dónde pones tu dinero',
                 'parrafos' => [
-                    'Una forma prudente de empezar es pensar en plazos: liquidez para imprevistos, objetivos de medio plazo y decisiones de largo plazo, cada una con un papel distinto. La diversificación, es decir, no depender de un único resultado, ayuda a no quedar atrapado en una sola apuesta.',
-                    'Empezar desde cero no exige acertar la inversión perfecta, sino entender qué haces y por qué. Este artículo es educativo y no recomienda productos ni promete rentabilidades: la mejor primera inversión suele ser el tiempo que dedicas a entender tu propia situación.',
+                    'Antes de invertir, no basta con saber el nombre del producto. Necesitas entender qué papel cumple, de dónde saldría la posible rentabilidad, qué riesgos tiene, cuánto tiempo podrías necesitar mantenerlo y en qué situaciones podrías perder dinero.',
+                    'Renta fija, renta variable, fondos, acciones o cualquier otro producto no son etiquetas mágicas. Son formas distintas de asumir riesgo a cambio de una expectativa de rentabilidad. Si no puedes explicar con palabras sencillas qué estás comprando, por qué lo compras y qué podría salir mal, todavía toca seguir aprendiendo.',
+                ],
+            ],
+            [
+                'titulo' => 'No inviertas a ciegas',
+                'parrafos' => [
+                    'Empezar desde cero no consiste en encontrar el producto de moda ni seguir lo que alguien recomienda en internet. Tampoco en creer que un asesor, una entidad o un conocido ha encontrado el próximo gran acierto justo para ti. Tu dinero es tu responsabilidad, y delegar sin entender puede salir caro.',
+                    'Si alguien te promete una rentabilidad alta, fácil y casi sin riesgo, haz números antes de emocionarte. Si al proyectar ese porcentaje durante unos años el resultado dice que serías millonario sin demasiado esfuerzo, la pregunta no es por qué no entras tú: la pregunta es por qué te lo están ofreciendo.',
                 ],
             ],
         ],
-        'conexion' => 'Antes de usar Proyecciones para estimar un escenario de inversión, revisa en el Dashboard qué parte de tu ahorro real puedes destinar a largo plazo sin comprometer tus gastos esenciales ni tu fondo de emergencia.',
+        'conexion' => 'Usa Proyecciones como una herramienta educativa para hacer números antes de creer promesas de rentabilidad. Si alguien te habla de ganar un X% con facilidad, simula ese escenario: si en pocos años el resultado dice que serías millonario sin demasiado esfuerzo, probablemente ya tienes la respuesta. Antes de invertir dinero real, revisa tu ahorro real, protege tu fondo de emergencia y fórmate lo suficiente para no tomar decisiones a ciegas.',
+    ],
+    [
+        'slug' => 'tipos-de-hipoteca-fija-variable-mixta',
+        'categoria' => 'Hipotecas',
+        'titulo' => 'Hipoteca fija, variable o mixta: qué cambia de verdad',
+        'resumen' => 'Elegir entre hipoteca fija, variable o mixta no va solo de encontrar la cuota más baja, sino de entender cuánta incertidumbre puede soportar tu presupuesto.',
+        'intencion_busqueda' => 'diferencia entre hipoteca fija variable y mixta',
+        'fecha' => '2026-06-15',
+        'estado' => 'publicado',
+        'lectura_min' => 5,
+        'destacado' => false,
+        'icono' => 'bi-bank',
+        'contenido' => [
+            [
+                'titulo' => 'La diferencia no está solo en la cuota inicial',
+                'parrafos' => [
+                    'Cuando comparas hipotecas, es fácil fijarse en la cuota del primer mes. Pero una hipoteca no se paga durante un mes: se paga durante muchos años. Por eso la pregunta importante no es solo cuál empieza más baja, sino cuál podrías sostener si las condiciones cambian.',
+                    'El tipo de hipoteca marca cómo se comportará tu cuota en el tiempo. Algunas opciones dan más estabilidad desde el principio; otras pueden empezar mejor, pero trasladan más incertidumbre al futuro. Elegir bien no consiste en adivinar qué pasará, sino en saber cuánto margen tiene tu presupuesto para soportar distintos escenarios.',
+                ],
+            ],
+            [
+                'titulo' => 'Hipoteca fija, variable y mixta',
+                'parrafos' => [
+                    'En una hipoteca fija, el interés se mantiene estable durante toda la vida del préstamo. Eso permite saber con bastante claridad qué cuota pagarás cada mes, algo útil si necesitas previsibilidad. A cambio, puede empezar con una cuota más alta que otras opciones en determinados momentos del mercado.',
+                    'En una hipoteca variable, la cuota se revisa según un índice de referencia más un diferencial. Puede empezar más baja, pero también puede subir si el índice sube. La hipoteca mixta combina ambas ideas: primero tienes un periodo fijo y después pasa a condiciones variables. Puede parecer un punto medio, pero también exige mirar bien qué ocurre cuando termina la parte fija.',
+                ],
+            ],
+            [
+                'titulo' => 'No compares solo el interés',
+                'parrafos' => [
+                    'Dos hipotecas del mismo tipo pueden ser muy distintas. Además del interés, conviene revisar comisiones, plazo, condiciones de revisión, productos vinculados o bonificados, seguros, tarjetas, domiciliaciones y cualquier obligación que afecte al coste real. Una cuota atractiva puede dejar de serlo si viene acompañada de gastos que no estabas contando.',
+                    'La mejor opción no es igual para todo el mundo. Si tu presupuesto tiene poco margen, quizá valores más la estabilidad. Si tienes más capacidad de ahorro y puedes asumir cambios, quizá toleres mejor cierta variación. Lo importante es que la decisión encaje con tu realidad, no con la oferta que parece más barata en la primera simulación.',
+                ],
+            ],
+        ],
+        'conexion' => 'Usa la calculadora de hipoteca para comparar las distintas condiciones que te ofrecen los bancos y ver cómo quedaría cada cuota. Después, lleva esa cuota al Dashboard junto con los demás gastos de la vivienda, sustituyendo los costes que dejarían de aplicar, como el alquiler, para comprobar cómo quedaría el balance real del mes.',
     ],
 ];

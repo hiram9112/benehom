@@ -336,20 +336,21 @@
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Proyecciones</span>
                         <h3>Un simulador para cada pregunta</h3>
-                        <p>Cada proyección parte de tu capacidad de ahorro real y devuelve una estimación orientativa. No es asesoramiento financiero: es ver los números con calma antes de mover dinero de verdad.</p>
+                        <p>Cada proyección parte de tu capacidad de ahorro real y devuelve una estimación orientativa. No es asesoramiento financiero: es ver los números con calma antes de mover dinero de verdad. Y si una meta se te resiste, simula recortar un gasto flexible y mira cómo se acerca.</p>
                         <ul class="bh-home-feature-points">
                             <li>Metas de ahorro por importe o por fecha.</li>
+                            <li>Recorta un gasto flexible, parcial o total, y mira cuánto antes llegas a tu meta.</li>
                             <li>Inflación, interés compuesto e hipoteca.</li>
                             <li>Guardadas aparte, sin tocar tus datos reales.</li>
                         </ul>
                     </div>
                     <div class="bh-home-feature-art">
-                        <div class="bh-home-mock bh-home-mock-sim">
-                            <span class="bh-home-mock-slip-tag">Meta de ahorro</span>
-                            <p class="bh-home-mock-slip-q">Reunir 6.000&nbsp;€ apartando 200&nbsp;€ al mes.</p>
+                        <div class="bh-home-mock bh-home-mock-sim" role="img" aria-label="Ejemplo de proyección de una meta: reduciendo a la mitad el gasto en ocio, el plazo proyectado baja a 22 meses, ocho meses antes de lo previsto">
+                            <span class="bh-home-mock-slip-tag">Reducción proyectada</span>
+                            <p class="bh-home-mock-slip-q">¿Y si recorto el ocio un 50&nbsp;%?</p>
                             <div class="bh-home-mock-sim-result">
-                                <div><span>Tiempo estimado</span><strong>30 meses</strong></div>
-                                <div><span>Encaje en tu mes</span><strong class="is-pos">Sí, cabe</strong></div>
+                                <div><span>Plazo proyectado</span><strong>22 meses</strong></div>
+                                <div><span>Llegarías</span><strong class="is-pos">8 meses antes</strong></div>
                             </div>
                             <div class="bh-home-mock-chips">
                                 <span>Meta</span>
@@ -415,6 +416,39 @@
                                 <span>Ahorro</span>
                                 <span>Gastos</span>
                                 <span>Hábitos</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Feature 5: invertir en vez de gastar -->
+                <article class="bh-home-feature bh-reveal">
+                    <div class="bh-home-feature-text">
+                        <span class="bh-home-feature-tag">Inversión</span>
+                        <h3>¿Y si lo inviertes en vez de gastarlo?</h3>
+                        <p>En tu top de gastos flexibles, toca una barra y al instante BeneHom te muestra en qué podría convertirse ese dinero si lo invirtieras en lugar de gastarlo. Es una simulación educativa, no una recomendación: nada se guarda ni cambia tus datos reales.</p>
+                        <ul class="bh-home-feature-points">
+                            <li>Un solo clic sobre alguno de tus mayores gastos flexibles.</li>
+                            <li>Ajusta la aportación (todo o la mitad) y la rentabilidad orientativa.</li>
+                            <li>Total acumulado y beneficio a 5, 10 y 15 años.</li>
+                            <li>Simulación educativa: no toca tus datos reales.</li>
+                        </ul>
+                    </div>
+                    <div class="bh-home-feature-art">
+                        <div class="bh-home-mock bh-home-mock-sim" role="img" aria-label="Ejemplo de simulación educativa: invertir los 90 euros mensuales que se gastan en ocio podría llegar a 6.200 euros en cinco años y a 26.200 euros en quince años">
+                            <span class="bh-home-mock-slip-tag">Simulación educativa</span>
+                            <p class="bh-home-mock-slip-q">Si invirtieras tu gasto en ocio: 90&nbsp;€ al mes.</p>
+                            <div class="bh-home-mock-bar"><span class="is-flexible" style="--w:70%"></span></div>
+                            <div class="bh-home-mock-sim-result">
+                                <div><span>A 5 años</span><strong>6.200&nbsp;€</strong></div>
+                                <div><span>A 15 años</span><strong class="is-pos">26.200&nbsp;€</strong></div>
+                            </div>
+                            <div class="bh-home-mock-chips">
+                                <span>Todo</span>
+                                <span>La mitad</span>
+                                <span>3%</span>
+                                <span>6%</span>
+                                <span>9%</span>
                             </div>
                         </div>
                     </div>

@@ -31,12 +31,16 @@
 
         <main class="bh-main bh-main-contained">
 
-            <header class="bh-page-header">
-                <div>
-                    <h1>Cuenta</h1>
-                    <p>Gestiona tu contraseña y los datos de tu perfil</p>
+            <div class="bh-card mb-4">
+                <div class="bh-card-body">
+                    <header class="bh-page-header mb-0">
+                        <div>
+                            <h1>Cuenta</h1>
+                            <p>Gestiona tu contraseña y los datos de tu perfil</p>
+                        </div>
+                    </header>
                 </div>
-            </header>
+            </div>
 
             <!-- Cambiar contraseña -->
             <div class="bh-card mb-4">

@@ -1,4 +1,5 @@
-document.querySelectorAll(".js-meta-form").forEach((formulario) => {
+(() => {
+  document.querySelectorAll(".js-meta-form").forEach((formulario) => {
     const actualizarModo = () => {
       const modoSeleccionado = formulario.querySelector('input[name="modo_calculo"]:checked')?.value || "aportacion";
 
@@ -707,7 +708,7 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
       });
 
       if (mejoraElemento) {
-        mejoraElemento.textContent = `-${mejoraMeses} ${mejoraMeses === 1 ? "mes" : "meses"}`;
+        mejoraElemento.textContent = `${mejoraMeses} ${mejoraMeses === 1 ? "mes" : "meses"} antes`;
         mejoraElemento.hidden = false;
       }
 
@@ -976,3 +977,4 @@ document.querySelectorAll(".js-meta-form").forEach((formulario) => {
     event.preventDefault();
     editarAhorroInline();
   });
+})();

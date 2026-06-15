@@ -121,7 +121,8 @@ $rutasPublicas = [
     'password/reset',
     'password/procesarReset',
     'legal/privacidad',
-    'legal/terminos'
+    'legal/terminos',
+    'legal/aviso'
 ];
 
 $usuarioLogueado = isset($_SESSION['usuario_id']);

@@ -27,10 +27,13 @@
 
             <hr>
 
-            <h5 class="mt-4">1. Objeto</h5>
+            <h5 class="mt-4">1. Objeto y titular</h5>
             <p>
-                BeneHom es una aplicación web destinada a la gestión personal
-                de economía familiar. Su uso es exclusivamente personal y no comercial.
+                BeneHom es una aplicación web destinada a la gestión personal de la economía
+                doméstica. El titular del servicio es <strong>Hiram González</strong>
+                (proyecto BeneHom); contacto:
+                <a href="mailto:benehom_web@gmail.com">benehom_web@gmail.com</a>. Su uso es
+                personal y no comercial.
             </p>
 
             <h5 class="mt-4">2. Registro y cuenta de usuario</h5>
@@ -46,32 +49,44 @@
                 vigente y a no emplearla para fines ilícitos o contrarios a la buena fe.
             </p>
 
-            <h5 class="mt-4">4. Limitación de responsabilidad</h5>
+            <h5 class="mt-4">4. Naturaleza de la herramienta y limitación de responsabilidad</h5>
             <p>
-                La aplicación se proporciona como herramienta de apoyo a la gestión financiera
-                personal. El responsable no garantiza resultados financieros específicos
-                derivados de su uso.
+                BeneHom es una herramienta de apoyo y educación para la gestión doméstica.
+                Las calculadoras y simuladores (ahorro, inflación, inversión, hipoteca, etc.)
+                ofrecen estimaciones orientativas con fines educativos y
+                <strong>no constituyen asesoramiento financiero, fiscal ni de inversión</strong>,
+                ni garantizan resultado alguno. Las decisiones que el usuario tome a partir de
+                la información de la aplicación son de su exclusiva responsabilidad. El servicio
+                se ofrece "tal cual", sin garantía de disponibilidad ininterrumpida.
             </p>
 
-            <h5 class="mt-4">5. Eliminación de cuenta</h5>
+            <h5 class="mt-4">5. Propiedad intelectual</h5>
+            <p>
+                La marca, el diseño y los contenidos de BeneHom están protegidos. No se permite
+                su reproducción o uso sin autorización.
+            </p>
+
+            <h5 class="mt-4">6. Eliminación de cuenta</h5>
             <p>
                 El usuario puede eliminar su cuenta en cualquier momento desde su perfil,
                 lo que supondrá la supresión de los datos asociados.
             </p>
 
-            <h5 class="mt-4">6. Modificaciones</h5>
+            <h5 class="mt-4">7. Modificaciones</h5>
             <p>
-                El responsable podrá actualizar estos términos cuando sea necesario
-                para adaptarlos a cambios legales o funcionales de la aplicación.
+                El titular podrá actualizar estos términos cuando sea necesario para
+                adaptarlos a cambios legales o funcionales de la aplicación.
             </p>
 
-            <hr class="mt-5">
+            <h5 class="mt-4">8. Protección de datos</h5>
+            <p>
+                El tratamiento de los datos personales se rige por la
+                <a href="<?= BASE_URL ?>index.php?r=legal/privacidad">Política de Privacidad</a>.
+            </p>
 
-            <p class="mb-0">
-                <a href="<?= BASE_URL ?>index.php?r=cuenta/index">
-                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                    Volver a la cuenta
-                </a>
+            <h5 class="mt-4">9. Legislación aplicable</h5>
+            <p>
+                Estos términos se rigen por la legislación española.
             </p>
 
         </div>

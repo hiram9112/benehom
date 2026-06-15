@@ -122,10 +122,16 @@
                                 Política de Privacidad
                             </a>
                         </li>
-                        <li>
+                        <li class="mb-2">
                             <a href="index.php?r=legal/terminos" target="_blank">
                                 <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                 Términos y Condiciones de Uso
+                            </a>
+                        </li>
+                        <li>
+                            <a href="index.php?r=legal/aviso" target="_blank">
+                                <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                                Aviso Legal
                             </a>
                         </li>
                     </ul>

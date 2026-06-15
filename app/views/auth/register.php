@@ -53,6 +53,11 @@ bh_auth_begin(
         </label>
     </div>
 
+    <p class="small text-muted mt-2 mb-0">
+        Consulta también nuestro
+        <a href="<?= BASE_URL ?>index.php?r=legal/aviso" target="_blank">Aviso Legal</a>.
+    </p>
+
     <button type="submit" id="btn-register" class="bh-btn bh-btn-primary w-100">Registrarse</button>
 </form>
 

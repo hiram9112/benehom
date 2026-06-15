@@ -11,4 +11,9 @@ class LegalController
     {
         require APP_PATH . '/views/legal/terminos.php';
     }
+
+    public function aviso()
+    {
+        require APP_PATH . '/views/legal/aviso.php';
+    }
 }

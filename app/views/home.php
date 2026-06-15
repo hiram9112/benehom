@@ -220,6 +220,8 @@ $primaryLabel = $usuarioLogueado ? 'Ir al panel' : 'Crear cuenta';
             <span>BeneHom</span>
             <a href="<?= BASE_URL ?>index.php?r=legal/privacidad" target="_blank" rel="noopener">Privacidad</a>
             <a href="<?= BASE_URL ?>index.php?r=legal/terminos" target="_blank" rel="noopener">Términos</a>
+            <a href="<?= BASE_URL ?>index.php?r=legal/aviso" target="_blank" rel="noopener">Aviso Legal</a>
+            <span>Desarrollado por <a href="https://www.linkedin.com/in/hiramgonzalez9112" target="_blank" rel="noopener">hiramdev</a></span>
         </div>
     </footer>
 </body>

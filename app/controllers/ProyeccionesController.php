@@ -8,6 +8,9 @@ require_once APP_PATH . '/models/CalculadoraHipoteca.php';
 
 class ProyeccionesController {
 
+    private const RENTABILIDAD_ANUAL_MAXIMA = 999.99;
+    private const VALOR_ESTIMACION_INVERSION_MAXIMO = 9007199254740991;
+
     public function index(){
         if(!isset($_SESSION['usuario_id'])){
             header("Location: " . BASE_URL . "index.php?r=auth/login");
@@ -85,13 +88,8 @@ class ProyeccionesController {
         $ahorroRealMesSugerencia = $ingresosMes - $gastosEsencialesMes - $gastosFlexiblesMes;
 
         // Capacidad de proyección: valor global controlado por el usuario, desacoplado del mes.
-        // Empieza en 0 y solo cambia cuando el usuario lo edita manualmente.
-        $ahorroMensualDisponible = (
-            isset($_SESSION['proyecciones_ahorro_mensual_manual']) &&
-            is_numeric($_SESSION['proyecciones_ahorro_mensual_manual'])
-        )
-            ? max(0, floatval($_SESSION['proyecciones_ahorro_mensual_manual']))
-            : 0;
+        // Nunca baja de lo ya asignado a metas e inversiones guardadas.
+        $ahorroMensualDisponible = $this->obtenerAhorroMensualConfigurado($usuario_id);
 
         $ahorroDisponibleMetas = max(0, $ahorroMensualDisponible - $ahorroAsignadoMetas);
         $metasAhorroPreparadas = array_map([$this, 'prepararMetaParaVista'], $metasAhorro);
@@ -220,7 +218,7 @@ class ProyeccionesController {
             $this->redirigirAProyecciones();
         }
 
-        $_SESSION['mensaje_exitoso'] = 'Escenario guardado. Puedes comparar la estimación cuando quieras.';
+        $_SESSION['mensaje_exitoso'] = 'Escenario guardado con éxito. Puedes ajustar el capital inicial, la rentabilidad o la aportación mensual para ver cómo cambia.';
         $this->redirigirAProyecciones();
     }
 
@@ -302,6 +300,11 @@ class ProyeccionesController {
             return;
         }
 
+        if ($campo === 'rentabilidad_anual' && $valor > self::RENTABILIDAD_ANUAL_MAXIMA) {
+            echo json_encode(['ok' => false, 'msg' => $this->mensajeRentabilidadMaxima($valor)]);
+            return;
+        }
+
         $escenario = EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id);
 
         if (!$escenario) {
@@ -337,6 +340,19 @@ class ProyeccionesController {
 
         if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
             $frecuenciaReinversion = 'mensual';
+        }
+
+        $mensajeEstimacion = $this->validarEstimacionEscenarioInversion(
+            round(floatval($escenario['capital_inicial']), 2),
+            round(floatval($escenario['aportacion_mensual']), 2),
+            round(floatval($escenario['rentabilidad_anual']), 2),
+            intval($escenario['plazo_anios']),
+            $frecuenciaReinversion
+        );
+
+        if ($mensajeEstimacion !== null) {
+            echo json_encode(['ok' => false, 'msg' => $mensajeEstimacion]);
+            return;
         }
 
         $actualizado = EscenarioInversion::actualizar(
@@ -535,22 +551,46 @@ class ProyeccionesController {
         }
 
         $ahorroMensual = trim((string) ($_POST['ahorro_mensual'] ?? ''));
-        $ahorroMensual = str_replace(',', '.', $ahorroMensual);
 
-        if ($ahorroMensual === '' || !is_numeric($ahorroMensual) || floatval($ahorroMensual) < 0) {
-            echo json_encode(['ok' => false, 'msg' => 'Introduce un ahorro mensual igual o superior a 0.']);
+        if ($ahorroMensual === '') {
+            echo json_encode(['ok' => false, 'msg' => 'Introduce un ahorro mensual válido.']);
             return;
         }
 
-        // Capacidad global desacoplada del mes: solo se guarda el valor que indica el usuario.
-        $ahorroMensualDisponible = round(floatval($ahorroMensual), 2);
-        $_SESSION['proyecciones_ahorro_mensual_manual'] = $ahorroMensualDisponible;
+        if (substr($ahorroMensual, 0, 1) === '-') {
+            echo json_encode(['ok' => false, 'msg' => 'El ahorro mensual no puede ser negativo.']);
+            return;
+        }
 
-        $ahorroAsignadoMetas = MetaAhorro::totalAportacionesActivas($_SESSION['usuario_id']);
+        if (preg_match('/^\d+[,.]\d{3,}$/', $ahorroMensual)) {
+            echo json_encode(['ok' => false, 'msg' => 'El ahorro mensual solo puede tener hasta 2 decimales.']);
+            return;
+        }
+
+        if (!preg_match('/^\d+(?:[,.]\d{1,2})?$/', $ahorroMensual)) {
+            echo json_encode(['ok' => false, 'msg' => 'Introduce un ahorro mensual válido.']);
+            return;
+        }
+
+        $ahorroMensual = str_replace(',', '.', $ahorroMensual);
+
+        if (!is_numeric($ahorroMensual)) {
+            echo json_encode(['ok' => false, 'msg' => 'Introduce un ahorro mensual válido.']);
+            return;
+        }
+
+        // Capacidad global desacoplada del mes: se guarda el valor indicado por el usuario,
+        // pero el valor efectivo no baja de lo ya asignado a metas e inversiones.
+        $ahorroMensualManual = round(floatval($ahorroMensual), 2);
+        $_SESSION['proyecciones_ahorro_mensual_manual'] = $ahorroMensualManual;
+
+        $ahorroAsignadoMetas = $this->totalAsignadoProyecciones($_SESSION['usuario_id']);
 
         if ($ahorroAsignadoMetas === false) {
             $ahorroAsignadoMetas = 0;
         }
+
+        $ahorroMensualDisponible = round(max($ahorroMensualManual, (float) $ahorroAsignadoMetas), 2);
 
         echo json_encode([
             'ok' => true,
@@ -1002,8 +1042,12 @@ class ProyeccionesController {
         $aportacionMensual = round($aportacionMensual, 2);
 
         if ($aportacionMensual > $capacidadDisponible) {
+            $mensajeCapacidad = $modoCalculo === 'fecha'
+                ? $this->mensajeCapacidadFechaMeta('No se pudo crear la meta', $aportacionMensual, $capacidadDisponible)
+                : $this->mensajeCapacidad('No se pudo crear la meta', $aportacionMensual, $capacidadDisponible);
+
             return $this->errorValidacion(
-                $this->mensajeCapacidad('No se pudo crear la meta', $aportacionMensual, $capacidadDisponible),
+                $mensajeCapacidad,
                 'capacidad'
             );
         }
@@ -1020,16 +1064,19 @@ class ProyeccionesController {
     }
 
     private function obtenerAhorroMensualConfigurado($usuario_id): float{
-        // Capacidad de proyección global desacoplada del mes: la fija el usuario y
-        // empieza en 0. No se calcula a partir de ingresos/gastos del mes.
+        $asignado = $this->totalAsignadoProyecciones($usuario_id);
+        $minimoAsignado = $asignado === false ? 0 : max(0, (float) $asignado);
+
+        // Capacidad de proyección global desacoplada del mes: la fija el usuario,
+        // pero como mínimo debe cubrir lo ya asignado en metas e inversiones.
         if (
             isset($_SESSION['proyecciones_ahorro_mensual_manual']) &&
             is_numeric($_SESSION['proyecciones_ahorro_mensual_manual'])
         ) {
-            return max(0, floatval($_SESSION['proyecciones_ahorro_mensual_manual']));
+            return round(max(floatval($_SESSION['proyecciones_ahorro_mensual_manual']), $minimoAsignado), 2);
         }
 
-        return 0;
+        return round($minimoAsignado, 2);
     }
 
     private function normalizarCantidad($valor): ?float{
@@ -1040,7 +1087,9 @@ class ProyeccionesController {
             return null;
         }
 
-        return floatval($cantidad);
+        $numero = floatval($cantidad);
+
+        return is_finite($numero) ? $numero : null;
     }
 
     private function calcularMesesHastaFechaObjetivo($fechaObjetivo): ?int{
@@ -1113,6 +1162,10 @@ class ProyeccionesController {
             return $this->errorValidacion('La rentabilidad anual estimada debe ser igual o superior a 0.');
         }
 
+        if ($rentabilidadAnual > self::RENTABILIDAD_ANUAL_MAXIMA) {
+            return $this->errorValidacion($this->mensajeRentabilidadMaxima($rentabilidadAnual));
+        }
+
         if ($plazoAnios === '' || !ctype_digit($plazoAnios) || intval($plazoAnios) <= 0) {
             return $this->errorValidacion('El plazo en años debe ser mayor que 0.');
         }
@@ -1121,8 +1174,23 @@ class ProyeccionesController {
             return $this->errorValidacion('Selecciona una frecuencia de reinversión válida.');
         }
 
-        // La aportación mensual consume el mismo presupuesto que las metas.
+        $capitalInicial = round($capitalInicial, 2);
         $aportacionMensual = round($aportacionMensual, 2);
+        $rentabilidadAnual = round($rentabilidadAnual, 2);
+
+        $mensajeEstimacion = $this->validarEstimacionEscenarioInversion(
+            $capitalInicial,
+            $aportacionMensual,
+            $rentabilidadAnual,
+            intval($plazoAnios),
+            $frecuenciaReinversion
+        );
+
+        if ($mensajeEstimacion !== null) {
+            return $this->errorValidacion($mensajeEstimacion);
+        }
+
+        // La aportación mensual consume el mismo presupuesto que las metas.
         $capacidadMensual = $this->obtenerAhorroMensualConfigurado($usuario_id);
         $asignado = $this->totalAsignadoProyecciones($usuario_id, null, $escenario_id);
 
@@ -1143,9 +1211,9 @@ class ProyeccionesController {
             'ok' => true,
             'datos' => [
                 'nombre' => $nombre,
-                'capital_inicial' => round($capitalInicial, 2),
-                'aportacion_mensual' => round($aportacionMensual, 2),
-                'rentabilidad_anual' => round($rentabilidadAnual, 2),
+                'capital_inicial' => $capitalInicial,
+                'aportacion_mensual' => $aportacionMensual,
+                'rentabilidad_anual' => $rentabilidadAnual,
                 'plazo_anios' => intval($plazoAnios),
                 'frecuencia_reinversion' => $frecuenciaReinversion,
             ],
@@ -1211,6 +1279,26 @@ class ProyeccionesController {
             'periodos_por_anio' => $periodosPorAnio,
             'meses_por_periodo' => $mesesPorPeriodo,
         ];
+    }
+
+    private function validarEstimacionEscenarioInversion($capitalInicial, $aportacionMensual, $rentabilidadAnual, $plazoAnios, $frecuenciaReinversion): ?string{
+        $resultado = $this->calcularEscenarioInversion(
+            $capitalInicial,
+            $aportacionMensual,
+            $rentabilidadAnual,
+            $plazoAnios,
+            $frecuenciaReinversion
+        );
+
+        foreach (['total_aportaciones_plazo', 'capital_total_aportado', 'valor_final_estimado', 'rendimiento_estimado'] as $campo) {
+            $valor = (float) ($resultado[$campo] ?? INF);
+
+            if (!is_finite($valor) || $valor > self::VALOR_ESTIMACION_INVERSION_MAXIMO) {
+                return 'Con esos datos la estimación genera un resultado demasiado grande para calcularse de forma fiable. Reduce la rentabilidad, el plazo, el capital inicial o la aportación mensual.';
+            }
+        }
+
+        return null;
     }
 
     private function frecuenciasReinversionPermitidas(): array{
@@ -1462,9 +1550,18 @@ class ProyeccionesController {
      * Se reutiliza al crear meta, crear/editar inversión, etc.
      */
     private function mensajeCapacidad(string $lead, float $necesita, float $disponible): string{
-        return $lead . ': necesita ' . formatearCantidadPHP($necesita) . ' €/mes y solo tienes ' .
-            formatearCantidadPHP($disponible) . ' €/mes sin asignar. Sube el ahorro mensual disponible en esta vista ' .
-            'o redistribuye otras metas e inversiones; recuerda que para destinar ahorro real necesitarás aumentar ingresos o reducir gastos.';
+        return $lead . ': necesitas ' . formatearCantidadPHP($necesita) . ' €/mes y tienes ' .
+            formatearCantidadPHP($disponible) . ' €/mes disponibles. Ajusta la aportación o aumenta tu ahorro mensual.';
+    }
+
+    private function mensajeCapacidadFechaMeta(string $lead, float $necesita, float $disponible): string{
+        return $lead . ': para cumplir ese plazo necesitas ' . formatearCantidadPHP($necesita) . ' €/mes, pero solo tienes ' .
+            formatearCantidadPHP($disponible) . ' €/mes disponibles. Aumenta tu ahorro mensual disponible o elige una fecha más lejana.';
+    }
+
+    private function mensajeRentabilidadMaxima(float $rentabilidad): string{
+        return 'La rentabilidad anual estimada de ' . formatearCantidadPHP($rentabilidad) . '% supera el máximo permitido de ' .
+            formatearCantidadPHP(self::RENTABILIDAD_ANUAL_MAXIMA) . '%. Introduce una rentabilidad menor para poder guardar y calcular el escenario.';
     }
 
     public function crearMetaAhorroAjax(){
@@ -1600,7 +1697,7 @@ class ProyeccionesController {
 
         echo json_encode([
             'ok' => true,
-            'msg' => 'Escenario guardado. Puedes comparar la estimación cuando quieras.',
+            'msg' => 'Escenario guardado con éxito. Puedes ajustar el capital inicial, la rentabilidad o la aportación mensual para ver cómo cambia.',
             'cardHtml' => $cardHtml,
             'count' => is_array($escenarios) ? count($escenarios) : 0,
             'ahorroAsignadoMetas' => $capacidad['asignado'],

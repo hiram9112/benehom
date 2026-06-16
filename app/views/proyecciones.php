@@ -52,8 +52,8 @@
             <section class="bh-projections-hero mb-4" aria-labelledby="proyecciones-titulo">
                 <article class="bh-card bh-card-finance bh-projections-intro-card">
                     <div class="bh-card-body">
-                        <p class="bh-projections-kicker">Planificación y proyecciones</p>
-                        <h1 id="proyecciones-titulo">Proyecciones</h1>
+
+                        <h1 id="proyecciones-titulo">Proyecciones y simulaciones</h1>
                         <p>
                             Crea metas de ahorro, proyecta reducciones de gastos flexibles, explora escenarios de inversión educativa,
                             calcula el impacto de la inflación o estima cuotas hipotecarias. Todo sin modificar tus datos reales.
@@ -136,13 +136,13 @@
                                     <?= bh_render_meta_card($meta, $gastosFlexiblesPorCategoria) ?>
                                 <?php endforeach; ?>
                             </div>
-                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="meta"<?= empty($metasAhorroPreparadas) ? '' : ' hidden' ?>>
+                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="meta" <?= empty($metasAhorroPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
                                     <i class="bi bi-journal-plus"></i>
                                 </div>
                                 <h4 class="bh-empty-state-title">Aún no tienes metas guardadas</h4>
                                 <p class="bh-empty-state-text">
-                                    Define un objetivo, indica cuánto puedes aportar al mes y BeneHom estima el plazo para alcanzarlo.
+                                    Define un objetivo, indica cuánto puedes aportar al mes o estable un plazo y BeneHom hará los cálculos necesarios.
                                 </p>
                             </div>
                         </div>
@@ -155,9 +155,9 @@
                     <article class="bh-card bh-investment-list-card">
                         <div class="bh-card-header bh-projections-module-header">
                             <div>
-                                <h2 id="inversion-educativa-titulo">Escenarios de inversión educativa</h2>
+                                <h2 id="inversion-educativa-titulo">Escenarios de inversión</h2>
                                 <p>
-                                    Guarda hipótesis para entender cómo influye el interés compuesto y la frecuencia de reinversión
+                                    Guarda escenarios para entender cómo influye el interés compuesto y la frecuencia de reinversión
                                     de beneficios. La rentabilidad indicada es anual, educativa y no representa una recomendación financiera.
                                 </p>
                             </div>
@@ -175,13 +175,13 @@
                                     <?= bh_render_escenario_inversion_card($escenario) ?>
                                 <?php endforeach; ?>
                             </div>
-                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inversion"<?= empty($escenariosInversionPreparados) ? '' : ' hidden' ?>>
+                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inversion" <?= empty($escenariosInversionPreparados) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
                                     <i class="bi bi-graph-up"></i>
                                 </div>
                                 <h4 class="bh-empty-state-title">Aún no tienes escenarios de inversión</h4>
                                 <p class="bh-empty-state-text">
-                                    Crea una hipótesis para visualizar cómo el interés compuesto y la frecuencia de reinversión afectan al valor final estimado.
+                                    Crea un escenario para visualizar cómo el interés compuesto y la frecuencia de reinversión afectan al valor final estimado.
                                 </p>
                             </div>
                         </div>
@@ -214,7 +214,7 @@
                                     <?= bh_render_inflacion_card($proyeccion) ?>
                                 <?php endforeach; ?>
                             </div>
-                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inflacion"<?= empty($proyeccionesInflacionPreparadas) ? '' : ' hidden' ?>>
+                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inflacion" <?= empty($proyeccionesInflacionPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
                                     <i class="bi bi-cash-stack"></i>
                                 </div>
@@ -253,7 +253,7 @@
                                     <?= bh_render_calculadora_hipoteca_card($calculadora) ?>
                                 <?php endforeach; ?>
                             </div>
-                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="hipoteca"<?= empty($calculadorasHipotecaPreparadas) ? '' : ' hidden' ?>>
+                            <div class="bh-empty-state bh-meta-empty-state" data-section-empty="hipoteca" <?= empty($calculadorasHipotecaPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
                                     <i class="bi bi-house"></i>
                                 </div>
@@ -284,7 +284,7 @@
                 <div class="bh-field-row">
                     <div class="bh-field">
                         <label class="bh-label" for="meta_nombre">Nombre</label>
-                        <input class="bh-input" type="text" id="meta_nombre" name="nombre" maxlength="100" required placeholder="Ej. Fondo para vacaciones">
+                        <input class="bh-input" type="text" id="meta_nombre" name="nombre" maxlength="100" required placeholder="Ej. Fondo de emergencias">
                     </div>
                     <div class="bh-field">
                         <label class="bh-label" for="meta_importe_objetivo">Importe objetivo</label>
@@ -331,7 +331,7 @@
     <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearEscenarioInversionPanel" aria-labelledby="crearEscenarioInversionPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-projections-kicker mb-1">Hipótesis educativa</p>
+                <p class="bh-projections-kicker mb-1">Simulación educativa</p>
                 <h5 class="offcanvas-title" id="crearEscenarioInversionPanelLabel">Nuevo escenario de inversión</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
@@ -372,14 +372,14 @@
                     <div class="bh-select-shell">
                         <select class="bh-select" id="inversion_frecuencia_reinversion" name="frecuencia_reinversion" required>
                             <?php foreach ($frecuenciasReinversion as $valorFrecuencia => $labelFrecuencia): ?>
-                                <option value="<?= htmlspecialchars($valorFrecuencia, ENT_QUOTES, 'UTF-8') ?>">
+                                <option value="<?= htmlspecialchars($valorFrecuencia, ENT_QUOTES, 'UTF-8') ?>"<?= $valorFrecuencia === 'anual' ? ' selected' : '' ?>>
                                     <?= htmlspecialchars($labelFrecuencia, ENT_QUOTES, 'UTF-8') ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <p class="bh-field-help">
-                        Ejemplo: con una rentabilidad anual del 5%, mensual aplica 5%/12 cada mes y trimestral aplica 5%/4 cada trimestre.
+                        La frecuencia indica cada cuánto se suman al capital: mensual, trimestral, semestral o anual. Cuanto más frecuente sea la reinversión, mayor puede ser el efecto del interés compuesto. 
                     </p>
                 </div>
 

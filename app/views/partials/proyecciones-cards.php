@@ -11,7 +11,7 @@
 if (!function_exists('bh_proy_formatear_cantidad')) {
     function bh_proy_formatear_cantidad($cantidad): string
     {
-        return number_format((float) $cantidad, 0, ',', '.');
+        return rtrim(rtrim(number_format((float) $cantidad, 2, ',', '.'), '0'), ',');
     }
 }
 
@@ -122,7 +122,7 @@ if (!function_exists('bh_render_meta_card')) {
                 </p>
                 <p>
                     <span>Plazo estimado</span>
-                    <strong>
+                    <strong class="bh-meta-projection-period">
                         <span data-projection-value="plazo"><?= htmlspecialchars(bh_proy_formatear_plazo($meta['plazo_meses_estimado']), ENT_QUOTES, 'UTF-8') ?></span>
                         <span class="bh-meta-projection-improvement" data-projection-value="mejora" hidden></span>
                     </strong>
@@ -212,12 +212,16 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
     function bh_render_escenario_inversion_card(array $escenario): string
     {
         $escenarioId = intval($escenario['id']);
+        $plazoAnios = intval($escenario['plazo_anios']);
         ob_start();
         ?>
         <article class="bh-investment-card" data-investment-card data-investment-id="<?= $escenarioId ?>">
             <div class="bh-meta-card-main">
                 <div>
-                    <h4><?= htmlspecialchars($escenario['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                    <div class="bh-meta-title-row">
+                        <h4><?= htmlspecialchars($escenario['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                        <span class="bh-badge bh-badge-saving"><?= $plazoAnios ?> <?= $plazoAnios === 1 ? 'año' : 'años' ?></span>
+                    </div>
                     <p class="bh-investment-card-copy mb-0">
                         Reinversión <?= htmlspecialchars(strtolower($escenario['frecuencia_reinversion_label']), ENT_QUOTES, 'UTF-8') ?>:
                         <?= intval($escenario['periodos_por_anio']) ?> <?= intval($escenario['periodos_por_anio']) === 1 ? 'pago' : 'pagos' ?> al año.

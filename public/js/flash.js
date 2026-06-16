@@ -65,7 +65,7 @@
     message.setAttribute("role", variante.role);
     message.setAttribute("data-flash-message", "");
 
-    if (variante.autodismiss) {
+    if (variante.autodismiss || (typeof duracionMs === "number" && duracionMs > 0)) {
       var duracion = typeof duracionMs === "number" && duracionMs > 0 ? String(duracionMs) : "";
       message.setAttribute("data-flash-autodismiss", duracion);
     }

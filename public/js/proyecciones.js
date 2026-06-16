@@ -23,7 +23,7 @@
     const numero = Number(valor) || 0;
 
     return new Intl.NumberFormat("es-ES", {
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 2,
     }).format(numero);
   };
 
@@ -340,7 +340,7 @@
         if (newValue === "" || Number(newValue) < 0) {
           const mensaje = "Introduce un valor igual o superior a 0.";
           element.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restore();
           return;
         }
@@ -364,7 +364,7 @@
             if (data.tipo === "capacidad") {
               mostrarFlash(mensaje, "warning", 11500);
             } else {
-              mostrarFlash(mensaje);
+              mostrarFlash(mensaje, "error", 5000);
             }
             restore();
             return;
@@ -377,7 +377,7 @@
         } catch (error) {
           const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
           element.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restore();
         }
       };
@@ -711,7 +711,7 @@
       });
 
       if (mejoraElemento) {
-        mejoraElemento.textContent = `${mejoraMeses} ${mejoraMeses === 1 ? "mes" : "meses"} antes`;
+        mejoraElemento.textContent = `--> ${mejoraMeses} ${mejoraMeses === 1 ? "mes" : "meses"} antes`;
         mejoraElemento.hidden = false;
       }
 
@@ -938,7 +938,7 @@
           cerrarOffcanvas(form);
           mostrarFlash(data.msg, "warning", 11500);
         } else {
-          mostrarFlash(data.msg || "No se pudo crear la proyección.");
+          mostrarFlash(data.msg || "No se pudo crear la proyección.", "error", 5000);
         }
         return;
       }
@@ -965,7 +965,7 @@
       cerrarOffcanvas(form);
       mostrarFlash(data.msg, "success");
     } catch (error) {
-      mostrarFlash("No se pudo contactar con el servidor. Inténtalo de nuevo.");
+      mostrarFlash("No se pudo contactar con el servidor. Inténtalo de nuevo.", "error", 5000);
     } finally {
       if (boton) boton.disabled = false;
     }
@@ -1037,12 +1037,41 @@
 
   if (!ahorroElemento) return;
 
-  const normalizarCantidadParaInput = (valor) => valor.trim().replace(/\./g, "").replace(",", ".");
+  const normalizarDecimal = (valor) => String(valor || "").trim().replace(",", ".");
+
+  const validarAhorroMensual = (valor) => {
+    const texto = String(valor || "").trim();
+
+    if (texto === "") {
+      return { ok: false, mensaje: "Introduce un ahorro mensual válido." };
+    }
+
+    if (texto.startsWith("-")) {
+      return { ok: false, mensaje: "El ahorro mensual no puede ser negativo." };
+    }
+
+    if (/^\d+[.,]\d{3,}$/.test(texto)) {
+      return { ok: false, mensaje: "El ahorro mensual solo puede tener hasta 2 decimales." };
+    }
+
+    if (!/^\d+(?:[.,]\d{1,2})?$/.test(texto)) {
+      return { ok: false, mensaje: "Introduce un ahorro mensual válido." };
+    }
+
+    const valorNormalizado = normalizarDecimal(texto);
+    const numero = Number(valorNormalizado);
+
+    if (!Number.isFinite(numero)) {
+      return { ok: false, mensaje: "Introduce un ahorro mensual válido." };
+    }
+
+    return { ok: true, valor: valorNormalizado };
+  };
 
   const mostrarError = (mensaje) => {
     ahorroElemento.dataset.error = mensaje;
     ahorroElemento.setAttribute("title", mensaje);
-    mostrarFlash(mensaje);
+    mostrarFlash(mensaje, "error", 5000);
   };
 
   const limpiarError = () => {
@@ -1055,16 +1084,14 @@
 
     window.modoEdición = true;
 
-    const valorAnterior = ahorroElemento.dataset.value || normalizarCantidadParaInput(ahorroElemento.textContent);
+    const valorAnterior = normalizarDecimal(ahorroElemento.dataset.value || "0");
     const input = document.createElement("input");
     let guardando = false;
     let cancelado = false;
 
-    input.type = "number";
-    input.step = "0.01";
-    input.min = "0";
+    input.type = "text";
     input.inputMode = "decimal";
-    input.value = normalizarCantidadParaInput(valorAnterior);
+    input.value = valorAnterior;
     input.classList.add("bh-input", "bh-inline-edit-input", "bh-projections-inline-input");
     input.setAttribute("aria-label", "Ahorro mensual disponible");
 
@@ -1082,16 +1109,16 @@
       if (guardando) return;
       guardando = true;
 
-      const nuevoValor = input.value;
+      const validacion = validarAhorroMensual(input.value);
 
-      if (nuevoValor === "" || Number(nuevoValor) < 0) {
-        mostrarError("Introduce un ahorro mensual igual o superior a 0.");
+      if (!validacion.ok) {
+        mostrarError(validacion.mensaje);
         restaurar();
         return;
       }
 
       const datos = new FormData();
-      datos.append("ahorro_mensual", nuevoValor);
+      datos.append("ahorro_mensual", validacion.valor);
       datos.append("_csrf", window.CSRF_TOKEN || "");
 
       try {

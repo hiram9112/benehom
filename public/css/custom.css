@@ -2067,6 +2067,10 @@ textarea:disabled {
     font-weight: inherit;
 }
 
+.bh-meta-projection-period{
+    line-height: var(--bh-line-normal);
+}
+
 .bh-editable-value{
     align-items: center;
     gap: var(--bh-space-1);
@@ -2199,12 +2203,10 @@ textarea:disabled {
 }
 
 .bh-meta-projection-improvement{
-    display: inline-flex;
     margin-left: var(--bh-space-2);
     color: var(--bh-success);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-bold);
-    white-space: nowrap;
 }
 
 .bh-meta-actions{

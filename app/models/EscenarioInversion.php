@@ -109,6 +109,56 @@ class EscenarioInversion{
         }
     }
 
+    public static function totalAportaciones($usuario_id){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "SELECT SUM(aportacion_mensual) AS total
+                    FROM escenarios_inversion
+                    WHERE usuario_id = :usuario_id";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $resultado['total'] !== null ? floatval($resultado['total']) : 0;
+        }catch(Exception $e){
+            if (self::tablaNoExiste($e)) {
+                return 0;
+            }
+
+            return false;
+        }
+    }
+
+    public static function totalAportacionesExcluyendo($usuario_id, $id){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "SELECT SUM(aportacion_mensual) AS total
+                    FROM escenarios_inversion
+                    WHERE usuario_id = :usuario_id
+                    AND id <> :id";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $resultado['total'] !== null ? floatval($resultado['total']) : 0;
+        }catch(Exception $e){
+            if (self::tablaNoExiste($e)) {
+                return 0;
+            }
+
+            return false;
+        }
+    }
+
     public static function eliminarPorUsuario($id, $usuario_id){
         try{
             $db = Database::getConnection();

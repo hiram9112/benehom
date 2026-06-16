@@ -361,7 +361,11 @@
           if (!data.ok) {
             const mensaje = data.msg || "No se pudo actualizar el escenario.";
             element.setAttribute("title", mensaje);
-            mostrarFlash(mensaje);
+            if (data.tipo === "capacidad") {
+              mostrarFlash(mensaje, "warning", 11500);
+            } else {
+              mostrarFlash(mensaje);
+            }
             restore();
             return;
           }
@@ -369,6 +373,7 @@
           element.setAttribute("title", "Haz clic para editar");
           restore();
           updateCard(data);
+          actualizarCapacidadMetas(data);
         } catch (error) {
           const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
           element.setAttribute("title", mensaje);
@@ -893,10 +898,12 @@
     const asignado = document.getElementById("ahorro_asignado_metas");
     const disponible = document.getElementById("ahorro_disponible_metas");
     const capacidad = document.getElementById("meta_capacidad_disponible");
+    const capacidadInversion = document.getElementById("inversion_capacidad_disponible");
 
     if (asignado) asignado.textContent = formatearEuros(data.ahorroAsignadoMetas);
     if (disponible) disponible.textContent = formatearEuros(data.ahorroDisponibleMetas);
     if (capacidad) capacidad.textContent = formatearEuros(data.ahorroDisponibleMetas);
+    if (capacidadInversion) capacidadInversion.textContent = formatearEuros(data.ahorroDisponibleMetas);
   };
 
   const sincronizarEstadoVacio = (seccion) => {
@@ -924,7 +931,15 @@
       const data = await respuesta.json();
 
       if (!data.ok) {
-        mostrarFlash(data.msg || "No se pudo crear la proyección.");
+        // Error de capacidad: cerramos el offcanvas para que el aviso quede visible
+        // y lo mostramos como warning autocerrable (homogéneo con el aviso al editar).
+        // El resto de validaciones (nombre, importe…) mantienen el panel abierto.
+        if (data.tipo === "capacidad") {
+          cerrarOffcanvas(form);
+          mostrarFlash(data.msg, "warning", 11500);
+        } else {
+          mostrarFlash(data.msg || "No se pudo crear la proyección.");
+        }
         return;
       }
 
@@ -1108,6 +1123,11 @@
           metaCapacidadDisponibleElemento.textContent = `${formatearCantidad(data.ahorroDisponibleMetas)} €`;
         }
 
+        const supera = Number(data.ahorroAsignadoMetas) > Number(data.ahorroMensualDisponible);
+        if (supera && window.BH_AVISO_AHORRO_SUPERA) {
+          mostrarFlash(window.BH_AVISO_AHORRO_SUPERA, "warning", 11500);
+        }
+
         restaurar();
       } catch (error) {
         mostrarError("No se pudo contactar con el servidor. Inténtalo de nuevo.");
@@ -1132,5 +1152,18 @@
 
     event.preventDefault();
     editarAhorroInline();
+  });
+})();
+
+(function () {
+  "use strict";
+
+  const avisos = window.BH_PROYECCIONES_AVISOS;
+  if (!Array.isArray(avisos) || typeof window.mostrarFlash !== "function") return;
+
+  avisos.forEach((aviso) => {
+    if (aviso && aviso.texto) {
+      window.mostrarFlash(aviso.texto, aviso.tipo || "error");
+    }
   });
 })();

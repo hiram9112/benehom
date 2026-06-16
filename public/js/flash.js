@@ -30,15 +30,24 @@
     }
 
     if (message.hasAttribute("data-flash-autodismiss")) {
+      var duracion = parseInt(message.getAttribute("data-flash-autodismiss"), 10);
+      if (isNaN(duracion) || duracion <= 0) duracion = 6500;
       window.setTimeout(function () {
         return dismissFlash(message);
-      }, 6500);
+      }, duracion);
     }
   };
 
-  window.mostrarFlash = function (texto, tipo) {
+  var variantesFlash = {
+    success: { clase: "bh-flash-success", icono: "bi-check-circle", role: "status", autodismiss: true },
+    warning: { clase: "bh-flash-warning", icono: "bi-exclamation-triangle", role: "status", autodismiss: true },
+    error: { clase: "bh-flash-error", icono: "bi-exclamation-circle", role: "alert", autodismiss: false },
+  };
+
+  window.mostrarFlash = function (texto, tipo, duracionMs) {
     if (!texto) return;
-    if (tipo === undefined) tipo = "error";
+
+    var variante = variantesFlash[tipo] || variantesFlash.error;
 
     var stack = document.querySelector(".bh-flash-stack");
 
@@ -51,19 +60,19 @@
     }
 
     var message = document.createElement("div");
-    var isSuccess = tipo === "success";
 
-    message.className = "bh-flash " + (isSuccess ? "bh-flash-success" : "bh-flash-error");
-    message.setAttribute("role", isSuccess ? "status" : "alert");
+    message.className = "bh-flash " + variante.clase;
+    message.setAttribute("role", variante.role);
     message.setAttribute("data-flash-message", "");
 
-    if (isSuccess) {
-      message.setAttribute("data-flash-autodismiss", "");
+    if (variante.autodismiss) {
+      var duracion = typeof duracionMs === "number" && duracionMs > 0 ? String(duracionMs) : "";
+      message.setAttribute("data-flash-autodismiss", duracion);
     }
 
     message.innerHTML =
       '<i class="bi ' +
-      (isSuccess ? "bi-check-circle" : "bi-exclamation-circle") +
+      variante.icono +
       '" aria-hidden="true"></i>' +
       "<p></p>" +
       '<button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">' +

@@ -437,7 +437,7 @@
                     <div class="bh-home-feature-art">
                         <div class="bh-home-mock bh-home-mock-sim" role="img" aria-label="Ejemplo de simulación educativa: invertir los 90 euros mensuales que se gastan en ocio podría llegar a 6.200 euros en cinco años y a 26.200 euros en quince años">
                             <span class="bh-home-mock-slip-tag">Simulación educativa</span>
-                            <p class="bh-home-mock-slip-q">Si invirtieras tu gasto en ocio: 90&nbsp;€ al mes.</p>
+                            <p class="bh-home-mock-slip-q">Si invirtieras tu gasto de ocio: 90&nbsp;€ al mes.</p>
                             <div class="bh-home-mock-bar"><span class="is-flexible" style="--w:70%"></span></div>
                             <div class="bh-home-mock-sim-result">
                                 <div><span>A 5 años</span><strong>6.200&nbsp;€</strong></div>

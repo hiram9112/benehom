@@ -47,6 +47,7 @@
     --bh-error-soft: rgba(184, 62, 62, 0.10);
     --bh-warning: #3EB225;
     --bh-warning-soft: rgba(62, 178, 37, 0.10);
+    --bh-warning-strong: #B45309;
     --bh-info: #163F7F;
     --bh-info-soft: rgba(22, 63, 127, 0.08);
     --bh-neutral: var(--bh-color-sage-800);
@@ -1194,7 +1195,8 @@ textarea:disabled {
 }
 
 .bh-flash-success{
-    border-color: var(--bh-brand-strong);
+    border-color: var(--bh-success);
+    background-color: var(--bh-success);
 }
 
 .bh-flash-success > i{
@@ -1207,6 +1209,15 @@ textarea:disabled {
 }
 
 .bh-flash-error > i{
+    color: currentColor;
+}
+
+.bh-flash-warning{
+    border-color: var(--bh-warning-strong);
+    background-color: var(--bh-warning-strong);
+}
+
+.bh-flash-warning > i{
     color: currentColor;
 }
 
@@ -1589,6 +1600,11 @@ textarea:disabled {
     padding: clamp(var(--bh-space-5), 3vw, var(--bh-space-6));
 }
 
+.bh-projections-savings-card .bh-card-body{
+    display: flex;
+    flex-direction: column;
+}
+
 .bh-projections-kicker{
     margin-bottom: var(--bh-space-2);
     color: var(--bh-accent);
@@ -1694,6 +1710,36 @@ textarea:disabled {
 
 .bh-projections-savings-breakdown strong{
     white-space: nowrap;
+}
+
+/* Sugerencia de ahorro real del mes dentro de la card azul: bloque blanco
+   destacado (algo mayor y más grueso) que aprovecha el hueco bajo el desglose. */
+.bh-projections-savings-suggestion{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--bh-space-2);
+    row-gap: var(--bh-space-1);
+    margin-top: auto;
+    padding-top: var(--bh-space-4);
+    border-top: 1px solid rgba(253, 254, 253, 0.22);
+}
+
+.bh-projections-savings-suggestion-label{
+    font-size: var(--bh-text-md);
+    font-weight: var(--bh-weight-semibold);
+    opacity: 0.86;
+}
+
+.bh-projections-savings-suggestion-value{
+    font-size: var(--bh-text-lg);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-projections-savings-suggestion-note{
+    flex-basis: 100%;
+    font-size: var(--bh-text-sm);
+    opacity: 0.78;
 }
 
 .bh-projections-savings-value .bh-projections-inline-input{
@@ -2180,7 +2226,8 @@ textarea:disabled {
 
 .bh-meta-empty-state{
     max-width: none;
-    background-color: var(--bh-surface-soft);
+    background-color: transparent;
+    border: none;
     box-shadow: none;
 }
 

@@ -33,6 +33,14 @@
         'semestral' => 'Semestral',
         'anual' => 'Anual',
     ];
+
+    // Etiqueta legible del mes de referencia para la sugerencia de ahorro real.
+    $mesesEs = [1 => 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    $mesReferencia = $mesSeleccionado ?? date('Y-m');
+    $partesMesReferencia = explode('-', (string) $mesReferencia);
+    $mesSugerenciaLabel = (count($partesMesReferencia) === 2 && isset($mesesEs[(int) $partesMesReferencia[1]]))
+        ? $mesesEs[(int) $partesMesReferencia[1]] . ' ' . $partesMesReferencia[0]
+        : $mesReferencia;
     ?>
 
     <!--Contenedor Principal-->
@@ -51,8 +59,10 @@
                             calcula el impacto de la inflación o estima cuotas hipotecarias. Todo sin modificar tus datos reales.
                         </p>
                         <p>
-                            BeneHom usa como referencia el ahorro mensual del mes seleccionado en el Dashboard. Puedes editar
-                            esa cantidad para probar escenarios sin alterar tus ingresos, gastos ni el resumen del mes.
+                            El ahorro mensual disponible es el dinero que repartes cada mes entre tus metas e inversiones.
+                            Lo fijas tú y funciona como límite: no podrás asignar más de lo que indiques, así tus
+                            proyecciones siguen siendo realistas (por ejemplo, no planificas con 1.000 € si solo
+                            ahorras 200 €). Defínelo antes de crear proyecciones tomando como referencia tu ahorro real.
                         </p>
                         <p class="mb-0">
                             Los resultados son estimaciones orientativas, no garantías ni recomendaciones financieras.
@@ -75,11 +85,11 @@
                             </span>
                             <span class="bh-projections-currency">€</span>
                         </div>
-                        <p class="bh-projections-edit-hint">Haz clic en el importe para editarlo.</p>
+                        <p class="bh-projections-edit-hint">Haz clic en el importe para indicar tu ahorro disponible.</p>
 
                         <div class="bh-projections-savings-breakdown">
                             <p>
-                                <span>Asignado a metas</span>
+                                <span>Asignado a metas e inversiones</span>
                                 <strong id="ahorro_asignado_metas"><?= bh_proy_formatear_euros($ahorroAsignadoMetas) ?></strong>
                             </p>
                             <p>
@@ -87,34 +97,19 @@
                                 <strong id="ahorro_disponible_metas"><?= bh_proy_formatear_euros($ahorroDisponibleMetas) ?></strong>
                             </p>
                         </div>
+
+                        <div class="bh-projections-savings-suggestion">
+                            <span class="bh-projections-savings-suggestion-label">Sugerencia para <?= htmlspecialchars($mesSugerenciaLabel, ENT_QUOTES, 'UTF-8') ?>:</span>
+                            <?php if ($ahorroRealMesSugerencia >= 0): ?>
+                                <span class="bh-projections-savings-suggestion-value"><?= bh_proy_formatear_euros($ahorroRealMesSugerencia) ?></span>
+                            <?php else: ?>
+                                <span class="bh-projections-savings-suggestion-value">Este mes no tienes ahorro disponible</span>
+                                <span class="bh-projections-savings-suggestion-note">Gastas más de lo que ingresas.</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </article>
             </section>
-
-            <?php if (!empty($avisoAhorroAsignado)): ?>
-                <div class="bh-alert bh-alert-warning mb-4">
-                    <?= htmlspecialchars($avisoAhorroAsignado, ENT_QUOTES, 'UTF-8') ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if (!empty($avisoGastosFlexibles)): ?>
-                <div class="bh-alert bh-alert-warning mb-4">
-                    <?= htmlspecialchars($avisoGastosFlexibles, ENT_QUOTES, 'UTF-8') ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if (!empty($avisoEscenariosInversion)): ?>
-                <div class="bh-alert bh-alert-warning mb-4">
-                    <?= htmlspecialchars($avisoEscenariosInversion, ENT_QUOTES, 'UTF-8') ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($ahorroAsignadoSuperaDisponible): ?>
-                <div class="bh-alert bh-alert-warning mb-4">
-                    El ahorro asignado a metas supera el ahorro mensual disponible. Puedes ajustar el importe para proyectar
-                    sin cambiar tus datos reales.
-                </div>
-            <?php endif; ?>
 
             <section aria-labelledby="metas-ahorro-titulo" class="bh-projections-goals">
                 <div class="bh-projections-goals-grid">
@@ -194,12 +189,6 @@
                 </div>
             </section>
 
-            <?php if (!empty($avisoProyeccionesInflacion)): ?>
-                <div class="bh-alert bh-alert-warning mb-4">
-                    <?= htmlspecialchars($avisoProyeccionesInflacion, ENT_QUOTES, 'UTF-8') ?>
-                </div>
-            <?php endif; ?>
-
             <section aria-labelledby="inflacion-temporal-titulo" class="bh-projections-inflation">
                 <div class="bh-projections-inflation-grid">
                     <article class="bh-card bh-inflation-list-card">
@@ -238,12 +227,6 @@
                     </article>
                 </div>
             </section>
-
-            <?php if (!empty($avisoCalculadorasHipoteca)): ?>
-                <div class="bh-alert bh-alert-warning mb-4">
-                    <?= htmlspecialchars($avisoCalculadorasHipoteca, ENT_QUOTES, 'UTF-8') ?>
-                </div>
-            <?php endif; ?>
 
             <section aria-labelledby="hipoteca-calculadora-titulo" class="bh-projections-mortgage">
                 <div class="bh-projections-mortgage-grid">
@@ -324,7 +307,7 @@
                 <div class="bh-field" data-mode-group="aportacion">
                     <label class="bh-label" for="meta_aportacion_mensual">Aportación mensual</label>
                     <input class="bh-input" type="number" id="meta_aportacion_mensual" name="aportacion_mensual" min="0.01" step="0.01" inputmode="decimal">
-                    <p class="bh-field-help">Debe caber dentro de tu capacidad disponible para nuevas metas.</p>
+                    <p class="bh-field-help">Debe caber dentro de tu ahorro disponible para asignar.</p>
                 </div>
 
                 <div class="bh-field" data-mode-group="fecha" hidden>
@@ -334,7 +317,7 @@
                 </div>
 
                 <div class="bh-meta-form-note">
-                    Disponible para nuevas metas: <strong id="meta_capacidad_disponible"><?= bh_proy_formatear_euros($ahorroDisponibleMetas) ?></strong>.
+                    Disponible para asignar: <strong id="meta_capacidad_disponible"><?= bh_proy_formatear_euros($ahorroDisponibleMetas) ?></strong>.
                 </div>
 
                 <button type="submit" class="bh-btn bh-btn-primary">
@@ -400,6 +383,11 @@
                     </p>
                 </div>
 
+                <div class="bh-meta-form-note">
+                    Disponible para asignar: <strong id="inversion_capacidad_disponible"><?= bh_proy_formatear_euros($ahorroDisponibleMetas) ?></strong>.
+                    La aportación mensual se reparte con tus metas.
+                </div>
+
                 <button type="submit" class="bh-btn bh-btn-primary">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
                     Crear proyección
@@ -453,7 +441,7 @@
         <div class="offcanvas-header">
             <div>
                 <p class="bh-projections-kicker mb-1">Proyección educativa</p>
-                <h5 class="offcanvas-title" id="crearCalculadoraHipotecaPanelLabel">Nueva calculadora de hipoteca</h5>
+                <h5 class="offcanvas-title" id="crearCalculadoraHipotecaPanelLabel">Nueva simulación de hipoteca</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
@@ -463,7 +451,7 @@
 
                 <div class="bh-field">
                     <label class="bh-label" for="hipoteca_nombre">Nombre</label>
-                    <input class="bh-input" type="text" id="hipoteca_nombre" name="nombre" maxlength="100" required placeholder="Ej. Mi hipoteca">
+                    <input class="bh-input" type="text" id="hipoteca_nombre" name="nombre" maxlength="100" required placeholder="Ej. Nombre del banco">
                 </div>
 
                 <div class="bh-field-row">
@@ -516,9 +504,22 @@
         </div>
     </div>
 
-    <?php bh_mobile_menu(); ?>
+    <?php
+    bh_mobile_menu();
+
+    $avisoCapacidadSuperada = 'El ahorro asignado a tus proyecciones supera el ahorro mensual disponible que has indicado. Puedes ajustar el importe para seguir simulando sin cambiar tus datos reales; recuerda que para destinar ahorro real a tus metas o inversiones necesitarás aumentar tus ingresos o reducir tus gastos.';
+
+    $bhAvisos = [];
+    foreach ([$avisoAhorroAsignado, $avisoGastosFlexibles, $avisoEscenariosInversion, $avisoProyeccionesInflacion, $avisoCalculadorasHipoteca] as $avisoError) {
+        if (!empty($avisoError)) {
+            $bhAvisos[] = ['texto' => $avisoError, 'tipo' => 'error'];
+        }
+    }
+    ?>
     <script>
         window.CSRF_TOKEN = "<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>";
+        window.BH_PROYECCIONES_AVISOS = <?= json_encode($bhAvisos, JSON_UNESCAPED_UNICODE) ?>;
+        window.BH_AVISO_AHORRO_SUPERA = <?= json_encode($avisoCapacidadSuperada, JSON_UNESCAPED_UNICODE) ?>;
     </script>
     <script src="<?= BASE_URL ?>js/flash.js"></script>
     <script src="<?= BASE_URL ?>js/proyecciones.js?v=<?= time() ?>"></script>

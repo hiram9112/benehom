@@ -2405,6 +2405,24 @@ textarea:disabled {
     vertical-align: middle;
 }
 
+/* Fila etiqueta + icono de información dentro de un campo de formulario. */
+.bh-field-label-row{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bh-space-1);
+}
+
+.bh-field-label-row .bh-metric-info-btn{
+    border: 0;
+    padding: 0;
+    background-color: transparent;
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-base);
+    line-height: 1;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
 .bh-investment-inline-input{
     max-width: 8rem;
 }

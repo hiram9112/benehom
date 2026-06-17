@@ -358,7 +358,14 @@
 
                 <div class="bh-field-row">
                     <div class="bh-field">
-                        <label class="bh-label" for="inversion_rentabilidad_anual">Rentabilidad anual estimada (%)</label>
+                        <span class="bh-field-label-row">
+                            <label class="bh-label" for="inversion_rentabilidad_anual">Rentabilidad anual media estimada (%)</label>
+                            <button type="button" class="bh-metric-info-btn"
+                                data-bs-toggle="modal" data-bs-target="#infoRentabilidadMediaInversion"
+                                aria-label="Cómo funciona la rentabilidad anual media estimada">
+                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                            </button>
+                        </span>
                         <input class="bh-input" type="number" id="inversion_rentabilidad_anual" name="rentabilidad_anual" min="0" step="0.01" inputmode="decimal" required>
                     </div>
                     <div class="bh-field">
@@ -526,6 +533,39 @@
         </div>
     </div>
 
+    <div class="modal fade" id="infoRentabilidadMediaInversion" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Qué es la rentabilidad anual media estimada</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        Es una <strong>media orientativa</strong>, no un valor fijo que se repita igual cada año.
+                        La rentabilidad real cambia continuamente: algunos años puede subir y otros puede bajar.
+                    </p>
+                    <p>
+                        Por ejemplo, una misma inversión podría tener un año de <strong>+8 %</strong>,
+                        otro de <strong>+14 %</strong>, otro de <strong>−5 %</strong> y otro de
+                        <strong>−12 %</strong>. Aun con años en negativo, la media de varios años puede dar
+                        una idea aproximada de cómo podría evolucionar a largo plazo.
+                    </p>
+                    <p>
+                        <strong>Estos números son solo ejemplos con fines educativos y no representan
+                            una promesa ni una garantía de resultados.</strong> La rentabilidad real depende
+                        del mercado y puede ser muy distinta, incluso negativa.
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="infoAhorrosNecesariosHipoteca" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -543,6 +583,15 @@
                         Importante: esta cantidad <strong>no incluye los impuestos ni los gastos de compra</strong>
                         (notaría, registro, gestoría…), que suelen suponer entre un 10% y un 12% del precio
                         adicional. Para comprar la vivienda necesitarías sumar también ese dinero.
+                    </p>
+                    <p>
+                        Además, esos impuestos y gastos <strong>cambian según el país, la comunidad o la
+                            región</strong> donde compres, y también según el tipo de vivienda. Infórmate de los
+                        importes concretos de tu zona antes de tomar cualquier decisión.
+                    </p>
+                    <p>
+                        <strong>Esta simulación es orientativa y con fines educativos: no es una oferta
+                            ni una recomendación financiera.</strong>
                     </p>
                 </div>
 

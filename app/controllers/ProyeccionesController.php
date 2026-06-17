@@ -326,9 +326,12 @@ class ProyeccionesController {
             $capacidadDisponible = max(0, $capacidadMensual - $asignado);
 
             if ($nuevaAportacion > $capacidadDisponible) {
+                // El mensaje compara contra el ahorro libre real (sin contar lo que este
+                // escenario ya tiene asignado), igual que el "Disponible" que muestra la UI.
+                $libreParaAsignar = round(max(0, $capacidadMensual - $asignado - round((float) $escenario['aportacion_mensual'], 2)), 2);
                 echo json_encode([
                     'ok' => false,
-                    'msg' => $this->mensajeCapacidad('No se pudo actualizar la aportación', $nuevaAportacion, $capacidadDisponible),
+                    'msg' => $this->mensajeCapacidad('No se pudo actualizar la aportación', $nuevaAportacion, $libreParaAsignar),
                     'tipo' => 'capacidad',
                 ]);
                 return;
@@ -1201,8 +1204,11 @@ class ProyeccionesController {
         $capacidadDisponible = max(0, $capacidadMensual - $asignado);
 
         if ($aportacionMensual > $capacidadDisponible) {
+            // El mensaje muestra el disponible para asignar real (el mismo que la UI), no el
+            // máximo del campo: al editar, este excluye lo que el propio escenario ya tiene.
+            $libreParaAsignar = $this->calcularCapacidadMetas($usuario_id)['disponible'];
             return $this->errorValidacion(
-                $this->mensajeCapacidad('No se pudo guardar el escenario', $aportacionMensual, $capacidadDisponible),
+                $this->mensajeCapacidad('No se pudo guardar el escenario', $aportacionMensual, $libreParaAsignar),
                 'capacidad'
             );
         }
@@ -1550,8 +1556,8 @@ class ProyeccionesController {
      * Se reutiliza al crear meta, crear/editar inversión, etc.
      */
     private function mensajeCapacidad(string $lead, float $necesita, float $disponible): string{
-        return $lead . ': necesitas ' . formatearCantidadPHP($necesita) . ' €/mes y tienes ' .
-            formatearCantidadPHP($disponible) . ' €/mes disponibles. Ajusta la aportación o aumenta tu ahorro mensual.';
+        return $lead . ': ' . formatearCantidadPHP($necesita) . ' €/mes supera tu ahorro disponible de ' .
+            formatearCantidadPHP($disponible) . ' €/mes. Reduce la aportación o aumenta tu ahorro mensual disponible.';
     }
 
     private function mensajeCapacidadFechaMeta(string $lead, float $necesita, float $disponible): string{

@@ -196,7 +196,7 @@
         if (newValue === "" || Number(newValue) < 0) {
           const mensaje = "Introduce un valor igual o superior a 0.";
           element.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restore();
           return;
         }
@@ -217,7 +217,7 @@
           if (!data.ok) {
             const mensaje = data.msg || "No se pudo actualizar la proyección.";
             element.setAttribute("title", mensaje);
-            mostrarFlash(mensaje);
+            mostrarFlash(mensaje, "error", 5000);
             restore();
             return;
           }
@@ -228,7 +228,7 @@
         } catch (error) {
           const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
           element.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restore();
         }
       };
@@ -506,7 +506,7 @@
         if (newValue === "" || Number(newValue) < 0) {
           const mensaje = "Introduce un valor igual o superior a 0.";
           element.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restore();
           return;
         }
@@ -527,7 +527,7 @@
           if (!data.ok) {
             const mensaje = data.msg || "No se pudo actualizar la calculadora.";
             element.setAttribute("title", mensaje);
-            mostrarFlash(mensaje);
+            mostrarFlash(mensaje, "error", 5000);
             restore();
             return;
           }
@@ -538,7 +538,7 @@
         } catch (error) {
           const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
           element.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restore();
         }
       };
@@ -788,7 +788,7 @@
         if (nuevoValor === "" || Number(nuevoValor) <= 0) {
           const mensaje = "El importe objetivo debe ser mayor que 0.";
           objetivoElemento.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restaurar();
           return;
         }
@@ -808,7 +808,7 @@
           if (!data.ok) {
             const mensaje = data.msg || "No se pudo actualizar el importe objetivo.";
             objetivoElemento.setAttribute("title", mensaje);
-            mostrarFlash(mensaje);
+            mostrarFlash(mensaje, "error", 5000);
             restaurar();
             return;
           }
@@ -833,7 +833,7 @@
         } catch (error) {
           const mensaje = "No se pudo contactar con el servidor. Inténtalo de nuevo.";
           objetivoElemento.setAttribute("title", mensaje);
-          mostrarFlash(mensaje);
+          mostrarFlash(mensaje, "error", 5000);
           restaurar();
         }
       };

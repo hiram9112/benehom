@@ -282,8 +282,9 @@ class ProyeccionesController {
         $usuario_id = $_SESSION['usuario_id'];
         $id = intval($_POST['id'] ?? 0);
         $campo = trim((string) ($_POST['campo'] ?? ''));
+        $valorRaw = trim((string) ($_POST['valor'] ?? ''));
         $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
-        $camposPermitidos = ['capital_inicial', 'aportacion_mensual', 'rentabilidad_anual'];
+        $camposPermitidos = ['capital_inicial', 'aportacion_mensual', 'rentabilidad_anual', 'plazo_anios'];
 
         if ($id <= 0) {
             echo json_encode(['ok' => false, 'msg' => 'No se recibió un escenario válido.']);
@@ -295,7 +296,12 @@ class ProyeccionesController {
             return;
         }
 
-        if ($valor === null || $valor < 0) {
+        if ($campo === 'plazo_anios') {
+            if ($valorRaw === '' || !ctype_digit($valorRaw) || intval($valorRaw) <= 0) {
+                echo json_encode(['ok' => false, 'msg' => 'El plazo en años debe ser mayor que 0.']);
+                return;
+            }
+        } elseif ($valor === null || $valor < 0) {
             echo json_encode(['ok' => false, 'msg' => 'Introduce un valor igual o superior a 0.']);
             return;
         }
@@ -338,7 +344,7 @@ class ProyeccionesController {
             }
         }
 
-        $escenario[$campo] = round($valor, 2);
+        $escenario[$campo] = $campo === 'plazo_anios' ? intval($valorRaw) : round($valor, 2);
         $frecuenciaReinversion = $escenario['frecuencia_reinversion'] ?? 'mensual';
 
         if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
@@ -383,6 +389,7 @@ class ProyeccionesController {
             'capitalInicial' => floatval($escenarioPreparado['capital_inicial']),
             'aportacionMensual' => floatval($escenarioPreparado['aportacion_mensual']),
             'rentabilidadAnual' => floatval($escenarioPreparado['rentabilidad_anual']),
+            'plazoAnios' => intval($escenarioPreparado['plazo_anios']),
             'capitalTotalAportado' => floatval($escenarioPreparado['capital_total_aportado']),
             'valorFinalEstimado' => floatval($escenarioPreparado['valor_final_estimado']),
             'rendimientoEstimado' => floatval($escenarioPreparado['rendimiento_estimado']),

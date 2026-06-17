@@ -220,7 +220,6 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                 <div>
                     <div class="bh-meta-title-row">
                         <h4><?= htmlspecialchars($escenario['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
-                        <span class="bh-badge bh-badge-saving"><?= $plazoAnios ?> <?= $plazoAnios === 1 ? 'año' : 'años' ?></span>
                     </div>
                     <p class="bh-investment-card-copy mb-0">
                         Reinversión <?= htmlspecialchars(strtolower($escenario['frecuencia_reinversion_label']), ENT_QUOTES, 'UTF-8') ?>:
@@ -266,11 +265,7 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                     <strong data-investment-value="capital_total_aportado"><?= bh_proy_formatear_euros($escenario['capital_total_aportado']) ?></strong>
                 </p>
                 <p>
-                    <span>Valor final estimado</span>
-                    <strong data-investment-value="valor_final_estimado"><?= bh_proy_formatear_euros($escenario['valor_final_estimado']) ?></strong>
-                </p>
-                <p>
-                    <span>Rendimiento estimado</span>
+                    <span>Ganancia estimada</span>
                     <strong data-investment-value="rendimiento_estimado"><?= bh_proy_formatear_euros($escenario['rendimiento_estimado']) ?></strong>
                 </p>
                 <p>
@@ -288,6 +283,26 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                         <span data-editable-text><?= bh_proy_formatear_porcentaje($escenario['rentabilidad_anual']) ?></span>
                         <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
+                </p>
+                <p>
+                    <span>Plazo en años</span>
+                    <strong
+                        class="bh-editable-value"
+                        data-investment-field="plazo_anios"
+                        data-investment-value="plazo_anios"
+                        data-value="<?= htmlspecialchars((string) $escenario['plazo_anios'], ENT_QUOTES, 'UTF-8') ?>"
+                        title="Haz clic para editar"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Editar plazo en años">
+                        <span data-editable-text><?= $plazoAnios ?> <?= $plazoAnios === 1 ? 'año' : 'años' ?></span>
+                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                    </strong>
+                </p>
+
+                <p class="bh-projection-final-metric">
+                    <span>Capital final estimado</span>
+                    <strong data-investment-value="valor_final_estimado"><?= bh_proy_formatear_euros($escenario['valor_final_estimado']) ?></strong>
                 </p>
             </div>
 
@@ -371,10 +386,6 @@ if (!function_exists('bh_render_inflacion_card')) {
                     </strong>
                 </p>
                 <p>
-                    <span>Poder adquisitivo final</span>
-                    <strong data-inflacion-value="poder_adquisitivo_final"><?= bh_proy_formatear_euros($proyeccion['poder_adquisitivo_final']) ?></strong>
-                </p>
-                <p>
                     <span>Pérdida estimada</span>
                     <strong data-inflacion-value="perdida_estimada"><?= bh_proy_formatear_euros($proyeccion['perdida_estimada']) ?></strong>
                 </p>
@@ -385,6 +396,11 @@ if (!function_exists('bh_render_inflacion_card')) {
                 <p>
                     <span>Diferencia necesaria</span>
                     <strong data-inflacion-value="diferencia_necesaria"><?= bh_proy_formatear_euros($proyeccion['diferencia_necesaria']) ?></strong>
+                </p>
+
+                <p class="bh-projection-final-metric">
+                    <span>Poder adquisitivo final</span>
+                    <strong data-inflacion-value="poder_adquisitivo_final"><?= bh_proy_formatear_euros($proyeccion['poder_adquisitivo_final']) ?></strong>
                 </p>
             </div>
 
@@ -504,7 +520,8 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
                     <span>Total intereses</span>
                     <strong data-hipoteca-value="total_intereses"><?= bh_proy_formatear_euros($calculadora['total_intereses']) ?></strong>
                 </p>
-                <p>
+
+                <p class="bh-projection-final-metric">
                     <span>Total pagado</span>
                     <strong data-hipoteca-value="total_pagado"><?= bh_proy_formatear_euros($calculadora['total_pagado']) ?></strong>
                 </p>

@@ -172,7 +172,7 @@
         input.min = "0";
       }
 
-      input.inputMode = "decimal";
+      input.inputMode = field === "plazo_anios" ? "numeric" : "decimal";
       input.value = previousValue;
       input.classList.add("bh-input", "bh-inline-edit-input", "bh-inflation-inline-input");
       input.setAttribute("aria-label", element.getAttribute("aria-label") || "Editar valor");
@@ -286,6 +286,16 @@
       element.dataset.value = value;
     };
 
+    const updateYearsValue = (field, value) => {
+      const element = card.querySelector(`[data-investment-value="${field}"]`);
+
+      if (!element) return;
+
+      const anios = Number(value);
+      actualizarTextoEditable(element, `${anios} ${anios === 1 ? "año" : "años"}`);
+      element.dataset.value = value;
+    };
+
     const updateCard = (data) => {
       moneyFields.forEach((field) => {
         const responseKey = {
@@ -300,6 +310,7 @@
       });
 
       updatePercentValue("rentabilidad_anual", data.rentabilidadAnual);
+      updateYearsValue("plazo_anios", data.plazoAnios);
     };
 
     const editInline = (element) => {
@@ -314,10 +325,17 @@
       let cancelled = false;
 
       input.type = "number";
-      input.step = "0.01";
-      input.min = "0";
-      input.inputMode = "decimal";
-      input.value = Number(previousValue) === 0 ? "" : previousValue;
+
+      if (field === "plazo_anios") {
+        input.step = "1";
+        input.min = "1";
+      } else {
+        input.step = "0.01";
+        input.min = "0";
+      }
+
+      input.inputMode = field === "plazo_anios" ? "numeric" : "decimal";
+      input.value = field === "plazo_anios" ? previousValue : Number(previousValue) === 0 ? "" : previousValue;
       input.classList.add("bh-input", "bh-inline-edit-input", "bh-investment-inline-input");
       input.setAttribute("aria-label", element.getAttribute("aria-label") || "Editar valor del escenario");
 
@@ -336,6 +354,14 @@
         saving = true;
 
         const newValue = input.value;
+
+        if (field === "plazo_anios" && (!Number.isInteger(Number(newValue)) || Number(newValue) <= 0)) {
+          const mensaje = "El plazo en años debe ser mayor que 0.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje, "error", 5000);
+          restore();
+          return;
+        }
 
         if (newValue === "" || Number(newValue) < 0) {
           const mensaje = "Introduce un valor igual o superior a 0.";

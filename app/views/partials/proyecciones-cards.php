@@ -389,7 +389,7 @@ if (!function_exists('bh_render_inflacion_card')) {
             </div>
 
             <p class="bh-meta-estimation-copy mb-0">
-                La inflación no reduce el número de euros, sino lo que esos euros pueden comprar. Este cálculo es una estimación educativa.
+                La inflación no reduce la cantidad de dinero que tienes, sino lo que ese dinero puede comprar. Este cálculo es una estimación educativa.
             </p>
 
             <form method="POST" action="index.php?r=proyecciones/eliminarInflacionProyeccion" class="bh-meta-delete-form bh-inflation-delete-form">

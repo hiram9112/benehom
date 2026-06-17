@@ -196,8 +196,8 @@
                             <div>
                                 <h2 id="inflacion-temporal-titulo">Calculadora de inflación</h2>
                                 <p>
-                                    Proyecta cómo una inflación anual estimada podría afectar al poder adquisitivo
-                                    de una cantidad. La inflación no reduce el número de euros, sino lo que esos euros pueden comprar.
+                                    Calcula cómo una inflación anual estimada puede reducir el valor real de tus ahorros con el tiempo.
+                                    La inflación no cambia la cantidad que tienes, pero hace que puedas comprar menos cosas con ese dinero.
                                 </p>
                             </div>
                             <div class="bh-projections-module-actions">
@@ -220,7 +220,7 @@
                                 </div>
                                 <h4 class="bh-empty-state-title">Aún no tienes proyecciones de inflación</h4>
                                 <p class="bh-empty-state-text">
-                                    Crea una proyección para ver cómo una inflación anual estimada reduce lo que tus euros pueden comprar con el tiempo.
+                                    Crea una proyección para ver cómo una inflación anual estimada reduce lo que tu dinero pueden comprar con el tiempo.
                                 </p>
                             </div>
                         </div>
@@ -272,7 +272,7 @@
     <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearMetaAhorroPanel" aria-labelledby="crearMetaAhorroPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-projections-kicker mb-1">Meta proyectada</p>
+                <p class="bh-projections-kicker mb-1">Simulación educativa</p>
                 <h5 class="offcanvas-title" id="crearMetaAhorroPanelLabel">Nueva meta de ahorro</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
@@ -372,14 +372,14 @@
                     <div class="bh-select-shell">
                         <select class="bh-select" id="inversion_frecuencia_reinversion" name="frecuencia_reinversion" required>
                             <?php foreach ($frecuenciasReinversion as $valorFrecuencia => $labelFrecuencia): ?>
-                                <option value="<?= htmlspecialchars($valorFrecuencia, ENT_QUOTES, 'UTF-8') ?>"<?= $valorFrecuencia === 'anual' ? ' selected' : '' ?>>
+                                <option value="<?= htmlspecialchars($valorFrecuencia, ENT_QUOTES, 'UTF-8') ?>" <?= $valorFrecuencia === 'anual' ? ' selected' : '' ?>>
                                     <?= htmlspecialchars($labelFrecuencia, ENT_QUOTES, 'UTF-8') ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <p class="bh-field-help">
-                        La frecuencia indica cada cuánto se suman al capital: mensual, trimestral, semestral o anual. Cuanto más frecuente sea la reinversión, mayor puede ser el efecto del interés compuesto. 
+                        La frecuencia indica cada cuánto se suman al capital: mensual, trimestral, semestral o anual. Cuanto más frecuente sea la reinversión, mayor puede ser el efecto del interés compuesto.
                     </p>
                 </div>
 
@@ -399,7 +399,7 @@
     <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearInflacionProyeccionPanel" aria-labelledby="crearInflacionProyeccionPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-projections-kicker mb-1">Proyección educativa</p>
+                <p class="bh-projections-kicker mb-1">Simulación educativa</p>
                 <h5 class="offcanvas-title" id="crearInflacionProyeccionPanelLabel">Nueva proyección de inflación</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
@@ -421,6 +421,9 @@
                     <div class="bh-field">
                         <label class="bh-label" for="inflacion_inflacion_anual">Inflación anual estimada (%)</label>
                         <input class="bh-input" type="number" id="inflacion_inflacion_anual" name="inflacion_anual" min="0" step="0.01" inputmode="decimal" required>
+                        <p class="bh-field-help">
+                            Consulta este dato en el instituto de estadística oficial de tu país (en España, el INE) o en otra fuente oficial.
+                        </p>
                     </div>
                 </div>
 
@@ -440,7 +443,7 @@
     <div class="offcanvas offcanvas-end bh-projections-offcanvas" tabindex="-1" id="crearCalculadoraHipotecaPanel" aria-labelledby="crearCalculadoraHipotecaPanelLabel">
         <div class="offcanvas-header">
             <div>
-                <p class="bh-projections-kicker mb-1">Proyección educativa</p>
+                <p class="bh-projections-kicker mb-1">Simulación educativa</p>
                 <h5 class="offcanvas-title" id="crearCalculadoraHipotecaPanelLabel">Nueva simulación de hipoteca</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>

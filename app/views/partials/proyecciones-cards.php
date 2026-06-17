@@ -422,19 +422,48 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
 
             <div class="bh-meta-metrics bh-mortgage-metrics">
                 <p>
-                    <span>Importe del préstamo</span>
+                    <span>Precio del inmueble</span>
                     <strong
                         class="bh-editable-value"
-                        data-hipoteca-field="importe_prestamo"
-                        data-hipoteca-value="importe_prestamo"
-                        data-value="<?= htmlspecialchars((string) $calculadora['importe_prestamo'], ENT_QUOTES, 'UTF-8') ?>"
+                        data-hipoteca-field="precio_inmueble"
+                        data-hipoteca-value="precio_inmueble"
+                        data-value="<?= htmlspecialchars((string) $calculadora['precio_inmueble'], ENT_QUOTES, 'UTF-8') ?>"
                         title="Haz clic para editar"
                         role="button"
                         tabindex="0"
-                        aria-label="Editar importe del préstamo">
-                        <span data-editable-text><?= bh_proy_formatear_euros($calculadora['importe_prestamo']) ?></span>
+                        aria-label="Editar precio del inmueble">
+                        <span data-editable-text><?= bh_proy_formatear_euros($calculadora['precio_inmueble']) ?></span>
                         <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
+                </p>
+                <p>
+                    <span>Porcentaje financiado</span>
+                    <strong
+                        class="bh-editable-value"
+                        data-hipoteca-field="porcentaje_financiacion"
+                        data-hipoteca-value="porcentaje_financiacion"
+                        data-value="<?= htmlspecialchars((string) $calculadora['porcentaje_financiacion'], ENT_QUOTES, 'UTF-8') ?>"
+                        data-suffix="%"
+                        title="Haz clic para editar"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Editar porcentaje financiado">
+                        <span data-editable-text><?= bh_proy_formatear_porcentaje($calculadora['porcentaje_financiacion']) ?></span>
+                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                    </strong>
+                </p>
+                <p>
+                    <span>Importe del préstamo</span>
+                    <strong data-hipoteca-value="importe_prestamo"><?= bh_proy_formatear_euros($calculadora['importe_prestamo']) ?></strong>
+                </p>
+                <p class="bh-mortgage-metric-highlight">
+                    <span class="bh-mortgage-metric-label">
+                        Ahorros necesarios
+                        <button type="button" class="bh-metric-info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorrosNecesariosHipoteca" aria-label="Qué son los ahorros necesarios">
+                            <i class="bi bi-info-circle" aria-hidden="true"></i>
+                        </button>
+                    </span>
+                    <strong data-hipoteca-value="entrada_necesaria"><?= bh_proy_formatear_euros($calculadora['entrada_necesaria']) ?></strong>
                 </p>
                 <p>
                     <span>Interés anual</span>
@@ -482,7 +511,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
             </div>
 
             <p class="bh-meta-estimation-copy mb-0">
-                Este cálculo es una estimación educativa. No representa una oferta vinculante ni una recomendación financiera. Consulta siempre condiciones reales con tu entidad.
+                Este cálculo es una estimación educativa. No representa una oferta vinculante ni una recomendación financiera. Gastos no incluidos en la simulación. Consulta siempre condiciones reales con tu entidad.
             </p>
 
             <form method="POST" action="index.php?r=proyecciones/eliminarCalculadoraHipoteca" class="bh-meta-delete-form bh-mortgage-delete-form">

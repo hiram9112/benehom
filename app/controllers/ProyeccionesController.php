@@ -807,6 +807,8 @@ class ProyeccionesController {
         $nuevaCalculadora = CalculadoraHipoteca::crear(
             $usuario_id,
             $datos['nombre'],
+            $datos['precio_inmueble'],
+            $datos['porcentaje_financiacion'],
             $datos['importe_prestamo'],
             $datos['interes_anual'],
             $datos['plazo_anios']
@@ -851,6 +853,8 @@ class ProyeccionesController {
             $id,
             $usuario_id,
             $datos['nombre'],
+            $datos['precio_inmueble'],
+            $datos['porcentaje_financiacion'],
             $datos['importe_prestamo'],
             $datos['interes_anual'],
             $datos['plazo_anios']
@@ -880,7 +884,7 @@ class ProyeccionesController {
         $id = intval($_POST['id'] ?? 0);
         $campo = trim((string) ($_POST['campo'] ?? ''));
         $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
-        $camposPermitidos = ['importe_prestamo', 'interes_anual', 'plazo_anios'];
+        $camposPermitidos = ['precio_inmueble', 'porcentaje_financiacion', 'interes_anual', 'plazo_anios'];
 
         if ($id <= 0) {
             echo json_encode(['ok' => false, 'msg' => 'No se recibió una calculadora válida.']);
@@ -904,9 +908,14 @@ class ProyeccionesController {
                 echo json_encode(['ok' => false, 'msg' => 'El interés anual debe ser igual o superior a 0.']);
                 return;
             }
+        } elseif ($campo === 'porcentaje_financiacion') {
+            if ($valor === null || $valor <= 0 || $valor > 100) {
+                echo json_encode(['ok' => false, 'msg' => 'El porcentaje financiado debe estar entre 0 y 100.']);
+                return;
+            }
         } else {
             if ($valor === null || $valor <= 0) {
-                echo json_encode(['ok' => false, 'msg' => 'El importe del préstamo debe ser mayor que 0.']);
+                echo json_encode(['ok' => false, 'msg' => 'El precio del inmueble debe ser mayor que 0.']);
                 return;
             }
         }
@@ -920,11 +929,18 @@ class ProyeccionesController {
 
         $calculadora[$campo] = $campo === 'plazo_anios' ? intval($valor) : round(floatval($valor), 2);
 
+        // El importe del préstamo es derivado: precio del inmueble x porcentaje financiado.
+        $precioInmueble = round(floatval($calculadora['precio_inmueble']), 2);
+        $porcentajeFinanciacion = round(floatval($calculadora['porcentaje_financiacion']), 2);
+        $calculadora['importe_prestamo'] = round($precioInmueble * $porcentajeFinanciacion / 100, 2);
+
         $actualizado = CalculadoraHipoteca::actualizar(
             $id,
             $usuario_id,
             $calculadora['nombre'],
-            round(floatval($calculadora['importe_prestamo']), 2),
+            $precioInmueble,
+            $porcentajeFinanciacion,
+            $calculadora['importe_prestamo'],
             round(floatval($calculadora['interes_anual']), 2),
             intval($calculadora['plazo_anios'])
         );
@@ -938,7 +954,10 @@ class ProyeccionesController {
 
         echo json_encode([
             'ok' => true,
+            'precioInmueble' => floatval($calculadoraPreparada['precio_inmueble']),
+            'porcentajeFinanciacion' => floatval($calculadoraPreparada['porcentaje_financiacion']),
             'importePrestamo' => floatval($calculadoraPreparada['importe_prestamo']),
+            'entradaNecesaria' => floatval($calculadoraPreparada['entrada_necesaria']),
             'interesAnual' => floatval($calculadoraPreparada['interes_anual']),
             'plazoAnios' => intval($calculadoraPreparada['plazo_anios']),
             'cuotaMensual' => floatval($calculadoraPreparada['cuota_mensual']),
@@ -1365,7 +1384,8 @@ class ProyeccionesController {
 
     private function validarDatosCalculadoraHipoteca(): array{
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
-        $importePrestamo = $this->normalizarCantidad($_POST['importe_prestamo'] ?? null);
+        $precioInmueble = $this->normalizarCantidad($_POST['precio_inmueble'] ?? null);
+        $porcentajeFinanciacion = $this->normalizarCantidad($_POST['porcentaje_financiacion'] ?? null);
         $interesAnual = $this->normalizarCantidad($_POST['interes_anual'] ?? null);
         $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
 
@@ -1377,8 +1397,12 @@ class ProyeccionesController {
             return $this->errorValidacion('El nombre no puede superar 100 caracteres.');
         }
 
-        if ($importePrestamo === null || $importePrestamo <= 0) {
-            return $this->errorValidacion('El importe del préstamo debe ser mayor que 0.');
+        if ($precioInmueble === null || $precioInmueble <= 0) {
+            return $this->errorValidacion('El precio del inmueble debe ser mayor que 0.');
+        }
+
+        if ($porcentajeFinanciacion === null || $porcentajeFinanciacion <= 0 || $porcentajeFinanciacion > 100) {
+            return $this->errorValidacion('El porcentaje financiado debe estar entre 0 y 100.');
         }
 
         if ($interesAnual === null || $interesAnual < 0) {
@@ -1389,11 +1413,17 @@ class ProyeccionesController {
             return $this->errorValidacion('El plazo en años debe ser mayor que 0.');
         }
 
+        $precioInmueble = round($precioInmueble, 2);
+        $porcentajeFinanciacion = round($porcentajeFinanciacion, 2);
+        $importePrestamo = round($precioInmueble * $porcentajeFinanciacion / 100, 2);
+
         return [
             'ok' => true,
             'datos' => [
                 'nombre' => $nombre,
-                'importe_prestamo' => round($importePrestamo, 2),
+                'precio_inmueble' => $precioInmueble,
+                'porcentaje_financiacion' => $porcentajeFinanciacion,
+                'importe_prestamo' => $importePrestamo,
                 'interes_anual' => round($interesAnual, 2),
                 'plazo_anios' => intval($plazoAnios),
             ],
@@ -1420,6 +1450,7 @@ class ProyeccionesController {
     }
 
     private function prepararCalculadoraHipotecaParaVista($calculadora): array{
+        $precioInmueble = floatval($calculadora['precio_inmueble']);
         $importePrestamo = floatval($calculadora['importe_prestamo']);
         $interesAnual = floatval($calculadora['interes_anual']);
         $plazoAnios = intval($calculadora['plazo_anios']);
@@ -1430,6 +1461,8 @@ class ProyeccionesController {
             $plazoAnios
         );
 
+        // La entrada es el dinero que aporta el usuario: precio del inmueble - importe financiado.
+        $calculadora['entrada_necesaria'] = round($precioInmueble - $importePrestamo, 2);
         $calculadora['cuota_mensual'] = $resultado['cuota_mensual'];
         $calculadora['total_intereses'] = $resultado['total_intereses'];
         $calculadora['total_pagado'] = $resultado['total_pagado'];
@@ -1845,6 +1878,8 @@ class ProyeccionesController {
         $id = CalculadoraHipoteca::crear(
             $usuario_id,
             $datos['nombre'],
+            $datos['precio_inmueble'],
+            $datos['porcentaje_financiacion'],
             $datos['importe_prestamo'],
             $datos['interes_anual'],
             $datos['plazo_anios']

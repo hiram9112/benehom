@@ -76,6 +76,8 @@ CREATE TABLE calculadoras_hipoteca (
   id INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NOT NULL,
   nombre VARCHAR(100) NOT NULL,
+  precio_inmueble DECIMAL(10,2) NOT NULL,
+  porcentaje_financiacion DECIMAL(5,2) NOT NULL DEFAULT 100.00,
   importe_prestamo DECIMAL(10,2) NOT NULL,
   interes_anual DECIMAL(5,2) NOT NULL,
   plazo_anios INT NOT NULL,

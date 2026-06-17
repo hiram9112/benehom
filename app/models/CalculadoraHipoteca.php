@@ -53,18 +53,20 @@ class CalculadoraHipoteca{
         }
     }
 
-    public static function crear($usuario_id, $nombre, $importe_prestamo, $interes_anual, $plazo_anios){
+    public static function crear($usuario_id, $nombre, $precio_inmueble, $porcentaje_financiacion, $importe_prestamo, $interes_anual, $plazo_anios){
         try{
             $db = Database::getConnection();
 
             $sql = "INSERT INTO calculadoras_hipoteca
-                    (usuario_id, nombre, importe_prestamo, interes_anual, plazo_anios)
+                    (usuario_id, nombre, precio_inmueble, porcentaje_financiacion, importe_prestamo, interes_anual, plazo_anios)
                     VALUES
-                    (:usuario_id, :nombre, :importe_prestamo, :interes_anual, :plazo_anios)";
+                    (:usuario_id, :nombre, :precio_inmueble, :porcentaje_financiacion, :importe_prestamo, :interes_anual, :plazo_anios)";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
             $stmt->bindParam(':nombre', $nombre, PDO::PARAM_STR);
+            $stmt->bindParam(':precio_inmueble', $precio_inmueble);
+            $stmt->bindParam(':porcentaje_financiacion', $porcentaje_financiacion);
             $stmt->bindParam(':importe_prestamo', $importe_prestamo);
             $stmt->bindParam(':interes_anual', $interes_anual);
             $stmt->bindParam(':plazo_anios', $plazo_anios, PDO::PARAM_INT);
@@ -77,12 +79,14 @@ class CalculadoraHipoteca{
         }
     }
 
-    public static function actualizar($id, $usuario_id, $nombre, $importe_prestamo, $interes_anual, $plazo_anios){
+    public static function actualizar($id, $usuario_id, $nombre, $precio_inmueble, $porcentaje_financiacion, $importe_prestamo, $interes_anual, $plazo_anios){
         try{
             $db = Database::getConnection();
 
             $sql = "UPDATE calculadoras_hipoteca
                     SET nombre = :nombre,
+                        precio_inmueble = :precio_inmueble,
+                        porcentaje_financiacion = :porcentaje_financiacion,
                         importe_prestamo = :importe_prestamo,
                         interes_anual = :interes_anual,
                         plazo_anios = :plazo_anios
@@ -93,6 +97,8 @@ class CalculadoraHipoteca{
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
             $stmt->bindParam(':nombre', $nombre, PDO::PARAM_STR);
+            $stmt->bindParam(':precio_inmueble', $precio_inmueble);
+            $stmt->bindParam(':porcentaje_financiacion', $porcentaje_financiacion);
             $stmt->bindParam(':importe_prestamo', $importe_prestamo);
             $stmt->bindParam(':interes_anual', $interes_anual);
             $stmt->bindParam(':plazo_anios', $plazo_anios, PDO::PARAM_INT);

@@ -413,7 +413,7 @@
   const inicializarTarjetaHipoteca = (card) => {
     const editableElements = card.querySelectorAll("[data-hipoteca-field]");
 
-    const moneyFields = ["importe_prestamo", "cuota_mensual", "total_intereses", "total_pagado"];
+    const moneyFields = ["precio_inmueble", "importe_prestamo", "entrada_necesaria", "cuota_mensual", "total_intereses", "total_pagado"];
     const updateMoneyValue = (field, value) => {
       const element = card.querySelector(`[data-hipoteca-value="${field}"]`);
 
@@ -448,7 +448,9 @@
     const updateCard = (data) => {
       moneyFields.forEach((field) => {
         const responseKey = {
+          precio_inmueble: "precioInmueble",
           importe_prestamo: "importePrestamo",
+          entrada_necesaria: "entradaNecesaria",
           cuota_mensual: "cuotaMensual",
           total_intereses: "totalIntereses",
           total_pagado: "totalPagado",
@@ -457,6 +459,7 @@
         updateMoneyValue(field, data[responseKey]);
       });
 
+      updatePercentValue("porcentaje_financiacion", data.porcentajeFinanciacion);
       updatePercentValue("interes_anual", data.interesAnual);
       updateYearsValue("plazo_anios", data.plazoAnios);
     };
@@ -480,6 +483,10 @@
       } else {
         input.step = "0.01";
         input.min = "0";
+
+        if (field === "porcentaje_financiacion") {
+          input.max = "100";
+        }
       }
 
       input.inputMode = "decimal";
@@ -505,6 +512,14 @@
 
         if (newValue === "" || Number(newValue) < 0) {
           const mensaje = "Introduce un valor igual o superior a 0.";
+          element.setAttribute("title", mensaje);
+          mostrarFlash(mensaje, "error", 5000);
+          restore();
+          return;
+        }
+
+        if (field === "porcentaje_financiacion" && (Number(newValue) <= 0 || Number(newValue) > 100)) {
+          const mensaje = "El porcentaje financiado debe estar entre 0 y 100.";
           element.setAttribute("title", mensaje);
           mostrarFlash(mensaje, "error", 5000);
           restore();
@@ -1029,6 +1044,61 @@
       enviarFormularioEliminacion(form, config, event.submitter);
     }
   });
+
+  // ---- Formulario de hipoteca: confirmación de lectura ----
+  // El botón de crear no se habilita hasta que se confirma haber leído la nota de gastos.
+  const inicializarFormularioHipoteca = () => {
+    const panel = document.getElementById("crearCalculadoraHipotecaPanel");
+
+    if (!panel) return;
+
+    const confirmacion = panel.querySelector("[data-hipoteca-leido]");
+    const formulario = panel.querySelector("form");
+    const botonEnviar = formulario ? formulario.querySelector('button[type="submit"]') : null;
+
+    // El botón se muestra desactivado (no usamos el atributo disabled, para que el
+    // click siga llegando y podamos avisar) hasta que se confirma la lectura de la nota.
+    const sincronizarBoton = () => {
+      if (!botonEnviar) return;
+
+      const leido = !confirmacion || confirmacion.checked;
+      botonEnviar.classList.toggle("is-disabled", !leido);
+      botonEnviar.setAttribute("aria-disabled", String(!leido));
+    };
+
+    if (confirmacion) {
+      confirmacion.addEventListener("change", sincronizarBoton);
+    }
+
+    if (formulario) {
+      // Tras crear (form.reset()) volvemos a bloquear el botón.
+      formulario.addEventListener("reset", () => {
+        window.setTimeout(sincronizarBoton, 0);
+      });
+
+      // En fase de captura, antes que el handler global de creación (delegado en document):
+      // si no se ha confirmado la lectura, frenamos el envío y avisamos.
+      formulario.addEventListener(
+        "submit",
+        (event) => {
+          if (confirmacion && !confirmacion.checked) {
+            event.preventDefault();
+            event.stopPropagation();
+            mostrarFlash(
+              "Para crear la simulación, confirma que has leído la nota sobre los gastos e impuestos no incluidos.",
+              "warning",
+              8000
+            );
+          }
+        },
+        true
+      );
+    }
+
+    sincronizarBoton();
+  };
+
+  inicializarFormularioHipoteca();
 
   const ahorroElemento = document.getElementById("ahorro_mensual_disponible");
   const ahorroAsignadoElemento = document.getElementById("ahorro_asignado_metas");

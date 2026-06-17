@@ -457,23 +457,42 @@
                     <input class="bh-input" type="text" id="hipoteca_nombre" name="nombre" maxlength="100" required placeholder="Ej. Nombre del banco">
                 </div>
 
+                <div class="bh-field">
+                    <label class="bh-label" for="hipoteca_precio_inmueble">Precio del inmueble</label>
+                    <input class="bh-input" type="number" id="hipoteca_precio_inmueble" name="precio_inmueble" min="0.01" step="0.01" inputmode="decimal" required>
+                </div>
+
+                <div class="bh-field">
+                    <label class="bh-label" for="hipoteca_porcentaje_financiacion">Porcentaje financiado (%)</label>
+                    <input class="bh-input" type="number" id="hipoteca_porcentaje_financiacion" name="porcentaje_financiacion" min="0.01" max="100" step="0.01" inputmode="decimal" required placeholder="Ej. 80%">
+                    <p class="bh-field-help">
+                        Cada banco financia un porcentaje distinto del precio. Es orientativo: lo habitual ronda el 80%, ajústalo según la oferta real que te ofrezcan.
+                    </p>
+                </div>
+
                 <div class="bh-field-row">
-                    <div class="bh-field">
-                        <label class="bh-label" for="hipoteca_importe_prestamo">Importe del préstamo</label>
-                        <input class="bh-input" type="number" id="hipoteca_importe_prestamo" name="importe_prestamo" min="0.01" step="0.01" inputmode="decimal" required>
-                    </div>
                     <div class="bh-field">
                         <label class="bh-label" for="hipoteca_interes_anual">Interés anual (%)</label>
                         <input class="bh-input" type="number" id="hipoteca_interes_anual" name="interes_anual" min="0" step="0.01" inputmode="decimal" required>
                     </div>
+                    <div class="bh-field">
+                        <label class="bh-label" for="hipoteca_plazo_anios">Plazo en años</label>
+                        <input class="bh-input" type="number" id="hipoteca_plazo_anios" name="plazo_anios" min="1" step="1" required>
+                    </div>
                 </div>
 
-                <div class="bh-field">
-                    <label class="bh-label" for="hipoteca_plazo_anios">Plazo en años</label>
-                    <input class="bh-input" type="number" id="hipoteca_plazo_anios" name="plazo_anios" min="1" step="1" required>
+                <div class="bh-meta-form-note">
+                    <span class="bh-hipoteca-note">
+                        Esta simulación no incluye impuestos ni gastos de compra, como notaría, registro o gestoría. Estos gastos suelen estar entre el 10% y el 12% del precio, aunque pueden variar según el país, la comunidad o región, la vivienda y cada caso concreto.
+                    </span>
                 </div>
 
-                <button type="submit" class="bh-btn bh-btn-primary">
+                <label class="bh-hipoteca-confirm">
+                    <input type="checkbox" class="bh-hipoteca-confirm-input" data-hipoteca-leido>
+                    <span>Entiendo que la simulación <strong>no incluye impuestos ni gastos de compra</strong>, que se pagan aparte.</span>
+                </label>
+
+                <button type="submit" class="bh-btn bh-btn-primary is-disabled" aria-disabled="true">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
                     Crear proyección
                 </button>
@@ -497,6 +516,33 @@
                     <p>
                         La comparación actualiza solo la card: muestra la aportación proyectada, el nuevo plazo estimado
                         y la fecha aproximada. No modifica tus gastos reales ni cambia la meta guardada.
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="infoAhorrosNecesariosHipoteca" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Qué son los ahorros necesarios</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        Son la diferencia entre el precio del inmueble y el importe que te financia la
+                        hipoteca: el dinero que tendrías que aportar tú para llegar al precio total.
+                    </p>
+                    <p>
+                        Importante: esta cantidad <strong>no incluye los impuestos ni los gastos de compra</strong>
+                        (notaría, registro, gestoría…), que suelen suponer entre un 10% y un 12% del precio
+                        adicional. Para comprar la vivienda necesitarías sumar también ese dinero.
                     </p>
                 </div>
 

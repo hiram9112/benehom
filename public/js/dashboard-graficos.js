@@ -382,7 +382,7 @@ function pintarCabeceraInstantaneaInversion(label) {
   if (!datosInstantaneaInversion) return;
 
   if (titulo) {
-    titulo.textContent = 'Si invirtieras tu gasto en ' + (label || datosInstantaneaInversion.label);
+    titulo.textContent = 'Si invirtieras tu gasto de ' + (label || datosInstantaneaInversion.label);
   }
 
   if (subtitulo) {

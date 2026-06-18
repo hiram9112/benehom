@@ -945,7 +945,7 @@
                 <div class="modal-header bh-modal-header">
                     <div>
                         <p class="bh-modal-eyebrow">Simulación educativa</p>
-                        <h5 class="modal-title bh-modal-title" id="modalInstantaneaTitulo">Si invirtieras tu gasto en esta categoría</h5>
+                        <h5 class="modal-title bh-modal-title" id="modalInstantaneaTitulo">Si invirtieras tu gasto de esta categoría</h5>
                         <p class="bh-investment-snapshot-subtitle" id="modalInstantaneaSubtitulo"></p>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>

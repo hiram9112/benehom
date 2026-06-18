@@ -393,6 +393,7 @@ class ProyeccionesController {
             'capitalTotalAportado' => floatval($escenarioPreparado['capital_total_aportado']),
             'valorFinalEstimado' => floatval($escenarioPreparado['valor_final_estimado']),
             'rendimientoEstimado' => floatval($escenarioPreparado['rendimiento_estimado']),
+            'roiPorcentaje' => floatval($escenarioPreparado['roi_porcentaje']),
             'ahorroAsignadoMetas' => $capacidad['asignado'],
             'ahorroDisponibleMetas' => $capacidad['disponible'],
         ]);
@@ -1277,6 +1278,7 @@ class ProyeccionesController {
         $escenario['capital_total_aportado'] = $resultado['capital_total_aportado'];
         $escenario['valor_final_estimado'] = $resultado['valor_final_estimado'];
         $escenario['rendimiento_estimado'] = $resultado['rendimiento_estimado'];
+        $escenario['roi_porcentaje'] = $resultado['roi_porcentaje'];
         $escenario['periodos_por_anio'] = $resultado['periodos_por_anio'];
         $escenario['meses_por_periodo'] = $resultado['meses_por_periodo'];
 
@@ -1287,27 +1289,34 @@ class ProyeccionesController {
         $periodosPorAnio = $this->periodosPorAnio($frecuenciaReinversion);
         $mesesPorPeriodo = intdiv(12, $periodosPorAnio);
         $tasaPeriodo = $rentabilidadAnual > 0 ? ($rentabilidadAnual / 100) / $periodosPorAnio : 0;
+        // Tasa mensual equivalente a la del periodo de reinversión: permite incorporar las
+        // aportaciones mes a mes en lugar de agruparlas al inicio del periodo.
+        $tasaMensual = $tasaPeriodo > 0 ? pow(1 + $tasaPeriodo, 1 / $mesesPorPeriodo) - 1 : 0;
         $meses = $plazoAnios * 12;
         $capital = $capitalInicial;
 
         for ($mes = 1; $mes <= $meses; $mes++) {
-            $capital += $aportacionMensual;
-
-            if ($tasaPeriodo > 0 && $mes % $mesesPorPeriodo === 0) {
-                $capital += $capital * $tasaPeriodo;
+            if ($tasaMensual > 0) {
+                $capital += $capital * $tasaMensual;
             }
+
+            $capital += $aportacionMensual;
         }
 
         $totalAportacionesPlazo = $aportacionMensual * $meses;
         $capitalTotalAportado = $capitalInicial + $totalAportacionesPlazo;
         $valorFinalEstimado = $capital;
         $rendimientoEstimado = max(0, $valorFinalEstimado - $capitalTotalAportado);
+        $roiPorcentaje = $capitalTotalAportado > 0
+            ? ($rendimientoEstimado / $capitalTotalAportado) * 100
+            : 0;
 
         return [
             'total_aportaciones_plazo' => round($totalAportacionesPlazo, 2),
             'capital_total_aportado' => round($capitalTotalAportado, 2),
             'valor_final_estimado' => round($valorFinalEstimado, 2),
             'rendimiento_estimado' => round($rendimientoEstimado, 2),
+            'roi_porcentaje' => round($roiPorcentaje, 2),
             'periodos_por_anio' => $periodosPorAnio,
             'meses_por_periodo' => $mesesPorPeriodo,
         ];

@@ -304,6 +304,11 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                     <span>Capital final estimado</span>
                     <strong data-investment-value="valor_final_estimado"><?= bh_proy_formatear_euros($escenario['valor_final_estimado']) ?></strong>
                 </p>
+
+                <p class="bh-projection-final-metric">
+                    <span>Ganancia sobre lo aportado (ROI)</span>
+                    <strong data-investment-value="roi_porcentaje">+<?= bh_proy_formatear_porcentaje($escenario['roi_porcentaje']) ?></strong>
+                </p>
             </div>
 
             <p class="bh-meta-estimation-copy mb-0">

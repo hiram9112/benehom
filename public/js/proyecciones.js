@@ -296,6 +296,14 @@
       element.dataset.value = value;
     };
 
+    const updateRoiValue = (value) => {
+      const element = card.querySelector('[data-investment-value="roi_porcentaje"]');
+
+      if (!element) return;
+
+      actualizarTextoEditable(element, `+${formatearCantidad(value)}%`);
+    };
+
     const updateCard = (data) => {
       moneyFields.forEach((field) => {
         const responseKey = {
@@ -311,6 +319,7 @@
 
       updatePercentValue("rentabilidad_anual", data.rentabilidadAnual);
       updateYearsValue("plazo_anios", data.plazoAnios);
+      updateRoiValue(data.roiPorcentaje);
     };
 
     const editInline = (element) => {

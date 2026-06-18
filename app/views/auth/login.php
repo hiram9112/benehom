@@ -1,5 +1,6 @@
 <?php
 require_once APP_PATH . '/views/partials/auth-layout.php';
+require_once APP_PATH . '/views/partials/modals.php';
 
 bh_auth_begin(
     'Iniciar sesión',
@@ -43,39 +44,26 @@ bh_auth_begin(
 </div>
 
 <!-- Modal informativo sobre BeneHom -->
-<div class="modal fade" id="infoApp" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">¿Qué es BeneHom?</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+<?php
+bh_info_modal('infoApp', '¿Qué es BeneHom?', <<<'HTML'
+<p><strong>BeneHom</strong> es una herramienta de gestión de la economía familiar diseñada para ayudarte a comprender con claridad cómo se mueve el dinero en tu hogar.</p>
 
-            <div class="modal-body">
-                <p><strong>BeneHom</strong> es una herramienta de gestión de la economía familiar diseñada para ayudarte a comprender con claridad cómo se mueve el dinero en tu hogar.</p>
+<h6>¿Qué permite?</h6>
+<ul>
+    <li>Registrar ingresos y clasificarlos correctamente</li>
+    <li>Diferenciar gastos esenciales y gastos flexibles</li>
+    <li>Visualizar tu ahorro posible frente a tu ahorro real</li>
+    <li>Detectar patrones de comportamiento que pueden generar problemas económico para el hogar.</li>
+</ul>
 
-                <h6 class="mt-3">¿Qué permite?</h6>
-                <ul>
-                    <li>Registrar ingresos y clasificarlos correctamente</li>
-                    <li>Diferenciar gastos esenciales y gastos flexibles</li>
-                    <li>Visualizar tu ahorro posible frente a tu ahorro real</li>
-                    <li>Detectar patrones de comportamiento que pueden generar problemas económico para el hogar.</li>
-                </ul>
-
-                <h6 class="mt-3">¿Cuál es su objetivo?</h6>
-                <p>
-                    Fomentar una gestión consciente y sostenible del dinero,
-                    mostrando que pequeños ajustes en los gastos flexibles
-                    pueden generar un impacto significativo en la estabilidad
-                    económica familiar a largo plazo.
-                </p>
-            </div>
-
-            <div class="modal-footer">
-                <button class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
+<h6>¿Cuál es su objetivo?</h6>
+<p>
+    Fomentar una gestión consciente y sostenible del dinero,
+    mostrando que pequeños ajustes en los gastos flexibles
+    pueden generar un impacto significativo en la estabilidad
+    económica familiar a largo plazo.
+</p>
+HTML);
+?>
 
 <?php bh_auth_end(); ?>

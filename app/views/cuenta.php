@@ -23,6 +23,7 @@
 
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
+    require_once APP_PATH . '/views/partials/modals.php';
     bh_mobile_nav();
     ?>
 
@@ -148,23 +149,17 @@
     <?php bh_mobile_menu(); ?>
 
     <!-- Modal de confirmación -->
-    <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bh-modal">
-                <div class="modal-header bh-modal-header">
-                    <h5 class="modal-title bh-modal-title" id="modalConfirmacionTitulo">Confirmar acción</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body bh-modal-body" id="modalConfirmacionTexto">
-                    ¿Estás seguro?
-                </div>
-                <div class="modal-footer bh-modal-footer">
-                    <button type="button" class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="bh-btn bh-btn-danger" id="modalConfirmacionAceptar">Aceptar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php
+    bh_modal([
+        'id'      => 'modalConfirmacion',
+        'title'   => 'Confirmar acción',
+        'titleId' => 'modalConfirmacionTitulo',
+        'bodyId'  => 'modalConfirmacionTexto',
+        'body'    => '¿Estás seguro?',
+        'footer'  => '<button type="button" class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cancelar</button>'
+            . '<button type="button" class="bh-btn bh-btn-danger" id="modalConfirmacionAceptar">Aceptar</button>',
+    ]);
+    ?>
 
     <script src="<?= BASE_URL ?>js/flash.js"></script>
     <script src="<?= BASE_URL ?>js/password-toggle.js?v=<?= time() ?>"></script>

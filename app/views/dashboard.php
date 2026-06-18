@@ -35,6 +35,7 @@
 
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
+    require_once APP_PATH . '/views/partials/modals.php';
     bh_mobile_nav();
     $categoriasGasto = gastoCategorias();
     $labelsCategoriasGasto = gastoCategoriaLabels();
@@ -552,505 +553,263 @@
     <?php bh_mobile_menu(); ?>
 
     <!--Modal de ingresos-->
-    <div class="modal fade" id="infoIngresos" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué son los ingresos?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Los ingresos representan el dinero que entra en tu hogar durante el mes.</p>
-
-                    <ul>
-                        <li>Salarios o nóminas</li>
-                        <li>Ingresos extra o puntuales</li>
-                        <li>Ingresos por inversiones</li>
-                    </ul>
-
-                    <p class="mt-2">Registrar correctamente los ingresos es clave para preparar de forma correcta el presupuesto familiar</p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoIngresos', '¿Qué son los ingresos?', <<<'HTML'
+<p>Los ingresos representan el dinero que entra en tu hogar durante el mes.</p>
+<ul>
+    <li>Salarios o nóminas</li>
+    <li>Ingresos extra o puntuales</li>
+    <li>Ingresos por inversiones</li>
+</ul>
+<p>Registrar correctamente los ingresos es clave para preparar de forma correcta el presupuesto familiar</p>
+HTML); ?>
 
     <!--Modal de gastos esenciales-->
-    <div class="modal fade" id="infoGastosEsenciales" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué son los gastos esenciales?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Los gastos esenciales son los pagos que sostienen el funcionamiento del hogar
-                        y cubren necesidades básicas.</p>
-
-                    <p>Suelen repetirse cada mes y te ayudan a entender cuánto dinero necesitas
-                        para vivir con estabilidad.</p>
-
-                    <p class="mt-2">Separarlos del resto de gastos permite calcular tu margen real
-                        antes de revisar decisiones de consumo.</p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoGastosEsenciales', '¿Qué son los gastos esenciales?', <<<'HTML'
+<p>Los gastos esenciales son los pagos que sostienen el funcionamiento del hogar
+    y cubren necesidades básicas.</p>
+<p>Suelen repetirse cada mes y te ayudan a entender cuánto dinero necesitas
+    para vivir con estabilidad.</p>
+<p>Separarlos del resto de gastos permite calcular tu margen real
+    antes de revisar decisiones de consumo.</p>
+HTML); ?>
 
     <!--Modal de gastos flexibles-->
 
-    <div class="modal fade" id="infoGastosFlexibles" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué son los gastos flexibles?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Los gastos flexibles son pagos vinculados a hábitos, preferencias y decisiones de consumo.
-                        No son negativos por sí mismos, pero suelen ofrecer más margen de revisión.
-                    </p>
-
-                    <p>Identificarlos permite entender con claridad
-                        <strong>qué parte de nuestro presupuesto es realmente flexible</strong>.
-                        Muchos pueden reducirse, pausarse o reorganizarse sin afectar a los gastos esenciales del hogar.
-                    </p>
-
-                    <p class="mt-2">
-                        Revisarlos ayuda a medir el impacto real que pequeños cambios en nuestros hábitos
-                        pueden tener sobre el <strong>ahorro real</strong> y el
-                        <strong>bienestar financiero</strong>.
-                        En muchos casos, el efecto puede notarse de un mes a otro.
-                    </p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoGastosFlexibles', '¿Qué son los gastos flexibles?', <<<'HTML'
+<p>Los gastos flexibles son pagos vinculados a hábitos, preferencias y decisiones de consumo.
+    No son negativos por sí mismos, pero suelen ofrecer más margen de revisión.
+</p>
+<p>Identificarlos permite entender con claridad
+    <strong>qué parte de nuestro presupuesto es realmente flexible</strong>.
+    Muchos pueden reducirse, pausarse o reorganizarse sin afectar a los gastos esenciales del hogar.
+</p>
+<p>
+    Revisarlos ayuda a medir el impacto real que pequeños cambios en nuestros hábitos
+    pueden tener sobre el <strong>ahorro real</strong> y el
+    <strong>bienestar financiero</strong>.
+    En muchos casos, el efecto puede notarse de un mes a otro.
+</p>
+HTML); ?>
 
     <!--Modal de ahorro posible-->
-    <div class="modal fade" id="infoAhorroPosible" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué es el ahorro posible?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Es una referencia: muestra cuánto podrías ahorrar si solo tuvieras ingresos y gastos esenciales.</p>
-                    <p>Tener 0 gastos flexibles no suele ser realista, pero ayuda a ver tu potencial de ahorro y el impacto de tus decisiones de consumo.</p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoAhorroPosible', '¿Qué es el ahorro posible?', <<<'HTML'
+<p>Es una referencia: muestra cuánto podrías ahorrar si solo tuvieras ingresos y gastos esenciales.</p>
+<p>Tener 0 gastos flexibles no suele ser realista, pero ayuda a ver tu potencial de ahorro y el impacto de tus decisiones de consumo.</p>
+HTML); ?>
 
     <!--Modal de ahorro real-->
-    <div class="modal fade" id="infoAhorroReal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué es el ahorro real?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Es lo que realmente queda al final del mes después de ingresos, gastos esenciales y gastos flexibles.</p>
-                    <p>Muestra el resultado final de tus decisiones financieras del mes.</p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoAhorroReal', '¿Qué es el ahorro real?', <<<'HTML'
+<p>Es lo que realmente queda al final del mes después de ingresos, gastos esenciales y gastos flexibles.</p>
+<p>Muestra el resultado final de tus decisiones financieras del mes.</p>
+HTML); ?>
 
     <!--Modal Gráfico de presupuesto mensual-->
-    <div class="modal fade" id="infoPresupuestoMensual" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Cómo interpretar el presupuesto mensual?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Este gráfico muestra un resumen claro de tu economía en el mes actual.</p>
-
-                    <p><strong>Compara tus ingresos con el total de gastos</strong> y te indica cuánto dinero estás
-                        ahorrando o perdiendo al final del mes.
-                    </p>
-
-
-                    <p>Si el <strong>ahorro es positivo</strong>, significa que <strong>gastas menos de lo que ingresas</strong>.
-                        Si es <strong>negativo</strong>, estás en déficit: estás <strong>gastando más dinero del que entra</strong>.
-                    </p>
-
-                    <p class="mt-2">Este gráfico te permite detectar desequilibrios rápidamente
-                        y tomar decisiones para mejorar tu situación financiera.
-                    </p>
-                    <p class="mt-2">Puedes pasar el cursor sobre cada barra para ver el valor exacto.
-                    </p>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoPresupuestoMensual', '¿Cómo interpretar el presupuesto mensual?', <<<'HTML'
+<p>Este gráfico muestra un resumen claro de tu economía en el mes actual.</p>
+<p><strong>Compara tus ingresos con el total de gastos</strong> y te indica cuánto dinero estás
+    ahorrando o perdiendo al final del mes.
+</p>
+<p>Si el <strong>ahorro es positivo</strong>, significa que <strong>gastas menos de lo que ingresas</strong>.
+    Si es <strong>negativo</strong>, estás en déficit: estás <strong>gastando más dinero del que entra</strong>.
+</p>
+<p>Este gráfico te permite detectar desequilibrios rápidamente
+    y tomar decisiones para mejorar tu situación financiera.
+</p>
+<p>Puedes pasar el cursor sobre cada barra para ver el valor exacto.</p>
+HTML); ?>
 
     <!--Modal Gráfico de evolución del ahorro-->
-    <div class="modal fade" id="infoEvolucionAhorro" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Cómo interpretar la evolución del ahorro?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Este gráfico es uno de los más importantes de la aplicación.
-                        Muestra cómo ha evolucionado tu ahorro mes a mes y te ayuda
-                        a entender si tu economía es sostenible en el tiempo.
-                    </p>
-
-                    <p>El <strong>ahorro posible</strong> representa cuánto dinero
-                        podrías haber ahorrado en un mes según tus ingresos y gastos esenciales.
-                    </p>
-
-                    <p>El <strong>ahorro real</strong> muestra lo que finalmente ocurrió
-                        después de incluir los gastos flexibles: lo que realmente se ahorró
-                        o se perdió.
-                    </p>
-
-                    <p>Cuando el <strong>ahorro real es negativo</strong>, significa que ese mes se ha <strong>gastado
-                            más dinero del que se ingresó</strong>, utilizando ahorros anteriores.
-                    </p>
-
-                    <p class="mt-2">Si esta situación se repite durante varios meses, es una señal de alerta:
-                        el nivel de gasto actual <strong>no es sostenible</strong> , a largo plazo los ahorros
-                        pueden agotarse.
-                    </p>
-
-                    <p class="mt-2">Puedes pasar el cursor sobre cada barra para ver el valor exacto
-                        correspondiente a cada mes.
-                    </p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoEvolucionAhorro', '¿Cómo interpretar la evolución del ahorro?', <<<'HTML'
+<p>Este gráfico es uno de los más importantes de la aplicación.
+    Muestra cómo ha evolucionado tu ahorro mes a mes y te ayuda
+    a entender si tu economía es sostenible en el tiempo.
+</p>
+<p>El <strong>ahorro posible</strong> representa cuánto dinero
+    podrías haber ahorrado en un mes según tus ingresos y gastos esenciales.
+</p>
+<p>El <strong>ahorro real</strong> muestra lo que finalmente ocurrió
+    después de incluir los gastos flexibles: lo que realmente se ahorró
+    o se perdió.
+</p>
+<p>Cuando el <strong>ahorro real es negativo</strong>, significa que ese mes se ha <strong>gastado
+        más dinero del que se ingresó</strong>, utilizando ahorros anteriores.
+</p>
+<p>Si esta situación se repite durante varios meses, es una señal de alerta:
+    el nivel de gasto actual <strong>no es sostenible</strong> , a largo plazo los ahorros
+    pueden agotarse.
+</p>
+<p>Puedes pasar el cursor sobre cada barra para ver el valor exacto
+    correspondiente a cada mes.
+</p>
+HTML); ?>
 
     <!--Modal Gráfico de evolución de gastos esenciales-->
-    <div class="modal fade" id="infoEvolucionEsenciales" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué muestra este gráfico?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>
-                        Este gráfico muestra la <strong>evolución de tus gastos esenciales</strong>
-                        durante los últimos 6 meses.
-                    </p>
-
-                    <p>
-                        Los gastos esenciales suelen ser <strong>estables en el tiempo</strong>,
-                        ya que corresponden a pagos necesarios como vivienda, suministros o seguros.
-                    </p>
-
-                    <p>
-                        Si las <strong>cantidades se mantienen constantes</strong>,
-                        significa que los gastos esenciales del hogar están bajo control.
-                    </p>
-
-                    <p>
-                        Si los valores <strong>empiezan a subir o a bajar de forma notable</strong>,
-                        es una señal de que <strong>algo está cambiando</strong> y conviene revisarlo.
-                    </p>
-
-                    <p>
-                        En algunos casos, este gráfico ayuda a detectar
-                        <strong>gastos que quizá no pertenezcan a los gastos esenciales del hogar</strong>
-                        o que estén <strong>mal clasificados</strong>.
-                    </p>
-
-                    <p class="mt-2">
-                        Identificar estas variaciones a tiempo te permite
-                        <strong>corregir errores</strong> y tener una visión más clara
-                        de cuánto te cuesta mantener tu hogar cada mes.
-                    </p>
-
-                    <p class="mt-2">
-                        Al pasar el cursor sobre el gráfico puedes ver
-                        el importe exacto de cada mes.
-                    </p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoEvolucionEsenciales', '¿Qué muestra este gráfico?', <<<'HTML'
+<p>
+    Este gráfico muestra la <strong>evolución de tus gastos esenciales</strong>
+    durante los últimos 6 meses.
+</p>
+<p>
+    Los gastos esenciales suelen ser <strong>estables en el tiempo</strong>,
+    ya que corresponden a pagos necesarios como vivienda, suministros o seguros.
+</p>
+<p>
+    Si las <strong>cantidades se mantienen constantes</strong>,
+    significa que los gastos esenciales del hogar están bajo control.
+</p>
+<p>
+    Si los valores <strong>empiezan a subir o a bajar de forma notable</strong>,
+    es una señal de que <strong>algo está cambiando</strong> y conviene revisarlo.
+</p>
+<p>
+    En algunos casos, este gráfico ayuda a detectar
+    <strong>gastos que quizá no pertenezcan a los gastos esenciales del hogar</strong>
+    o que estén <strong>mal clasificados</strong>.
+</p>
+<p>
+    Identificar estas variaciones a tiempo te permite
+    <strong>corregir errores</strong> y tener una visión más clara
+    de cuánto te cuesta mantener tu hogar cada mes.
+</p>
+<p>
+    Al pasar el cursor sobre el gráfico puedes ver
+    el importe exacto de cada mes.
+</p>
+HTML); ?>
 
 
 
     <!--Modal Gráfico de evolución de gastos flexibles-->
 
-    <div class="modal fade" id="infoEvolucionFlexibles" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué muestra este gráfico?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>
-                        Este gráfico muestra la <strong>evolución de tus gastos flexibles</strong>
-                        durante los últimos 6 meses. Representa de forma visual <strong>cómo se están
-                            comportando tus hábitos de consumo</strong>
-                        con el paso del tiempo.
-                    </p>
-
-                    <p>
-                        Si los valores <strong>van aumentando mes a mes</strong>, significa que cada vez
-                        estás gastando más, esto provoca que <strong>cada vez puedas ahorrar menos</strong> o incluso que
-                        tengas que <strong>usar tus ahorros para llegar a fin de mes</strong>.
-                    </p>
-
-                    <p>
-                        Si esta situación se mantiene, es una señal clara de que
-                        <strong>necesitas hacer algunos cambios</strong>, ya que a largo plazo
-                        <strong>no es sostenible</strong>.
-                    </p>
-
-                    <p>
-                        Si los gastos <strong>van disminuyendo con el paso del tiempo</strong>, vas por buen camino:
-                        estás recuperando margen y <strong>mejorando tu ahorro real</strong>.
-                    </p>
-
-                    <p>
-                        Si los gastos se <strong>mantienen estables</strong>, tu situación no cambia:
-                        no mejoras ni empeoras. Ante cualquier imprevisto, podrías verte obligado a usar ahorros
-                        que quizá <strong>no estás consiguiendo generar</strong>.
-                    </p>
-
-
-                    <p class="mt-2">
-                        Puedes pasar el cursor sobre cada punto para ver el
-                        importe exacto de cada mes.
-                    </p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoEvolucionFlexibles', '¿Qué muestra este gráfico?', <<<'HTML'
+<p>
+    Este gráfico muestra la <strong>evolución de tus gastos flexibles</strong>
+    durante los últimos 6 meses. Representa de forma visual <strong>cómo se están
+        comportando tus hábitos de consumo</strong>
+    con el paso del tiempo.
+</p>
+<p>
+    Si los valores <strong>van aumentando mes a mes</strong>, significa que cada vez
+    estás gastando más, esto provoca que <strong>cada vez puedas ahorrar menos</strong> o incluso que
+    tengas que <strong>usar tus ahorros para llegar a fin de mes</strong>.
+</p>
+<p>
+    Si esta situación se mantiene, es una señal clara de que
+    <strong>necesitas hacer algunos cambios</strong>, ya que a largo plazo
+    <strong>no es sostenible</strong>.
+</p>
+<p>
+    Si los gastos <strong>van disminuyendo con el paso del tiempo</strong>, vas por buen camino:
+    estás recuperando margen y <strong>mejorando tu ahorro real</strong>.
+</p>
+<p>
+    Si los gastos se <strong>mantienen estables</strong>, tu situación no cambia:
+    no mejoras ni empeoras. Ante cualquier imprevisto, podrías verte obligado a usar ahorros
+    que quizá <strong>no estás consiguiendo generar</strong>.
+</p>
+<p>
+    Puedes pasar el cursor sobre cada punto para ver el
+    importe exacto de cada mes.
+</p>
+HTML); ?>
 
     <!--Modal Gráfico top 5 de gastos flexibles: vista media mensual-->
-    <div class="modal fade" id="infoEscalaHabitosMedia" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué muestra la media mensual?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Estás viendo lo que te cuesta cada uno de estos hábitos en un <strong>mes típico</strong>.</p>
-
-                    <p><strong>No es el gasto de este mes</strong>: es el promedio de tus últimos meses con gastos (hasta 6). Si solo llevas un mes registrando, la cifra coincide con ese mes y se irá afinando a medida que añadas más datos.</p>
-
-                    <p class="mt-2">Es tu punto de partida: conocer el tamaño real de cada hábito antes de decidir si quieres cambiarlo.</p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoEscalaHabitosMedia', '¿Qué muestra la media mensual?', <<<'HTML'
+<p>Estás viendo lo que te cuesta cada uno de estos hábitos en un <strong>mes típico</strong>.</p>
+<p><strong>No es el gasto de este mes</strong>: es el promedio de tus últimos meses con gastos (hasta 6). Si solo llevas un mes registrando, la cifra coincide con ese mes y se irá afinando a medida que añadas más datos.</p>
+<p>Es tu punto de partida: conocer el tamaño real de cada hábito antes de decidir si quieres cambiarlo.</p>
+HTML); ?>
 
     <!--Modal Gráfico top 5 de gastos flexibles: vista proyección anual-->
-    <div class="modal fade" id="infoEscalaHabitosProyeccion" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">¿Qué muestra la proyección anual?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>Estás viendo una <strong>estimación de futuro</strong>: lo que te costará cada hábito durante los próximos 12 meses <strong>si mantienes tu ritmo de gasto actual</strong>.</p>
-
-                    <p><strong>No es lo que has gastado este año</strong>: se calcula multiplicando tu media mensual por 12.</p>
-
-                    <p class="mt-2">Un gasto que parece pequeño mes a mes puede convertirse en una cifra importante al cabo de un año. Verlo a tiempo te permite decidir antes de que ocurra.</p>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php bh_info_modal('infoEscalaHabitosProyeccion', '¿Qué muestra la proyección anual?', <<<'HTML'
+<p>Estás viendo una <strong>estimación de futuro</strong>: lo que te costará cada hábito durante los próximos 12 meses <strong>si mantienes tu ritmo de gasto actual</strong>.</p>
+<p><strong>No es lo que has gastado este año</strong>: se calcula multiplicando tu media mensual por 12.</p>
+<p>Un gasto que parece pequeño mes a mes puede convertirse en una cifra importante al cabo de un año. Verlo a tiempo te permite decidir antes de que ocurra.</p>
+HTML); ?>
 
     <!--Modal de instantánea de inversión efímera-->
-    <div class="modal fade" id="modalInstantaneaInversion" tabindex="-1" aria-labelledby="modalInstantaneaTitulo" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content bh-modal bh-investment-snapshot-modal">
-                <div class="modal-header bh-modal-header">
-                    <div>
-                        <p class="bh-modal-eyebrow">Simulación educativa</p>
-                        <h5 class="modal-title bh-modal-title" id="modalInstantaneaTitulo">Si invirtieras tu gasto de esta categoría</h5>
-                        <p class="bh-investment-snapshot-subtitle" id="modalInstantaneaSubtitulo"></p>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-
-                <div class="modal-body bh-modal-body">
-                    <div class="bh-investment-snapshot-controls">
-                        <div>
-                            <span class="bh-control-label">Aportación</span>
-                            <div class="bh-segmented" role="group" aria-label="Seleccionar aportación simulada">
-                                <button type="button" class="bh-segmented-button is-active" data-instantanea-aportacion="todo" aria-pressed="true">Todo</button>
-                                <button type="button" class="bh-segmented-button" data-instantanea-aportacion="mitad" aria-pressed="false">La mitad</button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <span class="bh-control-label">Rentabilidad orientativa</span>
-                            <div class="bh-segmented" role="group" aria-label="Seleccionar rentabilidad orientativa">
-                                <button type="button" class="bh-segmented-button is-active" data-instantanea-rentabilidad="3" aria-pressed="true">3%</button>
-                                <button type="button" class="bh-segmented-button" data-instantanea-rentabilidad="6" aria-pressed="false">6%</button>
-                                <button type="button" class="bh-segmented-button" data-instantanea-rentabilidad="9" aria-pressed="false">9%</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bh-investment-snapshot-results" aria-live="polite">
-                        <div class="bh-investment-snapshot-head">
-                            <span>Plazo</span>
-                            <span>Total acumulado</span>
-                            <span>Beneficio generado</span>
-                        </div>
-                        <div class="bh-investment-snapshot-row">
-                            <span class="bh-investment-snapshot-years">5 años</span>
-                            <strong id="instantaneaValor5">0 €</strong>
-                            <span><span id="instantaneaGenerado5" class="bh-investment-generated">0 €</span></span>
-                        </div>
-                        <div class="bh-investment-snapshot-row">
-                            <span class="bh-investment-snapshot-years">10 años</span>
-                            <strong id="instantaneaValor10">0 €</strong>
-                            <span><span id="instantaneaGenerado10" class="bh-investment-generated">0 €</span></span>
-                        </div>
-                        <div class="bh-investment-snapshot-row">
-                            <span class="bh-investment-snapshot-years">15 años</span>
-                            <strong id="instantaneaValor15">0 €</strong>
-                            <span><span id="instantaneaGenerado15" class="bh-investment-generated">0 €</span></span>
-                        </div>
-                    </div>
-
-                    <p class="bh-investment-disclaimer">
-                        Estimación orientativa con fines educativos, no es una recomendación de inversión, no representa ningún producto concreto y nada se guarda ni modifica los datos reales.
-                    </p>
-                </div>
-            </div>
+    <?php
+    bh_modal([
+        'id'         => 'modalInstantaneaInversion',
+        'title'      => 'Si invirtieras tu gasto de esta categoría',
+        'titleId'    => 'modalInstantaneaTitulo',
+        'eyebrow'    => 'Simulación educativa',
+        'subtitleId' => 'modalInstantaneaSubtitulo',
+        'size'       => 'lg',
+        'variant'    => 'branded',
+        'footer'     => null,
+        'body'       => <<<'HTML'
+<div class="bh-investment-snapshot-controls">
+    <div>
+        <span class="bh-control-label">Aportación</span>
+        <div class="bh-segmented" role="group" aria-label="Seleccionar aportación simulada">
+            <button type="button" class="bh-segmented-button is-active" data-instantanea-aportacion="todo" aria-pressed="true">Todo</button>
+            <button type="button" class="bh-segmented-button" data-instantanea-aportacion="mitad" aria-pressed="false">La mitad</button>
         </div>
     </div>
+
+    <div>
+        <span class="bh-control-label">Rentabilidad orientativa</span>
+        <div class="bh-segmented" role="group" aria-label="Seleccionar rentabilidad orientativa">
+            <button type="button" class="bh-segmented-button is-active" data-instantanea-rentabilidad="3" aria-pressed="true">3%</button>
+            <button type="button" class="bh-segmented-button" data-instantanea-rentabilidad="6" aria-pressed="false">6%</button>
+            <button type="button" class="bh-segmented-button" data-instantanea-rentabilidad="9" aria-pressed="false">9%</button>
+        </div>
+    </div>
+</div>
+
+<div class="bh-investment-snapshot-results" aria-live="polite">
+    <div class="bh-investment-snapshot-head">
+        <span>Plazo</span>
+        <span>Total acumulado</span>
+        <span>Beneficio generado</span>
+    </div>
+    <div class="bh-investment-snapshot-row">
+        <span class="bh-investment-snapshot-years">5 años</span>
+        <strong id="instantaneaValor5">0 €</strong>
+        <span><span id="instantaneaGenerado5" class="bh-investment-generated">0 €</span></span>
+    </div>
+    <div class="bh-investment-snapshot-row">
+        <span class="bh-investment-snapshot-years">10 años</span>
+        <strong id="instantaneaValor10">0 €</strong>
+        <span><span id="instantaneaGenerado10" class="bh-investment-generated">0 €</span></span>
+    </div>
+    <div class="bh-investment-snapshot-row">
+        <span class="bh-investment-snapshot-years">15 años</span>
+        <strong id="instantaneaValor15">0 €</strong>
+        <span><span id="instantaneaGenerado15" class="bh-investment-generated">0 €</span></span>
+    </div>
+</div>
+
+<p class="bh-investment-disclaimer">
+    Estimación orientativa con fines educativos, no es una recomendación de inversión, no representa ningún producto concreto y nada se guarda ni modifica los datos reales.
+</p>
+HTML,
+    ]);
+    ?>
 
 
     <!-- Modal de confirmación genérico -->
-    <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+    <?php
+    bh_modal([
+        'id'      => 'modalConfirmacion',
+        'title'   => 'Confirmar acción',
+        'titleId' => 'modalConfirmacionTitulo',
+        'bodyId'  => 'modalConfirmacionTexto',
+        'body'    => '¿Estás seguro?',
+        'footer'  => '<button type="button" class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cancelar</button>'
+            . '<button type="button" class="bh-btn bh-btn-danger" id="modalConfirmacionAceptar">Aceptar</button>',
+    ]);
 
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalConfirmacionTitulo">Confirmar acción</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body" id="modalConfirmacionTexto">
-                    ¿Estás seguro?
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Cancelar
-                    </button>
-                    <button type="button" class="btn btn-danger" id="modalConfirmacionAceptar">
-                        Aceptar
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal informativo genérico (éxito / error) -->
-    <div class="modal fade" id="modalInfo" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalInfoTitulo">Información</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body" id="modalInfoTexto">
-                    <!-- texto dinámico -->
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
+    // Modal informativo genérico (éxito / error)
+    bh_modal([
+        'id'      => 'modalInfo',
+        'title'   => 'Información',
+        'titleId' => 'modalInfoTitulo',
+        'bodyId'  => 'modalInfoTexto',
+        'body'    => '',
+    ]);
+    ?>
 
 
 

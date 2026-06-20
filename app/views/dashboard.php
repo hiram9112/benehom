@@ -87,7 +87,7 @@
                                             <span>Ingresos ahorrados</span>
                                         </div>
                                         <strong id="resumen_ingresos_ahorrados">0%</strong>
-                                        <small>Clic para ver detalle</small>
+                                        <small>Clic para ver detalles</small>
                                     </div>
                                     <div class="bh-summary-card-face bh-summary-card-back">
                                         <p>Indica qué parte de lo que entra en casa termina quedándose como ahorro real. Te ayuda a ver si tus gastos dejan margen al final del mes.</p>
@@ -102,7 +102,7 @@
                                             <span>Gastos flexibles</span>
                                         </div>
                                         <strong id="resumen_gastos_flexibles_peso">0%</strong>
-                                        <small>Clic para ver detalle</small>
+                                        <small>Clic para ver detalles</small>
                                     </div>
                                     <div class="bh-summary-card-face bh-summary-card-back">
                                         <p>Muestra cuánto ingreso es destinado a decisiones de consumo. Cuanto más alto sea, más oportunidades tienes para ajustar sin tocar gastos básicos.</p>
@@ -117,7 +117,7 @@
                                             <span>Variación esenciales</span>
                                         </div>
                                         <strong id="resumen_variacion_esenciales">0%</strong>
-                                        <small>Clic para ver detalle</small>
+                                        <small>Clic para ver detalles</small>
                                     </div>
                                     <div class="bh-summary-card-face bh-summary-card-back">
                                         <p>Los gastos esenciales normalmente deberían mantenerse estables. Si suben varios meses seguidos, revisa con detenimiento facturas y clasificaciones.</p>
@@ -132,7 +132,7 @@
                                             <span>Variación flexibles</span>
                                         </div>
                                         <strong id="resumen_variacion_flexibles">0%</strong>
-                                        <small>Clic para ver detalle</small>
+                                        <small>Clic para ver detalles</small>
                                     </div>
                                     <div class="bh-summary-card-face bh-summary-card-back">
                                         <p>Señala si tus hábitos de consumo suben o bajan frente al mes anterior. Es una pista rápida para saber si ganas o pierdes margen de ahorro.</p>

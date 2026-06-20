@@ -1897,25 +1897,41 @@ textarea:disabled {
 
 .bh-projections-module-header{
     display: flex;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     justify-content: space-between;
     gap: var(--bh-space-5);
+    padding-bottom: var(--bh-space-5);
     background-color: var(--bh-brand);
     color: var(--bh-text-inverse);
     border-radius: var(--bh-radius-lg) var(--bh-radius-lg) 0 0;
     border-bottom: 0;
 }
 
-.bh-projections-module-header h2{
-    margin-bottom: var(--bh-space-2);
+.bh-projections-module-text{
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--bh-space-2);
+}
+
+.bh-projections-module-heading{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--bh-space-3);
+}
+
+.bh-projections-module-heading h2{
+    margin-bottom: 0;
     color: var(--bh-text-inverse);
 }
 
-.bh-projections-module-header p{
-    max-width: 62rem;
+.bh-projections-module-desc{
     margin-bottom: 0;
-    color: var(--bh-text-inverse);
-    font-size: var(--bh-text-md);
+    color: rgba(253, 254, 253, 0.85);
+    font-size: var(--bh-text-lg);
     font-weight: var(--bh-weight-regular);
     line-height: var(--bh-line-relaxed);
 }
@@ -1925,29 +1941,21 @@ textarea:disabled {
     color: var(--bh-text-inverse);
 }
 
-.bh-projections-module-actions{
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
+.bh-projections-module-header .bh-btn-primary{
     flex: 0 0 auto;
-    gap: var(--bh-space-3);
-}
-
-.bh-projections-module-actions .bh-btn-primary{
     background-color: var(--bh-surface-card);
     color: var(--bh-brand);
     border-color: var(--bh-surface-card);
 }
 
-.bh-projections-module-actions .bh-btn-primary:hover{
+.bh-projections-module-header .bh-btn-primary:hover{
     background-color: var(--bh-surface-card);
     color: var(--bh-brand);
     border-color: var(--bh-border-strong);
     box-shadow: var(--bh-shadow-soft);
 }
 
-.bh-projections-module-actions .bh-btn-primary:focus-visible{
+.bh-projections-module-header .bh-btn-primary:focus-visible{
     outline: 2px solid var(--bh-text-inverse);
     outline-offset: 2px;
 }
@@ -2629,6 +2637,14 @@ textarea:disabled {
     font-weight: var(--bh-weight-semibold);
 }
 
+/* Titular informativo del sistema de amortización, encima del primer campo. */
+.bh-amortizacion-titular-text{
+    color: var(--bh-brand-strong);
+    font-family: var(--bh-font-heading);
+    font-size: var(--bh-text-md);
+    font-weight: var(--bh-weight-semibold);
+}
+
 .bh-projections-offcanvas .offcanvas-body{
     padding: var(--bh-space-5);
 }
@@ -2694,16 +2710,6 @@ textarea:disabled {
         grid-row: auto;
         justify-self: start;
     }
-
-    .bh-projections-module-header{
-        flex-direction: column;
-        align-items: stretch;
-        gap: var(--bh-space-4);
-    }
-
-    .bh-projections-module-actions{
-        justify-content: flex-start;
-    }
 }
 
 @media (max-width: 576px){
@@ -2753,10 +2759,15 @@ textarea:disabled {
         grid-template-columns: 1fr;
     }
 
+    .bh-projections-module-header{
+        flex-direction: column;
+        align-items: stretch;
+    }
+
     .bh-meta-delete-form .bh-btn,
     .bh-meta-form-card .bh-btn,
     .bh-investment-form-card .bh-btn,
-    .bh-projections-module-actions .bh-btn,
+    .bh-projections-module-header .bh-btn,
     .bh-projections-section-intro .bh-btn,
     .bh-inflation-form-card .bh-btn,
     .bh-projections-offcanvas .bh-btn{

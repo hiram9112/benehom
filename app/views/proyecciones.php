@@ -118,20 +118,20 @@
                 <div class="bh-projections-goals-grid">
                     <article class="bh-card bh-meta-list-card">
                         <div class="bh-card-header bh-projections-module-header">
-                            <div>
-                                <h2 id="metas-ahorro-titulo">Metas de ahorro</h2>
-                                <p>
+                            <div class="bh-projections-module-text">
+                                <div class="bh-projections-module-heading">
+                                    <h2 id="metas-ahorro-titulo">Metas de ahorro</h2>
+                                    <span class="bh-badge bh-badge-saving" data-section-count="meta" data-count-one="activa" data-count-many="activas"><?= count($metasAhorroPreparadas) ?> <?= count($metasAhorroPreparadas) === 1 ? 'activa' : 'activas' ?></span>
+                                </div>
+                                <p class="bh-projections-module-desc">
                                     Crea metas proyectadas para estimar plazos o calcular cuánto necesitarías aportar al mes.
                                     No representan dinero apartado realmente. Cada meta consume parte de la capacidad mensual configurada.
                                 </p>
                             </div>
-                            <div class="bh-projections-module-actions">
-                                <span class="bh-badge bh-badge-saving" data-section-count="meta" data-count-one="activa" data-count-many="activas"><?= count($metasAhorroPreparadas) ?> <?= count($metasAhorroPreparadas) === 1 ? 'activa' : 'activas' ?></span>
-                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearMetaAhorroPanel" aria-controls="crearMetaAhorroPanel">
-                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva proyección
-                                </button>
-                            </div>
+                            <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearMetaAhorroPanel" aria-controls="crearMetaAhorroPanel">
+                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                Nueva proyección
+                            </button>
                         </div>
                         <div class="bh-card-body">
                             <div class="bh-meta-list" data-section-list="meta">
@@ -157,20 +157,20 @@
                 <div class="bh-projections-investments-grid">
                     <article class="bh-card bh-investment-list-card">
                         <div class="bh-card-header bh-projections-module-header">
-                            <div>
-                                <h2 id="inversion-educativa-titulo">Escenarios de inversión</h2>
-                                <p>
+                            <div class="bh-projections-module-text">
+                                <div class="bh-projections-module-heading">
+                                    <h2 id="inversion-educativa-titulo">Escenarios de inversión</h2>
+                                    <span class="bh-badge bh-badge-saving" data-section-count="inversion" data-count-one="guardado" data-count-many="guardados"><?= count($escenariosInversionPreparados) ?> <?= count($escenariosInversionPreparados) === 1 ? 'guardado' : 'guardados' ?></span>
+                                </div>
+                                <p class="bh-projections-module-desc">
                                     Guarda escenarios para entender cómo influye el interés compuesto y la frecuencia de reinversión
                                     de beneficios. La rentabilidad indicada es anual, educativa y no representa una recomendación financiera.
                                 </p>
                             </div>
-                            <div class="bh-projections-module-actions">
-                                <span class="bh-badge bh-badge-saving" data-section-count="inversion" data-count-one="guardado" data-count-many="guardados"><?= count($escenariosInversionPreparados) ?> <?= count($escenariosInversionPreparados) === 1 ? 'guardado' : 'guardados' ?></span>
-                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearEscenarioInversionPanel" aria-controls="crearEscenarioInversionPanel">
-                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva proyección
-                                </button>
-                            </div>
+                            <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearEscenarioInversionPanel" aria-controls="crearEscenarioInversionPanel">
+                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                Nueva proyección
+                            </button>
                         </div>
                         <div class="bh-card-body">
                             <div class="bh-investment-list" data-section-list="inversion">
@@ -196,20 +196,20 @@
                 <div class="bh-projections-inflation-grid">
                     <article class="bh-card bh-inflation-list-card">
                         <div class="bh-card-header bh-projections-module-header">
-                            <div>
-                                <h2 id="inflacion-temporal-titulo">Calculadora de inflación</h2>
-                                <p>
+                            <div class="bh-projections-module-text">
+                                <div class="bh-projections-module-heading">
+                                    <h2 id="inflacion-temporal-titulo">Calculadora de inflación</h2>
+                                    <span class="bh-badge bh-badge-saving" data-section-count="inflacion" data-count-one="guardada" data-count-many="guardadas"><?= count($proyeccionesInflacionPreparadas) ?> <?= count($proyeccionesInflacionPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
+                                </div>
+                                <p class="bh-projections-module-desc">
                                     Calcula cómo una inflación anual estimada puede reducir el valor real de tus ahorros con el tiempo.
                                     La inflación no cambia la cantidad que tienes, pero hace que puedas comprar menos cosas con ese dinero.
                                 </p>
                             </div>
-                            <div class="bh-projections-module-actions">
-                                <span class="bh-badge bh-badge-saving" data-section-count="inflacion" data-count-one="guardada" data-count-many="guardadas"><?= count($proyeccionesInflacionPreparadas) ?> <?= count($proyeccionesInflacionPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
-                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearInflacionProyeccionPanel" aria-controls="crearInflacionProyeccionPanel">
-                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva proyección
-                                </button>
-                            </div>
+                            <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearInflacionProyeccionPanel" aria-controls="crearInflacionProyeccionPanel">
+                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                Nueva proyección
+                            </button>
                         </div>
                         <div class="bh-card-body">
                             <div class="bh-inflation-list" data-section-list="inflacion">
@@ -235,20 +235,20 @@
                 <div class="bh-projections-mortgage-grid">
                     <article class="bh-card bh-mortgage-list-card">
                         <div class="bh-card-header bh-projections-module-header">
-                            <div>
-                                <h2 id="hipoteca-calculadora-titulo">Calculadora de hipoteca</h2>
-                                <p>
+                            <div class="bh-projections-module-text">
+                                <div class="bh-projections-module-heading">
+                                    <h2 id="hipoteca-calculadora-titulo">Calculadora de hipoteca</h2>
+                                    <span class="bh-badge bh-badge-saving" data-section-count="hipoteca" data-count-one="guardada" data-count-many="guardadas"><?= count($calculadorasHipotecaPreparadas) ?> <?= count($calculadorasHipotecaPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
+                                </div>
+                                <p class="bh-projections-module-desc">
                                     Proyecta cuotas mensuales, intereses totales y coste total de un préstamo hipotecario
                                     según el importe, el interés anual y el plazo. No representa una oferta vinculante ni una recomendación financiera.
                                 </p>
                             </div>
-                            <div class="bh-projections-module-actions">
-                                <span class="bh-badge bh-badge-saving" data-section-count="hipoteca" data-count-one="guardada" data-count-many="guardadas"><?= count($calculadorasHipotecaPreparadas) ?> <?= count($calculadorasHipotecaPreparadas) === 1 ? 'guardada' : 'guardadas' ?></span>
-                                <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearCalculadoraHipotecaPanel" aria-controls="crearCalculadoraHipotecaPanel">
-                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                    Nueva proyección
-                                </button>
-                            </div>
+                            <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearCalculadoraHipotecaPanel" aria-controls="crearCalculadoraHipotecaPanel">
+                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                Nueva proyección
+                            </button>
                         </div>
                         <div class="bh-card-body">
                             <div class="bh-mortgage-list" data-section-list="hipoteca">
@@ -462,6 +462,15 @@
             <form method="POST" action="index.php?r=proyecciones/crearCalculadoraHipoteca" class="bh-form" data-ajax-create data-section="hipoteca" data-ajax-action="index.php?r=proyecciones/crearCalculadoraHipotecaAjax">
                 <?= csrf_field() ?>
 
+                <div class="bh-field-label-row bh-amortizacion-titular">
+                    <span class="bh-amortizacion-titular-text">Sistema de amortización francés</span>
+                    <button type="button" class="bh-metric-info-btn"
+                        data-bs-toggle="modal" data-bs-target="#infoAmortizacionFrancesa"
+                        aria-label="Cómo funciona el sistema de amortización francés">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                </div>
+
                 <div class="bh-field">
                     <label class="bh-label" for="hipoteca_nombre">Nombre</label>
                     <input class="bh-input" type="text" id="hipoteca_nombre" name="nombre" maxlength="100" required placeholder="Ej. Nombre del banco">
@@ -559,6 +568,29 @@ HTML);
     <strong>Esta simulación es orientativa y con fines educativos: no es una oferta
         ni una recomendación financiera.</strong>
 </p>
+HTML);
+
+    bh_info_modal('infoAmortizacionFrancesa', 'Cómo funciona el sistema de amortización francés', <<<'HTML'
+<p>
+    Esta calculadora usa el <strong>sistema de amortización francés</strong>, el método
+    más habitual en las hipotecas en España. Con él pagas <strong>la misma cuota todos
+    los meses</strong> durante todo el plazo del préstamo.
+</p>
+<p>Cada cuota se reparte en dos partes:</p>
+<ul>
+    <li><strong>Intereses</strong>: lo que cobra el banco por prestarte el dinero.</li>
+    <li><strong>Capital</strong>: la parte que reduce de verdad lo que debes.</li>
+</ul>
+<p>
+    Aunque la cuota no cambia, ese reparto sí: al principio pagas <strong>más intereses
+    y menos capital</strong> y, con el tiempo, se invierte: vas amortizando
+    <strong>más capital y pagando menos intereses</strong>.
+</p>
+<p>
+    <strong>Más adelante añadiremos otros sistemas de amortización.</strong> De momento,
+    todas las simulaciones usan el sistema francés.
+</p>
+<p>Información orientativa con fines educativos.</p>
 HTML);
     ?>
 

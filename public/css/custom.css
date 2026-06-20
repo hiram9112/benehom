@@ -3436,54 +3436,76 @@ textarea:disabled {
     gap: var(--bh-space-5);
 }
 
-.bh-blog-hero,
 .bh-blog-library,
 .bh-blog-reading-shell{
     background-color: var(--bh-surface-card);
     color: var(--bh-text-main);
 }
 
+/* El texto y la ilustración comparten una sola card: el texto lleva su propio
+   padding y la imagen sangra hasta los bordes derecho/superior/inferior. */
 .bh-blog-hero{
     display: grid;
-    grid-template-columns: minmax(0, 0.78fr) minmax(28rem, 1.12fr);
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.95fr);
+    align-items: stretch;
     gap: 0;
-    padding: clamp(var(--bh-space-4), 3vw, var(--bh-space-6)) 0 clamp(var(--bh-space-4), 3vw, var(--bh-space-6)) clamp(var(--bh-space-4), 3vw, var(--bh-space-6));
-    border-color: var(--bh-border-strong);
-    background: var(--bh-surface-card);
+    padding: 0;
+}
+
+.bh-blog-hero > *{
+    min-width: 0;
 }
 
 .bh-blog-hero-copy{
-    position: relative;
-    z-index: 1;
+    align-self: center;
     max-width: 44rem;
+    padding: clamp(var(--bh-space-5), 3vw, var(--bh-space-6));
 }
 
+.bh-blog-hero-copy h1{
+    margin-bottom: var(--bh-space-4);
+    max-width: 24ch;
+    text-wrap: balance;
+}
+
+.bh-blog-hero-copy p{
+    max-width: 58rem;
+}
+
+.bh-blog-hero-lead{
+    font-size: var(--bh-text-lg);
+    font-weight: var(--bh-weight-medium);
+    line-height: var(--bh-line-relaxed);
+    color: var(--bh-text-soft);
+}
+
+/* La ilustración llena su mitad a sangre. El recorte 'cover' se ancla en el 88%
+   (la imagen se desplaza a la izquierda) para acercar la escena al texto, recortar
+   el margen blanco izquierdo y que la flecha del gráfico no quede cortada a la derecha. */
 .bh-blog-hero-visual{
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    min-width: 0;
-    margin-left: -2rem;
-    overflow: visible;
-    border-radius: var(--bh-radius-lg);
+    align-self: stretch;
+    align-items: stretch;
+    background:
+        radial-gradient(circle at top right, rgba(62, 178, 37, 0.08), transparent 16rem),
+        var(--bh-surface-card);
 }
 
 .bh-blog-hero-visual img{
     display: block;
-    width: min(115%, 56rem);
-    height: auto;
-    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    min-height: 16rem;
+    object-fit: cover;
+    object-position: 88% center;
 }
 
-.bh-blog-hero h1,
 .bh-blog-detail-heading h1{
     max-width: 20ch;
     margin-bottom: var(--bh-space-3);
     text-wrap: balance;
 }
 
-.bh-blog-hero p,
 .bh-blog-detail-heading p,
 .bh-blog-section-heading p,
 .bh-blog-related-header p{
@@ -4259,7 +4281,6 @@ textarea:disabled {
         grid-template-columns: 1fr;
     }
 
-    .bh-blog-hero,
     .bh-blog-library,
     .bh-blog-reading-shell,
     .bh-blog-related,
@@ -4273,15 +4294,8 @@ textarea:disabled {
         font-size: var(--bh-text-md);
     }
 
-    .bh-blog-hero-visual{
-        justify-content: center;
-        max-height: 12rem;
-        margin-left: 0;
-        overflow: hidden;
-    }
-
     .bh-blog-hero-visual img{
-        width: min(100%, 26rem);
+        min-height: 11rem;
     }
 }
 
@@ -4333,17 +4347,7 @@ textarea:disabled {
 
 @media (min-width: 992px) and (max-width: 1199.98px) {
     .bh-blog-hero{
-        grid-template-columns: minmax(0, 0.9fr) minmax(18rem, 1fr);
-        padding-right: clamp(var(--bh-space-4), 3vw, var(--bh-space-6));
-    }
-
-    .bh-blog-hero-visual{
-        margin-left: -1rem;
-        justify-content: center;
-    }
-
-    .bh-blog-hero-visual img{
-        width: min(100%, 46rem);
+        grid-template-columns: minmax(0, 1fr) minmax(18rem, 1fr);
     }
 
     .bh-app-shell{

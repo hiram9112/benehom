@@ -34,19 +34,23 @@
         <?php bh_sidebar(); ?>
 
         <main class="bh-main bh-blog-page">
-            <header class="bh-card bh-blog-hero" aria-labelledby="blog-title">
+            <section class="bh-card bh-card-finance bh-blog-hero" aria-labelledby="blog-title">
                 <div class="bh-blog-hero-copy">
+                    <p class="bh-projections-kicker">Blog educativo</p>
                     <h1 id="blog-title">Aprende a manejar el dinero de tu hogar, sin complicaciones</h1>
-                    <p>
-                        Guías claras y prácticas sobre lo que de verdad te preguntas: cómo hacer un presupuesto, cuánto puedes ahorrar,
-                        en qué se va el dinero, qué es el interés compuesto o cuánta hipoteca puedes pagar. Sin jerga y sin promesas:
-                        solo ideas para decidir con más calma y construir margen.
+                    <p class="bh-blog-hero-lead">
+                        Guías claras y prácticas sobre lo que de verdad te preguntas: cómo hacer un presupuesto,
+                        cuánto puedes ahorrar, en qué se va el dinero, qué es el interés compuesto o cuánta
+                        hipoteca puedes pagar.
+                    </p>
+                    <p class="mb-0">
+                        Sin jerga y sin promesas: solo ideas para decidir con más calma y construir margen.
                     </p>
                 </div>
                 <div class="bh-blog-hero-visual" aria-hidden="true">
                     <img src="<?= BASE_URL ?>img/blog-image.png" alt="">
                 </div>
-            </header>
+            </section>
 
             <?php if (empty($articulos)): ?>
                 <section class="bh-empty-state" aria-labelledby="blog-empty-title">

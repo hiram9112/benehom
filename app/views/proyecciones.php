@@ -54,39 +54,41 @@
                 <article class="bh-card bh-card-finance bh-projections-intro-card">
                     <div class="bh-card-body">
 
-                        <h1 id="proyecciones-titulo">Proyecciones y simulaciones</h1>
-                        <p>
-                            Crea metas de ahorro, proyecta reducciones de gastos flexibles, explora escenarios de inversión educativa,
-                            calcula el impacto de la inflación o estima cuotas hipotecarias. Todo sin modificar tus datos reales.
+                        <p class="bh-projections-kicker">Simulador educativo</p>
+                        <h1 id="proyecciones-titulo">Descubre cómo tus decisiones de hoy moldean tu futuro financiero</h1>
+                        <p class="bh-projections-intro-lead">
+                            Anticípate antes de decidir: simula metas de ahorro, inversiones, inflación o cuotas
+                            hipotecarias y observa el impacto que tendrían a largo plazo, sin modificar tus datos
+                            reales ni arriesgar tu dinero.
                         </p>
                         <p>
-                            El ahorro mensual disponible es el dinero que repartes cada mes entre tus metas e inversiones.
-                            Lo fijas tú y funciona como límite: no podrás asignar más de lo que indiques, así tus
-                            proyecciones siguen siendo realistas (por ejemplo, no planificas con 1.000 € si solo
-                            ahorras 200 €). Defínelo antes de crear proyecciones tomando como referencia tu ahorro real.
+                            Indica tu ahorro mensual simulado como límite realista y repártelo entre tus metas e
+                            inversiones. Así pruebas distintas situaciones del día a día y comparas escenarios con
+                            tranquilidad.
                         </p>
-                        <p class="mb-0">
-                            Los resultados son estimaciones orientativas, no garantías ni recomendaciones financieras.
+                        <p class="bh-projections-intro-note mb-0">
+                            Los resultados son estimaciones orientativas y educativas: no garantizan rentabilidades
+                            ni son recomendaciones financieras.
                         </p>
                     </div>
                 </article>
 
                 <article class="bh-card bh-projections-savings-card" aria-labelledby="ahorro-mensual-disponible-label">
                     <div class="bh-card-body">
-                        <p id="ahorro-mensual-disponible-label" class="bh-projections-savings-label">Ahorro mensual disponible</p>
+                        <p id="ahorro-mensual-disponible-label" class="bh-projections-savings-label">Ahorro mensual simulado</p>
                         <div class="bh-projections-savings-value">
                             <span
                                 id="ahorro_mensual_disponible"
                                 class="bh-projections-savings-amount"
                                 role="button"
                                 tabindex="0"
-                                aria-label="Editar ahorro mensual disponible"
+                                aria-label="Editar ahorro mensual simulado"
                                 data-value="<?= htmlspecialchars((string) $ahorroMensualDisponible, ENT_QUOTES, 'UTF-8') ?>">
                                 <?= bh_proy_formatear_cantidad($ahorroMensualDisponible) ?>
                             </span>
                             <span class="bh-projections-currency">€</span>
                         </div>
-                        <p class="bh-projections-edit-hint">Haz clic en el importe para indicar tu ahorro disponible.</p>
+                        <p class="bh-projections-edit-hint">Haz clic en el importe para indicar tu ahorro mensual simulado.</p>
 
                         <div class="bh-projections-savings-breakdown">
                             <p>
@@ -100,11 +102,11 @@
                         </div>
 
                         <div class="bh-projections-savings-suggestion">
-                            <span class="bh-projections-savings-suggestion-label">Sugerencia para <?= htmlspecialchars($mesSugerenciaLabel, ENT_QUOTES, 'UTF-8') ?>:</span>
+                            <span class="bh-projections-savings-suggestion-label">Ahorro real de <?= htmlspecialchars($mesSugerenciaLabel, ENT_QUOTES, 'UTF-8') ?>:</span>
                             <?php if ($ahorroRealMesSugerencia >= 0): ?>
                                 <span class="bh-projections-savings-suggestion-value"><?= bh_proy_formatear_euros($ahorroRealMesSugerencia) ?></span>
                             <?php else: ?>
-                                <span class="bh-projections-savings-suggestion-value">Este mes no tienes ahorro disponible</span>
+                                <span class="bh-projections-savings-suggestion-value">Este mes no generas ahorro</span>
                                 <span class="bh-projections-savings-suggestion-note">Gastas más de lo que ingresas.</span>
                             <?php endif; ?>
                         </div>
@@ -563,7 +565,7 @@ HTML);
     <?php
     bh_mobile_menu();
 
-    $avisoCapacidadSuperada = 'El ahorro asignado a tus proyecciones supera el ahorro mensual disponible que has indicado. Puedes ajustar el importe para seguir simulando sin cambiar tus datos reales; recuerda que para destinar ahorro real a tus metas o inversiones necesitarás aumentar tus ingresos o reducir tus gastos.';
+    $avisoCapacidadSuperada = 'El ahorro asignado a tus proyecciones supera el ahorro mensual simulado que has indicado. Puedes ajustar el importe para seguir simulando sin cambiar tus datos reales; recuerda que para destinar ahorro real a tus metas o inversiones necesitarás aumentar tus ingresos o reducir tus gastos.';
 
     $bhAvisos = [];
     foreach ([$avisoAhorroAsignado, $avisoGastosFlexibles, $avisoEscenariosInversion, $avisoProyeccionesInflacion, $avisoCalculadorasHipoteca] as $avisoError) {

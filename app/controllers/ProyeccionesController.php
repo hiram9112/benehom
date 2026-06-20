@@ -1605,13 +1605,13 @@ class ProyeccionesController {
      * Se reutiliza al crear meta, crear/editar inversión, etc.
      */
     private function mensajeCapacidad(string $lead, float $necesita, float $disponible): string{
-        return $lead . ': ' . formatearCantidadPHP($necesita) . ' €/mes supera tu ahorro disponible de ' .
-            formatearCantidadPHP($disponible) . ' €/mes. Reduce la aportación o aumenta tu ahorro mensual disponible.';
+        return $lead . ': ' . formatearCantidadPHP($necesita) . ' €/mes supera tu ahorro mensual simulado de ' .
+            formatearCantidadPHP($disponible) . ' €/mes. Reduce la aportación o aumenta tu ahorro mensual simulado.';
     }
 
     private function mensajeCapacidadFechaMeta(string $lead, float $necesita, float $disponible): string{
         return $lead . ': para cumplir ese plazo necesitas ' . formatearCantidadPHP($necesita) . ' €/mes, pero solo tienes ' .
-            formatearCantidadPHP($disponible) . ' €/mes disponibles. Aumenta tu ahorro mensual disponible o elige una fecha más lejana.';
+            formatearCantidadPHP($disponible) . ' €/mes disponibles. Aumenta tu ahorro mensual simulado o elige una fecha más lejana.';
     }
 
     private function mensajeRentabilidadMaxima(float $rentabilidad): string{

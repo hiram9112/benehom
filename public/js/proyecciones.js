@@ -1198,7 +1198,7 @@
     input.inputMode = "decimal";
     input.value = valorAnterior;
     input.classList.add("bh-input", "bh-inline-edit-input", "bh-projections-inline-input");
-    input.setAttribute("aria-label", "Ahorro mensual disponible");
+    input.setAttribute("aria-label", "Ahorro mensual simulado");
 
     ahorroElemento.replaceWith(input);
     input.focus();

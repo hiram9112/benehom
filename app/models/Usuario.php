@@ -76,6 +76,24 @@ class Usuario{
     }
     
 
+    //Método para obtener los datos públicos de un usuario por su id (sin el hash de contraseña)
+    public static function obtenerPorId($id){
+        try{
+            $db=Database::getConnection();
+
+            $sql="SELECT id, usuario, email, fecha_registro FROM usuarios WHERE id= :id";
+            $stmt=$db->prepare($sql);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $resultado=$stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $resultado ? $resultado : false;
+        }catch(PDOException $e){
+            return false;
+        }
+    }
+
     //Método para obtener hash de  contraseña
     public static function obtenerHashPassword($id){
         try{

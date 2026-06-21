@@ -11,6 +11,14 @@ require_once APP_PATH."/models/CalculadoraHipoteca.php";
 class CuentaController{    
     
     public function index(){
+        //Recuperamos los datos de perfil del usuario para mostrarlos en la vista
+        $id = $_SESSION['usuario_id'] ?? 0;
+        $perfil = Usuario::obtenerPorId($id);
+
+        $nombreUsuario = $perfil['usuario'] ?? ($_SESSION['usuario'] ?? 'Usuario');
+        $emailUsuario  = $perfil['email'] ?? '';
+        $fechaRegistro = $perfil['fecha_registro'] ?? null;
+
         //Cargamos la vista de la cuenta
         require APP_PATH."/views/cuenta.php";
     }
@@ -36,13 +44,21 @@ class CuentaController{
         $id=$_SESSION['usuario_id'];
         $actual=$_POST['password_actual']?? '';
         $nueva=$_POST['password_nueva']?? '';
-        
-        //Comprobamos que ambos campos estén rellenos
-        if ($actual === '' || $nueva === '') {
+        $confirmacion=$_POST['password_confirmacion_nueva']?? '';
+
+        //Comprobamos que todos los campos estén rellenos
+        if ($actual === '' || $nueva === '' || $confirmacion === '') {
             $_SESSION['mensaje_error'] = "Todos los campos son obligatorios.";
             header("Location: index.php?r=cuenta/index");
             exit;
-        }        
+        }
+
+        //Comprobamos que la nueva contraseña y su confirmación coincidan
+        if ($nueva !== $confirmacion) {
+            $_SESSION['mensaje_error'] = "La nueva contraseña y su confirmación no coinciden.";
+            header("Location: index.php?r=cuenta/index");
+            exit;
+        }
 
         //Obtenemos hash de  la contraseña actual
         $hashBD=Usuario::obtenerHashPassword($id);
@@ -160,6 +176,52 @@ class CuentaController{
             $_SESSION['mensaje_error'] = "Error eliminando la cuenta. Inténtelo de nuevo.";
             header("Location: index.php?r=cuenta/index");
             exit;
-        }               
-    }        
+        }
+    }
+
+    //Funcion para exportar todos los datos del usuario (portabilidad de datos / RGPD)
+    public function exportarDatos(){
+
+        //Comprobaciones de seguridad: petición POST y sesión activa
+        if($_SERVER['REQUEST_METHOD']!=='POST'){
+            $_SESSION['mensaje_error']="Método no permitido.";
+            header("Location: index.php?r=cuenta/index");
+            return;
+        }
+
+        if(!isset($_SESSION['usuario_id'])){
+            $_SESSION['mensaje_error']="Sesión no válida.";
+            header("Location: index.php?r=auth/login");
+            return;
+        }
+
+        $id=$_SESSION['usuario_id'];
+
+        //Reunimos toda la información asociada al usuario
+        $datos = [
+            'aplicacion'             => 'BeneHom',
+            'exportado_el'           => date('Y-m-d H:i:s'),
+            'perfil'                 => Usuario::obtenerPorId($id) ?: [],
+            'ingresos'               => Ingreso::obtenerTodosPorUsuario($id),
+            'gastos'                 => Gasto::obtenerTodosPorUsuario($id),
+            'metas_ahorro'           => MetaAhorro::obtenerActivasPorUsuario($id),
+            'escenarios_inversion'   => EscenarioInversion::obtenerPorUsuario($id),
+            'proyecciones_inflacion' => InflacionProyeccion::obtenerPorUsuario($id),
+            'calculadoras_hipoteca'  => CalculadoraHipoteca::obtenerPorUsuario($id),
+        ];
+
+        //Servimos el archivo como descarga JSON
+        $nombreArchivo = 'benehom-datos-' . date('Y-m-d') . '.json';
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $nombreArchivo . '"');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+        header('Pragma: no-cache');
+
+        echo json_encode(
+            $datos,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+        exit;
+    }
 }

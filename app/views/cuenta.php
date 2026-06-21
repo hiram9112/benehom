@@ -32,16 +32,50 @@
 
         <main class="bh-main bh-main-contained">
 
-            <div class="bh-card mb-4">
-                <div class="bh-card-body">
-                    <header class="bh-page-header mb-0">
-                        <div>
-                            <h1>Cuenta</h1>
-                            <p>Gestiona tu contraseña y los datos de tu perfil</p>
-                        </div>
-                    </header>
+            <?php
+            // Datos de perfil para la cabecera de identidad
+            $nombreUsuario = $nombreUsuario ?? ($_SESSION['usuario'] ?? 'Usuario');
+            $emailUsuario  = $emailUsuario ?? '';
+            $fechaRegistro = $fechaRegistro ?? null;
+
+            $inicial = mb_strtoupper(mb_substr(trim($nombreUsuario), 0, 1, 'UTF-8'), 'UTF-8');
+            if ($inicial === '') {
+                $inicial = '?';
+            }
+
+            $mesesEs = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            $miembroDesde = null;
+            if (!empty($fechaRegistro)) {
+                $ts = strtotime((string) $fechaRegistro);
+                if ($ts !== false) {
+                    $miembroDesde = $mesesEs[(int) date('n', $ts)] . ' de ' . date('Y', $ts);
+                }
+            }
+            ?>
+
+            <!-- Identidad del perfil -->
+            <section class="bh-card bh-account-identity mb-4" aria-labelledby="accountName">
+                <div class="bh-card-body bh-account-identity-body">
+                    <div class="bh-account-avatar" aria-hidden="true"><?= htmlspecialchars($inicial, ENT_QUOTES, 'UTF-8') ?></div>
+                    <div class="bh-account-identity-info">
+                        <p class="bh-account-kicker">Tu cuenta</p>
+                        <h1 id="accountName"><?= htmlspecialchars($nombreUsuario, ENT_QUOTES, 'UTF-8') ?></h1>
+                        <?php if ($emailUsuario !== ''): ?>
+                            <p class="bh-account-meta">
+                                <i class="bi bi-envelope" aria-hidden="true"></i>
+                                <span><?= htmlspecialchars($emailUsuario, ENT_QUOTES, 'UTF-8') ?></span>
+                            </p>
+                        <?php endif; ?>
+                        <?php if ($miembroDesde !== null): ?>
+                            <p class="bh-account-meta">
+                                <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                <span>Miembro desde <?= htmlspecialchars($miembroDesde, ENT_QUOTES, 'UTF-8') ?></span>
+                            </p>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             <!-- Cambiar contraseña -->
             <div class="bh-card mb-4">
@@ -49,13 +83,13 @@
                     <h4 class="m-0">Cambiar contraseña</h4>
                 </div>
                 <div class="bh-card-body">
-                    <form method="POST" action="index.php?r=cuenta/cambiarPassword" class="bh-form">
+                    <form method="POST" action="index.php?r=cuenta/cambiarPassword" class="bh-form" id="formCambiarPassword">
                         <?= csrf_field() ?>
 
                         <div class="bh-field">
                             <label for="password_actual" class="bh-label">Contraseña actual</label>
                             <div class="bh-password-field">
-                                <input type="password" id="password_actual" name="password_actual" class="bh-input" required>
+                                <input type="password" id="password_actual" name="password_actual" class="bh-input" autocomplete="current-password" required>
                                 <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
                                     data-bh-password-toggle="password_actual" aria-label="Mostrar contraseña" aria-pressed="false">
                                     <i class="bi bi-eye" aria-hidden="true"></i>
@@ -66,12 +100,32 @@
                         <div class="bh-field">
                             <label for="password_nueva" class="bh-label">Contraseña nueva</label>
                             <div class="bh-password-field">
-                                <input type="password" id="password_nueva" name="password_nueva" class="bh-input" required>
+                                <input type="password" id="password_nueva" name="password_nueva" class="bh-input"
+                                    autocomplete="new-password" aria-describedby="passwordRequisitos" required>
                                 <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
                                     data-bh-password-toggle="password_nueva" aria-label="Mostrar contraseña" aria-pressed="false">
                                     <i class="bi bi-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
+                            <ul class="bh-password-requirements" id="passwordRequisitos">
+                                <li data-req="length"><i class="bi bi-circle" aria-hidden="true"></i><span>Al menos 8 caracteres</span></li>
+                                <li data-req="upper"><i class="bi bi-circle" aria-hidden="true"></i><span>Una letra mayúscula</span></li>
+                                <li data-req="lower"><i class="bi bi-circle" aria-hidden="true"></i><span>Una letra minúscula</span></li>
+                                <li data-req="number"><i class="bi bi-circle" aria-hidden="true"></i><span>Un número</span></li>
+                            </ul>
+                        </div>
+
+                        <div class="bh-field">
+                            <label for="password_confirmacion_nueva" class="bh-label">Confirmar contraseña nueva</label>
+                            <div class="bh-password-field">
+                                <input type="password" id="password_confirmacion_nueva" name="password_confirmacion_nueva" class="bh-input"
+                                    autocomplete="new-password" aria-describedby="passwordMatchError" required>
+                                <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
+                                    data-bh-password-toggle="password_confirmacion_nueva" aria-label="Mostrar contraseña" aria-pressed="false">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <p class="bh-field-error" id="passwordMatchError" role="alert" hidden>Las contraseñas no coinciden.</p>
                         </div>
 
                         <div class="bh-field">
@@ -81,40 +135,27 @@
                 </div>
             </div>
 
-            <!-- Eliminar cuenta -->
+            <!-- Exportar datos (portabilidad RGPD) -->
             <div class="bh-card mb-4">
                 <div class="bh-card-header">
-                    <h4 class="m-0">Eliminar cuenta</h4>
+                    <h4 class="m-0">Tus datos</h4>
                 </div>
                 <div class="bh-card-body">
-                    <div class="bh-alert bh-alert-warning mb-4" role="alert">
-                        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-                        Esta acción es irreversible. Se eliminarán todos tus datos asociados.
-                    </div>
-
-                    <form id="formEliminarCuenta" method="POST" action="index.php?r=cuenta/eliminarCuenta" class="bh-form">
+                    <p>Descarga una copia de toda tu información en BeneHom (perfil, ingresos, gastos, metas y proyecciones) en un archivo JSON que podrás guardar o llevar a otra herramienta.</p>
+                    <form method="POST" action="index.php?r=cuenta/exportarDatos" class="bh-form">
                         <?= csrf_field() ?>
-
                         <div class="bh-field">
-                            <label for="password_confirmacion" class="bh-label">Introduce tu contraseña para confirmar</label>
-                            <div class="bh-password-field">
-                                <input type="password" id="password_confirmacion" name="password_confirmacion" class="bh-input" required>
-                                <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
-                                    data-bh-password-toggle="password_confirmacion" aria-label="Mostrar contraseña" aria-pressed="false">
-                                    <i class="bi bi-eye" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="bh-field">
-                            <button type="submit" class="bh-btn bh-btn-danger">Eliminar cuenta</button>
+                            <button type="submit" class="bh-btn bh-btn-secondary">
+                                <i class="bi bi-download" aria-hidden="true"></i>
+                                Descargar mis datos (JSON)
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
 
             <!-- Documentación legal -->
-            <div class="bh-card">
+            <div class="bh-card mb-4">
                 <div class="bh-card-header">
                     <h4 class="m-0">Documentación legal</h4>
                 </div>
@@ -142,6 +183,39 @@
                     </ul>
                 </div>
             </div>
+
+            <!-- Zona peligrosa: eliminar cuenta -->
+            <section class="bh-card bh-card-danger" aria-labelledby="dangerZoneTitle">
+                <div class="bh-card-header bh-card-danger-header">
+                    <h4 class="m-0" id="dangerZoneTitle">
+                        <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+                        Acción irreversible
+                    </h4>
+                </div>
+                <div class="bh-card-body">
+                    <h5 class="bh-account-danger-subtitle">Eliminar cuenta</h5>
+                    <p class="bh-account-danger-text">Se eliminarán de forma permanente tu cuenta y todos los datos asociados (ingresos, gastos, metas y proyecciones).</p>
+
+                    <form id="formEliminarCuenta" method="POST" action="index.php?r=cuenta/eliminarCuenta" class="bh-form">
+                        <?= csrf_field() ?>
+
+                        <div class="bh-field">
+                            <label for="password_confirmacion" class="bh-label">Introduce tu contraseña para confirmar</label>
+                            <div class="bh-password-field">
+                                <input type="password" id="password_confirmacion" name="password_confirmacion" class="bh-input" autocomplete="current-password" required>
+                                <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
+                                    data-bh-password-toggle="password_confirmacion" aria-label="Mostrar contraseña" aria-pressed="false">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bh-field">
+                            <button type="submit" class="bh-btn bh-btn-danger">Eliminar cuenta</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
 
         </main>
     </div>

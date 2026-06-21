@@ -1,4 +1,73 @@
 document.addEventListener("DOMContentLoaded", () => {
+  initRequisitosPassword();
+  initEliminarCuenta();
+});
+
+// Comprobación en vivo de los requisitos de la contraseña nueva y su confirmación
+function initRequisitosPassword() {
+  const nueva = document.getElementById("password_nueva");
+  const lista = document.getElementById("passwordRequisitos");
+
+  if (!nueva || !lista) return;
+
+  const reglas = {
+    length: (v) => v.length >= 8,
+    upper: (v) => /[A-Z]/.test(v),
+    lower: (v) => /[a-z]/.test(v),
+    number: (v) => /[0-9]/.test(v),
+  };
+
+  function evaluarRequisitos() {
+    const valor = nueva.value;
+
+    lista.querySelectorAll("li[data-req]").forEach((li) => {
+      const regla = reglas[li.dataset.req];
+      const cumple = typeof regla === "function" ? regla(valor) : false;
+
+      li.classList.toggle("is-met", cumple);
+
+      const icono = li.querySelector("i");
+      if (icono) {
+        icono.classList.toggle("bi-check-circle-fill", cumple);
+        icono.classList.toggle("bi-circle", !cumple);
+      }
+    });
+  }
+
+  nueva.addEventListener("input", evaluarRequisitos);
+
+  // Validación de que la confirmación coincide con la nueva contraseña
+  const confirmacion = document.getElementById("password_confirmacion_nueva");
+  const matchError = document.getElementById("passwordMatchError");
+  const form = document.getElementById("formCambiarPassword");
+
+  if (!confirmacion || !matchError) return;
+
+  function comprobarCoincidencia() {
+    const hayDesajuste =
+      confirmacion.value !== "" && confirmacion.value !== nueva.value;
+
+    matchError.hidden = !hayDesajuste;
+    confirmacion.setAttribute("aria-invalid", hayDesajuste ? "true" : "false");
+
+    return !hayDesajuste;
+  }
+
+  confirmacion.addEventListener("input", comprobarCoincidencia);
+  nueva.addEventListener("input", comprobarCoincidencia);
+
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      if (!comprobarCoincidencia()) {
+        e.preventDefault();
+        confirmacion.focus();
+      }
+    });
+  }
+}
+
+// Confirmación mediante modal antes de eliminar la cuenta
+function initEliminarCuenta() {
   const formEliminarCuenta = document.getElementById("formEliminarCuenta");
 
   if (!formEliminarCuenta) return;
@@ -42,4 +111,4 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     });
   });
-});
+}

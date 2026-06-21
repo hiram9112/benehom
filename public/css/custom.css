@@ -5772,3 +5772,143 @@ textarea:disabled {
 
     .bh-home-footer-cols{ grid-template-columns: 1fr; }
 }
+
+
+/* ==========================================================================
+   Cuenta: identidad de perfil, requisitos de contraseña y zona peligrosa
+   ========================================================================== */
+
+.bh-account-identity-body{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-5);
+}
+
+.bh-account-avatar{
+    flex: 0 0 auto;
+    width: 4.5rem;
+    height: 4.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: var(--bh-radius-pill);
+    background: linear-gradient(135deg, var(--bh-brand) 0%, var(--bh-accent) 100%);
+    color: var(--bh-text-inverse);
+    font-family: var(--bh-font-heading);
+    font-size: 2rem;
+    font-weight: var(--bh-weight-semibold);
+    line-height: 1;
+    box-shadow: var(--bh-shadow-soft);
+    user-select: none;
+}
+
+.bh-account-identity-info{
+    min-width: 0;
+}
+
+.bh-account-kicker{
+    margin: 0 0 var(--bh-space-1);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    color: var(--bh-text-muted);
+}
+
+.bh-account-identity-info h1{
+    margin: 0 0 var(--bh-space-2);
+    overflow-wrap: anywhere;
+}
+
+.bh-account-meta{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    margin: 0;
+    color: var(--bh-text-soft);
+    overflow-wrap: anywhere;
+}
+
+.bh-account-meta + .bh-account-meta{
+    margin-top: var(--bh-space-1);
+}
+
+.bh-account-meta i{
+    flex: 0 0 auto;
+    color: var(--bh-accent);
+}
+
+/* Requisitos de contraseña en vivo */
+.bh-password-requirements{
+    list-style: none;
+    margin: var(--bh-space-3) 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: var(--bh-space-1) var(--bh-space-4);
+}
+
+.bh-password-requirements li{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    font-size: var(--bh-text-sm);
+    color: var(--bh-text-muted);
+    transition: color var(--bh-transition-fast);
+}
+
+.bh-password-requirements li i{
+    font-size: 0.9rem;
+    color: var(--bh-text-muted);
+    transition: color var(--bh-transition-fast);
+}
+
+.bh-password-requirements li.is-met,
+.bh-password-requirements li.is-met i{
+    color: var(--bh-success);
+}
+
+/* Mensaje de error en línea bajo un campo */
+.bh-field-error{
+    margin: var(--bh-space-2) 0 0;
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    color: var(--bh-error);
+}
+
+.bh-field-error[hidden]{
+    display: none;
+}
+
+/* Zona peligrosa */
+.bh-card-danger{
+    border-color: var(--bh-expense);
+    background-color: var(--bh-expense-soft);
+}
+
+.bh-card-danger .bh-card-header{
+    border-bottom-color: rgba(184, 62, 62, 0.22);
+}
+
+.bh-card-danger-header h4{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    color: var(--bh-expense);
+}
+
+.bh-account-danger-subtitle{
+    margin: 0 0 var(--bh-space-2);
+    font-family: var(--bh-font-heading);
+    font-size: var(--bh-text-lg);
+    color: var(--bh-text-main);
+}
+
+.bh-account-danger-text{
+    margin-bottom: var(--bh-space-5);
+    color: var(--bh-text-soft);
+}
+
+@media (max-width: 36rem){
+    .bh-account-identity-body{
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

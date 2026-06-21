@@ -248,6 +248,24 @@ class Gasto{
 
     }
 
+    //Función para obtener todos los gastos de un usuario (exportación de datos)
+    public static function obtenerTodosPorUsuario($usuario_id){
+        try{
+            $db=Database::getConnection();
+
+            $stmt=$db->prepare("SELECT id, tipo, categoria, cantidad, fecha
+                                FROM gastos
+                                WHERE usuario_id= :usuario_id
+                                ORDER BY fecha DESC, id DESC");
+            $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            return [];
+        }
+    }
+
     //Función para eliminar todos los gastos de un usuario
     public static function eliminarTodosPorUsuario($id){
         try{

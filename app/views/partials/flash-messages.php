@@ -17,7 +17,7 @@ function bh_flash_messages(): void
     ?>
     <div class="bh-flash-stack" aria-live="polite" aria-atomic="true">
         <?php if ($tieneExito): ?>
-            <div class="bh-flash bh-flash-success" role="status" data-flash-message data-flash-autodismiss>
+            <div class="bh-flash bh-flash-success" role="status" data-flash-message data-flash-autodismiss="5000">
                 <i class="bi bi-check-circle" aria-hidden="true"></i>
                 <p><?= $sanitizar($_SESSION['mensaje_exitoso']) ?></p>
                 <button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">
@@ -28,7 +28,7 @@ function bh_flash_messages(): void
         <?php endif; ?>
 
         <?php if ($tieneError): ?>
-            <div class="bh-flash bh-flash-error" role="alert" data-flash-message>
+            <div class="bh-flash bh-flash-error" role="alert" data-flash-message data-flash-autodismiss="5000">
                 <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
                 <p><?= $sanitizar($_SESSION['mensaje_error']) ?></p>
                 <button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">

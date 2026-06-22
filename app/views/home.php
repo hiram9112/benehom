@@ -457,19 +457,19 @@ bh_document_begin([
                     <p>Inflación, deuda, hipotecas, ahorro o inversión pueden afectar tu calidad de vida aunque no les prestes atención. BeneHom te ayuda a entender esos conceptos con explicaciones claras y ejemplos sencillos.</p>
                 </div>
                 <div class="bh-home-blog-grid">
-                    <a class="bh-home-blog-card bh-reveal" href="<?= BASE_URL ?>index.php?r=blog/index">
+                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="bh-home-feature-tag">Inflación</span>
                         <h3>Por qué sube todo y cómo afecta a tu presupuesto</h3>
                         <p>Una explicación con ejemplos domésticos, lejos de la jerga económica.</p>
                         <span class="bh-home-blog-more">Leer artículo</span>
                     </a>
-                    <a class="bh-home-blog-card bh-reveal" href="<?= BASE_URL ?>index.php?r=blog/index">
+                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="bh-home-feature-tag">Hipotecas</span>
                         <h3>Lo que conviene mirar antes de firmar</h3>
                         <p>La cuota es solo una parte: el plazo y el interés deciden el coste final.</p>
                         <span class="bh-home-blog-more">Leer artículo</span>
                     </a>
-                    <a class="bh-home-blog-card bh-reveal" href="<?= BASE_URL ?>index.php?r=blog/index">
+                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="bh-home-feature-tag">Activos</span>
                         <h3>Renta fija, variable y fondos, en lenguaje llano</h3>
                         <p>Qué es cada cosa y qué papel juegan el riesgo y el plazo.</p>
@@ -477,7 +477,7 @@ bh_document_begin([
                     </a>
                 </div>
                 <div class="bh-home-blog-foot">
-                    <a class="bh-btn bh-btn-secondary" href="<?= BASE_URL ?>index.php?r=blog/index">Ver todo el blog</a>
+                    <a class="bh-btn bh-btn-secondary" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">Ver todo el blog</a>
                 </div>
             </div>
         </section>
@@ -623,14 +623,14 @@ bh_document_begin([
                     </div>
                     <div>
                         <h2>Recursos</h2>
-                        <a href="<?= BASE_URL ?>index.php?r=blog/index">Blog</a>
+                        <a href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">Blog</a>
                         <a href="#seguridad">Seguridad</a>
                         <a href="#faq">Preguntas frecuentes</a>
                     </div>
                     <div>
                         <h2>Legal</h2>
-                        <a href="<?= BASE_URL ?>index.php?r=legal/privacidad" target="_blank" rel="noopener">Privacidad</a>
-                        <a href="<?= BASE_URL ?>index.php?r=legal/terminos" target="_blank" rel="noopener">Términos</a>
+                        <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">Privacidad</a>
+                        <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">Términos</a>
                     </div>
                     <div>
                         <h2>Contacto</h2>

@@ -47,15 +47,15 @@ bh_auth_begin(
         <input class="form-check-input" type="checkbox" name="acepta_terminos" id="acepta_terminos" required>
         <label class="form-check-label" for="acepta_terminos">
             Acepto la
-            <a href="<?= BASE_URL ?>index.php?r=legal/privacidad" target="_blank">Política de Privacidad</a>
+            <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">Política de Privacidad</a>
             y los
-            <a href="<?= BASE_URL ?>index.php?r=legal/terminos" target="_blank">Términos y Condiciones</a>.
+            <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">Términos y Condiciones</a>.
         </label>
     </div>
 
     <p class="small text-muted mt-2 mb-0">
         Consulta también nuestro
-        <a href="<?= BASE_URL ?>index.php?r=legal/aviso" target="_blank">Aviso Legal</a>.
+        <a href="<?= htmlspecialchars(bh_public_page_url('aviso'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">Aviso Legal</a>.
     </p>
 
     <button type="submit" id="btn-register" class="bh-btn bh-btn-primary w-100">Registrarse</button>

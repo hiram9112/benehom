@@ -4,7 +4,7 @@ require_once APP_PATH . '/views/partials/head.php';
 bh_document_begin([
     'title' => 'Aviso legal',
     'description' => 'Información legal sobre el titular, objeto y condiciones generales del sitio web BeneHom.',
-    'canonical' => bh_url('index.php?r=legal/aviso'),
+    'canonical' => bh_public_page_url('aviso'),
     'robots' => 'index',
 ]);
 ?>
@@ -38,9 +38,9 @@ bh_document_begin([
             <h5 class="mt-4">3. Condiciones de uso</h5>
             <p>
                 El uso del sitio se rige por los
-                <a href="<?= BASE_URL ?>index.php?r=legal/terminos">Términos y Condiciones</a>
+                <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>">Términos y Condiciones</a>
                 y la
-                <a href="<?= BASE_URL ?>index.php?r=legal/privacidad">Política de Privacidad</a>.
+                <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>">Política de Privacidad</a>.
             </p>
 
             <h5 class="mt-4">4. Propiedad intelectual</h5>

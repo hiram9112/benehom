@@ -93,7 +93,9 @@ function bh_url(string $ruta = ''): string
         return $ruta;
     }
 
-    $base = trim((string) ($_ENV['APP_URL'] ?? ''), " \t\n\r\0\x0B\"'");
+    $appEnv = (string) ($_ENV['APP_ENV'] ?? 'local');
+    $configuredBase = trim((string) ($_ENV['APP_URL'] ?? ''), " \t\n\r\0\x0B\"'");
+    $base = $appEnv === 'production' ? $configuredBase : '';
 
     if ($base === '') {
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -105,6 +107,8 @@ function bh_url(string $ruta = ''): string
             if (defined('BASE_URL') && trim(BASE_URL, '/') !== '') {
                 $base .= '/' . trim(BASE_URL, '/');
             }
+        } elseif ($configuredBase !== '') {
+            $base = $configuredBase;
         } elseif (defined('BASE_URL')) {
             $base = BASE_URL;
         }
@@ -118,6 +122,53 @@ function bh_url(string $ruta = ''): string
     }
 
     return $base . '/' . $ruta;
+}
+
+function bh_blog_url(string $slug = ''): string
+{
+    $slug = trim($slug, '/');
+
+    if ($slug === '') {
+        return bh_url('blog');
+    }
+
+    return bh_url('blog/' . rawurlencode($slug));
+}
+
+function bh_public_page_url(string $pagina = ''): string
+{
+    $pagina = trim($pagina, '/');
+
+    if ($pagina === '') {
+        return bh_url();
+    }
+
+    return bh_url($pagina);
+}
+
+function bh_query_route_requested(string $route): bool
+{
+    $method = (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+    if (!in_array($method, ['GET', 'HEAD'], true)) {
+        return false;
+    }
+
+    $query = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_QUERY);
+
+    if (!is_string($query) || $query === '') {
+        return false;
+    }
+
+    parse_str($query, $params);
+
+    return trim((string) ($params['r'] ?? ''), '/') === trim($route, '/');
+}
+
+function bh_redirect_permanent(string $url): void
+{
+    header('Location: ' . $url, true, 301);
+    exit;
 }
 
 

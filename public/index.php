@@ -120,6 +120,8 @@ $rutasPublicas = [
     'password/procesarFormularioOlvido',
     'password/reset',
     'password/procesarReset',
+    'blog/index',
+    'blog/detalle',
     'legal/privacidad',
     'legal/terminos',
     'legal/aviso'

@@ -1,0 +1,15 @@
+Options -Indexes
+
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^$ index.php?r=home/index [L,QSA]
+RewriteRule ^blog/?$ index.php?r=blog/index [L,QSA]
+RewriteRule ^blog/([A-Za-z0-9-]+)/?$ index.php?r=blog/detalle&slug=$1 [L,QSA,B]
+RewriteRule ^privacidad/?$ index.php?r=legal/privacidad [L,QSA]
+RewriteRule ^terminos/?$ index.php?r=legal/terminos [L,QSA]
+RewriteRule ^aviso/?$ index.php?r=legal/aviso [L,QSA]
+RewriteRule ^sitemap\.xml$ index.php?r=seo/sitemap [L,QSA]

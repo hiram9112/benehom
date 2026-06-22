@@ -4,7 +4,7 @@ require_once APP_PATH . '/views/partials/head.php';
 bh_document_begin([
     'title' => 'Blog educativo',
     'description' => 'Guías claras y prácticas para organizar el presupuesto familiar, entender gastos, ahorrar mejor y tomar decisiones económicas con más calma.',
-    'canonical' => bh_url('index.php?r=blog/index'),
+    'canonical' => bh_blog_url(),
     'robots' => 'index',
 ]);
 ?>
@@ -102,7 +102,7 @@ bh_document_begin([
                                         <strong><?= intval($articuloDestacado['lectura_min']) ?> min</strong>
                                     </p>
                                 </div>
-                                <a class="bh-btn bh-btn-primary bh-blog-card-action" href="index.php?r=blog/detalle&amp;slug=<?= urlencode($articuloDestacado['slug']) ?>">
+                                <a class="bh-btn bh-btn-primary bh-blog-card-action" href="<?= htmlspecialchars(bh_blog_url((string) $articuloDestacado['slug']), ENT_QUOTES, 'UTF-8') ?>">
                                     Leer destacado
                                     <i class="bi bi-arrow-right" aria-hidden="true"></i>
                                 </a>
@@ -132,7 +132,7 @@ bh_document_begin([
                                             <strong><?= intval($articulo['lectura_min']) ?> min</strong>
                                         </p>
                                     </div>
-                                    <a class="bh-btn bh-btn-primary bh-blog-card-action" href="index.php?r=blog/detalle&amp;slug=<?= urlencode($articulo['slug']) ?>">
+                                    <a class="bh-btn bh-btn-primary bh-blog-card-action" href="<?= htmlspecialchars(bh_blog_url((string) $articulo['slug']), ENT_QUOTES, 'UTF-8') ?>">
                                         Leer artículo
                                         <i class="bi bi-arrow-right" aria-hidden="true"></i>
                                     </a>

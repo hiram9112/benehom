@@ -4,7 +4,7 @@ require_once APP_PATH . '/views/partials/head.php';
 bh_document_begin([
     'title' => 'Política de privacidad',
     'description' => 'Consulta cómo BeneHom trata los datos personales y financieros introducidos por los usuarios en la aplicación.',
-    'canonical' => bh_url('index.php?r=legal/privacidad'),
+    'canonical' => bh_public_page_url('privacidad'),
     'robots' => 'index',
 ]);
 ?>

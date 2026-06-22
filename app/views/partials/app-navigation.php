@@ -11,25 +11,25 @@ function bh_navigation_items(): array
         [
             'label' => 'Dashboard',
             'route' => 'dashboard/index',
-            'href' => 'index.php?r=dashboard/index',
+            'href' => BASE_URL . 'index.php?r=dashboard/index',
             'icon' => 'bi-house-door',
         ],
         [
             'label' => 'Proyecciones',
             'route' => 'proyecciones/index',
-            'href' => 'index.php?r=proyecciones/index',
+            'href' => BASE_URL . 'index.php?r=proyecciones/index',
             'icon' => 'bi-sliders2',
         ],
         [
             'label' => 'Blog',
             'route' => 'blog/index',
-            'href' => 'index.php?r=blog/index',
+            'href' => bh_blog_url(),
             'icon' => 'bi-journal-text',
         ],
         [
             'label' => 'Cuenta',
             'route' => 'cuenta/index',
-            'href' => 'index.php?r=cuenta/index',
+            'href' => BASE_URL . 'index.php?r=cuenta/index',
             'icon' => 'bi-person',
         ],
     ];
@@ -64,7 +64,7 @@ function bh_navigation_list(bool $includeLogout = false): void
 
     if ($includeLogout) {
         echo '<li class="nav-item mt-3">';
-        echo '<a class="nav-link bh-nav-logout" href="?r=auth/logout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Cerrar sesión</span></a>';
+        echo '<a class="nav-link bh-nav-logout" href="' . htmlspecialchars(BASE_URL . 'index.php?r=auth/logout', ENT_QUOTES, 'UTF-8') . '"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Cerrar sesión</span></a>';
         echo '</li>';
     }
 
@@ -95,7 +95,7 @@ function bh_sidebar(): void
     <aside class="d-none d-md-flex bh-sidebar">
         <!-- Logo Benehom-->
         <div class="logo-container text-center mb-4">
-            <a href="index.php?r=dashboard/index">
+            <a href="<?= BASE_URL ?>index.php?r=dashboard/index">
                 <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="Logo Benehom" class="logo-benehom">
             </a>
         </div>
@@ -106,7 +106,7 @@ function bh_sidebar(): void
 
         <!--Enlace para cerrar sesion-->
         <div class="bh-sidebar-footer">
-            <a class="nav-link bh-nav-logout" href="?r=auth/logout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Cerrar sesión</span></a>
+            <a class="nav-link bh-nav-logout" href="<?= BASE_URL ?>index.php?r=auth/logout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Cerrar sesión</span></a>
         </div>
     </aside>
     <?php
@@ -130,7 +130,7 @@ function bh_mobile_menu(): void
 
         <div class="offcanvas-body">
             <div class="logo-container text-center mb-4">
-                <a href="index.php?r=dashboard/index">
+                <a href="<?= BASE_URL ?>index.php?r=dashboard/index">
                     <img src="<?= BASE_URL ?>img/logo-benehom.png"
                         alt="Logo Benehom"
                         class="logo-benehom">

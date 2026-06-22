@@ -156,19 +156,19 @@ bh_document_begin([
                     <p>Puedes consultar en cualquier momento la información relativa a la protección de datos y condiciones de uso de la aplicación.</p>
                     <ul class="list-unstyled mb-0">
                         <li class="mb-2">
-                            <a href="index.php?r=legal/privacidad" target="_blank">
+                            <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">
                                 <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                 Política de Privacidad
                             </a>
                         </li>
                         <li class="mb-2">
-                            <a href="index.php?r=legal/terminos" target="_blank">
+                            <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">
                                 <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                 Términos y Condiciones de Uso
                             </a>
                         </li>
                         <li>
-                            <a href="index.php?r=legal/aviso" target="_blank">
+                            <a href="<?= htmlspecialchars(bh_public_page_url('aviso'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">
                                 <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                 Aviso Legal
                             </a>

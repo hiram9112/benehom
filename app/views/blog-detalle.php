@@ -6,7 +6,7 @@ $bhArticuloSlug = (string) ($articulo['slug'] ?? '');
 bh_document_begin([
     'title' => (string) ($articulo['titulo'] ?? 'Artículo del blog'),
     'description' => (string) ($articulo['resumen'] ?? 'Artículo educativo de BeneHom sobre economía familiar y decisiones financieras del hogar.'),
-    'canonical' => bh_url('index.php?r=blog/detalle&slug=' . rawurlencode($bhArticuloSlug)),
+    'canonical' => bh_blog_url($bhArticuloSlug),
     'og_type' => 'article',
     'robots' => 'index',
 ]);
@@ -26,7 +26,7 @@ bh_document_begin([
         <main id="contenido" class="bh-main bh-blog-detail-page">
             <article class="bh-blog-reading-shell">
                 <header class="bh-blog-detail-hero">
-                    <a class="bh-blog-back-link" href="index.php?r=blog/index">
+                    <a class="bh-blog-back-link" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>
                         Volver al blog
                     </a>
@@ -91,7 +91,7 @@ bh_document_begin([
                     </div>
                     <div class="bh-blog-related-grid">
                         <?php foreach (array_slice($articulosRelacionados, 0, 2) as $relacionado): ?>
-                            <a class="bh-card bh-blog-related-card" href="index.php?r=blog/detalle&amp;slug=<?= urlencode($relacionado['slug']) ?>">
+                            <a class="bh-card bh-blog-related-card" href="<?= htmlspecialchars(bh_blog_url((string) $relacionado['slug']), ENT_QUOTES, 'UTF-8') ?>">
                                 <span class="bh-badge bh-badge-neutral"><?= htmlspecialchars($relacionado['categoria'], ENT_QUOTES, 'UTF-8') ?></span>
                                 <strong><?= htmlspecialchars($relacionado['titulo'], ENT_QUOTES, 'UTF-8') ?></strong>
                                 <small><?= intval($relacionado['lectura_min']) ?> min de lectura</small>

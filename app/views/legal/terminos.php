@@ -4,7 +4,7 @@ require_once APP_PATH . '/views/partials/head.php';
 bh_document_begin([
     'title' => 'Términos y condiciones',
     'description' => 'Condiciones de uso de BeneHom, herramienta web para gestión personal de la economía doméstica.',
-    'canonical' => bh_url('index.php?r=legal/terminos'),
+    'canonical' => bh_public_page_url('terminos'),
     'robots' => 'index',
 ]);
 ?>
@@ -74,7 +74,7 @@ bh_document_begin([
             <h5 class="mt-4">8. Protección de datos</h5>
             <p>
                 El tratamiento de los datos personales se rige por la
-                <a href="<?= BASE_URL ?>index.php?r=legal/privacidad">Política de Privacidad</a>.
+                <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>">Política de Privacidad</a>.
             </p>
 
             <h5 class="mt-4">9. Legislación aplicable</h5>

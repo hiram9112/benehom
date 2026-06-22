@@ -81,46 +81,11 @@ class ArticuloBlog
         return [];
     }
 
-    public static function categoriasOficiales(): array
-    {
-        $editorial = self::editorial();
-
-        return is_array($editorial['categorias_oficiales'] ?? null) ? $editorial['categorias_oficiales'] : [];
-    }
-
-    public static function lineaEditorial(): array
-    {
-        $editorial = self::editorial();
-
-        return is_array($editorial['linea_editorial'] ?? null) ? $editorial['linea_editorial'] : [];
-    }
-
-    public static function estructuraEditorial(): array
-    {
-        $editorial = self::editorial();
-
-        return is_array($editorial['estructura_articulo'] ?? null) ? $editorial['estructura_articulo'] : [];
-    }
-
-    public static function auditoriaEditorial(): array
-    {
-        $editorial = self::editorial();
-
-        return is_array($editorial['auditoria_articulos_existentes'] ?? null) ? $editorial['auditoria_articulos_existentes'] : [];
-    }
-
     private static function todos(): array
     {
         $articulos = require CONFIG_PATH . '/blog_articulos.php';
 
         return is_array($articulos) ? $articulos : [];
-    }
-
-    private static function editorial(): array
-    {
-        $editorial = require CONFIG_PATH . '/blog_editorial.php';
-
-        return is_array($editorial) ? $editorial : [];
     }
 
 }

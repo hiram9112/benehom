@@ -10,7 +10,6 @@ class MetaAhorro{
             $sql = "SELECT *
                     FROM metas_ahorro
                     WHERE usuario_id = :usuario_id
-                    AND estado = 'activa'
                     ORDER BY fecha_creacion DESC, id DESC";
 
             $stmt = $db->prepare($sql);
@@ -35,7 +34,6 @@ class MetaAhorro{
                     FROM metas_ahorro
                     WHERE id = :id
                     AND usuario_id = :usuario_id
-                    AND estado = 'activa'
                     LIMIT 1";
 
             $stmt = $db->prepare($sql);
@@ -61,8 +59,7 @@ class MetaAhorro{
 
             $sql = "SELECT SUM(aportacion_mensual) AS total
                     FROM metas_ahorro
-                    WHERE usuario_id = :usuario_id
-                    AND estado = 'activa'";
+                    WHERE usuario_id = :usuario_id";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
@@ -87,7 +84,6 @@ class MetaAhorro{
             $sql = "SELECT SUM(aportacion_mensual) AS total
                     FROM metas_ahorro
                     WHERE usuario_id = :usuario_id
-                    AND estado = 'activa'
                     AND id <> :meta_id";
 
             $stmt = $db->prepare($sql);
@@ -131,33 +127,6 @@ class MetaAhorro{
         }
     }
 
-    public static function actualizar($id, $usuario_id, $nombre, $importe_objetivo, $aportacion_mensual, $fecha_objetivo){
-        try{
-            $db = Database::getConnection();
-
-            $sql = "UPDATE metas_ahorro
-                    SET nombre = :nombre,
-                        importe_objetivo = :importe_objetivo,
-                        aportacion_mensual = :aportacion_mensual,
-                        fecha_objetivo = :fecha_objetivo
-                    WHERE id = :id
-                    AND usuario_id = :usuario_id
-                    AND estado = 'activa'";
-
-            $stmt = $db->prepare($sql);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
-            $stmt->bindParam(':nombre', $nombre, PDO::PARAM_STR);
-            $stmt->bindParam(':importe_objetivo', $importe_objetivo);
-            $stmt->bindParam(':aportacion_mensual', $aportacion_mensual);
-            $stmt->bindValue(':fecha_objetivo', $fecha_objetivo, $fecha_objetivo === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-
-            return $stmt->execute();
-        }catch(Exception $e){
-            return false;
-        }
-    }
-
     public static function actualizarImporteObjetivo($id, $usuario_id, $importe_objetivo){
         try{
             $db = Database::getConnection();
@@ -166,8 +135,7 @@ class MetaAhorro{
                     SET importe_objetivo = :importe_objetivo,
                         fecha_objetivo = NULL
                     WHERE id = :id
-                    AND usuario_id = :usuario_id
-                    AND estado = 'activa'";
+                    AND usuario_id = :usuario_id";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);

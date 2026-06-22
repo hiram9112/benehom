@@ -222,52 +222,6 @@ class ProyeccionesController {
         $this->redirigirAProyecciones();
     }
 
-    public function actualizarEscenarioInversion(){
-        if (!$this->peticionPostAutenticada()) {
-            return;
-        }
-
-        $usuario_id = $_SESSION['usuario_id'];
-        $id = intval($_POST['id'] ?? 0);
-
-        if ($id <= 0) {
-            $_SESSION['mensaje_error'] = 'No se recibió un escenario válido para editar.';
-            $this->redirigirAProyecciones();
-        }
-
-        if (!EscenarioInversion::obtenerPorIdYUsuario($id, $usuario_id)) {
-            $_SESSION['mensaje_error'] = 'No se encontró el escenario de inversión que quieres editar.';
-            $this->redirigirAProyecciones();
-        }
-
-        $resultado = $this->validarDatosEscenarioInversion($usuario_id, $id);
-
-        if (!$resultado['ok']) {
-            $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAProyecciones();
-        }
-
-        $datos = $resultado['datos'];
-        $actualizado = EscenarioInversion::actualizar(
-            $id,
-            $usuario_id,
-            $datos['nombre'],
-            $datos['capital_inicial'],
-            $datos['aportacion_mensual'],
-            $datos['rentabilidad_anual'],
-            $datos['plazo_anios'],
-            $datos['frecuencia_reinversion']
-        );
-
-        if (!$actualizado) {
-            $_SESSION['mensaje_error'] = 'No se pudo actualizar el escenario de inversión. Inténtalo de nuevo.';
-            $this->redirigirAProyecciones();
-        }
-
-        $_SESSION['mensaje_exitoso'] = 'Escenario actualizado.';
-        $this->redirigirAProyecciones();
-    }
-
     public function actualizarEscenarioInversionAjax(){
         if($_SERVER['REQUEST_METHOD'] !== 'POST'){
             echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
@@ -459,15 +413,6 @@ class ProyeccionesController {
         $this->redirigirAProyecciones();
     }
 
-    public function actualizarMetaAhorro(){
-        if (!$this->peticionPostAutenticada()) {
-            return;
-        }
-
-        $_SESSION['mensaje_error'] = 'Solo puedes editar el importe objetivo de una meta desde la propia card.';
-        $this->redirigirAProyecciones();
-    }
-
     public function eliminarMetaAhorro(){
         if (!$this->peticionPostAutenticada()) {
             return;
@@ -642,50 +587,6 @@ class ProyeccionesController {
         $this->redirigirAProyecciones();
     }
 
-    public function actualizarInflacionProyeccion(){
-        if (!$this->peticionPostAutenticada()) {
-            return;
-        }
-
-        $usuario_id = $_SESSION['usuario_id'];
-        $id = intval($_POST['id'] ?? 0);
-
-        if ($id <= 0) {
-            $_SESSION['mensaje_error'] = 'No se recibió una proyección válida para editar.';
-            $this->redirigirAProyecciones();
-        }
-
-        if (!InflacionProyeccion::obtenerPorIdYUsuario($id, $usuario_id)) {
-            $_SESSION['mensaje_error'] = 'No se encontró la proyección de inflación que quieres editar.';
-            $this->redirigirAProyecciones();
-        }
-
-        $resultado = $this->validarDatosInflacionProyeccion();
-
-        if (!$resultado['ok']) {
-            $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAProyecciones();
-        }
-
-        $datos = $resultado['datos'];
-        $actualizado = InflacionProyeccion::actualizar(
-            $id,
-            $usuario_id,
-            $datos['nombre'],
-            $datos['cantidad_inicial'],
-            $datos['inflacion_anual'],
-            $datos['plazo_anios']
-        );
-
-        if (!$actualizado) {
-            $_SESSION['mensaje_error'] = 'No se pudo actualizar la proyección de inflación. Inténtalo de nuevo.';
-            $this->redirigirAProyecciones();
-        }
-
-        $_SESSION['mensaje_exitoso'] = 'Proyección de inflación actualizada.';
-        $this->redirigirAProyecciones();
-    }
-
     public function actualizarInflacionProyeccionAjax(){
         if($_SERVER['REQUEST_METHOD'] !== 'POST'){
             echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
@@ -828,52 +729,6 @@ class ProyeccionesController {
         }
 
         $_SESSION['mensaje_exitoso'] = 'Nueva simulación de hipoteca creada.';
-        $this->redirigirAProyecciones();
-    }
-
-    public function actualizarCalculadoraHipoteca(){
-        if (!$this->peticionPostAutenticada()) {
-            return;
-        }
-
-        $usuario_id = $_SESSION['usuario_id'];
-        $id = intval($_POST['id'] ?? 0);
-
-        if ($id <= 0) {
-            $_SESSION['mensaje_error'] = 'No se recibió una calculadora válida para editar.';
-            $this->redirigirAProyecciones();
-        }
-
-        if (!CalculadoraHipoteca::obtenerPorIdYUsuario($id, $usuario_id)) {
-            $_SESSION['mensaje_error'] = 'No se encontró la calculadora de hipoteca que quieres editar.';
-            $this->redirigirAProyecciones();
-        }
-
-        $resultado = $this->validarDatosCalculadoraHipoteca();
-
-        if (!$resultado['ok']) {
-            $_SESSION['mensaje_error'] = $resultado['mensaje'];
-            $this->redirigirAProyecciones();
-        }
-
-        $datos = $resultado['datos'];
-        $actualizado = CalculadoraHipoteca::actualizar(
-            $id,
-            $usuario_id,
-            $datos['nombre'],
-            $datos['precio_inmueble'],
-            $datos['porcentaje_financiacion'],
-            $datos['importe_prestamo'],
-            $datos['interes_anual'],
-            $datos['plazo_anios']
-        );
-
-        if (!$actualizado) {
-            $_SESSION['mensaje_error'] = 'No se pudo actualizar la calculadora de hipoteca. Inténtalo de nuevo.';
-            $this->redirigirAProyecciones();
-        }
-
-        $_SESSION['mensaje_exitoso'] = 'Calculadora de hipoteca actualizada.';
         $this->redirigirAProyecciones();
     }
 

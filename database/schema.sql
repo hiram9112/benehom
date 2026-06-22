@@ -37,7 +37,6 @@ CREATE TABLE metas_ahorro (
   importe_objetivo DECIMAL(10,2) NOT NULL,
   aportacion_mensual DECIMAL(10,2) NOT NULL DEFAULT 0,
   fecha_objetivo DATE NULL,
-  estado ENUM('activa') NOT NULL DEFAULT 'activa',
   fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   fecha_actualizacion TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT metas_ahorro_usuario_fk

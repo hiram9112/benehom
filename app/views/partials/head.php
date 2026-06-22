@@ -50,6 +50,9 @@ function bh_document_begin(array $opciones = []): void
     $ogTitle = (string) ($opciones['og_title'] ?? $documentTitle);
     $ogDescription = (string) ($opciones['og_description'] ?? $description);
     $ogImage = (string) ($opciones['og_image'] ?? bh_url('img/og-image.png'));
+    $ogImageWidth = (string) ($opciones['og_image_width'] ?? '1200');
+    $ogImageHeight = (string) ($opciones['og_image_height'] ?? '630');
+    $ogImageAlt = (string) ($opciones['og_image_alt'] ?? 'BeneHom, economia familiar clara y ordenada');
     $twitterCard = (string) ($opciones['twitter_card'] ?? 'summary_large_image');
     $twitterTitle = (string) ($opciones['twitter_title'] ?? $ogTitle);
     $twitterDescription = (string) ($opciones['twitter_description'] ?? $ogDescription);
@@ -75,6 +78,9 @@ function bh_document_begin(array $opciones = []): void
     <meta property="og:url" content="<?= htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') ?>">
     <meta property="og:type" content="<?= htmlspecialchars($ogType, ENT_QUOTES, 'UTF-8') ?>">
     <meta property="og:image" content="<?= htmlspecialchars($ogImage, ENT_QUOTES, 'UTF-8') ?>">
+    <meta property="og:image:width" content="<?= htmlspecialchars($ogImageWidth, ENT_QUOTES, 'UTF-8') ?>">
+    <meta property="og:image:height" content="<?= htmlspecialchars($ogImageHeight, ENT_QUOTES, 'UTF-8') ?>">
+    <meta property="og:image:alt" content="<?= htmlspecialchars($ogImageAlt, ENT_QUOTES, 'UTF-8') ?>">
     <meta property="og:locale" content="es_ES">
 <?php if ($ogType === 'article' && $articlePublishedTime !== ''): ?>
     <meta property="article:published_time" content="<?= htmlspecialchars($articlePublishedTime, ENT_QUOTES, 'UTF-8') ?>">
@@ -90,10 +96,16 @@ function bh_document_begin(array $opciones = []): void
     <meta name="twitter:title" content="<?= htmlspecialchars($twitterTitle, ENT_QUOTES, 'UTF-8') ?>">
     <meta name="twitter:description" content="<?= htmlspecialchars($twitterDescription, ENT_QUOTES, 'UTF-8') ?>">
     <meta name="twitter:image" content="<?= htmlspecialchars($ogImage, ENT_QUOTES, 'UTF-8') ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars($ogImageAlt, ENT_QUOTES, 'UTF-8') ?>">
 
     <title><?= htmlspecialchars($documentTitle, ENT_QUOTES, 'UTF-8') ?></title>
 
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>img/og-image.png">
+    <link rel="icon" href="<?= BASE_URL ?>favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?= BASE_URL ?>favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= BASE_URL ?>favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= BASE_URL ?>apple-touch-icon.png">
+    <link rel="manifest" href="<?= BASE_URL ?>site.webmanifest">
+    <meta name="theme-color" content="#f5ead7">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">

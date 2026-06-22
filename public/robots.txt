@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /privacidad
+Allow: /terminos
+Allow: /aviso
+Disallow: /index.php
+Disallow: /*?r=
+Disallow: /dashboard
+Disallow: /cuenta
+Disallow: /proyecciones
+Disallow: /auth
+Disallow: /registro
+Disallow: /password
+
+Sitemap: https://benehom.es/sitemap.xml

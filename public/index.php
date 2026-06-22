@@ -122,6 +122,7 @@ $rutasPublicas = [
     'password/procesarReset',
     'blog/index',
     'blog/detalle',
+    'seo/sitemap',
     'legal/privacidad',
     'legal/terminos',
     'legal/aviso'

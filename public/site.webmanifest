@@ -1,0 +1,22 @@
+{
+  "name": "BeneHom",
+  "short_name": "BeneHom",
+  "description": "Economia familiar clara para organizar ingresos, gastos, ahorro real y metas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5ead7",
+  "theme_color": "#f5ead7",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

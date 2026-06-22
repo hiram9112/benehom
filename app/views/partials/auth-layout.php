@@ -1,33 +1,19 @@
 <?php
 
+require_once APP_PATH . '/views/partials/head.php';
+
 function bh_auth_begin(string $pageTitle, string $heading, string $lead = '', bool $includeBootstrapJs = false): void
 {
     $GLOBALS['bh_auth_include_bootstrap_js'] = $includeBootstrapJs;
+
+    bh_document_begin([
+        'title' => $pageTitle,
+        'description' => 'Accede a BeneHom para organizar ingresos, gastos, ahorro real y metas económicas del hogar.',
+        'canonical' => bh_url('index.php?r=' . bh_current_auth_route()),
+        'robots' => 'noindex',
+        'body_class' => 'bh-auth-body',
+    ]);
     ?>
-    <!DOCTYPE html>
-    <html lang="es">
-
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="Accede a BeneHom para organizar ingresos, gastos, ahorro real y metas económicas del hogar.">
-        <meta property="og:title" content="BeneHom">
-        <meta property="og:description" content="BeneHom te ayuda a organizar ingresos y gastos del hogar, analizar tu ahorro real y tomar decisiones financieras más conscientes.">
-        <meta property="og:url" content="https://benehom.es">
-        <meta property="og:type" content="website">
-        <meta property="og:image" content="https://benehom.es/img/og-image.png">
-        <meta property="og:locale" content="es_ES">
-
-        <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?> | BeneHom</title>
-
-        <link rel="icon" type="image/png" href="<?= BASE_URL ?>img/og-image.png">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-        <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
-    </head>
-
-    <body class="bh-auth-body">
-        <a class="bh-skip-link" href="#contenido">Saltar al contenido</a>
         <main id="contenido" class="bh-auth-shell">
             <section class="bh-card bh-card-form bh-auth-card" aria-labelledby="auth-title">
                 <header class="bh-auth-header">
@@ -44,6 +30,11 @@ function bh_auth_begin(string $pageTitle, string $heading, string $lead = '', bo
     <?php
 }
 
+function bh_current_auth_route(): string
+{
+    return isset($_GET['r']) ? trim((string) $_GET['r'], '/') : 'auth/login';
+}
+
 function bh_auth_flash_messages(): void
 {
     require_once APP_PATH . '/views/partials/flash-messages.php';
@@ -56,14 +47,11 @@ function bh_auth_end(): void
     ?>
             </section>
         </main>
-
-        <?php if ($includeBootstrapJs): ?>
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-        <?php endif; ?>
-        <script src="<?= BASE_URL ?>js/flash.js"></script>
-        <script src="<?= BASE_URL ?>js/password-toggle.js?v=<?= time() ?>"></script>
-    </body>
-
-    </html>
     <?php
+
+    bh_document_end([
+        'include_bootstrap_js' => (bool) $includeBootstrapJs,
+        'include_flash_js' => true,
+        'body_end_extra' => '    <script src="' . BASE_URL . 'js/password-toggle.js?v=' . time() . '"></script>' . PHP_EOL,
+    ]);
 }

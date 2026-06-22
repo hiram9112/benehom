@@ -1,18 +1,16 @@
-<!DOCTYPE html>
-<html lang="es">
+<?php
+require_once APP_PATH . '/views/partials/head.php';
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+$bhArticuloSlug = (string) ($articulo['slug'] ?? '');
 
-    <title><?= htmlspecialchars($articulo['titulo'], ENT_QUOTES, 'UTF-8') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
-</head>
-
-<body>
+bh_document_begin([
+    'title' => (string) ($articulo['titulo'] ?? 'Artículo del blog'),
+    'description' => (string) ($articulo['resumen'] ?? 'Artículo educativo de BeneHom sobre economía familiar y decisiones financieras del hogar.'),
+    'canonical' => bh_url('index.php?r=blog/detalle&slug=' . rawurlencode($bhArticuloSlug)),
+    'og_type' => 'article',
+    'robots' => 'index',
+]);
+?>
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
     bh_mobile_nav();
@@ -25,7 +23,7 @@
     <div class="bh-app-shell">
         <?php bh_sidebar(); ?>
 
-        <main class="bh-main bh-blog-detail-page">
+        <main id="contenido" class="bh-main bh-blog-detail-page">
             <article class="bh-blog-reading-shell">
                 <header class="bh-blog-detail-hero">
                     <a class="bh-blog-back-link" href="index.php?r=blog/index">
@@ -106,6 +104,7 @@
     </div>
 
     <?php bh_mobile_menu(); ?>
-</body>
-
-</html>
+<?php
+bh_document_end([
+    'include_bootstrap_js' => true,
+]);

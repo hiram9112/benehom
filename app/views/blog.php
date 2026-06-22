@@ -1,18 +1,13 @@
-<!DOCTYPE html>
-<html lang="es">
+<?php
+require_once APP_PATH . '/views/partials/head.php';
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Blog educativo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
-</head>
-
-<body>
+bh_document_begin([
+    'title' => 'Blog educativo',
+    'description' => 'Guías claras y prácticas para organizar el presupuesto familiar, entender gastos, ahorrar mejor y tomar decisiones económicas con más calma.',
+    'canonical' => bh_url('index.php?r=blog/index'),
+    'robots' => 'index',
+]);
+?>
     <?php
     require_once APP_PATH . '/views/partials/flash-messages.php';
     bh_flash_messages();
@@ -33,7 +28,7 @@
     <div class="bh-app-shell">
         <?php bh_sidebar(); ?>
 
-        <main class="bh-main bh-blog-page">
+        <main id="contenido" class="bh-main bh-blog-page">
             <section class="bh-card bh-card-finance bh-blog-hero" aria-labelledby="blog-title">
                 <div class="bh-blog-hero-copy">
                     <p class="bh-projections-kicker">Blog educativo</p>
@@ -156,8 +151,9 @@
 
     <?php bh_mobile_menu(); ?>
 
-    <script src="<?= BASE_URL ?>js/flash.js"></script>
-    <script src="<?= BASE_URL ?>js/blog-filtros.js"></script>
-</body>
-
-</html>
+<?php
+bh_document_end([
+    'include_bootstrap_js' => true,
+    'include_flash_js' => true,
+    'body_end_extra' => '    <script src="' . BASE_URL . 'js/blog-filtros.js"></script>' . PHP_EOL,
+]);

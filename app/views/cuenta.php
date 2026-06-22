@@ -1,20 +1,13 @@
-<!DOCTYPE html>
-<html lang="es">
+<?php
+require_once APP_PATH . '/views/partials/head.php';
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Cuenta - BeneHom</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
-</head>
-
-<body>
+bh_document_begin([
+    'title' => 'Cuenta',
+    'description' => 'Área privada de BeneHom para gestionar los datos de cuenta, contraseña y eliminación de perfil.',
+    'canonical' => bh_url('index.php?r=cuenta/index'),
+    'robots' => 'noindex',
+]);
+?>
 
     <?php
     require_once APP_PATH . '/views/partials/flash-messages.php';
@@ -30,7 +23,7 @@
     <div class="bh-app-shell">
         <?php bh_sidebar(); ?>
 
-        <main class="bh-main bh-main-contained">
+        <main id="contenido" class="bh-main bh-main-contained">
 
             <?php
             // Datos de perfil para la cabecera de identidad
@@ -234,10 +227,14 @@
             . '<button type="button" class="bh-btn bh-btn-danger" id="modalConfirmacionAceptar">Aceptar</button>',
     ]);
     ?>
-
-    <script src="<?= BASE_URL ?>js/flash.js"></script>
+<?php ob_start(); ?>
     <script src="<?= BASE_URL ?>js/password-toggle.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/cuenta.js?v=<?= time() ?>"></script>
-</body>
+<?php
+$bhCuentaBodyEndExtra = ob_get_clean();
 
-</html>
+bh_document_end([
+    'include_bootstrap_js' => true,
+    'include_flash_js' => true,
+    'body_end_extra' => $bhCuentaBodyEndExtra,
+]);

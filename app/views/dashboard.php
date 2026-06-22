@@ -1,33 +1,19 @@
-<!DOCTYPE html>
-<html lang="es">
+<?php
+require_once APP_PATH . '/views/partials/head.php';
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Gestor de Economía Familiar --Dashboard</title>
-    <!--Bootstrap CSS-->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!--Bootstrap Iconos-->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!--Bootstrap JS(componentes interactivos)-->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!--Conectamos con archivo CSS propio-->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
-
-    <!-- Flatpickr: selector de fecha -->
+$bhDashboardHeadExtra = <<<'HTML'
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
-    <!-- Flatpickr plugin: selección por mes/año -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+HTML;
 
-
-</head>
-
-<body>
+bh_document_begin([
+    'title' => 'Dashboard financiero',
+    'description' => 'Panel privado de BeneHom para revisar ingresos, gastos esenciales, gastos flexibles, ahorro posible y ahorro real del hogar.',
+    'canonical' => bh_url('index.php?r=dashboard/index'),
+    'robots' => 'noindex',
+    'head_extra' => $bhDashboardHeadExtra,
+]);
+?>
     <?php
     require_once APP_PATH . '/views/partials/flash-messages.php';
     bh_flash_messages();
@@ -51,7 +37,7 @@
             <?php bh_sidebar(); ?>
 
             <!-- Contenedor principal -->
-            <main class="bh-main">
+            <main id="contenido" class="bh-main">
                 <div class="bh-dashboard-layout">
                     <header class="bh-page-header bh-dashboard-summary">
                         <div class="bh-dashboard-period">
@@ -811,9 +797,7 @@ HTML,
     ]);
     ?>
 
-
-
-
+<?php ob_start(); ?>
     <!--Añadimos chart.js-->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -833,11 +817,6 @@ HTML,
 
     <!-- Locale ------ español-->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-
-
-
-    <script src="<?= BASE_URL ?>js/flash.js"></script>
-
     <!--Enlazamos con nuestros arvhicos js-->
     <script src="<?= BASE_URL ?>js/validaciones.js"></script>
     <script src="<?= BASE_URL ?>js/dashboard-graficos.js?v=<?= time() ?>"></script>
@@ -847,8 +826,11 @@ HTML,
     <script src="<?= BASE_URL ?>js/dashboard-utils.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/dashboard-dom.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>js/dashboard.js?v=<?= time() ?>"></script>
+<?php
+$bhDashboardBodyEndExtra = ob_get_clean();
 
-
-</body>
-
-</html>
+bh_document_end([
+    'include_bootstrap_js' => true,
+    'include_flash_js' => true,
+    'body_end_extra' => $bhDashboardBodyEndExtra,
+]);

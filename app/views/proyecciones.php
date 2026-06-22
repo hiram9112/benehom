@@ -1,25 +1,13 @@
-<!DOCTYPE html>
-<html lang="es">
+<?php
+require_once APP_PATH . '/views/partials/head.php';
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Proyecciones - BeneHom</title>
-    <!--Bootstrap CSS-->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!--Bootstrap Iconos-->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!--Bootstrap JS(componentes interactivos)-->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!--Conectamos con archivo CSS propio-->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
-</head>
-
-<body>
+bh_document_begin([
+    'title' => 'Proyecciones financieras',
+    'description' => 'Simulador privado de BeneHom para explorar metas, ahorro, inversión, inflación e hipoteca con fines educativos.',
+    'canonical' => bh_url('index.php?r=proyecciones/index'),
+    'robots' => 'noindex',
+]);
+?>
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
     require_once APP_PATH . '/views/partials/flash-messages.php';
@@ -49,7 +37,7 @@
         <?php bh_sidebar(); ?>
 
         <!--Panel Central-->
-        <main class="bh-main">
+        <main id="contenido" class="bh-main">
             <section class="bh-projections-hero mb-4" aria-labelledby="proyecciones-titulo">
                 <article class="bh-card bh-card-finance bh-projections-intro-card">
                     <div class="bh-card-body">
@@ -606,13 +594,18 @@ HTML);
         }
     }
     ?>
+<?php ob_start(); ?>
     <script>
         window.CSRF_TOKEN = "<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>";
         window.BH_PROYECCIONES_AVISOS = <?= json_encode($bhAvisos, JSON_UNESCAPED_UNICODE) ?>;
         window.BH_AVISO_AHORRO_SUPERA = <?= json_encode($avisoCapacidadSuperada, JSON_UNESCAPED_UNICODE) ?>;
     </script>
-    <script src="<?= BASE_URL ?>js/flash.js"></script>
     <script src="<?= BASE_URL ?>js/proyecciones.js?v=<?= time() ?>"></script>
-</body>
+<?php
+$bhProyeccionesBodyEndExtra = ob_get_clean();
 
-</html>
+bh_document_end([
+    'include_bootstrap_js' => true,
+    'include_flash_js' => true,
+    'body_end_extra' => $bhProyeccionesBodyEndExtra,
+]);

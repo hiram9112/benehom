@@ -1,21 +1,7 @@
-<!DOCTYPE html>
-<html lang="es">
+<?php
+require_once APP_PATH . '/views/partials/head.php';
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="BeneHom te ayuda a mirar tu economía con perspectiva: entender tus gastos, descubrir tu margen real y comprobar con números cómo cada decisión te acerca o te aleja de tus objetivos.">
-    <meta property="og:title" content="BeneHom | Tu dinero cuenta una historia">
-    <meta property="og:description" content="BeneHom te ayuda a mirar tu economía con perspectiva: entender tus gastos, descubrir tu margen real y comprobar cómo cada decisión puede abrir o cerrar camino hacia tus objetivos.">
-    <meta property="og:url" content="https://benehom.es">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="https://benehom.es/img/og-image.png">
-    <meta property="og:locale" content="es_ES">
-
-    <title>BeneHom | Tu dinero cuenta una historia</title>
-
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>img/og-image.png">
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
+$bhHomeHeadExtra = <<<'HTML'
     <script>
         (function() {
             var d = document.documentElement;
@@ -30,10 +16,17 @@
             }, 4000);
         })();
     </script>
-</head>
+HTML;
 
-<body class="bh-home-body">
-    <a class="bh-skip-link" href="#contenido">Saltar al contenido</a>
+bh_document_begin([
+    'title' => 'Tu dinero cuenta una historia',
+    'description' => 'BeneHom te ayuda a mirar tu economía con perspectiva: entender tus gastos, descubrir tu margen real y comprobar con números cómo cada decisión te acerca o te aleja de tus objetivos.',
+    'canonical' => bh_url(),
+    'robots' => 'index',
+    'body_class' => 'bh-home-body',
+    'head_extra' => $bhHomeHeadExtra,
+]);
+?>
 
     <header class="bh-home-nav" aria-label="Navegación principal">
         <div class="bh-home-wrap">
@@ -660,7 +653,7 @@
         </svg>
     </button>
 
-    <script src="<?= BASE_URL ?>js/home.js" defer></script>
-</body>
-
-</html>
+<?php
+bh_document_end([
+    'body_end_extra' => '    <script src="' . BASE_URL . 'js/home.js" defer></script>' . PHP_EOL,
+]);

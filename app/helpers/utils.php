@@ -87,6 +87,39 @@ function formatearCantidadPHP($valor)
     return number_format($valor, 2, ',', '');
 }
 
+function bh_url(string $ruta = ''): string
+{
+    if (preg_match('#^https?://#i', $ruta)) {
+        return $ruta;
+    }
+
+    $base = trim((string) ($_ENV['APP_URL'] ?? ''), " \t\n\r\0\x0B\"'");
+
+    if ($base === '') {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+
+        if ($host !== '') {
+            $base = $scheme . '://' . $host;
+
+            if (defined('BASE_URL') && trim(BASE_URL, '/') !== '') {
+                $base .= '/' . trim(BASE_URL, '/');
+            }
+        } elseif (defined('BASE_URL')) {
+            $base = BASE_URL;
+        }
+    }
+
+    $base = rtrim($base, '/');
+    $ruta = ltrim($ruta, '/');
+
+    if ($ruta === '') {
+        return $base . '/';
+    }
+
+    return $base . '/' . $ruta;
+}
+
 
 
 

@@ -137,17 +137,17 @@ bh_document_begin([
                     <!-- Ingresos-->
                     <div class="bh-card bh-card-finance">
                         <div class="bh-card-header">
-                            <h3 class="titulo">
+                            <h2 class="titulo">
                                 Ingresos
                                 <button type="button"
                                     class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoIngresos"
                                     aria-label="Información sobre ingresos">
-                                    <i class="bi bi-info-circle"></i>
+                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
                                 </button>
 
-                            </h3>
+                            </h2>
                         </div>
                         <div class="bh-card-body">
                             <form id="formIngresos" class="bh-form bh-guided-form">
@@ -167,7 +167,7 @@ bh_document_begin([
 
                                 <div class="bh-field">
                                     <label class="bh-label" for="cantidad_ingreso">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" class="bh-input" step="0.01" required>
+                                    <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" class="bh-input" step="0.01" inputmode="decimal" required>
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
@@ -190,8 +190,8 @@ bh_document_begin([
                                                 </div>
                                                 <div class="bh-movement-side">
                                                     <span class="bh-movement-amount cantidad_ingreso" data-id="<?= $ingreso['id'] ?>"><?= formatearCantidadPHP($ingreso['cantidad']) ?></span><span class="bh-money-symbol">€</span>
-                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="<?= $ingreso['id'] ?>" aria-label="Eliminar ingreso">
-                                                        <i class="bi bi-trash"></i>
+                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="<?= $ingreso['id'] ?>" aria-label="Eliminar ingreso <?= htmlspecialchars(formatearCategoria($ingreso['categoria']), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
                                             </li>
@@ -213,15 +213,15 @@ bh_document_begin([
                     <!--Gastos esenciales-->
                     <div class="bh-card bh-card-finance">
                         <div class="bh-card-header">
-                            <h3 class="titulo ">Gastos esenciales
+                            <h2 class="titulo ">Gastos esenciales
                                 <button type="button"
                                     class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoGastosEsenciales"
                                     aria-label="Información sobre gastos esenciales">
-                                    <i class="bi bi-info-circle"></i>
+                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
                                 </button>
-                            </h3>
+                            </h2>
                         </div>
                         <div class="bh-card-body">
                             <form id="formGastosEsenciales" class="bh-form bh-guided-form">
@@ -250,7 +250,7 @@ bh_document_begin([
                                 <div class="bh-field">
                                     <label class="bh-label" for="cantidad_gasto_esencial">Cantidad(€)</label>
                                     <input type="number" name="cantidad_gasto_esencial" id="cantidad_gasto_esencial" class="bh-input"
-                                        step="0.01" required>
+                                        step="0.01" inputmode="decimal" required>
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
@@ -277,8 +277,8 @@ bh_document_begin([
                                                 </div>
                                                 <div class="bh-movement-side">
                                                     <span class="bh-movement-amount cantidad_gasto_esencial cantidad_gasto" data-id="<?= $gastoEsencial['id'] ?>"><?= formatearCantidadPHP($gastoEsencial['cantidad']) ?></span><span class="bh-money-symbol">€</span>
-                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoEsencial['id'] ?>" aria-label="Eliminar gasto">
-                                                        <i class="bi bi-trash"></i>
+                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoEsencial['id'] ?>" aria-label="Eliminar gasto esencial <?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria']), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
                                             </li>
@@ -297,7 +297,7 @@ bh_document_begin([
                                 <div class="bh-total-info-row">
                                     <p id="ahorro_posible_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
                                     <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorroPosible" aria-label="Información sobre ahorro posible">
-                                        <i class="bi bi-info-circle"></i>
+                                        <i class="bi bi-info-circle" aria-hidden="true"></i>
                                     </button>
                                 </div>
                             </div>
@@ -312,16 +312,16 @@ bh_document_begin([
                     <!--Gastos flexibles-->
                     <div class="bh-card bh-card-finance">
                         <div class="bh-card-header">
-                            <h3 class="titulo">
+                            <h2 class="titulo">
                                 Gastos flexibles
                                 <button type="button"
                                     class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#infoGastosFlexibles"
                                     aria-label="Información sobre gastos flexibles">
-                                    <i class="bi bi-info-circle"></i>
+                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
                                 </button>
-                            </h3>
+                            </h2>
                         </div>
                         <div class="bh-card-body">
                             <form id="formGastosFlexibles" class="bh-form bh-guided-form">
@@ -350,7 +350,7 @@ bh_document_begin([
                                 <div class="bh-field">
                                     <label class="bh-label" for="cantidad_gasto_flexible">Cantidad(€)</label>
                                     <input type="number" name="cantidad_gasto_flexible" id="cantidad_gasto_flexible" class="bh-input"
-                                        step="0.01" required>
+                                        step="0.01" inputmode="decimal" required>
                                 </div>
 
                                 <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
@@ -376,8 +376,8 @@ bh_document_begin([
                                                 </div>
                                                 <div class="bh-movement-side">
                                                     <span class="bh-movement-amount cantidad_gasto_flexible cantidad_gasto" data-id="<?= $gastoFlexible['id'] ?>"><?= formatearCantidadPHP($gastoFlexible['cantidad']) ?></span><span class="bh-money-symbol">€</span>
-                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoFlexible['id'] ?>" aria-label="Eliminar gasto">
-                                                        <i class="bi bi-trash"></i>
+                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoFlexible['id'] ?>" aria-label="Eliminar gasto flexible <?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria']), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
                                             </li>
@@ -395,7 +395,7 @@ bh_document_begin([
                                 <div class="bh-total-info-row">
                                     <p id="ahorro_real_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
                                     <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorroReal" aria-label="Información sobre ahorro real">
-                                        <i class="bi bi-info-circle"></i>
+                                        <i class="bi bi-info-circle" aria-hidden="true"></i>
                                     </button>
                                 </div>
                             </div>
@@ -410,43 +410,45 @@ bh_document_begin([
 
                 <!--Gráfico presupuesto mensual-->
                 <div class="bh-card bh-card-chart">
-                    <h5>
+                    <h2>
                         Presupuesto mensual
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoPresupuestoMensual"
                             aria-label="Información sobre presupuesto mensual">
-                            <i class="bi bi-info-circle"></i>
+                            <i class="bi bi-info-circle" aria-hidden="true"></i>
                         </button>
-                    </h5>
+                    </h2>
                     <div class="contenedor-grafico">
-                        <canvas id="graficoPresupuestoMensual"></canvas>
+                        <canvas id="graficoPresupuestoMensual" role="img" aria-label="Gráfico de barras del presupuesto mensual" aria-describedby="graficoPresupuestoMensualResumen"></canvas>
                     </div>
+                    <p id="graficoPresupuestoMensualResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con ingresos, gastos totales y ahorro real.</p>
                 </div>
 
                 <!--Gráfico Ahorros 6m-->
                 <div class="bh-card bh-card-chart">
-                    <h5>
+                    <h2>
                         Evolución del Ahorro
                         <button type="button"
                             class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                             data-bs-toggle="modal"
                             data-bs-target="#infoEvolucionAhorro"
                             aria-label="Información sobre evolución del ahorro">
-                            <i class="bi bi-info-circle"></i>
+                            <i class="bi bi-info-circle" aria-hidden="true"></i>
                         </button>
-                    </h5>
+                    </h2>
                     <div class="contenedor-grafico">
-                        <canvas id="graficoAhorros6m"></canvas>
+                        <canvas id="graficoAhorros6m" role="img" aria-label="Gráfico de barras de ahorro posible y ahorro real de los últimos meses" aria-describedby="graficoAhorros6mResumen"></canvas>
                     </div>
+                    <p id="graficoAhorros6mResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con la evolución de ahorro posible y ahorro real.</p>
                 </div>
 
 
                 <!--Gráfico evolución de gastos-->
                 <div class="bh-card bh-card-chart">
                     <div class="bh-card-chart-header">
-                        <h5>
+                        <h2>
                             Evolución de gastos
                             <button type="button"
                                 class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
@@ -454,9 +456,9 @@ bh_document_begin([
                                 data-bs-target="#infoEvolucionFlexibles"
                                 data-evolucion-gastos-info
                                 aria-label="Información sobre la evolución de gastos">
-                                <i class="bi bi-info-circle"></i>
+                                <i class="bi bi-info-circle" aria-hidden="true"></i>
                             </button>
-                        </h5>
+                        </h2>
 
                         <div class="bh-segmented" role="group" aria-label="Seleccionar tipo de gasto">
                             <button type="button"
@@ -480,21 +482,23 @@ bh_document_begin([
 
                     <div id="panelEvolucionFlexibles" class="bh-chart-panel" role="region" aria-labelledby="btnEvolucionFlexibles">
                         <div class="contenedor-grafico">
-                            <canvas id="graficoGastosFlexibles6m"></canvas>
+                            <canvas id="graficoGastosFlexibles6m" role="img" aria-label="Gráfico de línea de gastos flexibles de los últimos meses" aria-describedby="graficoGastosFlexibles6mResumen"></canvas>
                         </div>
+                        <p id="graficoGastosFlexibles6mResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con la evolución de gastos flexibles.</p>
                     </div>
 
                     <div id="panelEvolucionEsenciales" class="bh-chart-panel" role="region" aria-labelledby="btnEvolucionEsenciales" hidden>
                         <div class="contenedor-grafico">
-                            <canvas id="graficoGastosEsenciales6m"></canvas>
+                            <canvas id="graficoGastosEsenciales6m" role="img" aria-label="Gráfico de línea de gastos esenciales de los últimos meses" aria-describedby="graficoGastosEsenciales6mResumen"></canvas>
                         </div>
+                        <p id="graficoGastosEsenciales6mResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con la evolución de gastos esenciales.</p>
                     </div>
                 </div>
 
                 <!--Gráfico top 5 de gastos flexibles-->
                 <div class="bh-card bh-card-chart bh-card-habits-scale">
                     <div class="bh-card-chart-header">
-                        <h5>
+                        <h2>
                             Top de gastos flexibles
                             <button type="button"
                                 class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
@@ -502,9 +506,9 @@ bh_document_begin([
                                 data-bs-target="#infoEscalaHabitosMedia"
                                 data-escala-habitos-info
                                 aria-label="Información sobre el top 5 de gastos flexibles">
-                                <i class="bi bi-info-circle"></i>
+                                <i class="bi bi-info-circle" aria-hidden="true"></i>
                             </button>
-                        </h5>
+                        </h2>
 
                         <div class="bh-segmented" role="group" aria-label="Seleccionar vista del gráfico">
                             <button type="button"
@@ -525,9 +529,10 @@ bh_document_begin([
                     </div>
 
                     <div class="contenedor-grafico bh-scale-chart-container">
-                        <canvas id="graficoEscalaHabitos"></canvas>
+                        <canvas id="graficoEscalaHabitos" role="img" tabindex="0" aria-label="Gráfico de barras del top de gastos flexibles. Usa las flechas para recorrer las barras y Enter para abrir la instantánea de inversión." aria-describedby="graficoEscalaHabitosResumen"></canvas>
                     </div>
 
+                    <p id="graficoEscalaHabitosResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con las principales categorías de gasto flexible.</p>
                     <p class="bh-chart-hint"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i> Toca una barra y descubre qué pasaría si invirtieras ese dinero en lugar de gastarlo</p>
                 </div>
                 </aside>

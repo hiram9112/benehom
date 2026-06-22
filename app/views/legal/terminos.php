@@ -20,7 +20,7 @@ bh_document_begin([
 
             <hr>
 
-            <h5 class="mt-4">1. Objeto y titular</h5>
+            <h2 class="mt-4 bh-legal-section-title">1. Objeto y titular</h2>
             <p>
                 BeneHom es una aplicación web destinada a la gestión personal de la economía
                 doméstica. El titular del servicio es <strong>Hiram González</strong>
@@ -29,20 +29,20 @@ bh_document_begin([
                 personal y no comercial.
             </p>
 
-            <h5 class="mt-4">2. Registro y cuenta de usuario</h5>
+            <h2 class="mt-4 bh-legal-section-title">2. Registro y cuenta de usuario</h2>
             <p>
                 Para utilizar la aplicación es necesario crear una cuenta proporcionando
                 información veraz. El usuario es responsable de mantener la confidencialidad
                 de sus credenciales de acceso.
             </p>
 
-            <h5 class="mt-4">3. Uso adecuado</h5>
+            <h2 class="mt-4 bh-legal-section-title">3. Uso adecuado</h2>
             <p>
                 El usuario se compromete a utilizar la aplicación conforme a la legislación
                 vigente y a no emplearla para fines ilícitos o contrarios a la buena fe.
             </p>
 
-            <h5 class="mt-4">4. Naturaleza de la herramienta y limitación de responsabilidad</h5>
+            <h2 class="mt-4 bh-legal-section-title">4. Naturaleza de la herramienta y limitación de responsabilidad</h2>
             <p>
                 BeneHom es una herramienta de apoyo y educación para la gestión doméstica.
                 Las calculadoras y simuladores (ahorro, inflación, inversión, hipoteca, etc.)
@@ -53,31 +53,31 @@ bh_document_begin([
                 se ofrece "tal cual", sin garantía de disponibilidad ininterrumpida.
             </p>
 
-            <h5 class="mt-4">5. Propiedad intelectual</h5>
+            <h2 class="mt-4 bh-legal-section-title">5. Propiedad intelectual</h2>
             <p>
                 La marca, el diseño y los contenidos de BeneHom están protegidos. No se permite
                 su reproducción o uso sin autorización.
             </p>
 
-            <h5 class="mt-4">6. Eliminación de cuenta</h5>
+            <h2 class="mt-4 bh-legal-section-title">6. Eliminación de cuenta</h2>
             <p>
                 El usuario puede eliminar su cuenta en cualquier momento desde su perfil,
                 lo que supondrá la supresión de los datos asociados.
             </p>
 
-            <h5 class="mt-4">7. Modificaciones</h5>
+            <h2 class="mt-4 bh-legal-section-title">7. Modificaciones</h2>
             <p>
                 El titular podrá actualizar estos términos cuando sea necesario para
                 adaptarlos a cambios legales o funcionales de la aplicación.
             </p>
 
-            <h5 class="mt-4">8. Protección de datos</h5>
+            <h2 class="mt-4 bh-legal-section-title">8. Protección de datos</h2>
             <p>
                 El tratamiento de los datos personales se rige por la
                 <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>">Política de Privacidad</a>.
             </p>
 
-            <h5 class="mt-4">9. Legislación aplicable</h5>
+            <h2 class="mt-4 bh-legal-section-title">9. Legislación aplicable</h2>
             <p>
                 Estos términos se rigen por la legislación española.
             </p>

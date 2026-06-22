@@ -129,9 +129,9 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="meta" <?= empty($metasAhorroPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-journal-plus"></i>
+                                    <i class="bi bi-journal-plus" aria-hidden="true"></i>
                                 </div>
-                                <h4 class="bh-empty-state-title">Aún no tienes metas guardadas</h4>
+                                <h3 class="bh-empty-state-title">Aún no tienes metas guardadas</h3>
                                 <p class="bh-empty-state-text">
                                     Define un objetivo, indica cuánto puedes aportar al mes o estable un plazo y BeneHom hará los cálculos necesarios.
                                 </p>
@@ -168,9 +168,9 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inversion" <?= empty($escenariosInversionPreparados) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-graph-up"></i>
+                                    <i class="bi bi-graph-up" aria-hidden="true"></i>
                                 </div>
-                                <h4 class="bh-empty-state-title">Aún no tienes escenarios de inversión</h4>
+                                <h3 class="bh-empty-state-title">Aún no tienes escenarios de inversión</h3>
                                 <p class="bh-empty-state-text">
                                     Crea un escenario para visualizar cómo el interés compuesto y la frecuencia de reinversión afectan al valor final estimado.
                                 </p>
@@ -207,9 +207,9 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inflacion" <?= empty($proyeccionesInflacionPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-cash-stack"></i>
+                                    <i class="bi bi-cash-stack" aria-hidden="true"></i>
                                 </div>
-                                <h4 class="bh-empty-state-title">Aún no tienes proyecciones de inflación</h4>
+                                <h3 class="bh-empty-state-title">Aún no tienes proyecciones de inflación</h3>
                                 <p class="bh-empty-state-text">
                                     Crea una proyección para ver cómo una inflación anual estimada reduce lo que tu dinero pueden comprar con el tiempo.
                                 </p>
@@ -246,9 +246,9 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="hipoteca" <?= empty($calculadorasHipotecaPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-house"></i>
+                                    <i class="bi bi-house" aria-hidden="true"></i>
                                 </div>
-                                <h4 class="bh-empty-state-title">Aún no tienes calculadoras de hipoteca</h4>
+                                <h3 class="bh-empty-state-title">Aún no tienes calculadoras de hipoteca</h3>
                                 <p class="bh-empty-state-text">
                                     Proyecta cuotas mensuales, intereses totales y coste total de un préstamo hipotecario según importe, interés y plazo.
                                 </p>
@@ -264,7 +264,7 @@ bh_document_begin([
         <div class="offcanvas-header">
             <div>
                 <p class="bh-projections-kicker mb-1">Simulación educativa</p>
-                <h5 class="offcanvas-title" id="crearMetaAhorroPanelLabel">Nueva meta de ahorro</h5>
+                <h2 class="offcanvas-title" id="crearMetaAhorroPanelLabel">Nueva meta de ahorro</h2>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
@@ -323,7 +323,7 @@ bh_document_begin([
         <div class="offcanvas-header">
             <div>
                 <p class="bh-projections-kicker mb-1">Simulación educativa</p>
-                <h5 class="offcanvas-title" id="crearEscenarioInversionPanelLabel">Nuevo escenario de inversión</h5>
+                <h2 class="offcanvas-title" id="crearEscenarioInversionPanelLabel">Nuevo escenario de inversión</h2>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
@@ -398,7 +398,7 @@ bh_document_begin([
         <div class="offcanvas-header">
             <div>
                 <p class="bh-projections-kicker mb-1">Simulación educativa</p>
-                <h5 class="offcanvas-title" id="crearInflacionProyeccionPanelLabel">Nueva proyección de inflación</h5>
+                <h2 class="offcanvas-title" id="crearInflacionProyeccionPanelLabel">Nueva proyección de inflación</h2>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
@@ -442,7 +442,7 @@ bh_document_begin([
         <div class="offcanvas-header">
             <div>
                 <p class="bh-projections-kicker mb-1">Simulación educativa</p>
-                <h5 class="offcanvas-title" id="crearCalculadoraHipotecaPanelLabel">Nueva simulación de hipoteca</h5>
+                <h2 class="offcanvas-title" id="crearCalculadoraHipotecaPanelLabel">Nueva simulación de hipoteca</h2>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>

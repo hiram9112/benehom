@@ -17,13 +17,13 @@ bh_auth_begin(
 
     <div class="bh-field">
         <label for="email" class="bh-label">Email:</label>
-        <input type="email" name="email" id="email" class="bh-input" required>
+        <input type="email" name="email" id="email" class="bh-input" autocomplete="username" inputmode="email" required>
     </div>
 
     <div class="bh-field">
         <label for="password" class="bh-label">Contraseña:</label>
         <div class="bh-password-field">
-            <input type="password" name="password" id="password" class="bh-input" required>
+            <input type="password" name="password" id="password" class="bh-input" autocomplete="current-password" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">
                 <i class="bi bi-eye" aria-hidden="true"></i>
             </button>

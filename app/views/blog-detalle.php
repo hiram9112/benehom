@@ -148,7 +148,7 @@ bh_document_begin([
 
                         <aside class="bh-blog-product-note" aria-label="Cómo aplicar este artículo en BeneHom">
                             <div class="bh-blog-product-note-icon" aria-hidden="true">
-                                <i class="bi bi-lightbulb"></i>
+                                <i class="bi bi-lightbulb" aria-hidden="true"></i>
                             </div>
                             <div>
                                 <h2>Cómo usarlo en BeneHom</h2>

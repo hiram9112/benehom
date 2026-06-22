@@ -24,6 +24,7 @@ let graficoAhorros6m = null;
 let graficoEscalaHabitos = null;
 let datosEscalaHabitos = [];
 let escalaHabitosActiva = 'mes';
+let indiceBarraActiva = 0;
 let datosInstantaneaInversion = null;
 let estadoInstantaneaInversion = { aportacion: 'todo', rentabilidad: '3' };
 let ultimoDisparadorInstantanea = null;
@@ -33,6 +34,7 @@ let ultimoDisparadorInstantanea = null;
 // ----------------------------------------------------------------------
 
 const FONT_FAMILY = "'Nunito Sans', Arial, sans-serif";
+const BH_REDUCED_MOTION = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function formatearEuros(valor) {
   var numero = Number(valor) || 0;
@@ -40,6 +42,24 @@ function formatearEuros(valor) {
     ? { maximumFractionDigits: 0 }
     : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
   return new Intl.NumberFormat('es-ES', opciones).format(numero) + ' \u20AC';
+}
+
+function actualizarResumenGrafico(id, texto) {
+  var resumen = document.getElementById(id);
+
+  if (resumen) {
+    resumen.textContent = texto;
+  }
+}
+
+function describirSerieEuros(labels, valores) {
+  if (!labels.length || !valores.length) {
+    return 'No hay datos suficientes para mostrar este gráfico.';
+  }
+
+  return labels.map(function (label, index) {
+    return label + ': ' + formatearEuros(valores[index]);
+  }).join('; ') + '.';
 }
 
 function crearTooltipBeneHom() {
@@ -147,7 +167,7 @@ function crearOpcionesGrafico(opts) {
     }
   }
 
-  return {
+  var opciones = {
     responsive: true,
     maintainAspectRatio: false,
     layout: {
@@ -158,6 +178,12 @@ function crearOpcionesGrafico(opts) {
     scales: opts.scales || crearEscalasConEuros(false),
     plugins: plugins,
   };
+
+  if (BH_REDUCED_MOTION) {
+    opciones.animation = false;
+  }
+
+  return opciones;
 }
 
 function filtrarMesesConValores(meses, valores) {
@@ -249,9 +275,50 @@ function inicializarSelectorEvolucionGastos() {
 
 document.addEventListener('DOMContentLoaded', inicializarSelectorEvolucionGastos);
 
+function resaltarBarraEscalaHabitos() {
+  if (!graficoEscalaHabitos || indiceBarraActiva < 0) return;
+
+  graficoEscalaHabitos.setActiveElements([{ datasetIndex: 0, index: indiceBarraActiva }]);
+  graficoEscalaHabitos.tooltip.setActiveElements([{ datasetIndex: 0, index: indiceBarraActiva }]);
+  graficoEscalaHabitos.update(BH_REDUCED_MOTION ? 'none' : undefined);
+}
+
+function manejarTecladoEscalaHabitos(evento) {
+  if (!graficoEscalaHabitos || !datosEscalaHabitos.length) return;
+
+  var ultimo = datosEscalaHabitos.length - 1;
+
+  switch (evento.key) {
+    case 'ArrowDown':
+    case 'ArrowRight':
+      evento.preventDefault();
+      indiceBarraActiva = Math.min((indiceBarraActiva < 0 ? -1 : indiceBarraActiva) + 1, ultimo);
+      resaltarBarraEscalaHabitos();
+      break;
+    case 'ArrowUp':
+    case 'ArrowLeft':
+      evento.preventDefault();
+      indiceBarraActiva = Math.max((indiceBarraActiva < 0 ? 1 : indiceBarraActiva) - 1, 0);
+      resaltarBarraEscalaHabitos();
+      break;
+    case 'Enter':
+    case ' ':
+      evento.preventDefault();
+      if (indiceBarraActiva < 0 || typeof window.abrirInstantaneaCategoria !== 'function') return;
+      var item = datosEscalaHabitos[indiceBarraActiva];
+      window.abrirInstantaneaCategoria(item.categoria, item.label, evento.currentTarget);
+      break;
+    default:
+      break;
+  }
+}
+
 function inicializarSelectorEscalaHabitos() {
   var botones = document.querySelectorAll('[data-escala-habitos]');
   var botonInfo = document.querySelector('[data-escala-habitos-info]');
+  var canvas = document.getElementById('graficoEscalaHabitos');
+
+  if (canvas) canvas.addEventListener('keydown', manejarTecladoEscalaHabitos);
 
   if (!botones.length) return;
 
@@ -433,6 +500,12 @@ async function cargarGraficoPresupuesto() {
 
     var valores = data.data;
     actualizarTotales(valores);
+    actualizarResumenGrafico(
+      'graficoPresupuestoMensualResumen',
+      'Presupuesto mensual: ingresos ' + formatearEuros(valores.ingresos) +
+        ', gastos totales ' + formatearEuros(valores.gastosTotales) +
+        ' y ahorro real ' + formatearEuros(valores.ahorroReal) + '.'
+    );
 
     if (graficoPresupuesto) { graficoPresupuesto.destroy(); graficoPresupuesto = null; }
 
@@ -515,6 +588,10 @@ async function cargarGraficoGastosFlexibles6m() {
     var serie = filtrarMesesConValores(meses, valores);
     var graficoVacio = serie.valores.length === 0;
     actualizarResumenVariacionGastos('flexible', serie.valores);
+    actualizarResumenGrafico(
+      'graficoGastosFlexibles6mResumen',
+      'Evolución de gastos flexibles: ' + describirSerieEuros(serie.meses, serie.valores)
+    );
 
     if (graficoGastosFlexibles6m) { graficoGastosFlexibles6m.destroy(); graficoGastosFlexibles6m = null; }
 
@@ -578,6 +655,10 @@ async function cargarGraficoGastosEsenciales6m() {
     var serie = filtrarMesesConValores(meses, valores);
     var graficoVacio = serie.valores.length === 0;
     actualizarResumenVariacionGastos('esencial', serie.valores);
+    actualizarResumenGrafico(
+      'graficoGastosEsenciales6mResumen',
+      'Evolución de gastos esenciales: ' + describirSerieEuros(serie.meses, serie.valores)
+    );
 
     if (graficoGastosEsenciales6m) { graficoGastosEsenciales6m.destroy(); graficoGastosEsenciales6m = null; }
 
@@ -636,6 +717,13 @@ async function cargarGraficoAhorros6m() {
     var ahorroPosible = data.data.ahorroPosible;
     var ahorroReal = data.data.ahorroReal;
     var serie = filtrarAhorrosConDatos(meses, ahorroPosible, ahorroReal, data.data.tieneDatos);
+    var resumenAhorro = serie.meses.length
+      ? serie.meses.map(function (mes, index) {
+        return mes + ': ahorro posible ' + formatearEuros(serie.ahorroPosible[index]) + ', ahorro real ' + formatearEuros(serie.ahorroReal[index]);
+      }).join('; ') + '.'
+      : 'No hay datos suficientes para mostrar la evolución del ahorro.';
+
+    actualizarResumenGrafico('graficoAhorros6mResumen', 'Evolución del ahorro: ' + resumenAhorro);
 
     if (graficoAhorros6m) { graficoAhorros6m.destroy(); graficoAhorros6m = null; }
 
@@ -744,6 +832,14 @@ function renderizarGraficoEscalaHabitos() {
     var paleta = [BH_COLORS.expense, BH_COLORS.info, BH_COLORS.saving, BH_COLORS.neutral, BH_COLORS.income];
     return paleta[index % paleta.length];
   });
+  var tipoValor = escalaHabitosActiva === 'anio' ? 'proyección anual' : 'media mensual';
+  var resumenEscala = labels.length
+    ? labels.map(function (label, index) {
+      return label + ', ' + tipoValor + ': ' + formatearEuros(valores[index]);
+    }).join('; ') + '.'
+    : 'No hay categorías de gasto flexible suficientes para mostrar este gráfico.';
+
+  actualizarResumenGrafico('graficoEscalaHabitosResumen', 'Top de gastos flexibles: ' + resumenEscala);
 
   if (graficoEscalaHabitos) { graficoEscalaHabitos.destroy(); graficoEscalaHabitos = null; }
 
@@ -779,7 +875,7 @@ function renderizarGraficoEscalaHabitos() {
 
   opcionesEscalaHabitos.layout.padding.top = 28;
   opcionesEscalaHabitos.indexAxis = 'y';
-  opcionesEscalaHabitos.animation = { duration: 180, easing: 'easeOutQuart' };
+  opcionesEscalaHabitos.animation = BH_REDUCED_MOTION ? false : { duration: 180, easing: 'easeOutQuart' };
   opcionesEscalaHabitos.onHover = function (event, elementos) {
     if (event.native && event.native.target) {
       event.native.target.style.cursor = elementos.length ? 'pointer' : 'default';
@@ -806,6 +902,8 @@ function renderizarGraficoEscalaHabitos() {
     },
     options: opcionesEscalaHabitos,
   });
+
+  indiceBarraActiva = datosEscalaHabitos.length ? 0 : -1;
 }
 
 // Exponer globalmente

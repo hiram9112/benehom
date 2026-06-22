@@ -21,7 +21,7 @@ function crearEstadoVacioDashboard(tipo) {
 
   return `
     <div class="bh-empty-state bh-dashboard-empty-state">
-      <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi ${estado.icono}"></i></span>
+      <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi ${estado.icono}" aria-hidden="true"></i></span>
       <h4 class="bh-empty-state-title">${estado.titulo}</h4>
       <p class="bh-empty-state-text">${estado.texto}</p>
     </div>`;
@@ -88,15 +88,14 @@ function agregarIngresoAlDOM(ingreso) {
   li.dataset.cantidad = ingreso.cantidad;
 
   //Agregamos el nuevo ingreso al elemento li
+  const categoriaIngresoLabel = formatearCategoriaJS(ingreso.categoria);
   li.innerHTML = `
     <div class="bh-movement-main">
-      <span class="bh-movement-label categoria_ingreso_individual">${formatearCategoriaJS(
-        ingreso.categoria,
-      )}</span>
+      <span class="bh-movement-label categoria_ingreso_individual">${categoriaIngresoLabel}</span>
     </div>
     <div class="bh-movement-side">
       <span class="bh-movement-amount cantidad_ingreso" data-id="${ingreso.id}">${formatearCantidad(ingreso.cantidad)}</span><span class="bh-money-symbol">€</span>
-      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="${ingreso.id}" aria-label="Eliminar ingreso"><i class="bi bi-trash"></i></button>
+      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="${ingreso.id}" aria-label="Eliminar ingreso ${categoriaIngresoLabel}"><i class="bi bi-trash" aria-hidden="true"></i></button>
     </div>
     `;
 
@@ -159,15 +158,14 @@ function agregarGastoEsencialAlDOM(gastoEsencial) {
   li.dataset.tipo = "esencial";
 
   //Agregamos el nuevo gasto esencial al elemento li
+  const categoriaGastoEsencialLabel = formatearCategoriaJS(gastoEsencial.categoria);
   li.innerHTML = `
     <div class="bh-movement-main">
-      <span class="bh-movement-label categoria_gasto_esencial">${formatearCategoriaJS(
-        gastoEsencial.categoria,
-      )}</span>
+      <span class="bh-movement-label categoria_gasto_esencial">${categoriaGastoEsencialLabel}</span>
     </div>
     <div class="bh-movement-side">
       <span class="bh-movement-amount cantidad_gasto_esencial cantidad_gasto" data-id="${gastoEsencial.id}">${formatearCantidad(gastoEsencial.cantidad)}</span><span class="bh-money-symbol">€</span>
-      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoEsencial.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
+      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoEsencial.id}" aria-label="Eliminar gasto esencial ${categoriaGastoEsencialLabel}"><i class="bi bi-trash" aria-hidden="true"></i></button>
     </div>
     `;
 
@@ -206,15 +204,14 @@ function agregarGastoFlexibleAlDOM(gastoFlexible) {
   li.dataset.tipo = "flexible";
 
   //Agregamos el nuevo gasto flexible al elemento li
+  const categoriaGastoFlexibleLabel = formatearCategoriaJS(gastoFlexible.categoria);
   li.innerHTML = `
     <div class="bh-movement-main">
-      <span class="bh-movement-label categoria_gasto_flexible">${formatearCategoriaJS(
-        gastoFlexible.categoria,
-      )}</span>
+      <span class="bh-movement-label categoria_gasto_flexible">${categoriaGastoFlexibleLabel}</span>
     </div>
     <div class="bh-movement-side">
       <span class="bh-movement-amount cantidad_gasto_flexible cantidad_gasto" data-id="${gastoFlexible.id}">${formatearCantidad(gastoFlexible.cantidad)}</span><span class="bh-money-symbol">€</span>
-      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoFlexible.id}" aria-label="Eliminar gasto"><i class="bi bi-trash"></i></button>
+      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoFlexible.id}" aria-label="Eliminar gasto flexible ${categoriaGastoFlexibleLabel}"><i class="bi bi-trash" aria-hidden="true"></i></button>
     </div>
     `;
 

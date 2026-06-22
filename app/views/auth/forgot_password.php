@@ -15,7 +15,7 @@ bh_auth_begin(
 
     <div class="bh-field">
         <label for="email" class="bh-label">Correo electrónico:</label>
-        <input type="email" name="email" id="email" class="bh-input" placeholder="Correo electrónico" required>
+        <input type="email" name="email" id="email" class="bh-input" placeholder="Correo electrónico" autocomplete="email" inputmode="email" required>
     </div>
 
     <button id="btn-forgot" type="submit" class="bh-btn bh-btn-primary w-100">

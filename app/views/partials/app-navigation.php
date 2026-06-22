@@ -118,13 +118,15 @@ function bh_mobile_menu(): void
     <!-- Sidebar movil (Offcanvas) -->
     <div class="offcanvas offcanvas-start bh-mobile-menu d-md-none"
         tabindex="-1"
-        id="mobileMenu">
+        id="mobileMenu"
+        aria-labelledby="mobileMenuTitle">
 
         <div class="offcanvas-header">
-            <h5 class="offcanvas-title">Menú</h5>
+            <h5 class="offcanvas-title" id="mobileMenuTitle">Menú</h5>
             <button type="button"
                 class="btn-close btn-close-white"
-                data-bs-dismiss="offcanvas">
+                data-bs-dismiss="offcanvas"
+                aria-label="Cerrar menú">
             </button>
         </div>
 
@@ -137,7 +139,9 @@ function bh_mobile_menu(): void
                 </a>
             </div>
 
-            <?php bh_navigation_list(true); ?>
+            <nav aria-label="Navegación principal móvil">
+                <?php bh_navigation_list(true); ?>
+            </nav>
         </div>
     </div>
     <?php

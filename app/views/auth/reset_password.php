@@ -18,7 +18,7 @@ bh_auth_begin(
     <div class="bh-field">
         <label for="password" class="bh-label">Nueva contraseña</label>
         <div class="bh-password-field">
-            <input type="password" id="password" name="password" class="bh-input" required>
+            <input type="password" id="password" name="password" class="bh-input" autocomplete="new-password" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">
                 <i class="bi bi-eye" aria-hidden="true"></i>
             </button>
@@ -28,7 +28,7 @@ bh_auth_begin(
     <div class="bh-field">
         <label for="password_confirm" class="bh-label">Confirmar contraseña</label>
         <div class="bh-password-field">
-            <input type="password" id="password_confirm" name="password_confirm" class="bh-input" required>
+            <input type="password" id="password_confirm" name="password_confirm" class="bh-input" autocomplete="new-password" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password_confirm" aria-label="Mostrar contraseña" aria-pressed="false">
                 <i class="bi bi-eye" aria-hidden="true"></i>
             </button>

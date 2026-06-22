@@ -88,7 +88,7 @@ if (!function_exists('bh_render_meta_card')) {
             <div class="bh-meta-card-main">
                 <div>
                     <div class="bh-meta-title-row">
-                        <h4><?= htmlspecialchars($meta['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                        <h3><?= htmlspecialchars($meta['nombre'], ENT_QUOTES, 'UTF-8') ?></h3>
                         <span class="bh-meta-projection-badge" data-projection-badge hidden>
                             Proyección
                             <button type="button" class="bh-meta-projection-clear" data-projection-clear aria-label="Limpiar proyección">
@@ -139,7 +139,7 @@ if (!function_exists('bh_render_meta_card')) {
 
             <div class="bh-meta-flex-projection" aria-label="Proyección de reducción de gastos flexibles">
                 <div class="bh-meta-projection-header">
-                    <h5 class="bh-meta-projection-title">Proyectar reducción de gastos flexible</h5>
+                    <h4 class="bh-meta-projection-title">Proyectar reducción de gastos flexible</h4>
                     <button type="button"
                         class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
                         data-bs-toggle="modal"
@@ -219,7 +219,7 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
             <div class="bh-meta-card-main">
                 <div>
                     <div class="bh-meta-title-row">
-                        <h4><?= htmlspecialchars($escenario['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                        <h3><?= htmlspecialchars($escenario['nombre'], ENT_QUOTES, 'UTF-8') ?></h3>
                     </div>
                     <p class="bh-investment-card-copy mb-0">
                         Reinversión <?= htmlspecialchars(strtolower($escenario['frecuencia_reinversion_label']), ENT_QUOTES, 'UTF-8') ?>:
@@ -338,7 +338,7 @@ if (!function_exists('bh_render_inflacion_card')) {
         <article class="bh-inflation-card" data-inflacion-card data-inflacion-id="<?= $proyeccionId ?>">
             <div class="bh-meta-card-main">
                 <div>
-                    <h4><?= htmlspecialchars($proyeccion['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                    <h3><?= htmlspecialchars($proyeccion['nombre'], ENT_QUOTES, 'UTF-8') ?></h3>
                 </div>
                 <span class="bh-badge bh-badge-saving">Estimación</span>
             </div>
@@ -436,7 +436,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
         <article class="bh-mortgage-card" data-hipoteca-card data-hipoteca-id="<?= $calculadoraId ?>">
             <div class="bh-meta-card-main">
                 <div>
-                    <h4><?= htmlspecialchars($calculadora['nombre'], ENT_QUOTES, 'UTF-8') ?></h4>
+                    <h3><?= htmlspecialchars($calculadora['nombre'], ENT_QUOTES, 'UTF-8') ?></h3>
                 </div>
                 <span class="bh-badge bh-badge-saving">Estimación</span>
             </div>

@@ -20,7 +20,7 @@ bh_document_begin([
 
             <hr>
 
-            <h5 class="mt-4">1. Responsable del tratamiento</h5>
+            <h2 class="mt-4 bh-legal-section-title">1. Responsable del tratamiento</h2>
             <p>
                 El responsable del tratamiento de los datos es <strong>Hiram González</strong>,
                 titular del proyecto BeneHom, herramienta web de gestión de economía
@@ -28,7 +28,7 @@ bh_document_begin([
                 <a href="mailto:benehom_web@gmail.com">benehom_web@gmail.com</a>.
             </p>
 
-            <h5 class="mt-4">2. Datos que recogemos</h5>
+            <h2 class="mt-4 bh-legal-section-title">2. Datos que recogemos</h2>
             <ul>
                 <li>Nombre de usuario</li>
                 <li>Dirección de correo electrónico</li>
@@ -43,28 +43,28 @@ bh_document_begin([
                 tarjeta ni datos de cuentas bancarias.
             </p>
 
-            <h5 class="mt-4">3. Finalidad del tratamiento</h5>
+            <h2 class="mt-4 bh-legal-section-title">3. Finalidad del tratamiento</h2>
             <p>
                 Los datos se utilizan exclusivamente para el registro, la autenticación y el
                 funcionamiento de la aplicación. En ningún caso se ceden a terceros ni se
                 emplean con fines comerciales o publicitarios.
             </p>
 
-            <h5 class="mt-4">4. Base legal</h5>
+            <h2 class="mt-4 bh-legal-section-title">4. Base legal</h2>
             <p>
                 El tratamiento se basa en el consentimiento otorgado por el usuario al
                 registrarse (art. 6.1.a RGPD) y en la ejecución del servicio solicitado
                 (art. 6.1.b RGPD).
             </p>
 
-            <h5 class="mt-4">5. Conservación de los datos</h5>
+            <h2 class="mt-4 bh-legal-section-title">5. Conservación de los datos</h2>
             <p>
                 Los datos se conservan mientras la cuenta permanezca activa. El usuario puede
                 eliminar su cuenta en cualquier momento desde su perfil, lo que implica la
                 supresión de los datos asociados.
             </p>
 
-            <h5 class="mt-4">6. Destinatarios y prestadores de servicios</h5>
+            <h2 class="mt-4 bh-legal-section-title">6. Destinatarios y prestadores de servicios</h2>
             <p>
                 Los datos se alojan en los servidores de nuestro proveedor de hosting
                 (Hostinger), que actúa como encargado del tratamiento. Para el envío de
@@ -72,7 +72,7 @@ bh_document_begin([
                 de correo electrónico. No se realizan otras cesiones de datos.
             </p>
 
-            <h5 class="mt-4">7. Tus derechos</h5>
+            <h2 class="mt-4 bh-legal-section-title">7. Tus derechos</h2>
             <p>
                 Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición,
                 limitación del tratamiento y portabilidad escribiendo a
@@ -82,21 +82,21 @@ bh_document_begin([
                 (<a href="https://www.aepd.es" target="_blank" rel="noopener">www.aepd.es</a>).
             </p>
 
-            <h5 class="mt-4">8. Cookies</h5>
+            <h2 class="mt-4 bh-legal-section-title">8. Cookies</h2>
             <p>
                 La aplicación utiliza únicamente cookies técnicas de sesión, necesarias para
                 mantener tu sesión iniciada. No se utilizan cookies de análisis, seguimiento
                 ni publicidad, por lo que no se requiere consentimiento adicional.
             </p>
 
-            <h5 class="mt-4">9. Seguridad</h5>
+            <h2 class="mt-4 bh-legal-section-title">9. Seguridad</h2>
             <p>
                 BeneHom aplica medidas técnicas razonables para proteger la información,
                 incluyendo el cifrado de contraseñas, la conexión segura (HTTPS), el control
                 de acceso por sesión y la protección frente a CSRF.
             </p>
 
-            <h5 class="mt-4">10. Cambios en esta política</h5>
+            <h2 class="mt-4 bh-legal-section-title">10. Cambios en esta política</h2>
             <p>
                 Esta política puede actualizarse para adaptarla a cambios legales o
                 funcionales. La fecha de última actualización figura al inicio.

@@ -20,7 +20,7 @@ bh_document_begin([
 
             <hr>
 
-            <h5 class="mt-4">1. Titular del sitio</h5>
+            <h2 class="mt-4 bh-legal-section-title">1. Titular del sitio</h2>
             <p>
                 En cumplimiento de la Ley 34/2002, de Servicios de la Sociedad de la
                 Información y de Comercio Electrónico (LSSI-CE), se informa de que este sitio
@@ -29,13 +29,13 @@ bh_document_begin([
                 <a href="mailto:benehom_web@gmail.com">benehom_web@gmail.com</a>.
             </p>
 
-            <h5 class="mt-4">2. Objeto</h5>
+            <h2 class="mt-4 bh-legal-section-title">2. Objeto</h2>
             <p>
                 BeneHom ofrece una herramienta gratuita de control y educación sobre la
                 economía doméstica.
             </p>
 
-            <h5 class="mt-4">3. Condiciones de uso</h5>
+            <h2 class="mt-4 bh-legal-section-title">3. Condiciones de uso</h2>
             <p>
                 El uso del sitio se rige por los
                 <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>">Términos y Condiciones</a>
@@ -43,20 +43,20 @@ bh_document_begin([
                 <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>">Política de Privacidad</a>.
             </p>
 
-            <h5 class="mt-4">4. Propiedad intelectual</h5>
+            <h2 class="mt-4 bh-legal-section-title">4. Propiedad intelectual</h2>
             <p>
                 Los contenidos, la marca y el diseño del sitio están protegidos y no pueden
                 utilizarse sin autorización.
             </p>
 
-            <h5 class="mt-4">5. Responsabilidad</h5>
+            <h2 class="mt-4 bh-legal-section-title">5. Responsabilidad</h2>
             <p>
                 La información tiene carácter educativo y orientativo y no constituye
                 asesoramiento financiero. El titular no se responsabiliza de las decisiones
                 tomadas a partir de su uso.
             </p>
 
-            <h5 class="mt-4">6. Legislación aplicable</h5>
+            <h2 class="mt-4 bh-legal-section-title">6. Legislación aplicable</h2>
             <p>
                 Este aviso legal se rige por la legislación española.
             </p>

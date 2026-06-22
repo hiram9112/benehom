@@ -73,7 +73,7 @@ bh_document_begin([
             <!-- Cambiar contraseña -->
             <div class="bh-card mb-4">
                 <div class="bh-card-header">
-                    <h4 class="m-0">Cambiar contraseña</h4>
+                    <h2 class="m-0 bh-card-section-title">Cambiar contraseña</h2>
                 </div>
                 <div class="bh-card-body">
                     <form method="POST" action="index.php?r=cuenta/cambiarPassword" class="bh-form" id="formCambiarPassword">
@@ -131,7 +131,7 @@ bh_document_begin([
             <!-- Exportar datos (portabilidad RGPD) -->
             <div class="bh-card mb-4">
                 <div class="bh-card-header">
-                    <h4 class="m-0">Tus datos</h4>
+                    <h2 class="m-0 bh-card-section-title">Tus datos</h2>
                 </div>
                 <div class="bh-card-body">
                     <p>Descarga una copia de toda tu información en BeneHom (perfil, ingresos, gastos, metas y proyecciones) en un archivo JSON que podrás guardar o llevar a otra herramienta.</p>
@@ -150,25 +150,25 @@ bh_document_begin([
             <!-- Documentación legal -->
             <div class="bh-card mb-4">
                 <div class="bh-card-header">
-                    <h4 class="m-0">Documentación legal</h4>
+                    <h2 class="m-0 bh-card-section-title">Documentación legal</h2>
                 </div>
                 <div class="bh-card-body">
                     <p>Puedes consultar en cualquier momento la información relativa a la protección de datos y condiciones de uso de la aplicación.</p>
                     <ul class="list-unstyled mb-0">
                         <li class="mb-2">
-                            <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">
+                            <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
                                 <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                 Política de Privacidad
                             </a>
                         </li>
                         <li class="mb-2">
-                            <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">
+                            <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
                                 <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                 Términos y Condiciones de Uso
                             </a>
                         </li>
                         <li>
-                            <a href="<?= htmlspecialchars(bh_public_page_url('aviso'), ENT_QUOTES, 'UTF-8') ?>" target="_blank">
+                            <a href="<?= htmlspecialchars(bh_public_page_url('aviso'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
                                 <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                 Aviso Legal
                             </a>
@@ -180,13 +180,13 @@ bh_document_begin([
             <!-- Zona peligrosa: eliminar cuenta -->
             <section class="bh-card bh-card-danger" aria-labelledby="dangerZoneTitle">
                 <div class="bh-card-header bh-card-danger-header">
-                    <h4 class="m-0" id="dangerZoneTitle">
+                    <h2 class="m-0 bh-card-section-title" id="dangerZoneTitle">
                         <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
                         Acción irreversible
-                    </h4>
+                    </h2>
                 </div>
                 <div class="bh-card-body">
-                    <h5 class="bh-account-danger-subtitle">Eliminar cuenta</h5>
+                    <h3 class="bh-account-danger-subtitle">Eliminar cuenta</h3>
                     <p class="bh-account-danger-text">Se eliminarán de forma permanente tu cuenta y todos los datos asociados (ingresos, gastos, metas y proyecciones).</p>
 
                     <form id="formEliminarCuenta" method="POST" action="index.php?r=cuenta/eliminarCuenta" class="bh-form">

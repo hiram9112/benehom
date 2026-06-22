@@ -64,7 +64,7 @@ bh_document_begin([
             <?php if (empty($articulos)): ?>
                 <section class="bh-empty-state" aria-labelledby="blog-empty-title">
                     <div class="bh-empty-state-icon" aria-hidden="true">
-                        <i class="bi bi-journal-text"></i>
+                        <i class="bi bi-journal-text" aria-hidden="true"></i>
                     </div>
                     <h2 id="blog-empty-title" class="bh-empty-state-title">Aún no hay artículos publicados</h2>
                     <p class="bh-empty-state-text">
@@ -98,7 +98,7 @@ bh_document_begin([
                     <?php if (!empty($articuloDestacado)): ?>
                         <article class="bh-card bh-blog-featured-card bh-blog-filterable" aria-label="Artículo destacado" data-blog-featured data-categoria="<?= htmlspecialchars($articuloDestacado['categoria'], ENT_QUOTES, 'UTF-8') ?>" data-busqueda="<?= htmlspecialchars($articuloDestacado['titulo'] . ' ' . $articuloDestacado['resumen'], ENT_QUOTES, 'UTF-8') ?>">
                             <div class="bh-blog-featured-marker" aria-hidden="true">
-                                <i class="bi <?= htmlspecialchars($articuloDestacado['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>"></i>
+                                <i class="bi <?= htmlspecialchars($articuloDestacado['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
                             </div>
                             <div class="bh-blog-featured-copy">
                                 <span class="bh-badge bh-badge-saving">Destacado · <?= htmlspecialchars($articuloDestacado['categoria'], ENT_QUOTES, 'UTF-8') ?></span>
@@ -128,7 +128,7 @@ bh_document_begin([
                         <?php foreach ($articulosListado as $articulo): ?>
                             <article class="bh-blog-article-card bh-blog-filterable" data-categoria="<?= htmlspecialchars($articulo['categoria'], ENT_QUOTES, 'UTF-8') ?>" data-busqueda="<?= htmlspecialchars($articulo['titulo'] . ' ' . $articulo['resumen'], ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="bh-blog-article-marker" aria-hidden="true">
-                                    <i class="bi <?= htmlspecialchars($articulo['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>"></i>
+                                    <i class="bi <?= htmlspecialchars($articulo['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
                                 </div>
                                 <div class="bh-blog-article-copy">
                                     <span class="bh-badge bh-badge-neutral"><?= htmlspecialchars($articulo['categoria'], ENT_QUOTES, 'UTF-8') ?></span>

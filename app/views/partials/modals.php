@@ -55,7 +55,7 @@ if (!function_exists('bh_modal')) {
         $size       = $o['size'] ?? 'default';
         $variant    = $o['variant'] ?? '';
         $body       = $o['body'] ?? '';
-        $bodyId     = $o['bodyId'] ?? '';
+        $bodyId     = $o['bodyId'] ?? ($id . 'Body');
         $closeWhite = $o['closeWhite'] ?? ($variant === 'branded');
 
         // Pie: si no se pasa la clave, mostramos un "Cerrar" por defecto.
@@ -77,10 +77,11 @@ if (!function_exists('bh_modal')) {
         }
 
         $closeClass = 'btn-close' . ($closeWhite ? ' btn-close-white' : '');
-        $bodyIdAttr = $bodyId !== '' ? ' id="' . htmlspecialchars($bodyId) . '"' : '';
-        $subtitleIdAttr = $subtitleId !== '' ? ' id="' . htmlspecialchars($subtitleId) . '"' : '';
+        $bodyIdAttr = $bodyId !== '' ? ' id="' . htmlspecialchars($bodyId, ENT_QUOTES, 'UTF-8') . '"' : '';
+        $subtitleIdAttr = $subtitleId !== '' ? ' id="' . htmlspecialchars($subtitleId, ENT_QUOTES, 'UTF-8') . '"' : '';
+        $describedByAttr = $bodyId !== '' ? ' aria-describedby="' . htmlspecialchars($bodyId, ENT_QUOTES, 'UTF-8') . '"' : '';
 ?>
-        <div class="modal fade" id="<?= htmlspecialchars($id) ?>" tabindex="-1" aria-labelledby="<?= htmlspecialchars($titleId) ?>" aria-hidden="true">
+        <div class="modal fade" id="<?= htmlspecialchars($id, ENT_QUOTES, 'UTF-8') ?>" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="<?= htmlspecialchars($titleId, ENT_QUOTES, 'UTF-8') ?>"<?= $describedByAttr ?> aria-hidden="true">
             <div class="<?= $dialogClass ?>">
                 <div class="<?= $contentClass ?>">
                     <div class="modal-header bh-modal-header">

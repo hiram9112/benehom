@@ -1,10 +1,24 @@
 <?php
 require_once APP_PATH . '/views/partials/head.php';
 
+$bhBlogEditorial = require CONFIG_PATH . '/blog_editorial.php';
+$bhBlogTitle = 'Blog de economía familiar';
+$bhBlogCategorias = array_values($bhBlogEditorial['categorias_oficiales'] ?? []);
+$bhBlogTemas = !empty($bhBlogCategorias)
+    ? mb_strtolower(implode(', ', array_slice($bhBlogCategorias, 0, 5)), 'UTF-8')
+    : 'presupuesto familiar, ahorro, gastos y decisiones económicas';
+$bhBlogDescription = 'Guías prácticas sobre ' . $bhBlogTemas . ' para responder a preguntas reales del dinero del hogar con lenguaje claro.';
+$bhBlogOgDescription = 'Aprende a manejar el dinero de tu hogar con guías claras sobre presupuesto, ahorro, gastos, metas, inflación, hipotecas e inversión desde cero.';
+
 bh_document_begin([
-    'title' => 'Blog educativo',
-    'description' => 'Guías claras y prácticas para organizar el presupuesto familiar, entender gastos, ahorrar mejor y tomar decisiones económicas con más calma.',
+    'title' => $bhBlogTitle,
+    'description' => $bhBlogDescription,
     'canonical' => bh_blog_url(),
+    'og_type' => 'website',
+    'og_title' => $bhBlogTitle,
+    'og_description' => $bhBlogOgDescription,
+    'twitter_title' => $bhBlogTitle,
+    'twitter_description' => $bhBlogOgDescription,
     'robots' => 'index',
 ]);
 ?>

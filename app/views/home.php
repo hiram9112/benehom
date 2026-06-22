@@ -18,13 +18,38 @@ $bhHomeHeadExtra = <<<'HTML'
     </script>
 HTML;
 
+$bhHomeDescription = 'BeneHom te ayuda a mirar tu economía con perspectiva: entender tus gastos, descubrir tu margen real y comprobar con números cómo cada decisión te acerca o te aleja de tus objetivos.';
+$bhHomeJsonLd = [
+    [
+        '@context' => 'https://schema.org',
+        '@type' => 'WebSite',
+        'name' => 'BeneHom',
+        'url' => bh_url(),
+        'description' => $bhHomeDescription,
+        'inLanguage' => 'es',
+        'publisher' => [
+            '@type' => 'Organization',
+            'name' => 'BeneHom',
+        ],
+    ],
+    [
+        '@context' => 'https://schema.org',
+        '@type' => 'Organization',
+        'name' => 'BeneHom',
+        'url' => bh_url(),
+        'logo' => bh_url('img/logo-benehom.png'),
+        'email' => 'benehom_web@gmail.com',
+    ],
+];
+
 bh_document_begin([
     'title' => 'Tu dinero cuenta una historia',
-    'description' => 'BeneHom te ayuda a mirar tu economía con perspectiva: entender tus gastos, descubrir tu margen real y comprobar con números cómo cada decisión te acerca o te aleja de tus objetivos.',
+    'description' => $bhHomeDescription,
     'canonical' => bh_url(),
     'robots' => 'index',
     'body_class' => 'bh-home-body',
     'head_extra' => $bhHomeHeadExtra,
+    'json_ld' => $bhHomeJsonLd,
 ]);
 ?>
 

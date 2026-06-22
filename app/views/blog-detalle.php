@@ -2,12 +2,88 @@
 require_once APP_PATH . '/views/partials/head.php';
 
 $bhArticuloSlug = (string) ($articulo['slug'] ?? '');
+$bhArticuloTitulo = (string) ($articulo['titulo'] ?? 'Artículo del blog');
+$bhArticuloResumen = (string) ($articulo['resumen'] ?? 'Artículo educativo de BeneHom sobre economía familiar y decisiones financieras del hogar.');
+$bhArticuloCategoria = (string) ($articulo['categoria'] ?? 'Educación financiera');
+$bhArticuloFecha = (string) ($articulo['fecha'] ?? '');
+$bhArticuloCanonical = bh_blog_url($bhArticuloSlug);
+$bhArticuloPublicado = '';
+$bhArticuloFechaTimestamp = $bhArticuloFecha !== '' ? strtotime($bhArticuloFecha) : false;
+
+if ($bhArticuloFechaTimestamp !== false) {
+    $bhArticuloPublicado = date('c', $bhArticuloFechaTimestamp);
+}
+
+$bhArticuloJsonLd = [
+    [
+        '@context' => 'https://schema.org',
+        '@type' => 'BlogPosting',
+        'headline' => $bhArticuloTitulo,
+        'description' => $bhArticuloResumen,
+        'datePublished' => $bhArticuloPublicado !== '' ? $bhArticuloPublicado : $bhArticuloFecha,
+        'dateModified' => $bhArticuloPublicado !== '' ? $bhArticuloPublicado : $bhArticuloFecha,
+        'articleSection' => $bhArticuloCategoria,
+        'inLanguage' => 'es',
+        'mainEntityOfPage' => [
+            '@type' => 'WebPage',
+            '@id' => $bhArticuloCanonical,
+        ],
+        'author' => [
+            '@type' => 'Organization',
+            'name' => 'BeneHom',
+            'url' => bh_url(),
+        ],
+        'publisher' => [
+            '@type' => 'Organization',
+            'name' => 'BeneHom',
+            'url' => bh_url(),
+            'logo' => [
+                '@type' => 'ImageObject',
+                'url' => bh_url('img/logo-benehom.png'),
+            ],
+        ],
+        'image' => bh_url('img/og-image.png'),
+    ],
+    [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Inicio',
+                'item' => bh_url(),
+            ],
+            [
+                '@type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Blog',
+                'item' => bh_blog_url(),
+            ],
+            [
+                '@type' => 'ListItem',
+                'position' => 3,
+                'name' => $bhArticuloTitulo,
+                'item' => $bhArticuloCanonical,
+            ],
+        ],
+    ],
+];
 
 bh_document_begin([
-    'title' => (string) ($articulo['titulo'] ?? 'Artículo del blog'),
-    'description' => (string) ($articulo['resumen'] ?? 'Artículo educativo de BeneHom sobre economía familiar y decisiones financieras del hogar.'),
-    'canonical' => bh_blog_url($bhArticuloSlug),
+    'title' => $bhArticuloTitulo,
+    'description' => $bhArticuloResumen,
+    'canonical' => $bhArticuloCanonical,
     'og_type' => 'article',
+    'og_title' => $bhArticuloTitulo,
+    'og_description' => $bhArticuloResumen,
+    'article_published_time' => $bhArticuloPublicado,
+    'article_modified_time' => $bhArticuloPublicado,
+    'article_section' => $bhArticuloCategoria,
+    'twitter_card' => 'summary_large_image',
+    'twitter_title' => $bhArticuloTitulo,
+    'twitter_description' => $bhArticuloResumen,
+    'json_ld' => $bhArticuloJsonLd,
     'robots' => 'index',
 ]);
 ?>

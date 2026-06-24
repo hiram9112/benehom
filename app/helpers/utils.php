@@ -240,11 +240,17 @@ function enviarEmailReset(string $email, string $resetLink): void
 
     if ($appEnv === 'production') {
 
-        require_once BASE_PATH . '/vendor/PHPMailer/PHPMailer.php';
-        require_once BASE_PATH . '/vendor/PHPMailer/SMTP.php';
-        require_once BASE_PATH . '/vendor/PHPMailer/Exception.php';
+        $autoloadPath = BASE_PATH . '/vendor/autoload.php';
 
-        $mail = new PHPMailer\PHPMailer\PHPMailer();
+        if (file_exists($autoloadPath)) {
+            require_once $autoloadPath;
+        }
+
+        if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+            throw new RuntimeException('PHPMailer no está disponible. Ejecuta composer install.');
+        }
+
+        $mail = new \PHPMailer\PHPMailer\PHPMailer();
 
         $mail->CharSet = 'UTF-8';
 

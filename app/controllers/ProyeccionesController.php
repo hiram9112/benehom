@@ -5,12 +5,11 @@ require_once APP_PATH . '/models/MetaAhorro.php';
 require_once APP_PATH . '/models/EscenarioInversion.php';
 require_once APP_PATH . '/models/InflacionProyeccion.php';
 require_once APP_PATH . '/models/CalculadoraHipoteca.php';
+require_once APP_PATH . '/services/CalculosFinancieros.php';
 
 class ProyeccionesController {
 
     private const RENTABILIDAD_ANUAL_MAXIMA = 999.99;
-    private const VALOR_ESTIMACION_INVERSION_MAXIMO = 9007199254740991;
-
     public function index(){
         if(!isset($_SESSION['usuario_id'])){
             header("Location: " . BASE_URL . "index.php?r=auth/login");
@@ -157,7 +156,7 @@ class ProyeccionesController {
 
             foreach ([3, 6, 9] as $rentabilidad) {
                 foreach ([5, 10, 15] as $plazoAnios) {
-                    $resultado = $this->calcularEscenarioInversion(
+                    $resultado = CalculosFinancieros::calcularEscenarioInversion(
                         0,
                         $aportacionMensual,
                         $rentabilidad,
@@ -237,7 +236,7 @@ class ProyeccionesController {
         $id = intval($_POST['id'] ?? 0);
         $campo = trim((string) ($_POST['campo'] ?? ''));
         $valorRaw = trim((string) ($_POST['valor'] ?? ''));
-        $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
+        $valor = CalculosFinancieros::normalizarCantidad($_POST['valor'] ?? null);
         $camposPermitidos = ['capital_inicial', 'aportacion_mensual', 'rentabilidad_anual', 'plazo_anios'];
 
         if ($id <= 0) {
@@ -301,11 +300,11 @@ class ProyeccionesController {
         $escenario[$campo] = $campo === 'plazo_anios' ? intval($valorRaw) : round($valor, 2);
         $frecuenciaReinversion = $escenario['frecuencia_reinversion'] ?? 'mensual';
 
-        if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
+        if (!array_key_exists($frecuenciaReinversion, CalculosFinancieros::frecuenciasReinversionPermitidas())) {
             $frecuenciaReinversion = 'mensual';
         }
 
-        $mensajeEstimacion = $this->validarEstimacionEscenarioInversion(
+        $mensajeEstimacion = CalculosFinancieros::validarEstimacionEscenarioInversion(
             round(floatval($escenario['capital_inicial']), 2),
             round(floatval($escenario['aportacion_mensual']), 2),
             round(floatval($escenario['rentabilidad_anual']), 2),
@@ -455,7 +454,7 @@ class ProyeccionesController {
 
         $usuario_id = $_SESSION['usuario_id'];
         $id = intval($_POST['id'] ?? 0);
-        $importeObjetivo = $this->normalizarCantidad($_POST['importe_objetivo'] ?? null);
+        $importeObjetivo = CalculosFinancieros::normalizarCantidad($_POST['importe_objetivo'] ?? null);
 
         if ($id <= 0) {
             echo json_encode(['ok' => false, 'msg' => 'No se recibió una meta válida.']);
@@ -601,7 +600,7 @@ class ProyeccionesController {
         $usuario_id = $_SESSION['usuario_id'];
         $id = intval($_POST['id'] ?? 0);
         $campo = trim((string) ($_POST['campo'] ?? ''));
-        $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
+        $valor = CalculosFinancieros::normalizarCantidad($_POST['valor'] ?? null);
         $camposPermitidos = ['cantidad_inicial', 'inflacion_anual', 'plazo_anios'];
 
         if ($id <= 0) {
@@ -746,7 +745,7 @@ class ProyeccionesController {
         $usuario_id = $_SESSION['usuario_id'];
         $id = intval($_POST['id'] ?? 0);
         $campo = trim((string) ($_POST['campo'] ?? ''));
-        $valor = $this->normalizarCantidad($_POST['valor'] ?? null);
+        $valor = CalculosFinancieros::normalizarCantidad($_POST['valor'] ?? null);
         $camposPermitidos = ['precio_inmueble', 'porcentaje_financiacion', 'interes_anual', 'plazo_anios'];
 
         if ($id <= 0) {
@@ -879,7 +878,7 @@ class ProyeccionesController {
     private function validarDatosMeta($usuario_id, $meta_id): array{
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
         $modoCalculo = trim((string) ($_POST['modo_calculo'] ?? ''));
-        $importeObjetivo = $this->normalizarCantidad($_POST['importe_objetivo'] ?? null);
+        $importeObjetivo = CalculosFinancieros::normalizarCantidad($_POST['importe_objetivo'] ?? null);
 
         if ($nombre === '') {
             return $this->errorValidacion('El nombre de la meta es obligatorio.');
@@ -908,14 +907,14 @@ class ProyeccionesController {
         $fechaObjetivo = null;
 
         if ($modoCalculo === 'aportacion') {
-            $aportacionMensual = $this->normalizarCantidad($_POST['aportacion_mensual'] ?? null);
+            $aportacionMensual = CalculosFinancieros::normalizarCantidad($_POST['aportacion_mensual'] ?? null);
 
             if ($aportacionMensual === null || $aportacionMensual <= 0) {
                 return $this->errorValidacion('La aportación mensual debe ser mayor que 0.');
             }
         } else {
             $fechaObjetivo = trim((string) ($_POST['fecha_objetivo'] ?? ''));
-            $mesesHastaObjetivo = $this->calcularMesesHastaFechaObjetivo($fechaObjetivo);
+            $mesesHastaObjetivo = CalculosFinancieros::calcularMesesHastaFechaObjetivo($fechaObjetivo);
 
             if ($mesesHastaObjetivo === null) {
                 return $this->errorValidacion('La fecha objetivo debe ser futura.');
@@ -964,41 +963,6 @@ class ProyeccionesController {
         return round($minimoAsignado, 2);
     }
 
-    private function normalizarCantidad($valor): ?float{
-        $cantidad = trim((string) $valor);
-        $cantidad = str_replace(',', '.', $cantidad);
-
-        if ($cantidad === '' || !is_numeric($cantidad)) {
-            return null;
-        }
-
-        $numero = floatval($cantidad);
-
-        return is_finite($numero) ? $numero : null;
-    }
-
-    private function calcularMesesHastaFechaObjetivo($fechaObjetivo): ?int{
-        if (!is_string($fechaObjetivo) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaObjetivo) !== 1) {
-            return null;
-        }
-
-        $objetivo = DateTimeImmutable::createFromFormat('!Y-m-d', $fechaObjetivo);
-
-        if (!$objetivo || $objetivo->format('Y-m-d') !== $fechaObjetivo) {
-            return null;
-        }
-
-        $hoy = new DateTimeImmutable('today');
-
-        if ($objetivo <= $hoy) {
-            return null;
-        }
-
-        $dias = $hoy->diff($objetivo)->days;
-
-        return max(1, (int) ceil($dias / 30.4375));
-    }
-
     private function prepararMetaParaVista($meta): array{
         $importeObjetivo = floatval($meta['importe_objetivo']);
         $aportacionMensual = floatval($meta['aportacion_mensual']);
@@ -1007,7 +971,7 @@ class ProyeccionesController {
 
         if (!empty($meta['fecha_objetivo'])) {
             $fechaEstimada = $meta['fecha_objetivo'];
-            $plazoMeses = $this->calcularMesesHastaFechaObjetivo($meta['fecha_objetivo']) ?? $plazoMeses;
+            $plazoMeses = CalculosFinancieros::calcularMesesHastaFechaObjetivo($meta['fecha_objetivo']) ?? $plazoMeses;
         } elseif ($plazoMeses !== null) {
             $fechaEstimada = (new DateTimeImmutable('today'))->modify('+' . $plazoMeses . ' months')->format('Y-m-d');
         }
@@ -1021,9 +985,9 @@ class ProyeccionesController {
 
     private function validarDatosEscenarioInversion($usuario_id, ?int $escenario_id = null): array{
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
-        $capitalInicial = $this->normalizarCantidad($_POST['capital_inicial'] ?? null);
-        $aportacionMensual = $this->normalizarCantidad($_POST['aportacion_mensual'] ?? null);
-        $rentabilidadAnual = $this->normalizarCantidad($_POST['rentabilidad_anual'] ?? null);
+        $capitalInicial = CalculosFinancieros::normalizarCantidad($_POST['capital_inicial'] ?? null);
+        $aportacionMensual = CalculosFinancieros::normalizarCantidad($_POST['aportacion_mensual'] ?? null);
+        $rentabilidadAnual = CalculosFinancieros::normalizarCantidad($_POST['rentabilidad_anual'] ?? null);
         $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
         $frecuenciaReinversion = trim((string) ($_POST['frecuencia_reinversion'] ?? ''));
 
@@ -1055,7 +1019,7 @@ class ProyeccionesController {
             return $this->errorValidacion('El plazo en años debe ser mayor que 0.');
         }
 
-        if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
+        if (!array_key_exists($frecuenciaReinversion, CalculosFinancieros::frecuenciasReinversionPermitidas())) {
             return $this->errorValidacion('Selecciona una frecuencia de reinversión válida.');
         }
 
@@ -1063,7 +1027,7 @@ class ProyeccionesController {
         $aportacionMensual = round($aportacionMensual, 2);
         $rentabilidadAnual = round($rentabilidadAnual, 2);
 
-        $mensajeEstimacion = $this->validarEstimacionEscenarioInversion(
+        $mensajeEstimacion = CalculosFinancieros::validarEstimacionEscenarioInversion(
             $capitalInicial,
             $aportacionMensual,
             $rentabilidadAnual,
@@ -1115,11 +1079,11 @@ class ProyeccionesController {
         $plazoAnios = intval($escenario['plazo_anios']);
         $frecuenciaReinversion = (string) ($escenario['frecuencia_reinversion'] ?? 'mensual');
 
-        if (!array_key_exists($frecuenciaReinversion, $this->frecuenciasReinversionPermitidas())) {
+        if (!array_key_exists($frecuenciaReinversion, CalculosFinancieros::frecuenciasReinversionPermitidas())) {
             $frecuenciaReinversion = 'mensual';
         }
 
-        $resultado = $this->calcularEscenarioInversion(
+        $resultado = CalculosFinancieros::calcularEscenarioInversion(
             $capitalInicial,
             $aportacionMensual,
             $rentabilidadAnual,
@@ -1128,7 +1092,7 @@ class ProyeccionesController {
         );
 
         $escenario['frecuencia_reinversion'] = $frecuenciaReinversion;
-        $escenario['frecuencia_reinversion_label'] = $this->frecuenciasReinversionPermitidas()[$frecuenciaReinversion];
+        $escenario['frecuencia_reinversion_label'] = CalculosFinancieros::frecuenciasReinversionPermitidas()[$frecuenciaReinversion];
         $escenario['total_aportaciones_plazo'] = $resultado['total_aportaciones_plazo'];
         $escenario['capital_total_aportado'] = $resultado['capital_total_aportado'];
         $escenario['valor_final_estimado'] = $resultado['valor_final_estimado'];
@@ -1140,86 +1104,10 @@ class ProyeccionesController {
         return $escenario;
     }
 
-    private function calcularEscenarioInversion($capitalInicial, $aportacionMensual, $rentabilidadAnual, $plazoAnios, $frecuenciaReinversion): array{
-        $periodosPorAnio = $this->periodosPorAnio($frecuenciaReinversion);
-        $mesesPorPeriodo = intdiv(12, $periodosPorAnio);
-        $tasaPeriodo = $rentabilidadAnual > 0 ? ($rentabilidadAnual / 100) / $periodosPorAnio : 0;
-        // Tasa mensual equivalente a la del periodo de reinversión: permite incorporar las
-        // aportaciones mes a mes en lugar de agruparlas al inicio del periodo.
-        $tasaMensual = $tasaPeriodo > 0 ? pow(1 + $tasaPeriodo, 1 / $mesesPorPeriodo) - 1 : 0;
-        $meses = $plazoAnios * 12;
-        $capital = $capitalInicial;
-
-        for ($mes = 1; $mes <= $meses; $mes++) {
-            if ($tasaMensual > 0) {
-                $capital += $capital * $tasaMensual;
-            }
-
-            $capital += $aportacionMensual;
-        }
-
-        $totalAportacionesPlazo = $aportacionMensual * $meses;
-        $capitalTotalAportado = $capitalInicial + $totalAportacionesPlazo;
-        $valorFinalEstimado = $capital;
-        $rendimientoEstimado = max(0, $valorFinalEstimado - $capitalTotalAportado);
-        $roiPorcentaje = $capitalTotalAportado > 0
-            ? ($rendimientoEstimado / $capitalTotalAportado) * 100
-            : 0;
-
-        return [
-            'total_aportaciones_plazo' => round($totalAportacionesPlazo, 2),
-            'capital_total_aportado' => round($capitalTotalAportado, 2),
-            'valor_final_estimado' => round($valorFinalEstimado, 2),
-            'rendimiento_estimado' => round($rendimientoEstimado, 2),
-            'roi_porcentaje' => round($roiPorcentaje, 2),
-            'periodos_por_anio' => $periodosPorAnio,
-            'meses_por_periodo' => $mesesPorPeriodo,
-        ];
-    }
-
-    private function validarEstimacionEscenarioInversion($capitalInicial, $aportacionMensual, $rentabilidadAnual, $plazoAnios, $frecuenciaReinversion): ?string{
-        $resultado = $this->calcularEscenarioInversion(
-            $capitalInicial,
-            $aportacionMensual,
-            $rentabilidadAnual,
-            $plazoAnios,
-            $frecuenciaReinversion
-        );
-
-        foreach (['total_aportaciones_plazo', 'capital_total_aportado', 'valor_final_estimado', 'rendimiento_estimado'] as $campo) {
-            $valor = (float) ($resultado[$campo] ?? INF);
-
-            if (!is_finite($valor) || $valor > self::VALOR_ESTIMACION_INVERSION_MAXIMO) {
-                return 'Con esos datos la estimación genera un resultado demasiado grande para calcularse de forma fiable. Reduce la rentabilidad, el plazo, el capital inicial o la aportación mensual.';
-            }
-        }
-
-        return null;
-    }
-
-    private function frecuenciasReinversionPermitidas(): array{
-        return [
-            'mensual' => 'Mensual',
-            'trimestral' => 'Trimestral',
-            'semestral' => 'Semestral',
-            'anual' => 'Anual',
-        ];
-    }
-
-    private function periodosPorAnio($frecuenciaReinversion): int{
-        return match ($frecuenciaReinversion) {
-            'mensual' => 12,
-            'trimestral' => 4,
-            'semestral' => 2,
-            'anual' => 1,
-            default => 12,
-        };
-    }
-
     private function validarDatosInflacionProyeccion(): array{
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
-        $cantidadInicial = $this->normalizarCantidad($_POST['cantidad_inicial'] ?? null);
-        $inflacionAnual = $this->normalizarCantidad($_POST['inflacion_anual'] ?? null);
+        $cantidadInicial = CalculosFinancieros::normalizarCantidad($_POST['cantidad_inicial'] ?? null);
+        $inflacionAnual = CalculosFinancieros::normalizarCantidad($_POST['inflacion_anual'] ?? null);
         $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
 
         if ($nombre === '') {
@@ -1255,9 +1143,9 @@ class ProyeccionesController {
 
     private function validarDatosCalculadoraHipoteca(): array{
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
-        $precioInmueble = $this->normalizarCantidad($_POST['precio_inmueble'] ?? null);
-        $porcentajeFinanciacion = $this->normalizarCantidad($_POST['porcentaje_financiacion'] ?? null);
-        $interesAnual = $this->normalizarCantidad($_POST['interes_anual'] ?? null);
+        $precioInmueble = CalculosFinancieros::normalizarCantidad($_POST['precio_inmueble'] ?? null);
+        $porcentajeFinanciacion = CalculosFinancieros::normalizarCantidad($_POST['porcentaje_financiacion'] ?? null);
+        $interesAnual = CalculosFinancieros::normalizarCantidad($_POST['interes_anual'] ?? null);
         $plazoAnios = trim((string) ($_POST['plazo_anios'] ?? ''));
 
         if ($nombre === '') {
@@ -1306,7 +1194,7 @@ class ProyeccionesController {
         $inflacionAnual = floatval($proyeccion['inflacion_anual']);
         $plazoAnios = intval($proyeccion['plazo_anios']);
 
-        $resultado = $this->calcularInflacionProyeccion(
+        $resultado = CalculosFinancieros::calcularInflacionProyeccion(
             $cantidadInicial,
             $inflacionAnual,
             $plazoAnios
@@ -1326,7 +1214,7 @@ class ProyeccionesController {
         $interesAnual = floatval($calculadora['interes_anual']);
         $plazoAnios = intval($calculadora['plazo_anios']);
 
-        $resultado = $this->calcularCalculadoraHipoteca(
+        $resultado = CalculosFinancieros::calcularCalculadoraHipoteca(
             $importePrestamo,
             $interesAnual,
             $plazoAnios
@@ -1339,42 +1227,6 @@ class ProyeccionesController {
         $calculadora['total_pagado'] = $resultado['total_pagado'];
 
         return $calculadora;
-    }
-
-    private function calcularInflacionProyeccion($cantidadInicial, $inflacionAnual, $plazoAnios): array{
-        $factor = pow(1 + $inflacionAnual / 100, $plazoAnios);
-        $poderAdquisitivoFinal = $cantidadInicial / $factor;
-        $perdidaEstimada = $cantidadInicial - $poderAdquisitivoFinal;
-        $cantidadFuturaNecesaria = $cantidadInicial * $factor;
-        $diferenciaNecesaria = $cantidadFuturaNecesaria - $cantidadInicial;
-
-        return [
-            'poder_adquisitivo_final' => round($poderAdquisitivoFinal, 2),
-            'perdida_estimada' => round($perdidaEstimada, 2),
-            'cantidad_futura_necesaria' => round($cantidadFuturaNecesaria, 2),
-            'diferencia_necesaria' => round($diferenciaNecesaria, 2),
-        ];
-    }
-
-    private function calcularCalculadoraHipoteca($importePrestamo, $interesAnual, $plazoAnios): array{
-        if ($interesAnual <= 0) {
-            $cuotaMensual = $importePrestamo / ($plazoAnios * 12);
-            $totalPagado = $importePrestamo;
-            $totalIntereses = 0;
-        } else {
-            $tasaMensual = ($interesAnual / 100) / 12;
-            $meses = $plazoAnios * 12;
-            $factor = pow(1 + $tasaMensual, $meses);
-            $cuotaMensual = $importePrestamo * ($tasaMensual * $factor) / ($factor - 1);
-            $totalPagado = $cuotaMensual * $meses;
-            $totalIntereses = $totalPagado - $importePrestamo;
-        }
-
-        return [
-            'cuota_mensual' => round($cuotaMensual, 2),
-            'total_intereses' => round($totalIntereses, 2),
-            'total_pagado' => round($totalPagado, 2),
-        ];
     }
 
     private function errorValidacion($mensaje, string $tipo = 'error'): array{

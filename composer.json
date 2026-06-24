@@ -1,5 +1,7 @@
 {
     "name": "hiram9112/benehom",
+    "description": "Aplicación web para gestionar la economía familiar.",
+    "license": "proprietary",
     "autoload": {
         "psr-4": {
             "Hiram9112\\Benehom\\": "app/"
@@ -17,5 +19,8 @@
     },
     "scripts": {
         "test": "phpunit"
+    },
+    "require": {
+        "phpmailer/phpmailer": "^7.1"
     }
 }

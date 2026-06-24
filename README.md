@@ -46,6 +46,7 @@ Aplicación en producción: https://benehom.es
 
 - Composer
 - PHPStan
+- PHPUnit
 
 ## Requisitos
 
@@ -156,6 +157,51 @@ El proyecto incluye PHPStan como dependencia de desarrollo. Para ejecutarlo:
 ```bash
 vendor/bin/phpstan analyse app public config
 ```
+
+## Testing
+
+El proyecto incluye una suite de PHPUnit ejecutable con `composer test`. Los tests de integración usan una base de datos aislada llamada `benehom_test`; no deben ejecutarse contra la base de datos real.
+
+Prepara la base de datos de test:
+
+```sql
+CREATE DATABASE benehom_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'benehom_test_user'@'localhost' IDENTIFIED BY 'test_password_123';
+GRANT ALL PRIVILEGES ON benehom_test.* TO 'benehom_test_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Si necesitas credenciales distintas en local, copia la configuración distribuida y ajusta los valores:
+
+```bash
+cp phpunit.xml.dist phpunit.xml
+```
+
+`phpunit.xml` fuerza `APP_ENV=testing` y `DB_NAME=benehom_test`. La clase base de integración carga `database/schema.sql` si el esquema no existe y cada test se ejecuta dentro de una transacción con `rollBack`, dejando la base limpia entre pruebas.
+
+Ejecuta la suite completa:
+
+```bash
+composer test
+```
+
+Ejecuta también el análisis estático antes de cerrar cambios:
+
+```bash
+vendor/bin/phpstan analyse app public config
+```
+
+Cobertura actual de tests:
+
+- Cálculos financieros puros: hipoteca, interés compuesto, inflación, fechas objetivo, normalización de cantidades y protección frente a resultados no fiables.
+- Helpers críticos: whitelists de categorías, formato de categorías/cantidades y CSRF.
+- Integración con base de datos: registro de usuarios, hashes de contraseña, emails duplicados, recuperación de contraseña, agregaciones de gastos y aislamiento por usuario.
+
+Queda fuera de esta fase:
+
+- Tests HTTP de controladores que dependen de `echo`, `header` y `exit`.
+- Tests e2e de interfaz, Chart.js y comportamiento visual.
+- Automatización en GitHub Actions, diferible a un sprint de CI/CD.
 
 ## Variables de entorno
 

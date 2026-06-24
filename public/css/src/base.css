@@ -1,0 +1,259 @@
+/* ==========================================================================
+   Fuentes
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:wght@400;500;600;700&display=swap');
+
+
+/* ==========================================================================
+   Tokens
+   ========================================================================== */
+
+:root{
+    --bh-color-cream: #FDFEFD;
+    --bh-color-ivory: #FDFEFD;
+    --bh-color-sage-100: #E9F4EC;
+    --bh-color-sage-300: #33A64D;
+    --bh-color-sage-600: #3EB225;
+    --bh-color-sage-800: #163F7F;
+    --bh-color-sand: #E9F4EC;
+    --bh-color-clay: #B83E3E;
+    --bh-color-cacao: #163F7F;
+    --bh-color-stone: #163F7F;
+    --bh-color-border: #E9F4EC;
+
+    --bh-surface-page: var(--bh-color-cream);
+    --bh-surface-card: var(--bh-color-ivory);
+    --bh-surface-soft: var(--bh-color-sage-100);
+    --bh-surface-muted: var(--bh-color-sand);
+    --bh-brand: var(--bh-color-sage-800);
+    --bh-brand-strong: var(--bh-color-sage-800);
+    --bh-accent: var(--bh-color-sage-600);
+    --bh-text-main: var(--bh-color-cacao);
+    --bh-text-muted: rgba(22, 63, 127, 0.72);
+    --bh-text-soft: rgba(22, 63, 127, 0.85);
+    --bh-text-inverse: var(--bh-color-ivory);
+    --bh-border-color: rgba(22, 63, 127, 0.14);
+    --bh-border-strong: rgba(51, 166, 77, 0.38);
+
+    --bh-income: #33A64D;
+    --bh-income-soft: rgba(51, 166, 77, 0.12);
+    --bh-expense: #B83E3E;
+    --bh-expense-soft: rgba(184, 62, 62, 0.10);
+    --bh-saving: #3EB225;
+    --bh-saving-soft: rgba(62, 178, 37, 0.12);
+    --bh-success: #33A64D;
+    --bh-success-soft: rgba(51, 166, 77, 0.12);
+    --bh-error: #B83E3E;
+    --bh-error-soft: rgba(184, 62, 62, 0.10);
+    --bh-warning: #3EB225;
+    --bh-warning-soft: rgba(62, 178, 37, 0.10);
+    --bh-warning-strong: #B45309;
+    --bh-info: #163F7F;
+    --bh-info-soft: rgba(22, 63, 127, 0.08);
+    --bh-neutral: var(--bh-color-sage-800);
+    --bh-neutral-soft: var(--bh-color-sage-100);
+
+    --bh-font-heading: 'Fraunces', Georgia, serif;
+    --bh-font-body: 'Nunito Sans', Arial, sans-serif;
+    --bh-font-interface: 'Nunito Sans', Arial, sans-serif;
+    --bh-text-xs: 0.75rem;
+    --bh-text-sm: 0.875rem;
+    --bh-text-md: 1rem;
+    --bh-text-lg: 1.125rem;
+    --bh-text-xl: 1.5rem;
+    --bh-text-2xl: 2rem;
+    --bh-line-tight: 1.15;
+    --bh-line-normal: 1.5;
+    --bh-line-relaxed: 1.7;
+    --bh-weight-regular: 400;
+    --bh-weight-medium: 500;
+    --bh-weight-semibold: 600;
+    --bh-weight-bold: 700;
+
+    --bh-space-1: 0.25rem;
+    --bh-space-2: 0.5rem;
+    --bh-space-3: 0.75rem;
+    --bh-space-4: 1rem;
+    --bh-space-5: 1.5rem;
+    --bh-space-6: 2rem;
+    --bh-space-7: 3rem;
+    --bh-space-8: 4rem;
+
+    --bh-radius-sm: 10px;
+    --bh-radius-md: 16px;
+    --bh-radius-lg: 24px;
+    --bh-radius-pill: 999px;
+
+    --bh-border-width: 1px;
+    --bh-border-subtle: var(--bh-border-width) solid var(--bh-border-color);
+    --bh-border-accent: var(--bh-border-width) solid var(--bh-border-strong);
+
+    --bh-shadow-soft: 0 10px 30px rgba(22, 63, 127, 0.08);
+    --bh-shadow-card: 0 16px 40px rgba(22, 63, 127, 0.10);
+    --bh-shadow-raised: 0 20px 55px rgba(22, 63, 127, 0.14);
+
+    --bh-focus-color: var(--bh-brand);
+    --bh-focus-ring-color: rgba(62, 178, 37, 0.28);
+    --bh-focus-ring: 0 0 0 3px var(--bh-focus-ring-color);
+
+    --bh-transition-fast: 120ms ease;
+    --bh-transition-base: 180ms ease;
+    --bh-transition-slow: 260ms ease;
+}
+
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+html {
+    background-color: var(--bh-surface-page);
+}
+
+*,
+*::before,
+*::after{
+    box-sizing: border-box;
+}
+
+body{
+    min-height: 100vh;
+    margin: 0;
+    font-family: var(--bh-font-body);
+    font-size: var(--bh-text-md);
+    line-height: var(--bh-line-normal);
+    color: var(--bh-text-main);
+    background:
+        radial-gradient(circle at top left, rgba(233, 244, 236, 0.82), transparent 32rem),
+        var(--bh-surface-page);
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--bh-font-heading);
+    color: var(--bh-text-main);
+    line-height: var(--bh-line-tight);
+    font-weight: var(--bh-weight-semibold);
+    margin-top: 0;
+    margin-bottom: var(--bh-space-3);
+}
+
+h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+}
+
+h2 {
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+}
+
+h3 {
+    font-size: var(--bh-text-xl);
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: var(--bh-space-4);
+    color: var(--bh-text-main);
+    line-height: var(--bh-line-relaxed);
+}
+
+a {
+    color: var(--bh-brand-strong);
+    text-decoration-color: rgba(22, 63, 127, 0.35);
+    text-underline-offset: 0.18em;
+    transition:
+        color var(--bh-transition-base),
+        text-decoration-color var(--bh-transition-base);
+}
+
+a:hover {
+    color: var(--bh-brand);
+    text-decoration-color: currentColor;
+}
+
+ul,
+ol {
+    margin-top: 0;
+    margin-bottom: var(--bh-space-4);
+    padding-left: var(--bh-space-5);
+}
+
+li + li {
+    margin-top: var(--bh-space-1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--bh-text-main);
+    background-color: var(--bh-surface-card);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    overflow: hidden;
+}
+
+th,
+td {
+    padding: var(--bh-space-3) var(--bh-space-4);
+    border-bottom: var(--bh-border-subtle);
+    text-align: left;
+}
+
+th {
+    color: var(--bh-brand-strong);
+    font-weight: var(--bh-weight-bold);
+    background-color: var(--bh-surface-soft);
+}
+
+tr:last-child td {
+    border-bottom: 0;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button,
+[role="button"],
+input,
+select,
+textarea,
+a {
+    outline-color: transparent;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+.btn-close:focus-visible,
+.form-check-input:focus-visible {
+    outline: none;
+    box-shadow: var(--bh-focus-ring);
+}
+
+button {
+    cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+

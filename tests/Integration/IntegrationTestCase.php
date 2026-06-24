@@ -8,6 +8,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/models/Database.php';
+require_once APP_PATH . '/models/Usuario.php';
 
 abstract class IntegrationTestCase extends TestCase
 {
@@ -29,6 +30,20 @@ abstract class IntegrationTestCase extends TestCase
         }
 
         parent::tearDown();
+    }
+
+    /**
+     * @return array{id:int, usuario:string, email:string, password:string, fecha_registro:string, reset_token_hash:?string, reset_token_expires_at:?string}
+     */
+    protected function crearUsuario(string $email, string $password = 'Password-test-123'): array
+    {
+        self::assertTrue(\Usuario::registrar('Usuario test', $email, $password));
+
+        $usuario = \Usuario::obtenerUsuario($email);
+
+        self::assertIsArray($usuario);
+
+        return $usuario;
     }
 
     private function ensureSchemaExists(): void

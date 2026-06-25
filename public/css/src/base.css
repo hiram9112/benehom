@@ -2,6 +2,12 @@
    Fuentes
    ========================================================================== */
 
+/*
+ * Breakpoints canonicos: sm 576px, md 768px, lg 992px, xl 1200px.
+ * Convencion responsive: base movil sin media query y mejoras con min-width.
+ * CSS no admite var() en condiciones @media, por eso se usan px literales.
+ */
+
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:wght@400;500;600;700&display=swap');
 
 
@@ -255,5 +261,4 @@ textarea:disabled {
     cursor: not-allowed;
     opacity: 0.65;
 }
-
 

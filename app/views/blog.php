@@ -169,5 +169,5 @@ bh_document_begin([
 bh_document_end([
     'include_bootstrap_js' => true,
     'include_flash_js' => true,
-    'body_end_extra' => '    <script src="' . BASE_URL . 'js/blog-filtros.js"></script>' . PHP_EOL,
+    'body_end_extra' => '    <script src="' . bh_asset('js/blog-filtros.js') . '"></script>' . PHP_EOL,
 ]);

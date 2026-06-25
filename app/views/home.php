@@ -680,5 +680,5 @@ bh_document_begin([
 
 <?php
 bh_document_end([
-    'body_end_extra' => '    <script src="' . BASE_URL . 'js/home.js" defer></script>' . PHP_EOL,
+    'body_end_extra' => '    <script src="' . bh_asset('js/home.js') . '" defer></script>' . PHP_EOL,
 ]);

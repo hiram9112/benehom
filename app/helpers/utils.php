@@ -124,6 +124,47 @@ function bh_url(string $ruta = ''): string
     return $base . '/' . $ruta;
 }
 
+function bh_asset(string $ruta): string
+{
+    $ruta = ltrim($ruta, '/');
+    $url = BASE_URL . $ruta;
+    $assetPath = BASE_PATH . '/public/' . $ruta;
+
+    if (!is_file($assetPath)) {
+        return $url;
+    }
+
+    return $url . '?v=' . filemtime($assetPath);
+}
+
+function bh_css_tags(): string
+{
+    $cssFiles = ($_ENV['APP_ENV'] ?? 'local') === 'production'
+        ? ['css/app.min.css']
+        : [
+            'css/src/base.css',
+            'css/src/layout.css',
+            'css/src/components.css',
+            'css/src/dashboard.css',
+            'css/src/proyecciones.css',
+            'css/src/auth.css',
+            'css/src/home.css',
+            'css/src/blog.css',
+            'css/src/cuenta.css',
+            'css/src/legal.css',
+            'css/src/responsive.css',
+        ];
+
+    $tags = [];
+
+    foreach ($cssFiles as $cssFile) {
+        $href = htmlspecialchars(bh_asset($cssFile), ENT_QUOTES, 'UTF-8');
+        $tags[] = '    <link rel="stylesheet" href="' . $href . '">';
+    }
+
+    return implode(PHP_EOL, $tags) . PHP_EOL;
+}
+
 function bh_blog_url(string $slug = ''): string
 {
     $slug = trim($slug, '/');

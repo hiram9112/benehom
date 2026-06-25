@@ -108,7 +108,7 @@ function bh_document_begin(array $opciones = []): void
     <meta name="theme-color" content="#f5ead7">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/custom.css">
+<?= bh_css_tags() ?>
 <?php if ($headExtra !== ''): ?>
 <?= $headExtra ?>
 <?php endif; ?>
@@ -130,7 +130,7 @@ function bh_document_end(array $opciones = []): void
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <?php endif; ?>
 <?php if ($includeFlashJs): ?>
-    <script src="<?= BASE_URL ?>js/flash.js"></script>
+    <script src="<?= bh_asset('js/flash.js') ?>"></script>
 <?php endif; ?>
 <?php if ($bodyEndExtra !== ''): ?>
 <?= $bodyEndExtra ?>

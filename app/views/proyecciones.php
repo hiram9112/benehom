@@ -600,7 +600,7 @@ HTML);
         window.BH_PROYECCIONES_AVISOS = <?= json_encode($bhAvisos, JSON_UNESCAPED_UNICODE) ?>;
         window.BH_AVISO_AHORRO_SUPERA = <?= json_encode($avisoCapacidadSuperada, JSON_UNESCAPED_UNICODE) ?>;
     </script>
-    <script src="<?= BASE_URL ?>js/proyecciones.js?v=<?= time() ?>"></script>
+    <script src="<?= bh_asset('js/proyecciones.js') ?>"></script>
 <?php
 $bhProyeccionesBodyEndExtra = ob_get_clean();
 

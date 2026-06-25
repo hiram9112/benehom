@@ -18,9 +18,11 @@
         "phpunit/phpunit": "^11"
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "build:css": "php scripts/minify-css.php"
     },
     "require": {
-        "phpmailer/phpmailer": "^7.1"
+        "phpmailer/phpmailer": "^7.1",
+        "matthiasmullie/minify": "^1.3"
     }
 }

@@ -18,4 +18,8 @@ Orden canonico previsto para carga y concatenacion:
 
 Las media queries se mantienen cerca del bloque o vista que modifican. `auth.css` contiene solo autenticacion y `home.css` contiene la home publica. `responsive.css` queda reservado para ajustes realmente globales y transversales.
 
-No edites `app.min.css` manualmente cuando exista el pipeline de produccion; debera generarse desde estos archivos.
+No edites `../app.min.css` manualmente. Se regenera desde estos archivos con:
+
+```bash
+composer build:css
+```

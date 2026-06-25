@@ -1,8 +1,10 @@
 # CSS fuente de BeneHom
 
-Esta carpeta contiene la version editable del CSS propio de BeneHom separada por responsabilidad. Durante la fase A del Sprint 18, `public/css/custom.css` se conserva intacto como referencia y sigue siendo el CSS activo.
+Esta carpeta contiene la version editable del CSS propio de BeneHom separada por responsabilidad. Es la fuente de verdad del CSS propio de la aplicacion.
 
-Orden canonico previsto para carga y concatenacion:
+En entorno local se cargan estos archivos separados desde `bh_css_tags()` para que los cambios se vean al recargar. En produccion se sirve `public/css/app.min.css`, generado desde estos mismos archivos.
+
+Orden canonico de carga y concatenacion:
 
 1. `base.css`
 2. `layout.css`
@@ -23,3 +25,5 @@ No edites `../app.min.css` manualmente. Se regenera desde estos archivos con:
 ```bash
 composer build:css
 ```
+
+Ejecuta ese comando antes de desplegar para que el CSS minificado refleje los ultimos cambios.

@@ -4,7 +4,8 @@
 
 .bh-account-identity-body{
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     gap: var(--bh-space-5);
 }
 
@@ -131,9 +132,9 @@
     color: var(--bh-text-soft);
 }
 
-@media (max-width: 36rem){
+@media (min-width: 576px){
     .bh-account-identity-body{
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
     }
 }

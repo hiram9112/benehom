@@ -1026,18 +1026,82 @@
     color: rgba(22, 63, 127, 0.68);
 }
 
-@media (max-width: 991.98px){
-    .bh-projections-goals-grid,
-    .bh-projections-investments-grid,
-    .bh-projections-inflation-grid,
-    .bh-projections-mortgage-grid{
-        grid-template-columns: 1fr;
-    }
+.bh-projections-hero{
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-4);
+}
 
-    .bh-investment-metrics,
-    .bh-inflation-metrics,
-    .bh-mortgage-metrics{
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+.bh-projections-savings-breakdown p{
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--bh-space-1);
+}
+
+.bh-projections-section-intro .bh-card-body{
+    grid-template-columns: 1fr;
+}
+
+.bh-projections-section-intro .bh-btn{
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+}
+
+.bh-meta-list-header,
+.bh-meta-card-main,
+.bh-inflation-result-header{
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.bh-inflation-form,
+.bh-meta-projection-controls,
+.bh-meta-actions,
+.bh-meta-metrics,
+.bh-meta-list,
+.bh-investment-list,
+.bh-inflation-list,
+.bh-mortgage-list,
+.bh-investment-metrics,
+.bh-inflation-metrics,
+.bh-mortgage-metrics{
+    grid-template-columns: 1fr;
+}
+
+.bh-meta-delete-form{
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    justify-self: stretch;
+}
+
+.bh-projections-module-header{
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.bh-meta-delete-form .bh-btn,
+.bh-meta-form-card .bh-btn,
+.bh-investment-form-card .bh-btn,
+.bh-projections-module-header .bh-btn,
+.bh-projections-section-intro .bh-btn,
+.bh-inflation-form-card .bh-btn,
+.bh-projections-offcanvas .bh-btn{
+    width: 100%;
+}
+
+.bh-investment-delete-form,
+.bh-inflation-delete-form,
+.bh-mortgage-delete-form{
+    width: 100%;
+}
+
+@media (min-width: 576px){
+    .bh-meta-list-header,
+    .bh-meta-card-main,
+    .bh-inflation-result-header{
+        flex-direction: row;
+        align-items: flex-start;
     }
 
     .bh-inflation-form{
@@ -1048,71 +1112,35 @@
         grid-column: 1 / -1;
     }
 
-    .bh-inflation-result-panel{
-        grid-template-columns: 1fr;
-    }
-
-    .bh-projections-section-intro .bh-card-body{
-        grid-template-columns: 1fr;
-    }
-
-    .bh-projections-section-intro .bh-btn{
-        grid-column: 1;
-        grid-row: auto;
-        justify-self: start;
-    }
-}
-
-@media (max-width: 576px){
-    .bh-meta-list-header,
-    .bh-meta-card-main,
-    .bh-inflation-result-header{
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .bh-inflation-form{
-        grid-template-columns: 1fr;
-    }
-
     .bh-meta-projection-controls{
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1.2fr) minmax(10rem, 0.8fr);
     }
 
     .bh-meta-actions{
-        grid-template-columns: 1fr;
+        grid-template-columns: auto minmax(0, 1fr) auto;
     }
 
     .bh-meta-delete-form{
-        grid-column: 1;
-        grid-row: auto;
-        width: 100%;
+        grid-column: 3;
+        grid-row: 1;
+        width: auto;
+        justify-self: auto;
     }
 
-    .bh-meta-delete-form{
-        justify-self: stretch;
-    }
-
-    .bh-meta-metrics{
-        grid-template-columns: 1fr;
-    }
-
+    .bh-meta-metrics,
     .bh-meta-list,
     .bh-investment-list,
     .bh-inflation-list,
-    .bh-mortgage-list{
-        grid-template-columns: 1fr;
-    }
-
+    .bh-mortgage-list,
     .bh-investment-metrics,
     .bh-inflation-metrics,
     .bh-mortgage-metrics{
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .bh-projections-module-header{
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
     }
 
     .bh-meta-delete-form .bh-btn,
@@ -1122,14 +1150,46 @@
     .bh-projections-section-intro .bh-btn,
     .bh-inflation-form-card .bh-btn,
     .bh-projections-offcanvas .bh-btn{
-        width: 100%;
+        width: auto;
     }
 
     .bh-investment-delete-form,
     .bh-inflation-delete-form,
     .bh-mortgage-delete-form{
-        width: 100%;
+        width: auto;
     }
 }
 
+@media (min-width: 768px){
+    .bh-projections-hero{
+        grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+        gap: var(--bh-space-5);
+    }
+
+    .bh-projections-savings-breakdown p{
+        align-items: center;
+        flex-direction: row;
+        gap: var(--bh-space-3);
+    }
+}
+
+@media (min-width: 992px){
+    .bh-inflation-form{
+        grid-template-columns: minmax(10rem, 1.1fr) minmax(10rem, 1fr) minmax(8rem, 0.8fr) auto;
+    }
+
+    .bh-inflation-actions{
+        grid-column: auto;
+    }
+
+    .bh-projections-section-intro .bh-card-body{
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .bh-projections-section-intro .bh-btn{
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        justify-self: auto;
+    }
+}
 

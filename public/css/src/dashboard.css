@@ -427,51 +427,141 @@
     display: block;
 }
 
-@media (max-width: 575.98px){
+.bh-dashboard-summary{
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-4);
+    padding: var(--bh-space-4);
+}
+
+.bh-dashboard-period #selector_mes{
+    width: 100%;
+}
+
+.bh-summary-metrics{
+    grid-template-columns: 1fr;
+}
+
+.lista-ingresos li,
+.lista-gastos li{
+    align-items: flex-start;
+}
+
+.bh-movement-side{
+    align-items: flex-start;
+}
+
+.bh-card-chart-header{
+    align-items: stretch;
+    flex-direction: column;
+}
+
+.bh-segmented{
+    width: 100%;
+}
+
+.bh-segmented-button{
+    flex: 1 1 0;
+}
+
+.bh-investment-snapshot-controls,
+.bh-investment-snapshot-row{
+    grid-template-columns: 1fr;
+}
+
+.bh-investment-snapshot-row{
+    align-items: flex-start;
+}
+
+.bh-investment-snapshot-head{
+    display: none;
+}
+
+.bh-investment-snapshot-row > strong::before,
+.bh-investment-snapshot-row > span:last-child::before{
+    display: block;
+    margin-bottom: var(--bh-space-1);
+    font-size: var(--bh-text-xs);
+    font-weight: var(--bh-weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.bh-investment-snapshot-row > strong::before{
+    content: "Total acumulado";
+}
+
+.bh-investment-snapshot-row > span:last-child::before{
+    content: "Beneficio generado";
+}
+
+@media (min-width: 576px){
+    .bh-summary-metrics{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .lista-ingresos li,
+    .lista-gastos li{
+        align-items: center;
+    }
+
+    .bh-movement-side{
+        align-items: center;
+    }
+
     .bh-card-chart-header{
-        align-items: stretch;
-        flex-direction: column;
+        align-items: flex-start;
+        flex-direction: row;
     }
 
     .bh-segmented{
-        width: 100%;
+        width: auto;
     }
 
     .bh-segmented-button{
-        flex: 1 1 0;
+        flex: 0 1 auto;
     }
 
-    .bh-investment-snapshot-controls,
-    .bh-investment-snapshot-row{
-        grid-template-columns: 1fr;
-    }
-
-    .bh-investment-snapshot-row{
-        align-items: flex-start;
+    .bh-investment-snapshot-controls{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .bh-investment-snapshot-head{
-        display: none;
+        display: grid;
+    }
+
+    .bh-investment-snapshot-row{
+        align-items: center;
+        grid-template-columns: minmax(4.5rem, 0.6fr) minmax(7rem, 1fr) minmax(7rem, 1fr);
     }
 
     .bh-investment-snapshot-row > strong::before,
     .bh-investment-snapshot-row > span:last-child::before{
-        display: block;
-        margin-bottom: var(--bh-space-1);
-        font-size: var(--bh-text-xs);
-        font-weight: var(--bh-weight-bold);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        opacity: 0.7;
-    }
-
-    .bh-investment-snapshot-row > strong::before{
-        content: "Total acumulado";
-    }
-
-    .bh-investment-snapshot-row > span:last-child::before{
-        content: "Beneficio generado";
+        display: none;
     }
 }
 
+@media (min-width: 768px){
+    .bh-dashboard-summary{
+        padding: var(--bh-space-4) var(--bh-space-5);
+    }
+
+    .bh-dashboard-period #selector_mes{
+        width: min(100%, 13rem);
+    }
+
+    .bh-summary-metrics{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 992px){
+    .bh-dashboard-summary{
+        grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+    }
+
+    .bh-summary-metrics{
+        grid-template-columns: repeat(5, minmax(7.25rem, 1fr));
+    }
+}
 

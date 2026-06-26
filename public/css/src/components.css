@@ -392,13 +392,14 @@
 
 .bh-flash-stack{
     position: fixed;
-    top: var(--bh-space-4);
-    left: 50%;
+    top: calc(44px + (var(--bh-space-3) * 2) + var(--bh-space-3));
+    right: var(--bh-space-3);
+    left: var(--bh-space-3);
     z-index: 1030;
     display: grid;
     gap: var(--bh-space-3);
-    width: min(calc(100vw - 2rem), 26rem);
-    transform: translateX(-50%);
+    width: auto;
+    transform: none;
     pointer-events: none;
 }
 
@@ -517,13 +518,13 @@
     }
 }
 
-@media (max-width: 767.98px){
+@media (min-width: 768px){
     .bh-flash-stack{
-        top: calc(44px + (var(--bh-space-3) * 2) + var(--bh-space-3));
-        right: var(--bh-space-3);
-        left: var(--bh-space-3);
-        width: auto;
-        transform: none;
+        top: var(--bh-space-4);
+        right: auto;
+        left: 50%;
+        width: min(calc(100vw - 2rem), 26rem);
+        transform: translateX(-50%);
     }
 }
 
@@ -707,7 +708,7 @@
 
 .bh-form {
     display: grid;
-    gap: var(--bh-space-4);
+    gap: var(--bh-space-3);
 }
 
 .bh-field {
@@ -717,7 +718,7 @@
 
 .bh-field-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--bh-space-4);
 }
 
@@ -900,7 +901,7 @@
 
 .bh-guided-form{
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.35fr) auto;
+    grid-template-columns: 1fr;
     align-items: end;
     gap: var(--bh-space-4);
     padding: var(--bh-space-4);
@@ -946,6 +947,7 @@
 }
 
 .bh-guided-form > button{
+    width: 100%;
     min-height: 44px;
     padding: 0.65rem 1rem;
     border-radius: var(--bh-radius-md);
@@ -956,7 +958,7 @@
 
 .bh-category-picker{
     display: grid;
-    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--bh-space-4);
 }
 
@@ -1008,17 +1010,27 @@
     outline: none;
 }
 
-@media (max-width: 900px){
+@media (min-width: 576px){
+    .bh-form {
+        gap: var(--bh-space-4);
+    }
+
+    .bh-field-row {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}
+
+@media (min-width: 992px){
     .bh-guided-form{
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.35fr) auto;
     }
 
     .bh-category-picker{
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
     }
 
     .bh-guided-form > button{
-        width: 100%;
+        width: auto;
     }
 }
 
@@ -1058,4 +1070,3 @@
 .bh-skip-link:focus-visible{
     box-shadow: var(--bh-focus-ring), var(--bh-shadow-card);
 }
-

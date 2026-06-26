@@ -976,7 +976,7 @@
 
 .bh-projections-offcanvas .offcanvas-header{
     align-items: flex-start;
-    padding: var(--bh-space-5);
+    padding: var(--bh-space-4);
     border-bottom: var(--bh-border-subtle);
     background-color: var(--bh-surface-card);
 }
@@ -997,7 +997,7 @@
 }
 
 .bh-projections-offcanvas .offcanvas-body{
-    padding: var(--bh-space-5);
+    padding: var(--bh-space-4);
 }
 
 .bh-projections-goals .bh-label,
@@ -1097,6 +1097,11 @@
 }
 
 @media (min-width: 576px){
+    .bh-projections-offcanvas .offcanvas-header,
+    .bh-projections-offcanvas .offcanvas-body{
+        padding: var(--bh-space-5);
+    }
+
     .bh-meta-list-header,
     .bh-meta-card-main,
     .bh-inflation-result-header{
@@ -1192,4 +1197,3 @@
         justify-self: auto;
     }
 }
-

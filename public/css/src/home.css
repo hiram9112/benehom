@@ -192,6 +192,10 @@
     gap: clamp(2rem, 5vw, 4.5rem);
 }
 
+.bh-home-hero-grid > *{
+    min-width: 0;
+}
+
 .bh-home-hero h1{
     margin: 0 0 var(--bh-space-4);
     font-size: clamp(2.4rem, 5vw, 3.8rem);
@@ -244,6 +248,7 @@
 /* --- Mockups del producto (CSS/SVG) --- */
 
 .bh-home-mock{
+    min-width: 0;
     padding: clamp(1.25rem, 2.5vw, 1.75rem);
     border: 1px solid rgba(22, 63, 127, 0.10);
     border-radius: var(--bh-radius-lg);
@@ -254,6 +259,7 @@
 .bh-home-mock-head{
     display: flex;
     align-items: baseline;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: var(--bh-space-3);
     margin-bottom: var(--bh-space-4);
@@ -285,25 +291,33 @@
     display: grid;
     gap: 0.45rem;
     margin: 0;
+    min-width: 0;
 }
 
 .bh-home-mock-row-head{
     display: flex;
     align-items: baseline;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: var(--bh-space-3);
+}
+
+.bh-home-mock-row-head > *{
+    min-width: 0;
 }
 
 .bh-home-mock-row-head span{
     color: rgba(22, 63, 127, 0.82);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-semibold);
+    overflow-wrap: anywhere;
 }
 
 .bh-home-mock-row-head strong{
     color: var(--bh-text-main);
     font-size: var(--bh-text-sm);
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
 }
 
 .bh-home-mock-row-head strong.is-pos{
@@ -335,7 +349,7 @@
     display: grid;
     gap: 0.15rem;
     margin-top: var(--bh-space-4);
-    padding: var(--bh-space-4) var(--bh-space-5);
+    padding: var(--bh-space-4) clamp(var(--bh-space-3), 4vw, var(--bh-space-5));
     border-radius: var(--bh-radius-md);
     background-color: var(--bh-color-sage-100);
 }
@@ -415,6 +429,11 @@
     grid-template-columns: auto 1fr;
     align-items: center;
     gap: clamp(1rem, 3vw, 1.75rem);
+}
+
+.bh-home-mock-compare > *,
+.bh-home-mock-sim-result > *{
+    min-width: 0;
 }
 
 .bh-home-mock-ring{

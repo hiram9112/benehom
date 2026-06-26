@@ -139,9 +139,16 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--bh-space-2);
+    max-width: 100%;
+    min-width: 0;
 }
 
 .bh-blog-filter{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    max-width: 100%;
     padding: 0.4rem 0.85rem;
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-pill);
@@ -150,6 +157,8 @@
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-bold);
     line-height: 1;
+    overflow-wrap: anywhere;
+    text-align: center;
     transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 

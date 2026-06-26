@@ -187,7 +187,7 @@
     background-color: var(--bh-surface-card);
     border-color: var(--bh-border-strong);
     padding: var(--bh-space-5);
-    min-height: 380px;
+    min-height: clamp(320px, 72vw, 380px);
 }
 
 .bh-card-chart h2,
@@ -271,7 +271,7 @@
 }
 
 .bh-card-habits-scale{
-    min-height: 430px;
+    min-height: clamp(340px, 82vw, 430px);
 }
 
 .bh-scale-chart-container{

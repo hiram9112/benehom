@@ -1,0 +1,1199 @@
+/* ========================================================================== 
+   Proyecciones
+   ========================================================================== */
+
+.bh-projections-hero{
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+    gap: var(--bh-space-5);
+    align-items: stretch;
+}
+
+.bh-projections-hero > *{
+    min-width: 0;
+}
+
+.bh-projections-intro-card .bh-card-body,
+.bh-projections-savings-card .bh-card-body{
+    min-height: 100%;
+    padding: clamp(var(--bh-space-5), 3vw, var(--bh-space-6));
+}
+
+.bh-projections-savings-card .bh-card-body{
+    display: flex;
+    flex-direction: column;
+}
+
+.bh-projections-kicker{
+    margin-bottom: var(--bh-space-2);
+    color: var(--bh-accent);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+    letter-spacing: 0.02em;
+}
+
+.bh-projections-intro-card h1{
+    margin-bottom: var(--bh-space-4);
+}
+
+.bh-projections-intro-card p{
+    max-width: 58rem;
+}
+
+.bh-projections-intro-lead{
+    font-size: var(--bh-text-lg);
+    font-weight: var(--bh-weight-medium);
+    line-height: var(--bh-line-relaxed);
+    color: var(--bh-text-soft);
+}
+
+.bh-projections-intro-note{
+    margin-top: var(--bh-space-4);
+    padding-top: var(--bh-space-3);
+    border-top: var(--bh-border-subtle);
+    font-size: var(--bh-text-sm);
+    color: var(--bh-text-muted);
+    line-height: var(--bh-line-relaxed);
+}
+
+.bh-projections-savings-card{
+    border-color: rgba(253, 254, 253, 0.18);
+    background:
+        radial-gradient(circle at top right, rgba(233, 244, 236, 0.18), transparent 13rem),
+        var(--bh-brand-strong);
+    box-shadow: var(--bh-shadow-card);
+}
+
+.bh-projections-savings-card,
+.bh-projections-savings-card h2,
+.bh-projections-savings-card h3,
+.bh-projections-savings-card p,
+.bh-projections-savings-card span,
+.bh-projections-savings-card strong{
+    color: var(--bh-text-inverse);
+}
+
+.bh-projections-savings-label{
+    margin-bottom: var(--bh-space-3);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+    letter-spacing: 0.02em;
+    opacity: 0.86;
+}
+
+.bh-projections-savings-value{
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--bh-space-2);
+    margin-bottom: var(--bh-space-2);
+}
+
+.bh-projections-savings-amount{
+    display: inline-flex;
+    align-items: center;
+    min-height: 3.75rem;
+    border-radius: var(--bh-radius-md);
+    font-family: var(--bh-font-heading);
+    font-size: clamp(2.5rem, 5vw, 4.75rem);
+    font-weight: var(--bh-weight-bold);
+    line-height: 0.98;
+    cursor: pointer;
+    text-underline-offset: 0.16em;
+    transition:
+        background-color var(--bh-transition-base),
+        box-shadow var(--bh-transition-base);
+}
+
+.bh-projections-savings-amount:hover,
+.bh-projections-savings-amount:focus-visible{
+    background-color: rgba(253, 254, 253, 0.10);
+    box-shadow: 0 0 0 8px rgba(253, 254, 253, 0.10);
+}
+
+.bh-projections-currency{
+    font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+    font-weight: var(--bh-weight-bold);
+    opacity: 0.86;
+}
+
+.bh-projections-edit-hint{
+    margin-bottom: var(--bh-space-5);
+    font-size: var(--bh-text-sm);
+    opacity: 0.76;
+}
+
+.bh-projections-savings-breakdown{
+    display: grid;
+    gap: var(--bh-space-2);
+    padding-top: var(--bh-space-4);
+    border-top: 1px solid rgba(253, 254, 253, 0.22);
+}
+
+.bh-projections-savings-breakdown p{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--bh-space-3);
+    margin: 0;
+    font-size: var(--bh-text-sm);
+}
+
+.bh-projections-savings-breakdown span{
+    opacity: 0.78;
+}
+
+.bh-projections-savings-breakdown strong{
+    white-space: nowrap;
+}
+
+/* Sugerencia de ahorro real del mes dentro de la card azul: bloque blanco
+   destacado (algo mayor y más grueso) que aprovecha el hueco bajo el desglose. */
+.bh-projections-savings-suggestion{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--bh-space-2);
+    row-gap: var(--bh-space-1);
+    margin-top: auto;
+    padding-top: var(--bh-space-4);
+    border-top: 1px solid rgba(253, 254, 253, 0.22);
+}
+
+.bh-projections-savings-suggestion-label{
+    font-size: var(--bh-text-md);
+    font-weight: var(--bh-weight-semibold);
+    opacity: 0.86;
+}
+
+.bh-projections-savings-suggestion-value{
+    font-size: var(--bh-text-xl);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-projections-savings-suggestion-note{
+    flex-basis: 100%;
+    font-size: var(--bh-text-sm);
+    opacity: 0.78;
+}
+
+.bh-projections-savings-value .bh-projections-inline-input{
+    width: min(100%, 15.5rem);
+    min-width: 10.5rem;
+    max-width: 15.5rem;
+    height: auto;
+    min-height: 3.65rem;
+    padding: 0.15rem 0.55rem;
+    font-family: var(--bh-font-heading);
+    font-size: clamp(2.15rem, 4.2vw, 3.55rem);
+    font-weight: var(--bh-weight-bold);
+    line-height: 0.98;
+    text-align: right;
+}
+
+.bh-projections-goals{
+    margin-top: var(--bh-space-5);
+}
+
+.bh-projections-section-intro{
+    margin-bottom: var(--bh-space-5);
+}
+
+.bh-projections-section-intro .bh-card-body{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--bh-space-4) var(--bh-space-5);
+    padding: clamp(var(--bh-space-5), 3vw, var(--bh-space-6));
+}
+
+.bh-projections-section-intro h2{
+    grid-column: 1;
+    margin-bottom: 0;
+}
+
+.bh-projections-section-intro > .bh-card-body > p{
+    grid-column: 1;
+    max-width: 62rem;
+    margin-bottom: 0;
+    color: var(--bh-text-main);
+}
+
+.bh-projections-section-intro .bh-btn{
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+}
+
+.bh-projections-section-note{
+    padding-top: var(--bh-space-3);
+    border-top: var(--bh-border-subtle);
+    color: var(--bh-brand-strong) !important;
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-projections-inflation-card .bh-card-body{
+    grid-template-columns: 1fr;
+}
+
+.bh-projections-inflation-card .bh-projections-inflation-grid,
+.bh-projections-inflation-card .bh-projections-section-note{
+    grid-column: 1;
+}
+
+.bh-projections-module-header{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--bh-space-5);
+    padding-bottom: var(--bh-space-5);
+    background-color: var(--bh-brand);
+    color: var(--bh-text-inverse);
+    border-radius: var(--bh-radius-lg) var(--bh-radius-lg) 0 0;
+    border-bottom: 0;
+}
+
+.bh-projections-module-text{
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--bh-space-2);
+}
+
+.bh-projections-module-heading{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--bh-space-3);
+}
+
+.bh-projections-module-heading h2{
+    margin-bottom: 0;
+    color: var(--bh-text-inverse);
+}
+
+.bh-projections-module-desc{
+    margin-bottom: 0;
+    color: rgba(253, 254, 253, 0.85);
+    font-size: var(--bh-text-lg);
+    font-weight: var(--bh-weight-regular);
+    line-height: var(--bh-line-relaxed);
+}
+
+.bh-projections-module-header .bh-badge{
+    background-color: rgba(253, 254, 253, 0.18);
+    color: var(--bh-text-inverse);
+}
+
+.bh-projections-module-header .bh-btn-primary{
+    flex: 0 0 auto;
+    background-color: var(--bh-surface-card);
+    color: var(--bh-brand);
+    border-color: var(--bh-surface-card);
+}
+
+.bh-projections-module-header .bh-btn-primary:hover{
+    background-color: var(--bh-surface-card);
+    color: var(--bh-brand);
+    border-color: var(--bh-border-strong);
+    box-shadow: var(--bh-shadow-soft);
+}
+
+.bh-projections-module-header .bh-btn-primary:focus-visible{
+    outline: 2px solid var(--bh-text-inverse);
+    outline-offset: 2px;
+}
+
+.bh-projections-goals-grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-5);
+    align-items: start;
+}
+
+.bh-meta-form-card,
+.bh-meta-list-card{
+    min-width: 0;
+}
+
+.bh-field-help{
+    margin: 0;
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-mode-fieldset{
+    display: grid;
+    gap: var(--bh-space-3);
+    margin: 0;
+    padding: var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background-color: var(--bh-surface-soft);
+}
+
+.bh-meta-mode-fieldset legend{
+    float: none;
+    width: auto;
+    margin-bottom: var(--bh-space-2);
+    padding: 0;
+}
+
+.bh-meta-mode-option{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    cursor: pointer;
+}
+
+.bh-meta-mode-option input{
+    accent-color: var(--bh-brand-strong);
+}
+
+.bh-meta-form-note{
+    padding: var(--bh-space-3) var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background-color: var(--bh-info-soft);
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-normal);
+}
+
+/* Nota de gastos no incluidos en el formulario de hipoteca. */
+.bh-hipoteca-note{
+    display: block;
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-xs);
+    font-weight: var(--bh-weight-medium);
+    line-height: var(--bh-line-normal);
+}
+
+/* Confirmación de lectura: el botón de crear no se habilita hasta marcarla. */
+.bh-hipoteca-confirm{
+    display: flex;
+    align-items: flex-start;
+    gap: var(--bh-space-2);
+    font-size: var(--bh-text-sm);
+    line-height: var(--bh-line-normal);
+    cursor: pointer;
+}
+
+.bh-hipoteca-confirm-input{
+    flex: 0 0 auto;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.15rem;
+    accent-color: var(--bh-brand);
+    cursor: pointer;
+}
+
+.bh-meta-list-header{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-4);
+}
+
+.bh-meta-list-header p{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-meta-list,
+.bh-investment-list,
+.bh-inflation-list,
+.bh-mortgage-list{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--bh-space-4);
+}
+
+.bh-meta-card,
+.bh-inflation-card,
+.bh-mortgage-card{
+    display: grid;
+    gap: var(--bh-space-4);
+    padding: var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-lg);
+    background:
+        linear-gradient(135deg, rgba(233, 244, 236, 0.72), rgba(253, 254, 253, 0.96));
+    transition:
+        border-color var(--bh-transition-base),
+        box-shadow var(--bh-transition-base),
+        transform var(--bh-transition-base);
+}
+
+.bh-meta-card-main{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-3);
+}
+
+.bh-meta-card h3,
+.bh-meta-card h4,
+.bh-investment-card h3,
+.bh-investment-card h4,
+.bh-inflation-card h3,
+.bh-inflation-card h4,
+.bh-mortgage-card h3,
+.bh-mortgage-card h4{
+    margin-bottom: 0;
+    font-size: var(--bh-text-xl);
+}
+
+.bh-meta-title-row{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--bh-space-2);
+}
+
+.bh-meta-projection-badge{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bh-space-1);
+    min-height: 2rem;
+    padding: 0.2rem 0.35rem 0.2rem 0.6rem;
+    border: 1px solid rgba(62, 178, 37, 0.22);
+    border-radius: var(--bh-radius-pill);
+    background-color: var(--bh-success-soft);
+    color: var(--bh-brand-strong);
+    font-family: var(--bh-font-interface);
+    font-size: var(--bh-text-xs);
+    font-weight: var(--bh-weight-bold);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-projection-clear{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bh-radius-pill);
+    background-color: transparent;
+    color: var(--bh-error);
+    font-size: 1.15rem;
+    font-weight: var(--bh-weight-bold);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.bh-meta-projection-clear:hover,
+.bh-meta-projection-clear:focus-visible{
+    background-color: rgba(184, 62, 62, 0.10);
+    outline: none;
+}
+
+.bh-meta-category{
+    margin-bottom: var(--bh-space-1);
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-meta-metrics{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bh-space-3);
+}
+
+.bh-meta-metrics p{
+    display: grid;
+    gap: var(--bh-space-1);
+    margin: 0;
+    padding: var(--bh-space-4);
+    border-radius: var(--bh-radius-md);
+    background-color: rgba(253, 254, 253, 0.82);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-metrics p > span{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: 800;
+}
+
+.bh-meta-metrics strong{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-lg);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-meta-metrics strong span{
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.bh-meta-projection-period{
+    line-height: var(--bh-line-normal);
+}
+
+.bh-editable-value{
+    align-items: center;
+    gap: var(--bh-space-1);
+}
+
+.bh-editable-icon{
+    color: var(--bh-brand-strong);
+    font-size: 0.72rem;
+    line-height: 1;
+    opacity: 1;
+    transition:
+        color var(--bh-transition-base),
+        opacity var(--bh-transition-base),
+        transform var(--bh-transition-fast);
+}
+
+.bh-editable-value:hover .bh-editable-icon,
+.bh-editable-value:focus-visible .bh-editable-icon{
+    color: var(--bh-brand-strong);
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.bh-meta-metrics [data-meta-target-amount],
+.bh-investment-metrics [data-investment-field],
+.bh-inflation-metrics [data-inflacion-field],
+.bh-mortgage-metrics [data-hipoteca-field]{
+    display: inline-flex;
+    width: fit-content;
+    border-radius: var(--bh-radius-sm);
+    cursor: pointer;
+    text-underline-offset: 0.16em;
+    transition:
+        background-color var(--bh-transition-base),
+        box-shadow var(--bh-transition-base);
+}
+
+.bh-meta-metrics [data-meta-target-amount]:hover,
+.bh-meta-metrics [data-meta-target-amount]:focus-visible,
+.bh-investment-metrics [data-investment-field]:hover,
+.bh-investment-metrics [data-investment-field]:focus-visible,
+.bh-inflation-metrics [data-inflacion-field]:hover,
+.bh-inflation-metrics [data-inflacion-field]:focus-visible,
+.bh-mortgage-metrics [data-hipoteca-field]:hover,
+.bh-mortgage-metrics [data-hipoteca-field]:focus-visible{
+    background-color: var(--bh-info-soft);
+    box-shadow: 0 0 0 6px var(--bh-info-soft);
+    outline: none;
+}
+
+.bh-meta-metrics .bh-projection-final-metric{
+    display: grid;
+    gap: var(--bh-space-1);
+    margin: 0;
+    padding: var(--bh-space-4);
+    border: 1px solid rgba(22, 63, 127, 0.16);
+    border-radius: var(--bh-radius-md);
+    background:
+        linear-gradient(90deg, rgba(22, 63, 127, 0.10), rgba(253, 254, 253, 0.88));
+    box-shadow: inset 3px 0 0 rgba(22, 63, 127, 0.26);
+    color: var(--bh-brand-strong);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-metrics .bh-projection-final-metric > span{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: 800;
+}
+
+.bh-meta-metrics .bh-projection-final-metric strong,
+.bh-meta-metrics .bh-projection-final-metric strong span{
+    color: var(--bh-brand-strong);
+}
+
+.bh-meta-metrics .bh-projection-final-metric strong{
+    font-size: var(--bh-text-lg);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-meta-target-inline-input{
+    max-width: 12rem;
+}
+
+.bh-meta-estimation-copy{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-meta-flex-projection{
+    display: grid;
+    gap: var(--bh-space-3);
+    padding-top: var(--bh-space-3);
+    border-top: var(--bh-border-subtle);
+}
+
+.bh-meta-projection-header{
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--bh-space-2);
+}
+
+.bh-meta-projection-title{
+    margin: 0;
+    color: var(--bh-text-main);
+    font-family: var(--bh-font-heading);
+    font-size: var(--bh-text-xl);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-tight);
+}
+
+.bh-meta-projection-copy,
+.bh-meta-projection-result{
+    margin: 0;
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-meta-projection-controls{
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(10rem, 0.8fr);
+    gap: var(--bh-space-4);
+}
+
+.bh-select-shell .bh-select{
+    appearance: none;
+    padding-right: 2.4rem;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+.bh-select-shell .bh-select.is-expense-selected{
+    border-color: rgba(184, 62, 62, 0.34);
+    color: var(--bh-error);
+}
+
+.bh-select-shell .bh-select.is-saving-selected{
+    border-color: rgba(51, 166, 77, 0.34);
+    color: var(--bh-success);
+}
+
+.bh-meta-projection-result{
+    padding: var(--bh-space-3);
+    border-radius: var(--bh-radius-md);
+    background-color: rgba(253, 254, 253, 0.78);
+}
+
+.bh-meta-metrics p.is-projected{
+    border: 1px solid rgba(62, 178, 37, 0.22);
+    background-color: rgba(62, 178, 37, 0.10);
+    box-shadow: inset 0 0 0 1px rgba(253, 254, 253, 0.72);
+}
+
+.bh-meta-metrics p.is-projected span{
+    color: var(--bh-brand-strong);
+}
+
+.bh-meta-projection-improvement{
+    margin-left: var(--bh-space-2);
+    color: var(--bh-success);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-meta-actions{
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: flex-start;
+    gap: var(--bh-space-3);
+    border-top: var(--bh-border-subtle);
+    padding-top: var(--bh-space-3);
+}
+
+.bh-meta-delete-form{
+    display: flex;
+    grid-column: 3;
+    grid-row: 1;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.bh-meta-empty-state{
+    max-width: none;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.bh-projections-investments{
+    margin-top: var(--bh-space-7);
+}
+
+.bh-projections-investments-grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-5);
+    align-items: start;
+}
+
+.bh-investment-form-card,
+.bh-investment-list-card{
+    min-width: 0;
+}
+
+.bh-investment-list{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--bh-space-4);
+}
+
+.bh-investment-card{
+    display: grid;
+    gap: var(--bh-space-4);
+    padding: var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-lg);
+    background:
+        radial-gradient(circle at top right, rgba(62, 178, 37, 0.10), transparent 14rem),
+        linear-gradient(135deg, rgba(253, 254, 253, 0.96), rgba(233, 244, 236, 0.70));
+    transition:
+        border-color var(--bh-transition-base),
+        box-shadow var(--bh-transition-base),
+        transform var(--bh-transition-base);
+}
+
+.bh-meta-card:hover,
+.bh-meta-card:focus-within,
+.bh-investment-card:hover,
+.bh-investment-card:focus-within,
+.bh-inflation-card:hover,
+.bh-inflation-card:focus-within,
+.bh-mortgage-card:hover,
+.bh-mortgage-card:focus-within{
+    border-color: rgba(22, 63, 127, 0.22);
+    box-shadow: 0 18px 38px rgba(22, 63, 127, 0.10);
+    transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce){
+    .bh-meta-card,
+    .bh-investment-card,
+    .bh-inflation-card,
+    .bh-mortgage-card{
+        transition: none;
+    }
+
+    .bh-meta-card:hover,
+    .bh-meta-card:focus-within,
+    .bh-investment-card:hover,
+    .bh-investment-card:focus-within,
+    .bh-inflation-card:hover,
+    .bh-inflation-card:focus-within,
+    .bh-mortgage-card:hover,
+    .bh-mortgage-card:focus-within{
+        transform: none;
+    }
+}
+
+.bh-investment-card-copy{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-investment-metrics,
+.bh-inflation-metrics,
+.bh-mortgage-metrics{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Destaca la entrada: es el dato clave nuevo (dinero que aporta el usuario). */
+.bh-mortgage-metrics .bh-mortgage-metric-highlight{
+    background-color: var(--bh-info-soft);
+    box-shadow: inset 0 0 0 1px var(--bh-info-soft);
+}
+
+/* Etiqueta "Ahorros necesarios" + icono de información que abre el modal explicativo. */
+.bh-mortgage-metrics .bh-mortgage-metric-label{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bh-space-1);
+}
+
+.bh-mortgage-metrics .bh-metric-info-btn{
+    border: 0;
+    padding: 0;
+    background-color: transparent;
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-base);
+    line-height: 1;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+/* Fila etiqueta + icono de información dentro de un campo de formulario. */
+.bh-field-label-row{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bh-space-1);
+}
+
+.bh-field-label-row .bh-metric-info-btn{
+    border: 0;
+    padding: 0;
+    background-color: transparent;
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-base);
+    line-height: 1;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.bh-investment-inline-input{
+    max-width: 8rem;
+}
+
+.bh-investment-delete-form,
+.bh-inflation-delete-form,
+.bh-mortgage-delete-form{
+    grid-column: auto;
+    grid-row: auto;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.bh-projections-inflation,
+.bh-projections-mortgage{
+    margin-top: var(--bh-space-7);
+}
+
+.bh-projections-inflation-grid,
+.bh-projections-mortgage-grid{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--bh-space-5);
+    align-items: start;
+}
+
+.bh-inflation-form-card,
+.bh-inflation-list-card,
+.bh-mortgage-list-card{
+    min-width: 0;
+}
+
+.bh-inflation-form{
+    grid-template-columns: minmax(10rem, 1.1fr) minmax(10rem, 1fr) minmax(8rem, 0.8fr) auto;
+    align-items: end;
+}
+
+.bh-inflation-help,
+.bh-inflation-form [data-inflation-error],
+.bh-inflation-result-panel{
+    grid-column: 1 / -1;
+}
+
+.bh-inflation-actions{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--bh-space-3);
+}
+
+.bh-inflation-result-panel{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-4);
+    margin-top: var(--bh-space-2);
+    padding: var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background:
+        radial-gradient(circle at top right, rgba(22, 63, 127, 0.10), transparent 14rem),
+        linear-gradient(135deg, rgba(253, 254, 253, 0.98), rgba(233, 244, 236, 0.76));
+}
+
+.bh-inflation-result-panel[hidden]{
+    display: none;
+}
+
+.bh-inflation-result-header{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bh-space-4);
+}
+
+.bh-inflation-result-copy{
+    display: grid;
+    gap: var(--bh-space-3);
+    min-width: 0;
+}
+
+.bh-inflation-result-header p{
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-inflation-metrics{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bh-inflation-metrics p{
+    grid-column: auto;
+    max-width: none;
+}
+
+.bh-inflation-summary{
+    padding-top: var(--bh-space-3);
+    border-top: var(--bh-border-subtle);
+    color: var(--bh-brand-strong);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-projections-offcanvas{
+    width: min(100%, 34rem);
+    background-color: var(--bh-surface-page);
+    color: var(--bh-text-main);
+}
+
+.bh-projections-offcanvas .offcanvas-header{
+    align-items: flex-start;
+    padding: var(--bh-space-4);
+    border-bottom: var(--bh-border-subtle);
+    background-color: var(--bh-surface-card);
+}
+
+.bh-projections-offcanvas .offcanvas-title{
+    color: var(--bh-text-main);
+    font-family: var(--bh-font-heading);
+    font-size: var(--bh-text-xl);
+    font-weight: var(--bh-weight-semibold);
+}
+
+/* Titular informativo del sistema de amortización, encima del primer campo. */
+.bh-amortizacion-titular-text{
+    color: var(--bh-brand-strong);
+    font-family: var(--bh-font-heading);
+    font-size: var(--bh-text-md);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-projections-offcanvas .offcanvas-body{
+    padding: var(--bh-space-4);
+}
+
+.bh-projections-goals .bh-label,
+.bh-projections-investments .bh-label,
+.bh-projections-inflation .bh-label,
+.bh-projections-offcanvas .bh-label{
+    color: var(--bh-brand-strong);
+    font-weight: 800;
+}
+
+.bh-projections-goals .bh-input,
+.bh-projections-goals .bh-select,
+.bh-projections-investments .bh-input,
+.bh-projections-investments .bh-select,
+.bh-projections-inflation .bh-input,
+.bh-projections-offcanvas .bh-input,
+.bh-projections-offcanvas .bh-select{
+    color: var(--bh-brand-strong);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-projections-goals .bh-input::placeholder,
+.bh-projections-investments .bh-input::placeholder,
+.bh-projections-inflation .bh-input::placeholder,
+.bh-projections-offcanvas .bh-input::placeholder{
+    color: rgba(22, 63, 127, 0.68);
+}
+
+.bh-projections-hero{
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-4);
+}
+
+.bh-projections-savings-breakdown p{
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--bh-space-1);
+}
+
+.bh-projections-section-intro .bh-card-body{
+    grid-template-columns: 1fr;
+}
+
+.bh-projections-section-intro .bh-btn{
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+}
+
+.bh-meta-list-header,
+.bh-meta-card-main,
+.bh-inflation-result-header{
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.bh-inflation-form,
+.bh-meta-projection-controls,
+.bh-meta-actions,
+.bh-meta-metrics,
+.bh-meta-list,
+.bh-investment-list,
+.bh-inflation-list,
+.bh-mortgage-list,
+.bh-investment-metrics,
+.bh-inflation-metrics,
+.bh-mortgage-metrics{
+    grid-template-columns: 1fr;
+}
+
+.bh-meta-delete-form{
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    justify-self: stretch;
+}
+
+.bh-projections-module-header{
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.bh-meta-delete-form .bh-btn,
+.bh-meta-form-card .bh-btn,
+.bh-investment-form-card .bh-btn,
+.bh-projections-module-header .bh-btn,
+.bh-projections-section-intro .bh-btn,
+.bh-inflation-form-card .bh-btn,
+.bh-projections-offcanvas .bh-btn{
+    width: 100%;
+}
+
+.bh-investment-delete-form,
+.bh-inflation-delete-form,
+.bh-mortgage-delete-form{
+    width: 100%;
+}
+
+@media (min-width: 576px){
+    .bh-projections-offcanvas .offcanvas-header,
+    .bh-projections-offcanvas .offcanvas-body{
+        padding: var(--bh-space-5);
+    }
+
+    .bh-meta-list-header,
+    .bh-meta-card-main,
+    .bh-inflation-result-header{
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .bh-inflation-form{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bh-inflation-actions{
+        grid-column: 1 / -1;
+    }
+
+    .bh-meta-projection-controls{
+        grid-template-columns: minmax(0, 1.2fr) minmax(10rem, 0.8fr);
+    }
+
+    .bh-meta-actions{
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .bh-meta-delete-form{
+        grid-column: 3;
+        grid-row: 1;
+        width: auto;
+        justify-self: auto;
+    }
+
+    .bh-meta-metrics,
+    .bh-meta-list,
+    .bh-investment-list,
+    .bh-inflation-list,
+    .bh-mortgage-list,
+    .bh-investment-metrics,
+    .bh-inflation-metrics,
+    .bh-mortgage-metrics{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bh-projections-module-header{
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .bh-meta-delete-form .bh-btn,
+    .bh-meta-form-card .bh-btn,
+    .bh-investment-form-card .bh-btn,
+    .bh-projections-module-header .bh-btn,
+    .bh-projections-section-intro .bh-btn,
+    .bh-inflation-form-card .bh-btn,
+    .bh-projections-offcanvas .bh-btn{
+        width: auto;
+    }
+
+    .bh-investment-delete-form,
+    .bh-inflation-delete-form,
+    .bh-mortgage-delete-form{
+        width: auto;
+    }
+}
+
+@media (min-width: 768px){
+    .bh-projections-hero{
+        grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+        gap: var(--bh-space-5);
+    }
+
+    .bh-projections-savings-breakdown p{
+        align-items: center;
+        flex-direction: row;
+        gap: var(--bh-space-3);
+    }
+}
+
+@media (min-width: 992px){
+    .bh-inflation-form{
+        grid-template-columns: minmax(10rem, 1.1fr) minmax(10rem, 1fr) minmax(8rem, 0.8fr) auto;
+    }
+
+    .bh-inflation-actions{
+        grid-column: auto;
+    }
+
+    .bh-projections-section-intro .bh-card-body{
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .bh-projections-section-intro .bh-btn{
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        justify-self: auto;
+    }
+}

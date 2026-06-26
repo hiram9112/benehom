@@ -52,6 +52,6 @@ function bh_auth_end(): void
     bh_document_end([
         'include_bootstrap_js' => (bool) $includeBootstrapJs,
         'include_flash_js' => true,
-        'body_end_extra' => '    <script src="' . BASE_URL . 'js/password-toggle.js?v=' . time() . '"></script>' . PHP_EOL,
+        'body_end_extra' => '    <script src="' . bh_asset('js/password-toggle.js') . '"></script>' . PHP_EOL,
     ]);
 }

@@ -66,22 +66,24 @@ class Gasto{
 
     }
 
-    //Método para eliminar un gasto
-    public static function eliminarGasto($id){
+    //Método para eliminar un gasto propio del usuario (mitiga IDOR)
+    public static function eliminarGasto($id,$usuario_id){
 
         try{
             //Establecemos conexión con la base de datos
             $db=Database::getConnection();
-            
+
             //Preparamos la consulta usando marcadores para mayor seguridad
-            $stmt=$db->prepare("DELETE FROM gastos WHERE id= :id");
+            $stmt=$db->prepare("DELETE FROM gastos WHERE id= :id AND usuario_id= :usuario_id");
 
             //Vinculamos los parametros
             $stmt->bindParam(':id',$id,PDO::PARAM_INT);
-            
-            //ejecutamos consulta
-            return $stmt->execute();
-            
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+
+            //ejecutamos consulta y comprobamos que afectó a un movimiento propio
+            $stmt->execute();
+            return $stmt->rowCount()>0;
+
         }catch(PDOException $e){
             return false;
         }
@@ -89,23 +91,25 @@ class Gasto{
     }
 
 
-    //Método para actualizar un gasto
-    public static function actualizarGasto($id,$cantidad){
+    //Método para actualizar un gasto propio del usuario (mitiga IDOR)
+    public static function actualizarGasto($id,$usuario_id,$cantidad){
 
         try{
             //Establecemos conexión con la base de datos
             $db=Database::getConnection();
 
             //Preparamos la consulta usando marcadores para mayor seguridad
-            $stmt=$db->prepare("UPDATE gastos SET cantidad= :cantidad WHERE id= :id");
+            $stmt=$db->prepare("UPDATE gastos SET cantidad= :cantidad WHERE id= :id AND usuario_id= :usuario_id");
 
             //Vinculamos los parametros
             $stmt->bindParam(':id',$id,PDO::PARAM_INT);
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
             $stmt->bindParam(':cantidad',$cantidad);
-            
-            //ejecutamos consulta
-            return $stmt->execute();
-            
+
+            //ejecutamos consulta y comprobamos que afectó a un movimiento propio
+            $stmt->execute();
+            return $stmt->rowCount()>0;
+
         }catch(PDOException $e){
             return false;
         }

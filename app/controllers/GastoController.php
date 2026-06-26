@@ -90,23 +90,23 @@ class GastoController{
             return;
         }
 
-        //Recogemos el id enviado 
-        $id=$_POST['id']??null;
+        //Recogemos el id enviado y el usuario autenticado
+        $usuario_id=$_SESSION['usuario_id'];
+        $id=isset($_POST['id']) ? intval($_POST['id']) : 0;
 
-        //Comprobamos que lo hayamos recibido correctamente esto a su vez nos permite sabe que hay sesión activa
-        if(!$id){
+        if($id<=0){
             echo json_encode(['ok'=>false,'msg'=>'ID no recibido']);
             return;
         }
 
-        //Ejecutamos la función correspondiente
-        $resultado=Gasto::eliminarGasto($id);
+        //Ejecutamos la función correspondiente, que valida propiedad por usuario_id
+        $resultado=Gasto::eliminarGasto($id,$usuario_id);
 
         if($resultado){
             echo json_encode(['ok'=>true]);
         }else{
-            echo json_encode(['ok'=>false,'msg'=>'No se pudo eliminar']);
-        }       
+            echo json_encode(['ok'=>false,'msg'=>'No se encontró el gasto o no tienes permiso para eliminarlo']);
+        }
     }
 
 
@@ -130,13 +130,14 @@ class GastoController{
             return;
         }
 
-        //Validamos que los campos existan 
+        //Validamos que los campos existan
         if(!isset($_POST['id'],$_POST['cantidad'])){
             echo json_encode(['ok'=> false, 'msg'=>'Datos incompletos']);
             return;
         }
 
         //Limpiamos y convertimos los datos
+        $usuario_id=$_SESSION['usuario_id'];
         $id=intval($_POST['id']);
         $cantidad=floatval($_POST['cantidad']);
 
@@ -146,15 +147,15 @@ class GastoController{
             return;
         }
 
-        //Cargamos el modelo y ejecutamos la fución correspondiente
-        $resultado=Gasto::actualizarGasto($id,$cantidad);
+        //Cargamos el modelo y ejecutamos la fución correspondiente, que valida propiedad por usuario_id
+        $resultado=Gasto::actualizarGasto($id,$usuario_id,$cantidad);
 
         //COmprobamos si todo fue bien con la actualización
         if($resultado){
             echo json_encode(['ok'=>true]);
         }else{
-            echo json_encode(['ok'=> false,'msg'=>'No se pudo actualizar']);
-        }        
+            echo json_encode(['ok'=> false,'msg'=>'No se encontró el gasto o no tienes permiso para actualizarlo']);
+        }
     }
 
 

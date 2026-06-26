@@ -77,6 +77,8 @@ if ($appEnv === 'production') {
 
 require_once APP_PATH . "/helpers/utils.php";
 
+bh_security_headers();
+
 
 //*************************************************SEGURIDAD GLOBAL (CSRF)
 

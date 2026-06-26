@@ -165,6 +165,58 @@ function bh_css_tags(): string
     return implode(PHP_EOL, $tags) . PHP_EOL;
 }
 
+function bh_csp_nonce(): string
+{
+    static $nonce = null;
+
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(16));
+    }
+
+    return $nonce;
+}
+
+function bh_nonce_attr(): string
+{
+    return ' nonce="' . htmlspecialchars(bh_csp_nonce(), ENT_QUOTES, 'UTF-8') . '"';
+}
+
+function bh_security_headers(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+
+    $nonce = bh_csp_nonce();
+    $directives = [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+        "img-src 'self' data:",
+        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
+        "connect-src 'self'",
+        "upgrade-insecure-requests",
+    ];
+
+    header('Content-Security-Policy: ' . implode('; ', $directives));
+
+    $appEnv = $_ENV['APP_ENV'] ?? 'local';
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+
+    if ($appEnv === 'production' && $isHttps) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+    }
+}
+
 function bh_blog_url(string $slug = ''): string
 {
     $slug = trim($slug, '/');

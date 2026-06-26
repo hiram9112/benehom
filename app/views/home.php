@@ -1,8 +1,9 @@
 <?php
 require_once APP_PATH . '/views/partials/head.php';
 
-$bhHomeHeadExtra = <<<'HTML'
-    <script>
+ob_start();
+?>
+    <script<?= bh_nonce_attr() ?>>
         (function() {
             var d = document.documentElement;
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -16,7 +17,8 @@ $bhHomeHeadExtra = <<<'HTML'
             }, 4000);
         })();
     </script>
-HTML;
+<?php
+$bhHomeHeadExtra = ob_get_clean();
 
 $bhHomeDescription = 'BeneHom te ayuda a mirar tu economía con perspectiva: entender tus gastos, descubrir tu margen real y comprobar con números cómo cada decisión te acerca o te aleja de tus objetivos.';
 $bhHomeJsonLd = [

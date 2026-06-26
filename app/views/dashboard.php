@@ -823,14 +823,14 @@ HTML,
     <!-- Locale ------ español-->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <!--Enlazamos con nuestros arvhicos js-->
-    <script src="<?= BASE_URL ?>js/validaciones.js"></script>
-    <script src="<?= BASE_URL ?>js/dashboard-graficos.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>js/dashboard-edicion.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>js/dashboard-categorias.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>js/dashboard-formularios.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>js/dashboard-utils.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>js/dashboard-dom.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>js/dashboard.js?v=<?= time() ?>"></script>
+    <script src="<?= bh_asset('js/validaciones.js') ?>"></script>
+    <script src="<?= bh_asset('js/dashboard-graficos.js') ?>"></script>
+    <script src="<?= bh_asset('js/dashboard-edicion.js') ?>"></script>
+    <script src="<?= bh_asset('js/dashboard-categorias.js') ?>"></script>
+    <script src="<?= bh_asset('js/dashboard-formularios.js') ?>"></script>
+    <script src="<?= bh_asset('js/dashboard-utils.js') ?>"></script>
+    <script src="<?= bh_asset('js/dashboard-dom.js') ?>"></script>
+    <script src="<?= bh_asset('js/dashboard.js') ?>"></script>
 <?php
 $bhDashboardBodyEndExtra = ob_get_clean();
 

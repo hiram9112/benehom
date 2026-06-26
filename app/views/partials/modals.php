@@ -6,7 +6,7 @@
  * Una única plantilla para todos los modales centrados del proyecto, de modo
  * que la información se muestre siempre igual: mismo tamaño, misma tipografía
  * (legible) y misma estructura (cabecera + cuerpo + pie). El estilo vive en
- * las clases bh-modal* de public/css/custom.css.
+ * las clases bh-modal* de public/css/src/components.css.
  *
  * Uso típico (modal informativo):
  *   bh_info_modal('infoIngresos', '¿Qué son los ingresos?', '<p>...</p>');

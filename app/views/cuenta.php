@@ -228,8 +228,8 @@ bh_document_begin([
     ]);
     ?>
 <?php ob_start(); ?>
-    <script src="<?= BASE_URL ?>js/password-toggle.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>js/cuenta.js?v=<?= time() ?>"></script>
+    <script src="<?= bh_asset('js/password-toggle.js') ?>"></script>
+    <script src="<?= bh_asset('js/cuenta.js') ?>"></script>
 <?php
 $bhCuentaBodyEndExtra = ob_get_clean();
 

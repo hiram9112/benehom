@@ -79,6 +79,40 @@ require_once APP_PATH . "/helpers/utils.php";
 
 bh_security_headers();
 
+//***********************************************TIMEOUT DE SESIÓN POR INACTIVIDAD
+
+$sessionIdleTimeout = (int) ($_ENV['SESSION_IDLE_TIMEOUT'] ?? 1800);
+
+if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
+    $lastActivity = (int) ($_SESSION['last_activity'] ?? time());
+
+    if ($lastActivity < (time() - $sessionIdleTimeout)) {
+        $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
+        }
+
+        session_destroy();
+        session_start();
+
+        $_SESSION['mensaje_error'] = 'Tu sesión ha caducado por inactividad. Vuelve a iniciar sesión.';
+        header("Location: " . BASE_URL . "index.php?r=auth/login");
+        exit;
+    }
+
+    $_SESSION['last_activity'] = time();
+}
+
 
 //*************************************************SEGURIDAD GLOBAL (CSRF)
 

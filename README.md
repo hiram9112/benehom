@@ -145,6 +145,8 @@ BeneHom incluye medidas básicas de seguridad para una aplicación web con auten
 - Protección CSRF en formularios POST.
 - Hash seguro de contraseñas.
 - Tokens seguros para recuperación de contraseña.
+- Rate limiting por email normalizado en login y recuperación de contraseña.
+- Timeout de sesión por inactividad.
 - Cookies de sesión con `HttpOnly` y `SameSite=Lax`.
 - Separación de credenciales mediante variables de entorno.
 - Control de acceso para rutas privadas.
@@ -214,6 +216,7 @@ Queda fuera de esta fase:
 | `DB_PASS` | Contraseña de la base de datos |
 | `APP_ENV` | Entorno de ejecución: `local` o `production` |
 | `APP_URL` | URL base de la aplicación |
+| `SESSION_IDLE_TIMEOUT` | Segundos de inactividad antes de cerrar la sesión, por defecto `1800` |
 | `SMTP_USER` | Usuario SMTP para recuperación de contraseña |
 | `SMTP_PASS` | Contraseña SMTP |
 

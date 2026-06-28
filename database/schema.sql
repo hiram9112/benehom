@@ -85,3 +85,15 @@ CREATE TABLE calculadoras_hipoteca (
   CONSTRAINT calculadoras_hipoteca_usuario_fk
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE intentos_acceso (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  accion VARCHAR(40) NOT NULL,
+  clave_hash CHAR(64) NOT NULL,
+  intentos INT NOT NULL DEFAULT 0,
+  primer_intento DATETIME NOT NULL,
+  ultimo_intento DATETIME NOT NULL,
+  bloqueado_hasta DATETIME NULL,
+  UNIQUE KEY intentos_acceso_accion_clave_unique (accion, clave_hash),
+  KEY intentos_acceso_bloqueado_hasta_idx (bloqueado_hasta)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

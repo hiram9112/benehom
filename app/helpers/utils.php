@@ -192,6 +192,8 @@ function bh_security_headers(): void
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
 
+    $appEnv = $_ENV['APP_ENV'] ?? 'local';
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
     $nonce = bh_csp_nonce();
     $directives = [
         "default-src 'self'",
@@ -204,13 +206,13 @@ function bh_security_headers(): void
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
         "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
         "connect-src 'self'",
-        "upgrade-insecure-requests",
     ];
 
-    header('Content-Security-Policy: ' . implode('; ', $directives));
+    if ($isHttps) {
+        $directives[] = 'upgrade-insecure-requests';
+    }
 
-    $appEnv = $_ENV['APP_ENV'] ?? 'local';
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    header('Content-Security-Policy: ' . implode('; ', $directives));
 
     if ($appEnv === 'production' && $isHttps) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');

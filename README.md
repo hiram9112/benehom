@@ -76,6 +76,15 @@ Crea el archivo de entorno:
 cp .env.example .env
 ```
 
+En desarrollo local, si Apache/PHP lee archivos como `www-data`, mantén `.env` editable por tu usuario y legible por el runtime PHP sin abrirlo en exceso:
+
+```bash
+chgrp www-data .env
+chmod 640 .env
+```
+
+No cambies el propietario local de `.env` a `www-data` si eso dificulta editarlo durante el desarrollo. El propietario recomendado en local es tu usuario de desarrollo y el grupo debe ser compatible con el usuario que ejecuta PHP.
+
 Configura las variables de entorno:
 
 ```env
@@ -86,7 +95,7 @@ DB_USER=usuario
 DB_PASS=contraseña
 
 APP_ENV=local
-APP_URL=http://localhost/benehom/public/
+APP_URL=http://benehom.local/
 
 SMTP_USER=user_smtp
 SMTP_PASS=contraseña_smtp
@@ -111,12 +120,28 @@ Usuario demo incluido en `database/seed.sql`:
 
 ## Ejecución local
 
-Configura el servidor web para servir la aplicación desde el directorio `public/`.
+Configura el servidor web para servir la aplicación desde el directorio `public/`. En Apache local, la arquitectura recomendada replica producción con un VirtualHost propio:
+
+```apache
+<VirtualHost *:80>
+    ServerName benehom.local
+    ServerAlias www.benehom.local
+    DocumentRoot /var/www/html/benehom/public
+
+    <Directory /var/www/html/benehom/public>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+Añade `benehom.local` a `/etc/hosts`, activa el sitio y recarga Apache. La raíz pública debe ser siempre `public/`; `app/`, `config/`, `database/`, `vendor/` y `.env` no deben ser accesibles por URL.
 
 La aplicación usa rutas mediante el parámetro `r`, por ejemplo:
 
 ```text
-http://localhost/benehom/public/index.php?r=home/index
+http://benehom.local/index.php?r=home/index
 ```
 
 Si usas un entorno como XAMPP o MAMP, asegúrate de que el proyecto tenga acceso a PHP, MySQL y al archivo `.env`.
@@ -151,6 +176,12 @@ BeneHom incluye medidas básicas de seguridad para una aplicación web con auten
 - Separación de credenciales mediante variables de entorno.
 - Control de acceso para rutas privadas.
 - Sanitización de salida HTML en puntos relevantes.
+
+### Secretos y raíz pública
+
+En local, `.env` puede mantenerse propiedad del usuario de desarrollo para no romper el flujo de trabajo. Si Apache/PHP necesita leerlo como `www-data`, usa un grupo compatible y permisos razonables, por ejemplo `hiram9112:www-data` con `640`.
+
+En producción, especialmente en Hostinger, el despliegue correcto es mantener `public_html` con el contenido de `public/` y dejar `.env`, `app/`, `config/`, `database/` y `vendor/` fuera de la raíz pública. El `.env` de producción debe tener permisos estrictos, preferiblemente `600`, y pertenecer al usuario efectivo que ejecuta PHP en ese entorno. Revisa o aplica esos permisos desde SSH, SFTP o el administrador de archivos de Hostinger; no asumas que los permisos locales se trasladan automáticamente al hosting.
 
 ## Análisis estático
 

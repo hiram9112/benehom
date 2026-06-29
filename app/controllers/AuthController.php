@@ -65,7 +65,7 @@ class AuthController {
                 //Verificamos si el usuario existe y la contraseña coincide
                 if($user && password_verify($password,$user['password'])){
 
-                    if (empty($user['email_verificado_en'])) {
+                    if (!$this->emailVerificadoParaLogin($user)) {
                         IntentoAcceso::limpiar('login', $claveRateLimit);
 
                         $_SESSION['mensaje_error'] =
@@ -141,6 +141,11 @@ class AuthController {
         // Redirigir al login
         header("Location: " . BASE_URL . "index.php?r=home/index");
         exit;
+    }
+
+    protected function emailVerificadoParaLogin(array $user): bool
+    {
+        return !empty($user['email_verificado_en']);
     }
 
 }

@@ -322,7 +322,7 @@ function csrf_validate(): bool
  * Local: log
  * Producción: PGPMailer()
  */
-function enviarEmailReset(string $email, string $resetLink): void
+function enviarEmailReset(string $email, string $resetLink): bool
 {
     $appEnv = $_ENV['APP_ENV'] ?? 'local';
 
@@ -332,36 +332,38 @@ function enviarEmailReset(string $email, string $resetLink): void
     $subject = 'Recuperación de contraseña - BeneHom';
 
     if ($appEnv === 'production') {
+        try {
 
-        $autoloadPath = BASE_PATH . '/vendor/autoload.php';
+            $autoloadPath = BASE_PATH . '/vendor/autoload.php';
 
-        if (file_exists($autoloadPath)) {
-            require_once $autoloadPath;
-        }
+            if (file_exists($autoloadPath)) {
+                require_once $autoloadPath;
+            }
 
-        if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
-            throw new RuntimeException('PHPMailer no está disponible. Ejecuta composer install.');
-        }
+            if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+                error_log('[MAILER][RESET] PHPMailer no disponible.');
+                return false;
+            }
 
-        $mail = new \PHPMailer\PHPMailer\PHPMailer();
+            $mail = new \PHPMailer\PHPMailer\PHPMailer();
 
-        $mail->CharSet = 'UTF-8';
+            $mail->CharSet = 'UTF-8';
 
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = $_ENV['SMTP_USER'];
-        $mail->Password   = $_ENV['SMTP_PASS'];
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['SMTP_USER'];
+            $mail->Password   = $_ENV['SMTP_PASS'];
+            $mail->SMTPSecure = 'tls';
+            $mail->Port       = 587;
 
-        $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
-        $mail->addAddress($email);
+            $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
+            $mail->addAddress($email);
 
-        $mail->isHTML(true);
-        $mail->Subject = $subject;
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
 
-        $mail->Body = "
+            $mail->Body = "
             <p>Hola,</p>
             <p>Has solicitado restablecer tu contraseña.</p>
             <p><strong>Enlace (válido 30 minutos):</strong></p>
@@ -372,16 +374,109 @@ function enviarEmailReset(string $email, string $resetLink): void
             <p>— Equipo de BeneHom</p>
         ";
 
-        $mail->AltBody =
-            "Hola,\n\n" .
-            "Has solicitado restablecer tu contraseña.\n\n" .
-            "Enlace (válido 30 minutos):\n" .
-            $resetLink . "\n\n" .
-            "Si no lo solicitaste, ignora este mensaje.\n\n" .
-            "— Equipo de BeneHom";
+            $mail->AltBody =
+                "Hola,\n\n" .
+                "Has solicitado restablecer tu contraseña.\n\n" .
+                "Enlace (válido 30 minutos):\n" .
+                $resetLink . "\n\n" .
+                "Si no lo solicitaste, ignora este mensaje.\n\n" .
+                "— Equipo de BeneHom";
 
-        $mail->send();
+            if (!$mail->send()) {
+                error_log('[MAILER][RESET] No se pudo enviar el email de recuperación.');
+                return false;
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            error_log('[MAILER][RESET] Error enviando email de recuperación: ' . $e->getMessage());
+            return false;
+        }
     } else {
         error_log('[DEV][RESET LINK] ' . $resetLink);
+        return true;
+    }
+}
+
+/**
+ * Envía email de verificación de cuenta
+ * Local: log
+ * Producción: PHPMailer()
+ */
+function enviarEmailVerificacion(string $email, string $verificationLink): bool
+{
+    $appEnv = $_ENV['APP_ENV'] ?? 'local';
+
+    if (!preg_match('#^https?://#i', $verificationLink)) {
+        $verificationLink = rtrim($_ENV['APP_URL'], '/') . $verificationLink;
+    }
+
+    $subject = 'Verifica tu correo - BeneHom';
+    $safeLink = htmlspecialchars($verificationLink, ENT_QUOTES, 'UTF-8');
+
+    if ($appEnv === 'production') {
+        try {
+
+            $autoloadPath = BASE_PATH . '/vendor/autoload.php';
+
+            if (file_exists($autoloadPath)) {
+                require_once $autoloadPath;
+            }
+
+            if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+                error_log('[MAILER][VERIFY] PHPMailer no disponible.');
+                return false;
+            }
+
+            $mail = new \PHPMailer\PHPMailer\PHPMailer();
+
+            $mail->CharSet = 'UTF-8';
+
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['SMTP_USER'];
+            $mail->Password   = $_ENV['SMTP_PASS'];
+            $mail->SMTPSecure = 'tls';
+            $mail->Port       = 587;
+
+            $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
+            $mail->addAddress($email);
+
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+
+            $mail->Body = "
+            <p>Hola,</p>
+            <p>Gracias por crear tu cuenta en BeneHom.</p>
+            <p><strong>Verifica tu correo con este enlace (válido 30 minutos):</strong></p>
+            <p>
+                <a href='{$safeLink}'>{$safeLink}</a>
+            </p>
+            <p>Si no creaste esta cuenta, ignora este mensaje.</p>
+            <p>— Equipo de BeneHom</p>
+        ";
+
+            $mail->AltBody =
+                "Hola,\n\n" .
+                "Gracias por crear tu cuenta en BeneHom.\n\n" .
+                "Verifica tu correo con este enlace (válido 30 minutos):\n" .
+                $verificationLink . "\n\n" .
+                "Si no creaste esta cuenta, ignora este mensaje.\n\n" .
+                "— Equipo de BeneHom";
+
+            if (!$mail->send()) {
+                error_log('[MAILER][VERIFY] No se pudo enviar el email de verificación.');
+                return false;
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            error_log('[MAILER][VERIFY] Error enviando email de verificación: ' . $e->getMessage());
+            return false;
+        }
+    } else {
+        error_log('[DEV][VERIFY LINK] ' . $verificationLink);
+        return true;
     }
 }

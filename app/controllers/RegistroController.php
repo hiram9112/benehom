@@ -58,6 +58,8 @@ class RegistroController{
             //Intentamos registrar el usuario
             try {
 
+                $email = strtolower($email);
+
                 $registrado = Usuario::registrar($usuario, $email, $password);
             } catch (PDOException $e) {
 
@@ -75,8 +77,41 @@ class RegistroController{
             // Resultado esperado
             if ($registrado) {
 
+                $usuarioRegistrado = Usuario::obtenerUsuario($email);
+
+                if (!$usuarioRegistrado) {
+                    $_SESSION['mensaje_error'] =
+                        'No se pudo preparar la verificación del email. Solicita un nuevo enlace.';
+
+                    header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+                    exit;
+                }
+
+                $token = bin2hex(random_bytes(32));
+                $tokenHash = hash('sha256', $token);
+                $expira = date('Y-m-d H:i:s', time() + 1800);
+
+                $guardado = Usuario::guardarTokenVerificacion($usuarioRegistrado['id'], $tokenHash, $expira);
+
+                if (!$guardado) {
+                    $_SESSION['mensaje_error'] =
+                        'No se pudo preparar la verificación del email. Solicita un nuevo enlace.';
+
+                    header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+                    exit;
+                }
+
+                $verificationLink = bh_url('index.php?r=verificacion/verificar&token=' . urlencode($token));
+
+                if (!enviarEmailVerificacion($usuarioRegistrado['email'], $verificationLink)) {
+                    $_SESSION['mensaje_error'] = 'No se pudo enviar el email de verificación. Solicita un nuevo enlace.';
+
+                    header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+                    exit;
+                }
+
                 $_SESSION['mensaje_exitoso'] =
-                    "Se ha completado el registro.<br> Ahora puedes iniciar sesión.";
+                    "Te hemos enviado un enlace de verificación a tu correo. Verifícalo antes de iniciar sesión.";
 
                 header("Location: " . BASE_URL . "index.php?r=auth/login");
                 exit;

@@ -5,7 +5,10 @@ CREATE TABLE usuarios (
   password VARCHAR(255) NOT NULL,
   fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   reset_token_hash VARCHAR(255) NULL,
-  reset_token_expires_at DATETIME NULL
+  reset_token_expires_at DATETIME NULL,
+  email_verificado_en DATETIME NULL,
+  email_verification_token_hash VARCHAR(255) NULL,
+  email_verification_expires_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

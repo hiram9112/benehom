@@ -211,6 +211,72 @@ class Usuario{
         }
     }
 
+    // Guarda el token de verificación de email
+    public static function guardarTokenVerificacion($idUsuario, $tokenHash, $fechaExpiracion){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "UPDATE usuarios
+                SET email_verification_token_hash = :token_hash,
+                    email_verification_expires_at = :expires_at
+                WHERE id = :id";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':token_hash', $tokenHash, PDO::PARAM_STR);
+            $stmt->bindParam(':expires_at', $fechaExpiracion);
+            $stmt->bindParam(':id', $idUsuario, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        }
+        catch(PDOException $e){
+            return false;
+        }
+    }
+
+    // Obtiene un usuario con token de verificación válido y pendiente
+    public static function obtenerUsuarioPorTokenVerificacion($tokenHash){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "SELECT * FROM usuarios
+                WHERE email_verification_token_hash = :token_hash
+                AND email_verification_expires_at > NOW()
+                AND email_verificado_en IS NULL";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':token_hash', $tokenHash, PDO::PARAM_STR);
+            $stmt->execute();
+
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $resultado ? $resultado : false;
+        }
+        catch(PDOException $e){
+            return false;
+        }
+    }
+
+    // Marca el email como verificado y limpia el token usado
+    public static function marcarEmailVerificado($idUsuario){
+        try{
+            $db = Database::getConnection();
+
+            $sql = "UPDATE usuarios
+                SET email_verificado_en = NOW(),
+                    email_verification_token_hash = NULL,
+                    email_verification_expires_at = NULL
+                WHERE id = :id";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':id', $idUsuario, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        }
+        catch(PDOException $e){
+            return false;
+        }
+    }
+
 }
 
 

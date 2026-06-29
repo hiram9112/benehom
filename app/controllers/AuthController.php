@@ -65,6 +65,16 @@ class AuthController {
                 //Verificamos si el usuario existe y la contraseña coincide
                 if($user && password_verify($password,$user['password'])){
 
+                    if (empty($user['email_verificado_en'])) {
+                        IntentoAcceso::limpiar('login', $claveRateLimit);
+
+                        $_SESSION['mensaje_error'] =
+                            'Debes verificar tu email antes de acceder. Puedes solicitar un nuevo enlace de verificación.';
+
+                        header("Location: " . BASE_URL . "index.php?r=auth/login");
+                        exit;
+                    }
+
                     IntentoAcceso::limpiar('login', $claveRateLimit);
 
                     // Regeneramos el ID de sesión para evitar session fixation

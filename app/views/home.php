@@ -195,7 +195,7 @@ bh_document_begin([
             <div class="bh-home-wrap">
                 <div class="bh-home-section-head">
                     <h2 id="benefits-title">Para qué te sirve, en claro</h2>
-                    <p>No es una app de banca ni una hoja de cálculo. Es una forma sencilla y práctica de entender tu dinero y de comprender el impacto tus decisiones antes de tomarlas.</p>
+                    <p>No es una app de banca ni una hoja de cálculo. Es una forma sencilla y práctica de entender tu dinero y de comprender el impacto de tus decisiones antes de tomarlas.</p>
                 </div>
                 <div class="bh-home-benefits-grid">
                     <article class="bh-home-benefit bh-reveal">

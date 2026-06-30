@@ -110,4 +110,116 @@
             }
         });
     }
+
+    /* ---------------------------------------------------------------------
+       Preguntas frecuentes: deja abierta solo la ultima desplegada.
+    --------------------------------------------------------------------- */
+    var faqList = document.querySelector('.bh-home-faq-list');
+    if (faqList) {
+        var faqItems = Array.prototype.slice.call(faqList.querySelectorAll('details'));
+        var faqAnimationDuration = 340;
+        var faqAnimationEasing = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
+        function resetFaqItem(item) {
+            if (item._bhFaqAnimation) {
+                item._bhFaqAnimation.cancel();
+                item._bhFaqAnimation = null;
+            }
+
+            item.style.height = '';
+            item.style.overflow = '';
+            item.classList.remove('is-closing');
+        }
+
+        function openFaqItem(item) {
+            if (item.open && !item._bhFaqAnimation) { return; }
+            resetFaqItem(item);
+
+            if (reduceMotion.matches || !item.animate) {
+                item.open = true;
+                return;
+            }
+
+            var startHeight = item.getBoundingClientRect().height;
+            item.open = true;
+            var endHeight = item.getBoundingClientRect().height;
+            item.style.height = startHeight + 'px';
+            item.style.overflow = 'hidden';
+
+            var animation = item.animate([
+                { height: startHeight + 'px' },
+                { height: endHeight + 'px' }
+            ], {
+                duration: faqAnimationDuration,
+                easing: faqAnimationEasing,
+                fill: 'forwards'
+            });
+
+            item._bhFaqAnimation = animation;
+            animation.onfinish = function () {
+                if (item._bhFaqAnimation !== animation) { return; }
+                item.style.height = endHeight + 'px';
+                resetFaqItem(item);
+            };
+        }
+
+        function closeFaqItem(item) {
+            if (!item.open) { return; }
+
+            if (reduceMotion.matches || !item.animate) {
+                resetFaqItem(item);
+                item.open = false;
+                return;
+            }
+
+            var startHeight = item.getBoundingClientRect().height;
+            resetFaqItem(item);
+            item.classList.add('is-closing');
+
+            item.open = false;
+            var endHeight = item.getBoundingClientRect().height;
+            item.open = true;
+            item.style.height = startHeight + 'px';
+            item.style.overflow = 'hidden';
+
+            var animation = item.animate([
+                { height: startHeight + 'px' },
+                { height: endHeight + 'px' }
+            ], {
+                duration: faqAnimationDuration,
+                easing: faqAnimationEasing,
+                fill: 'forwards'
+            });
+
+            item._bhFaqAnimation = animation;
+            animation.onfinish = function () {
+                if (item._bhFaqAnimation !== animation) { return; }
+                item.style.height = endHeight + 'px';
+                item.open = false;
+                resetFaqItem(item);
+            };
+        }
+
+        faqItems.forEach(function (item) {
+            var summary = item.querySelector('summary');
+            if (!summary) { return; }
+
+            summary.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                if (item.open) {
+                    closeFaqItem(item);
+                    return;
+                }
+
+                faqItems.forEach(function (other) {
+                    if (other !== item && other.open) {
+                        closeFaqItem(other);
+                    }
+                });
+
+                openFaqItem(item);
+            });
+        });
+    }
 })();

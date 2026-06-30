@@ -1077,11 +1077,15 @@
     border-right: 2px solid var(--bh-brand-strong);
     border-bottom: 2px solid var(--bh-brand-strong);
     transform: rotate(45deg);
-    transition: transform var(--bh-transition-base);
+    transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bh-home-faq-item[open] summary::after{
     transform: rotate(225deg);
+}
+
+.bh-home-faq-item.is-closing summary::after{
+    transform: rotate(45deg);
 }
 
 .bh-home-faq-item summary:focus-visible{
@@ -1100,12 +1104,6 @@
 .bh-home-faq-item p a{
     color: var(--bh-brand-strong);
     font-weight: var(--bh-weight-semibold);
-}
-
-@media (prefers-reduced-motion: no-preference){
-    .bh-home-faq-item[open] p{
-        animation: bh-home-rise 0.4s ease both;
-    }
 }
 
 /* --- Cierre / CTA final --- */

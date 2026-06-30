@@ -13,5 +13,6 @@ Disallow: /proyecciones
 Disallow: /auth
 Disallow: /registro
 Disallow: /password
+Disallow: /verificacion
 
 Sitemap: https://benehom.es/sitemap.xml

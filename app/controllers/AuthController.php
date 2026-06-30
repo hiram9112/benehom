@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__.'/../models/Usuario.php';
+require_once __DIR__.'/../models/IntentoAcceso.php';
 class AuthController {
+
+    private const LOGIN_MAX_INTENTOS = 5;
+    private const LOGIN_VENTANA_SEGUNDOS = 900;
+    private const LOGIN_BLOQUEO_SEGUNDOS = 900;
 
     public function login(){
        //No aseguramos que el formulario haya sido enviado mediante POST
@@ -33,6 +38,14 @@ class AuthController {
             //Si no hay errores, intentamos autenticar
             if(empty($errores)){
 
+                $claveRateLimit = IntentoAcceso::claveHash($email);
+
+                if (IntentoAcceso::estaBloqueado('login', $claveRateLimit)) {
+                    $_SESSION['mensaje_error'] = 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.';
+                    header("Location: " . BASE_URL . "index.php?r=auth/login");
+                    exit;
+                }
+
                 //Obtenemos el usuario de la base de datos
                 try {
                     $user = Usuario::obtenerUsuario($email);
@@ -52,12 +65,25 @@ class AuthController {
                 //Verificamos si el usuario existe y la contraseña coincide
                 if($user && password_verify($password,$user['password'])){
 
+                    if (!$this->emailVerificadoParaLogin($user)) {
+                        IntentoAcceso::limpiar('login', $claveRateLimit);
+
+                        $_SESSION['mensaje_error'] =
+                            'Debes verificar tu email antes de acceder. Puedes solicitar un nuevo enlace de verificación.';
+
+                        header("Location: " . BASE_URL . "index.php?r=auth/login");
+                        exit;
+                    }
+
+                    IntentoAcceso::limpiar('login', $claveRateLimit);
+
                     // Regeneramos el ID de sesión para evitar session fixation
                     session_regenerate_id(true);
 
                     //Guardamos el nombre del usuario y su id en la sesión
                     $_SESSION['usuario']=$user['usuario'];
                     $_SESSION['usuario_id']=$user['id'];
+                    $_SESSION['last_activity'] = time();
 
 
                     //Redirigimos al panel principal
@@ -66,7 +92,17 @@ class AuthController {
                 }
                 else{
                     //Si el usuario no existe o la contraseña no coincide
-                    $errores[]="Usuario o contraseña incorrectos";
+                    $bloqueado = IntentoAcceso::registrarFallo(
+                        'login',
+                        $claveRateLimit,
+                        self::LOGIN_MAX_INTENTOS,
+                        self::LOGIN_VENTANA_SEGUNDOS,
+                        self::LOGIN_BLOQUEO_SEGUNDOS
+                    );
+
+                    $errores[] = $bloqueado
+                        ? 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.'
+                        : 'Usuario o contraseña incorrectos';
                 }
             }
             // Si apareció algún error volvemos a cargar la vista
@@ -105,6 +141,11 @@ class AuthController {
         // Redirigir al login
         header("Location: " . BASE_URL . "index.php?r=home/index");
         exit;
+    }
+
+    protected function emailVerificadoParaLogin(array $user): bool
+    {
+        return !empty($user['email_verificado_en']);
     }
 
 }

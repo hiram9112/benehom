@@ -16,7 +16,7 @@ bh_auth_begin(
     <?= csrf_field() ?>
 
     <div class="bh-field">
-        <label for="email" class="bh-label">Email:</label>
+        <label for="email" class="bh-label">Correo electrónico:</label>
         <input type="email" name="email" id="email" class="bh-input" autocomplete="username" inputmode="email" required>
     </div>
 
@@ -36,6 +36,7 @@ bh_auth_begin(
 <div class="bh-auth-links">
     <p>¿No tienes cuenta? <a href="?r=registro/registrarUsuario">Regístrate aquí</a></p>
     <p><a href="?r=password/mostrarFormularioOlvido">¿Olvidaste la contraseña?</a></p>
+    <p><a href="?r=verificacion/mostrarFormularioReenvio">Reenviar verificación de email</a></p>
     <p>
         <a href="#" data-bs-toggle="modal" data-bs-target="#infoApp">
             ¿Qué es BeneHom?

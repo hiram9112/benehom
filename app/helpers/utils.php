@@ -165,6 +165,60 @@ function bh_css_tags(): string
     return implode(PHP_EOL, $tags) . PHP_EOL;
 }
 
+function bh_csp_nonce(): string
+{
+    static $nonce = null;
+
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(16));
+    }
+
+    return $nonce;
+}
+
+function bh_nonce_attr(): string
+{
+    return ' nonce="' . htmlspecialchars(bh_csp_nonce(), ENT_QUOTES, 'UTF-8') . '"';
+}
+
+function bh_security_headers(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+
+    $appEnv = $_ENV['APP_ENV'] ?? 'local';
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    $nonce = bh_csp_nonce();
+    $directives = [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+        "img-src 'self' data:",
+        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
+        "connect-src 'self'",
+    ];
+
+    if ($isHttps) {
+        $directives[] = 'upgrade-insecure-requests';
+    }
+
+    header('Content-Security-Policy: ' . implode('; ', $directives));
+
+    if ($appEnv === 'production' && $isHttps) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+    }
+}
+
 function bh_blog_url(string $slug = ''): string
 {
     $slug = trim($slug, '/');
@@ -270,7 +324,7 @@ function csrf_validate(): bool
  * Local: log
  * Producción: PGPMailer()
  */
-function enviarEmailReset(string $email, string $resetLink): void
+function enviarEmailReset(string $email, string $resetLink): bool
 {
     $appEnv = $_ENV['APP_ENV'] ?? 'local';
 
@@ -280,36 +334,38 @@ function enviarEmailReset(string $email, string $resetLink): void
     $subject = 'Recuperación de contraseña - BeneHom';
 
     if ($appEnv === 'production') {
+        try {
 
-        $autoloadPath = BASE_PATH . '/vendor/autoload.php';
+            $autoloadPath = BASE_PATH . '/vendor/autoload.php';
 
-        if (file_exists($autoloadPath)) {
-            require_once $autoloadPath;
-        }
+            if (file_exists($autoloadPath)) {
+                require_once $autoloadPath;
+            }
 
-        if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
-            throw new RuntimeException('PHPMailer no está disponible. Ejecuta composer install.');
-        }
+            if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+                error_log('[MAILER][RESET] PHPMailer no disponible.');
+                return false;
+            }
 
-        $mail = new \PHPMailer\PHPMailer\PHPMailer();
+            $mail = new \PHPMailer\PHPMailer\PHPMailer();
 
-        $mail->CharSet = 'UTF-8';
+            $mail->CharSet = 'UTF-8';
 
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = $_ENV['SMTP_USER'];
-        $mail->Password   = $_ENV['SMTP_PASS'];
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['SMTP_USER'];
+            $mail->Password   = $_ENV['SMTP_PASS'];
+            $mail->SMTPSecure = 'tls';
+            $mail->Port       = 587;
 
-        $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
-        $mail->addAddress($email);
+            $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
+            $mail->addAddress($email);
 
-        $mail->isHTML(true);
-        $mail->Subject = $subject;
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
 
-        $mail->Body = "
+            $mail->Body = "
             <p>Hola,</p>
             <p>Has solicitado restablecer tu contraseña.</p>
             <p><strong>Enlace (válido 30 minutos):</strong></p>
@@ -320,16 +376,109 @@ function enviarEmailReset(string $email, string $resetLink): void
             <p>— Equipo de BeneHom</p>
         ";
 
-        $mail->AltBody =
-            "Hola,\n\n" .
-            "Has solicitado restablecer tu contraseña.\n\n" .
-            "Enlace (válido 30 minutos):\n" .
-            $resetLink . "\n\n" .
-            "Si no lo solicitaste, ignora este mensaje.\n\n" .
-            "— Equipo de BeneHom";
+            $mail->AltBody =
+                "Hola,\n\n" .
+                "Has solicitado restablecer tu contraseña.\n\n" .
+                "Enlace (válido 30 minutos):\n" .
+                $resetLink . "\n\n" .
+                "Si no lo solicitaste, ignora este mensaje.\n\n" .
+                "— Equipo de BeneHom";
 
-        $mail->send();
+            if (!$mail->send()) {
+                error_log('[MAILER][RESET] No se pudo enviar el email de recuperación.');
+                return false;
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            error_log('[MAILER][RESET] Error enviando email de recuperación: ' . $e->getMessage());
+            return false;
+        }
     } else {
         error_log('[DEV][RESET LINK] ' . $resetLink);
+        return true;
+    }
+}
+
+/**
+ * Envía email de verificación de cuenta
+ * Local: log
+ * Producción: PHPMailer()
+ */
+function enviarEmailVerificacion(string $email, string $verificationLink): bool
+{
+    $appEnv = $_ENV['APP_ENV'] ?? 'local';
+
+    if (!preg_match('#^https?://#i', $verificationLink)) {
+        $verificationLink = rtrim($_ENV['APP_URL'], '/') . $verificationLink;
+    }
+
+    $subject = 'Verifica tu correo - BeneHom';
+    $safeLink = htmlspecialchars($verificationLink, ENT_QUOTES, 'UTF-8');
+
+    if ($appEnv === 'production') {
+        try {
+
+            $autoloadPath = BASE_PATH . '/vendor/autoload.php';
+
+            if (file_exists($autoloadPath)) {
+                require_once $autoloadPath;
+            }
+
+            if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+                error_log('[MAILER][VERIFY] PHPMailer no disponible.');
+                return false;
+            }
+
+            $mail = new \PHPMailer\PHPMailer\PHPMailer();
+
+            $mail->CharSet = 'UTF-8';
+
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['SMTP_USER'];
+            $mail->Password   = $_ENV['SMTP_PASS'];
+            $mail->SMTPSecure = 'tls';
+            $mail->Port       = 587;
+
+            $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
+            $mail->addAddress($email);
+
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+
+            $mail->Body = "
+            <p>Hola,</p>
+            <p>Gracias por crear tu cuenta en BeneHom.</p>
+            <p><strong>Verifica tu correo con este enlace (válido 30 minutos):</strong></p>
+            <p>
+                <a href='{$safeLink}'>{$safeLink}</a>
+            </p>
+            <p>Si no creaste esta cuenta, ignora este mensaje.</p>
+            <p>— Equipo de BeneHom</p>
+        ";
+
+            $mail->AltBody =
+                "Hola,\n\n" .
+                "Gracias por crear tu cuenta en BeneHom.\n\n" .
+                "Verifica tu correo con este enlace (válido 30 minutos):\n" .
+                $verificationLink . "\n\n" .
+                "Si no creaste esta cuenta, ignora este mensaje.\n\n" .
+                "— Equipo de BeneHom";
+
+            if (!$mail->send()) {
+                error_log('[MAILER][VERIFY] No se pudo enviar el email de verificación.');
+                return false;
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            error_log('[MAILER][VERIFY] Error enviando email de verificación: ' . $e->getMessage());
+            return false;
+        }
+    } else {
+        error_log('[DEV][VERIFY LINK] ' . $verificationLink);
+        return true;
     }
 }

@@ -4,11 +4,12 @@
 
 /* email: demo@benehom.local / password: Demo1234 */
 
-INSERT INTO usuarios (usuario, email, password)
+INSERT INTO usuarios (usuario, email, password, email_verificado_en)
 VALUES (
   'Demo',
   'demo@benehom.local',
-  '$2y$10$pT2ZldVudYp4asxUIkxGcOcEODMttIN/kumHzkuKjuwzy.E8rpzu6'
+  '$2y$10$pT2ZldVudYp4asxUIkxGcOcEODMttIN/kumHzkuKjuwzy.E8rpzu6',
+  NOW()
 );
 
 

@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/Usuario.php';
+require_once APP_PATH . '/models/IntentoAcceso.php';
 
 abstract class IntegrationTestCase extends TestCase
 {
@@ -48,12 +49,6 @@ abstract class IntegrationTestCase extends TestCase
 
     private function ensureSchemaExists(): void
     {
-        $stmt = $this->db->query("SHOW TABLES LIKE 'usuarios'");
-
-        if ($stmt !== false && $stmt->fetchColumn() !== false) {
-            return;
-        }
-
         $schemaPath = BASE_PATH . '/database/schema.sql';
         $schema = file_get_contents($schemaPath);
 
@@ -62,6 +57,17 @@ abstract class IntegrationTestCase extends TestCase
         }
 
         foreach (array_filter(array_map('trim', explode(';', $schema))) as $statement) {
+            if (!preg_match('/^CREATE TABLE\s+`?([a-zA-Z0-9_]+)`?/i', $statement, $matches)) {
+                continue;
+            }
+
+            $tableName = $matches[1];
+            $stmt = $this->db->query("SHOW TABLES LIKE " . $this->db->quote($tableName));
+
+            if ($stmt !== false && $stmt->fetchColumn() !== false) {
+                continue;
+            }
+
             $this->db->exec($statement);
         }
     }

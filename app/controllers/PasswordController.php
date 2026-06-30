@@ -1,7 +1,12 @@
 <?php
 require_once __DIR__ . '/../models/Usuario.php';
+require_once __DIR__ . '/../models/IntentoAcceso.php';
 
 class PasswordController {
+
+    private const RESET_MAX_SOLICITUDES = 3;
+    private const RESET_VENTANA_SEGUNDOS = 3600;
+    private const RESET_BLOQUEO_SEGUNDOS = 3600;
 
     // Muestra el formulario de "Olvidé mi contraseña"
     public function mostrarFormularioOlvido(){
@@ -18,6 +23,15 @@ class PasswordController {
         // Validación mínima
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['mensaje_error'] = 'Introduce un correo electrónico válido.';
+            header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+            exit;
+        }
+
+        $email = strtolower(trim($email));
+        $claveRateLimit = IntentoAcceso::claveHash($email);
+
+        if (IntentoAcceso::estaBloqueado('password_reset', $claveRateLimit)) {
+            $_SESSION['mensaje_exitoso'] = 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';
             header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
             exit;
         }
@@ -75,6 +89,14 @@ class PasswordController {
 
             enviarEmailReset($usuario['email'], $resetLink);
         }
+
+        IntentoAcceso::registrarFallo(
+            'password_reset',
+            $claveRateLimit,
+            self::RESET_MAX_SOLICITUDES,
+            self::RESET_VENTANA_SEGUNDOS,
+            self::RESET_BLOQUEO_SEGUNDOS
+        );
 
         // 7. Mensaje neutro SIEMPRE
         $_SESSION['mensaje_exitoso'] ='Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';

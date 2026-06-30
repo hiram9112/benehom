@@ -35,7 +35,7 @@ function bh_render_json_ld($jsonLd): void
             continue;
         }
         ?>
-    <script type="application/ld+json"><?= $json ?></script>
+    <script type="application/ld+json"<?= bh_nonce_attr() ?>><?= $json ?></script>
         <?php
     }
 }
@@ -106,8 +106,8 @@ function bh_document_begin(array $opciones = []): void
     <link rel="apple-touch-icon" sizes="180x180" href="<?= BASE_URL ?>apple-touch-icon.png">
     <link rel="manifest" href="<?= BASE_URL ?>site.webmanifest">
     <meta name="theme-color" content="#f5ead7">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
 <?= bh_css_tags() ?>
 <?php if ($headExtra !== ''): ?>
 <?= $headExtra ?>
@@ -127,7 +127,7 @@ function bh_document_end(array $opciones = []): void
     $bodyEndExtra = (string) ($opciones['body_end_extra'] ?? '');
     ?>
 <?php if ($includeBootstrapJs): ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 <?php endif; ?>
 <?php if ($includeFlashJs): ?>
     <script src="<?= bh_asset('js/flash.js') ?>"></script>

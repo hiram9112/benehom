@@ -41,18 +41,12 @@ class GraficosController{
             $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "esencial", $fechaInicio, $fechaFin);
             $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "flexible", $fechaInicio, $fechaFin);
         } catch (PDOException $e) {
+            error_log('[GRAFICOS][ESTADO_GENERAL] Error de base de datos: ' . $e->getMessage());
 
-            if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
-                echo json_encode([
-                    "ok" => false,
-                    "msg" => "Error de base de datos: " . $e->getMessage()
-                ]);
-            } else {
-                echo json_encode([
-                    "ok" => false,
-                    "msg" => "No se pudieron obtener los datos del gráfico."
-                ]);
-            }
+            echo json_encode([
+                "ok" => false,
+                "msg" => "No se pudieron obtener los datos del gráfico."
+            ]);
             return;
         }
 

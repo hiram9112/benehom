@@ -50,12 +50,9 @@ class AuthController {
                 try {
                     $user = Usuario::obtenerUsuario($email);
                 } catch (PDOException $e) {
+                    error_log('[AUTH][LOGIN] Error de base de datos: ' . $e->getMessage());
 
-                    if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
-                        $_SESSION['mensaje_error'] = 'Error de base de datos: ' . $e->getMessage();
-                    } else {
-                        $_SESSION['mensaje_error'] = 'No se pudo iniciar sesión. Inténtalo más tarde.';
-                    }
+                    $_SESSION['mensaje_error'] = 'No se pudo iniciar sesión. Inténtalo más tarde.';
 
                     header("Location: " . BASE_URL . "index.php?r=auth/login");
                     exit;

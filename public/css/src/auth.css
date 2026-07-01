@@ -59,6 +59,40 @@
     padding: clamp(1.25rem, 4vw, 2rem);
 }
 
+.bh-error-card{
+    width: min(100%, 600px);
+    display: grid;
+    justify-items: center;
+    padding: clamp(1.5rem, 5vw, 2.75rem);
+    text-align: center;
+}
+
+.bh-error-note{
+    display: inline-flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--bh-space-2);
+    max-width: 31rem;
+    margin: 0 0 var(--bh-space-5);
+    padding: var(--bh-space-3) var(--bh-space-4);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-md);
+    background-color: var(--bh-surface-soft);
+    color: var(--bh-text-muted);
+    font-size: var(--bh-text-sm);
+    line-height: var(--bh-line-relaxed);
+}
+
+.bh-error-note i{
+    flex: 0 0 auto;
+    margin-top: 0.1rem;
+    color: var(--bh-brand-strong);
+}
+
+.bh-error-action{
+    min-width: min(100%, 15rem);
+}
+
 .bh-auth-header{
     display: grid;
     gap: var(--bh-space-3);

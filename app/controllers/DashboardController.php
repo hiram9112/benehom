@@ -41,12 +41,9 @@ class DashboardController{
                 $gastosEsenciales = Gasto::obtenerPorMes($usuario_id, "esencial", $fechaInicio, $fechaFin);
                 $gastosFlexibles = Gasto::obtenerPorMes($usuario_id, "flexible", $fechaInicio, $fechaFin);
             } catch (PDOException $e) {
+                error_log('[DASHBOARD] Error de base de datos: ' . $e->getMessage());
 
-                if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
-                    $_SESSION['mensaje_error'] = 'Error de base de datos: ' . $e->getMessage();
-                } else {
-                    $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos del panel. Inicie sesión nuevamente .';
-                }
+                $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos del panel. Inicia sesión nuevamente.';
 
                 header("Location: " . BASE_URL . "index.php?r=auth/login");
                 exit;

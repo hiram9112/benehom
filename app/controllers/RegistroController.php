@@ -62,13 +62,10 @@ class RegistroController{
 
                 $registrado = Usuario::registrar($usuario, $email, $password);
             } catch (PDOException $e) {
+                error_log('[AUTH][REGISTER] Error de base de datos: ' . $e->getMessage());
 
-                if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
-                    $_SESSION['mensaje_error'] = 'Error de base de datos: ' . $e->getMessage();
-                } else {
-                    $_SESSION['mensaje_error'] =
-                        'No se pudo completar el registro. Inténtalo más tarde.';
-                }
+                $_SESSION['mensaje_error'] =
+                    'No se pudo completar el registro. Inténtalo más tarde.';
 
                 header("Location: " . BASE_URL . "index.php?r=registro/registrarUsuario");
                 exit;

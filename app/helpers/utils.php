@@ -341,6 +341,16 @@ function bh_is_ajax_request(?string $route = null): bool
     return str_starts_with($route, 'graficos/');
 }
 
+function bh_render_error_page(int $statusCode, string $title, string $message, string $actionLabel = 'Volver al inicio', string $actionUrl = ''): never
+{
+    http_response_code($statusCode);
+
+    $actionUrl = $actionUrl !== '' ? $actionUrl : BASE_URL . 'index.php?r=home/index';
+
+    require APP_PATH . '/views/error.php';
+    exit;
+}
+
 /**
  * Envía email de recuperación de contraseña
  * Local: log

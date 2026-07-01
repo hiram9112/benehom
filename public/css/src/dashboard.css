@@ -260,10 +260,10 @@
 }
 
 .bh-total-info-row .bh-btn-icon{
-    width: 1.5rem;
-    min-width: 1.5rem;
-    height: 1.5rem;
-    min-height: 1.5rem;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
     margin-top: 0;
 }
 
@@ -564,4 +564,3 @@
         grid-template-columns: repeat(5, minmax(7.25rem, 1fr));
     }
 }
-

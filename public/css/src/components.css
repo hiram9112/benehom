@@ -203,6 +203,9 @@
 
 .bh-card-chart h2 .info-btn,
 .bh-card-chart h5 .info-btn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
     font-size: var(--bh-text-sm);
 }
 
@@ -617,6 +620,17 @@
 .bh-modal-header .btn-close {
     margin: 0;
     flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0.875rem;
+    background-position: center;
+}
+
+.bh-mobile-menu .btn-close {
+    width: 44px;
+    height: 44px;
+    padding: 0.875rem;
+    background-position: center;
 }
 
 .bh-modal-title {

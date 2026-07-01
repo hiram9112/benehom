@@ -271,6 +271,17 @@ function bh_redirect_permanent(string $url): void
     exit;
 }
 
+function bh_session_idle_expired(int $lastActivity, int $idleTimeout, ?int $now = null): bool
+{
+    if ($idleTimeout <= 0) {
+        return false;
+    }
+
+    $now ??= time();
+
+    return $lastActivity < ($now - $idleTimeout);
+}
+
 
 
 

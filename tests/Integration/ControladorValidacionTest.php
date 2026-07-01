@@ -314,6 +314,48 @@ final class ControladorValidacionTest extends IntegrationTestCase
         self::assertSame('Sesión no válida', $respuesta['msg']);
     }
 
+    public function testEditarGastoAjaxRechazaMovimientoDeOtroUsuario(): void
+    {
+        $duenio = $this->crearUsuario('idor-eg-o@example.test');
+        $atacante = $this->crearUsuario('idor-eg-a@example.test');
+        $gastoId = \Gasto::agregarGasto($duenio['id'], 'esencial', 'alquiler_hipoteca', 700, '2026-05-01');
+
+        self::assertNotFalse($gastoId);
+
+        $respuesta = $this->invocar(\GastoController::class, 'editarGastoAjax', [
+            'id' => (string) $gastoId,
+            'cantidad' => '1',
+        ], $atacante['id']);
+
+        self::assertFalse($respuesta['ok']);
+        self::assertSame('No se encontró el gasto o no tienes permiso para actualizarlo', $respuesta['msg']);
+
+        $gastos = \Gasto::obtenerTodosPorUsuario($duenio['id']);
+        self::assertCount(1, $gastos);
+        self::assertSame('700.00', $gastos[0]['cantidad']);
+    }
+
+    public function testEditarIngresoAjaxRechazaMovimientoDeOtroUsuario(): void
+    {
+        $duenio = $this->crearUsuario('idor-ei-o@example.test');
+        $atacante = $this->crearUsuario('idor-ei-a@example.test');
+        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'salario', 1500, '2026-05-01');
+
+        self::assertNotFalse($ingresoId);
+
+        $respuesta = $this->invocar(\IngresoController::class, 'editarAjax', [
+            'id' => (string) $ingresoId,
+            'cantidad' => '1',
+        ], $atacante['id']);
+
+        self::assertFalse($respuesta['ok']);
+        self::assertSame('No se encontró el ingreso o no tienes permiso para actualizarlo', $respuesta['msg']);
+
+        $ingresos = \Ingreso::obtenerTodosPorUsuario($duenio['id']);
+        self::assertCount(1, $ingresos);
+        self::assertSame('1500.00', $ingresos[0]['cantidad']);
+    }
+
     public function testEliminarGastoSinSesionDevuelveSesionNoValida(): void
     {
         $respuesta = $this->invocar(\GastoController::class, 'eliminarGastoAjax', [
@@ -332,6 +374,40 @@ final class ControladorValidacionTest extends IntegrationTestCase
 
         self::assertFalse($respuesta['ok']);
         self::assertSame('Sesión no válida', $respuesta['msg']);
+    }
+
+    public function testEliminarGastoAjaxRechazaMovimientoDeOtroUsuario(): void
+    {
+        $duenio = $this->crearUsuario('idor-dg-o@example.test');
+        $atacante = $this->crearUsuario('idor-dg-a@example.test');
+        $gastoId = \Gasto::agregarGasto($duenio['id'], 'flexible', 'ocio_entretenimiento', 50, '2026-05-01');
+
+        self::assertNotFalse($gastoId);
+
+        $respuesta = $this->invocar(\GastoController::class, 'eliminarGastoAjax', [
+            'id' => (string) $gastoId,
+        ], $atacante['id']);
+
+        self::assertFalse($respuesta['ok']);
+        self::assertSame('No se encontró el gasto o no tienes permiso para eliminarlo', $respuesta['msg']);
+        self::assertCount(1, \Gasto::obtenerTodosPorUsuario($duenio['id']));
+    }
+
+    public function testEliminarIngresoAjaxRechazaMovimientoDeOtroUsuario(): void
+    {
+        $duenio = $this->crearUsuario('idor-di-o@example.test');
+        $atacante = $this->crearUsuario('idor-di-a@example.test');
+        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'salario', 1500, '2026-05-01');
+
+        self::assertNotFalse($ingresoId);
+
+        $respuesta = $this->invocar(\IngresoController::class, 'eliminarAjax', [
+            'id' => (string) $ingresoId,
+        ], $atacante['id']);
+
+        self::assertFalse($respuesta['ok']);
+        self::assertSame('No se encontró el ingreso o no tienes permiso para eliminarlo', $respuesta['msg']);
+        self::assertCount(1, \Ingreso::obtenerTodosPorUsuario($duenio['id']));
     }
 
     public function testEliminarGastoRechazaIdCero(): void

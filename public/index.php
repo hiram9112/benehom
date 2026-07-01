@@ -86,7 +86,7 @@ $sessionIdleTimeout = (int) ($_ENV['SESSION_IDLE_TIMEOUT'] ?? 1800);
 if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
     $lastActivity = (int) ($_SESSION['last_activity'] ?? time());
 
-    if ($lastActivity < (time() - $sessionIdleTimeout)) {
+    if (bh_session_idle_expired($lastActivity, $sessionIdleTimeout)) {
         $_SESSION = [];
 
         if (ini_get('session.use_cookies')) {

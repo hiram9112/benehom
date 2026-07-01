@@ -119,6 +119,14 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate()) {
+        $route = isset($_GET['r']) ? trim((string) $_GET['r'], '/') : '';
+
+        if (bh_is_ajax_request($route)) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'msg' => 'Solicitud no válida. Recarga la página e inténtalo de nuevo.']);
+            exit;
+        }
 
         if ($_ENV['APP_ENV'] === 'production') {
             session_unset();

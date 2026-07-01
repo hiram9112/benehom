@@ -324,6 +324,23 @@ function csrf_validate(): bool
     return hash_equals($sessionToken, $postToken);
 }
 
+function bh_is_ajax_request(?string $route = null): bool
+{
+    $route = trim((string) ($route ?? ($_GET['r'] ?? '')), '/');
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+    $requestedWith = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+
+    if (str_contains($accept, 'application/json') || $requestedWith === 'xmlhttprequest') {
+        return true;
+    }
+
+    if (str_ends_with($route, 'Ajax')) {
+        return true;
+    }
+
+    return str_starts_with($route, 'graficos/');
+}
+
 /**
  * Envía email de recuperación de contraseña
  * Local: log

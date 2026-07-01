@@ -484,19 +484,19 @@ bh_document_begin([
                     <p>Inflación, deuda, hipotecas, ahorro o inversión pueden afectar tu calidad de vida aunque no les prestes atención. BeneHom te ayuda a entender esos conceptos con explicaciones claras y ejemplos sencillos.</p>
                 </div>
                 <div class="bh-home-blog-grid">
-                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
+                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url('que-es-la-inflacion'), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="bh-home-feature-tag">Inflación</span>
                         <h3>Por qué sube todo y cómo afecta a tu presupuesto</h3>
                         <p>Una explicación con ejemplos domésticos, lejos de la jerga económica.</p>
                         <span class="bh-home-blog-more">Leer artículo</span>
                     </a>
-                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
+                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url('cuanta-hipoteca-puedes-pagar'), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="bh-home-feature-tag">Hipotecas</span>
                         <h3>Lo que conviene mirar antes de firmar</h3>
                         <p>La cuota es solo una parte: el plazo y el interés deciden el coste final.</p>
                         <span class="bh-home-blog-more">Leer artículo</span>
                     </a>
-                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
+                    <a class="bh-home-blog-card bh-reveal" href="<?= htmlspecialchars(bh_blog_url('como-empezar-a-invertir-desde-cero'), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="bh-home-feature-tag">Activos</span>
                         <h3>Renta fija, variable y fondos, en lenguaje llano</h3>
                         <p>Qué es cada cosa y qué papel juegan el riesgo y el plazo.</p>

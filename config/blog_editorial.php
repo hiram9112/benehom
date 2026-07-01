@@ -18,7 +18,7 @@ return [
             'recomendaciones de productos concretos',
             'títulos centrados en vocabulario interno que nadie busca',
         ],
-        'cierre' => 'El campo conexion sigue siendo obligatorio y enlaza el tema con una funcionalidad real (dashboard, metas, proyecciones o gráficos), pero como aplicación práctica al final del recorrido, no como reclamo.',
+        'cierre' => 'El campo conexion sigue siendo necesario y enlaza el tema con una funcionalidad real (dashboard, metas, proyecciones o gráficos), pero como aplicación práctica al final del recorrido, no como reclamo.',
     ],
     'enfoque_captacion' => [
         'objetivo' => 'El blog es el principal activo SEO del producto: capta a quien aún no conoce BeneHom respondiendo a lo que busca y lo acerca a la herramienta.',

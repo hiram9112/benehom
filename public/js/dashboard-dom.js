@@ -64,13 +64,18 @@ function ordenarMovimientosPorCantidadDesc(contenedorId) {
     .forEach((li) => lista.appendChild(li));
 }
 
+function eliminarEstadoVacioDashboard(contenedorId) {
+  document
+    .querySelectorAll(`#${contenedorId} .bh-empty-state, #${contenedorId} .bh-form-empty-state`)
+    .forEach((estadoVacio) => estadoVacio.remove());
+}
+
 function agregarIngresoAlDOM(ingreso) {
   //Intentamos seleccionar  la lista existente
   let lista = document.querySelector("#lista_ingresos ul");
 
   // Si existe el estado vacío lo eliminamos antes de insertar
-  const estadoVacio = document.querySelector("#lista_ingresos .bh-empty-state");
-  if (estadoVacio) estadoVacio.remove();
+  eliminarEstadoVacioDashboard("lista_ingresos");
 
   //Si no existe la etiqueta ul la creamos
   if (!lista) {
@@ -136,10 +141,7 @@ function agregarGastoEsencialAlDOM(gastoEsencial) {
   let lista = document.querySelector("#lista_gastos_esenciales ul");
 
   //Si existe el estado vacío lo eliminamos antes de insertar
-  const estadoVacio = document.querySelector(
-    "#lista_gastos_esenciales .bh-empty-state",
-  );
-  if (estadoVacio) estadoVacio.remove();
+  eliminarEstadoVacioDashboard("lista_gastos_esenciales");
 
   //Si no existe la etiqueta ul la creamos
   if (!lista) {
@@ -182,10 +184,7 @@ function agregarGastoFlexibleAlDOM(gastoFlexible) {
   let lista = document.querySelector("#lista_gastos_flexibles ul");
 
   //Si existe el estado vacío lo eliminamos antes de insertar
-  const estadoVacio = document.querySelector(
-    "#lista_gastos_flexibles .bh-empty-state",
-  );
-  if (estadoVacio) estadoVacio.remove();
+  eliminarEstadoVacioDashboard("lista_gastos_flexibles");
 
   //Si no existe la etiqueta ul la creamos
   if (!lista) {

@@ -1,5 +1,10 @@
 <?php
 
+function bh_mes_valido(string $mes): bool
+{
+    return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes) === 1;
+}
+
 function gastoCategorias(): array
 {
     static $categorias = null;
@@ -266,6 +271,17 @@ function bh_redirect_permanent(string $url): void
     exit;
 }
 
+function bh_session_idle_expired(int $lastActivity, int $idleTimeout, ?int $now = null): bool
+{
+    if ($idleTimeout <= 0) {
+        return false;
+    }
+
+    $now ??= time();
+
+    return $lastActivity < ($now - $idleTimeout);
+}
+
 
 
 
@@ -317,6 +333,33 @@ function csrf_validate(): bool
 
     // hash_equals → comparación segura (evita ataques de timing)
     return hash_equals($sessionToken, $postToken);
+}
+
+function bh_is_ajax_request(?string $route = null): bool
+{
+    $route = trim((string) ($route ?? ($_GET['r'] ?? '')), '/');
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+    $requestedWith = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+
+    if (str_contains($accept, 'application/json') || $requestedWith === 'xmlhttprequest') {
+        return true;
+    }
+
+    if (str_ends_with($route, 'Ajax')) {
+        return true;
+    }
+
+    return str_starts_with($route, 'graficos/');
+}
+
+function bh_render_error_page(int $statusCode, string $title, string $message, string $actionLabel = 'Volver al inicio', string $actionUrl = ''): never
+{
+    http_response_code($statusCode);
+
+    $actionUrl = $actionUrl !== '' ? $actionUrl : BASE_URL . 'index.php?r=home/index';
+
+    require APP_PATH . '/views/error.php';
+    exit;
 }
 
 /**

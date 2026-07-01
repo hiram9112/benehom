@@ -34,7 +34,7 @@ bh_document_begin([
                 <li>Dirección de correo electrónico</li>
                 <li>Contraseña (almacenada cifrada mediante hash, nunca en texto plano)</li>
                 <li>
-                    Información financiera introducida voluntariamente por el usuario
+                    Información financiera introducida por decisión del usuario
                     (cantidades de ingresos, gastos, metas y simulaciones)
                 </li>
             </ul>

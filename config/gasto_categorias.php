@@ -165,7 +165,7 @@ return [
             'label' => 'Aportaciones y otros',
             'help' => 'Aportaciones o consumos que no encajan en los grupos anteriores.',
             'items' => [
-                'donaciones_aportaciones' => 'Donaciones y aportaciones voluntarias',
+                'donaciones_aportaciones' => 'Donaciones y aportaciones libres',
                 'consumos_personales' => 'Consumos personales',
                 'otro_gasto_flexible' => 'Otro gasto flexible',
                 'otros_gastos_aportaciones_otros' => 'Otros gastos de aportaciones y otros',

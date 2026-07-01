@@ -574,7 +574,11 @@
 .bh-inflation-metrics [data-inflacion-field],
 .bh-mortgage-metrics [data-hipoteca-field]{
     display: inline-flex;
+    align-items: center;
     width: fit-content;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.35rem 0.5rem;
     border-radius: var(--bh-radius-sm);
     cursor: pointer;
     text-underline-offset: 0.16em;
@@ -836,6 +840,12 @@
 }
 
 .bh-mortgage-metrics .bh-metric-info-btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
     border: 0;
     padding: 0;
     background-color: transparent;
@@ -854,6 +864,12 @@
 }
 
 .bh-field-label-row .bh-metric-info-btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
     border: 0;
     padding: 0;
     background-color: transparent;

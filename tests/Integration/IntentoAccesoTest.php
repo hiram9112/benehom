@@ -16,6 +16,26 @@ final class IntentoAccesoTest extends IntegrationTestCase
         self::assertTrue(\IntentoAcceso::estaBloqueado('login', $claveHash));
     }
 
+    public function testRegistrarFalloBloqueaResetPasswordAlAlcanzarElMaximo(): void
+    {
+        $claveHash = \IntentoAcceso::claveHash('rate-limit-reset@example.test');
+
+        self::assertFalse(\IntentoAcceso::registrarFallo('password_reset', $claveHash, 3, 3600, 3600));
+        self::assertFalse(\IntentoAcceso::registrarFallo('password_reset', $claveHash, 3, 3600, 3600));
+        self::assertTrue(\IntentoAcceso::registrarFallo('password_reset', $claveHash, 3, 3600, 3600));
+        self::assertTrue(\IntentoAcceso::estaBloqueado('password_reset', $claveHash));
+    }
+
+    public function testRegistrarFalloBloqueaReenvioVerificacionAlAlcanzarElMaximo(): void
+    {
+        $claveHash = \IntentoAcceso::claveHash('rate-limit-verification@example.test');
+
+        self::assertFalse(\IntentoAcceso::registrarFallo('email_verification', $claveHash, 3, 3600, 3600));
+        self::assertFalse(\IntentoAcceso::registrarFallo('email_verification', $claveHash, 3, 3600, 3600));
+        self::assertTrue(\IntentoAcceso::registrarFallo('email_verification', $claveHash, 3, 3600, 3600));
+        self::assertTrue(\IntentoAcceso::estaBloqueado('email_verification', $claveHash));
+    }
+
     public function testLimpiarEliminaElBloqueo(): void
     {
         $claveHash = \IntentoAcceso::claveHash('limpiar@example.test');

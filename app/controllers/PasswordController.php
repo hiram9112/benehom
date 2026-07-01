@@ -40,14 +40,10 @@ class PasswordController {
         try {
             $usuario = Usuario::obtenerUsuario($email);
         } catch (PDOException $e) {
+            error_log('[AUTH][PASSWORD_RESET_REQUEST] Error de base de datos: ' . $e->getMessage());
 
-            // Error técnico 
-            if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
-                $_SESSION['mensaje_error'] = 'Error de base de datos: ' . $e->getMessage();
-            } else {
-                $_SESSION['mensaje_error'] =
-                    'No se pudo procesar la solicitud. Inténtalo de nuevo más tarde.';
-            }
+            $_SESSION['mensaje_error'] =
+                'No se pudo procesar la solicitud. Inténtalo de nuevo más tarde.';
 
             header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
             exit;
@@ -67,14 +63,10 @@ class PasswordController {
             $guardado=Usuario::guardarTokenReset($usuario['id'],$tokenHash, $expira);
 
             if (!$guardado) {
+                error_log('[AUTH][PASSWORD_RESET_REQUEST] No se pudo guardar el token de recuperación.');
 
-                if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
-                    $_SESSION['mensaje_error'] =
-                        'Error guardando el token de recuperación.';
-                } else {
-                    $_SESSION['mensaje_error'] =
-                        'No se pudo procesar la solicitud. Inténtalo más tarde.';
-                }
+                $_SESSION['mensaje_error'] =
+                    'No se pudo procesar la solicitud. Inténtalo más tarde.';
 
                 header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
                 exit;
@@ -194,13 +186,10 @@ class PasswordController {
         $tokenLimpiado = Usuario::limpiarTokenReset($usuario['id']);
 
         if (!$passwordActualizada || !$tokenLimpiado) {
+            error_log('[AUTH][PASSWORD_RESET] No se pudo actualizar la contraseña o limpiar el token.');
 
-            if (($_ENV['APP_ENV'] ?? 'production') === 'local') {
-                $_SESSION['mensaje_error'] = 'Error actualizando la contraseña en base de datos.';
-            } else {
-                $_SESSION['mensaje_error'] =
-                    'No se pudo actualizar la contraseña. Inténtalo más tarde.';
-            }
+            $_SESSION['mensaje_error'] =
+                'No se pudo actualizar la contraseña. Inténtalo más tarde.';
 
             header('Location: ?r=password/reset&token=' . urlencode($token));
             exit;

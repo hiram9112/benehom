@@ -86,7 +86,7 @@ $sessionIdleTimeout = (int) ($_ENV['SESSION_IDLE_TIMEOUT'] ?? 1800);
 if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
     $lastActivity = (int) ($_SESSION['last_activity'] ?? time());
 
-    if ($lastActivity < (time() - $sessionIdleTimeout)) {
+    if (bh_session_idle_expired($lastActivity, $sessionIdleTimeout)) {
         $_SESSION = [];
 
         if (ini_get('session.use_cookies')) {
@@ -119,22 +119,22 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate()) {
+        $route = isset($_GET['r']) ? trim((string) $_GET['r'], '/') : '';
 
-        if ($_ENV['APP_ENV'] === 'production') {
-            session_unset();
-            session_destroy();
-
-            // Iniciamos una nueva sesión 
-            session_start();
-            $_SESSION['mensaje_error'] =
-                'Tu sesión ha caducado o la solicitud no es válida. Vuelve a iniciar sesión.';
-
-            header("Location: " . BASE_URL . "index.php?r=auth/login");
-            exit;
-        } else {
+        if (bh_is_ajax_request($route)) {
             http_response_code(403);
-            exit('403 Forbidden - CSRF inválido');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'msg' => 'Solicitud no válida. Recarga la página e inténtalo de nuevo.']);
+            exit;
         }
+
+        bh_render_error_page(
+            403,
+            'Solicitud no válida',
+            'Por seguridad no hemos podido completar la acción. Recarga la página e inténtalo de nuevo.',
+            'Ir al inicio de sesión',
+            BASE_URL . 'index.php?r=auth/login'
+        );
     }
 }
 
@@ -171,9 +171,77 @@ $usuarioLogueado = isset($_SESSION['usuario_id']);
 
 
 
+//*************************************************RESOLUCIÓN DE CONTROLADOR
+
+
+// Controlador y acción
+$routeParts = explode('/', $route, 2);
+
+if (count($routeParts) !== 2 || $routeParts[0] === '' || $routeParts[1] === '') {
+    bh_render_error_page(
+        404,
+        'Página no encontrada',
+        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
+        'Volver al inicio',
+        BASE_URL . 'index.php?r=home/index'
+    );
+}
+
+[$controllerName, $actionName] = $routeParts;
+
+$controllerClass = ucfirst($controllerName) . 'Controller';
+$controllerFile  = APP_PATH . '/controllers/' . $controllerClass . '.php';
+
+// Comprobamos existencia del controlador
+if (!file_exists($controllerFile)) {
+    bh_render_error_page(
+        404,
+        'Página no encontrada',
+        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
+        'Volver al inicio',
+        BASE_URL . 'index.php?r=home/index'
+    );
+}
+
+require_once $controllerFile;
+
+// Comprobamos existencia de la clase
+if (!class_exists($controllerClass)) {
+    bh_render_error_page(
+        404,
+        'Página no encontrada',
+        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
+        'Volver al inicio',
+        BASE_URL . 'index.php?r=home/index'
+    );
+}
+
+$controller = new $controllerClass();
+
+// Comprobamos existencia del método
+if (!method_exists($controller, $actionName)) {
+    bh_render_error_page(
+        404,
+        'Página no encontrada',
+        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
+        'Volver al inicio',
+        BASE_URL . 'index.php?r=home/index'
+    );
+}
+
+
+
 
 // Si NO está logueado y la ruta NO es pública → login
 if (!$usuarioLogueado && !in_array($route, $rutasPublicas, true)) {
+    if (bh_is_ajax_request($route)) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'msg' => 'Tu sesión ha caducado. Vuelve a iniciar sesión.']);
+        exit;
+    }
+
+    $_SESSION['mensaje_error'] = 'Inicia sesión para acceder a esa sección.';
     header("Location: " . BASE_URL . "index.php?r=auth/login");
     exit;
 
@@ -181,49 +249,6 @@ if (!$usuarioLogueado && !in_array($route, $rutasPublicas, true)) {
 
 
 //*************************************************DESPACHO A CONTROLADOR
- 
-// Controlador y acción
-list($controllerName, $actionName) = explode('/', $route);
-
-$controllerClass = ucfirst($controllerName) . 'Controller';
-$controllerFile  = APP_PATH . '/controllers/' . $controllerClass . '.php';
-
-// Comprobamos existencia del controlador
-if (!file_exists($controllerFile)) {
-    if ($appEnv === 'production') {
-        header("Location: " . BASE_URL . "index.php?r=auth/login");
-        exit;
-    } else {
-        echo "Error: controlador '{$controllerClass}' no existe";
-        exit;
-    }
-}
-
-require_once $controllerFile;
-
-// Comprobamos existencia de la clase
-if (!class_exists($controllerClass)) {
-    if ($appEnv === 'production') {
-        header("Location: " . BASE_URL . "index.php?r=auth/login");
-        exit;
-    } else {
-        echo "Error: clase '{$controllerClass}' no encontrada";
-        exit;
-    }
-}
-
-$controller = new $controllerClass();
-
-// Comprobamos existencia del método
-if (!method_exists($controller, $actionName)) {
-    if ($appEnv === 'production') {
-        header("Location: " . BASE_URL . "index.php?r=auth/login");
-        exit;
-    } else {
-        echo "Error: método '{$actionName}' no encontrado";
-        exit;
-    }
-}
 
 // Todo OK → ejecutamos acción
 $controller->$actionName();

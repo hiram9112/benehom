@@ -26,7 +26,17 @@ class IngresoController{
         $usuario_id=$_SESSION['usuario_id'];
         $categoria=trim($_POST['categoria_ingreso']??'');
         $cantidad=trim($_POST['cantidad_ingreso']??'');
-        $fecha=$_POST['mes_seleccionado']."-01";
+        $mesSeleccionado=trim((string)($_POST['mes_seleccionado']??''));
+
+        if(!bh_mes_valido($mesSeleccionado)){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Mes no válido"
+            ]);
+            return;
+        }
+
+        $fecha=$mesSeleccionado."-01";
 
         //Validación básica de los datos
         if($categoria ===''||$cantidad===''||!is_numeric($cantidad)||$cantidad<=0){

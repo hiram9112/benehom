@@ -26,7 +26,17 @@ class GastoController{
         $usuario_id=$_SESSION['usuario_id'];
         $categoria=trim($_POST['categoria_gasto_esencial']??'');
         $cantidad=trim($_POST['cantidad_gasto_esencial']??'');
-        $fecha=$_POST['mes_seleccionado']."-01";
+        $mesSeleccionado=trim((string)($_POST['mes_seleccionado']??''));
+
+        if(!bh_mes_valido($mesSeleccionado)){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Mes no válido"
+            ]);
+            return;
+        }
+
+        $fecha=$mesSeleccionado."-01";
         $tipo="esencial";
 
         //Validación básica de los datos
@@ -183,7 +193,17 @@ class GastoController{
         $usuario_id=$_SESSION['usuario_id'];
         $categoria=trim($_POST['categoria_gasto_flexible']??'');
         $cantidad=trim($_POST['cantidad_gasto_flexible']??'');
-        $fecha=$_POST['mes_seleccionado']."-01";
+        $mesSeleccionado=trim((string)($_POST['mes_seleccionado']??''));
+
+        if(!bh_mes_valido($mesSeleccionado)){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Mes no válido"
+            ]);
+            return;
+        }
+
+        $fecha=$mesSeleccionado."-01";
         $tipo="flexible";
 
         //Validación básica de los datos

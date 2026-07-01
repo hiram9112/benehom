@@ -131,6 +131,14 @@ class CalculosFinancieros {
     }
 
     public static function calcularCalculadoraHipoteca($importePrestamo, $interesAnual, $plazoAnios): array{
+        if ($plazoAnios <= 0) {
+            return [
+                'cuota_mensual' => 0.0,
+                'total_intereses' => 0.0,
+                'total_pagado' => 0.0,
+            ];
+        }
+
         if ($interesAnual <= 0) {
             $cuotaMensual = $importePrestamo / ($plazoAnios * 12);
             $totalPagado = $importePrestamo;

@@ -107,8 +107,16 @@ class GraficosController{
             return;
         }
 
+        if (!bh_mes_valido((string) $_POST['mes'])) {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "Mes no válido"
+            ]);
+            return;
+        }
+
         // Recogemos los datos necesarios para hacer la consulta a la base de datos
-        $mesSeleccionado = $_POST['mes'];
+        $mesSeleccionado = (string) $_POST['mes'];
         $tipo = $_POST['tipo'];
         $usuario_id = $_SESSION['usuario_id'];
 
@@ -184,9 +192,17 @@ class GraficosController{
             return;
         }
 
+        if (!bh_mes_valido((string) $_POST['mes'])) {
+            echo json_encode([
+                "ok" => false,
+                "msg" => "Mes no válido"
+            ]);
+            return;
+        }
+
         // Recogemos los datos recibidos
         $usuario_id = $_SESSION['usuario_id'];
-        $mesSeleccionado = $_POST['mes'];
+        $mesSeleccionado = (string) $_POST['mes'];
 
         // Generamos los últimos 6 meses
         $meses = [];
@@ -278,7 +294,7 @@ class GraficosController{
             return;
         }
 
-        if (!isset($_POST['mes']) || !preg_match('/^\d{4}-\d{2}$/', $_POST['mes'])) {
+        if (!isset($_POST['mes']) || !bh_mes_valido((string) $_POST['mes'])) {
             echo json_encode([
                 "ok" => false,
                 "msg" => "Mes no válido"
@@ -287,7 +303,7 @@ class GraficosController{
         }
 
         $usuario_id = $_SESSION['usuario_id'];
-        $mesSeleccionado = $_POST['mes'];
+        $mesSeleccionado = (string) $_POST['mes'];
         $fechaSeleccionada = DateTime::createFromFormat('Y-m-d', $mesSeleccionado . '-01');
 
         if (!$fechaSeleccionada || $fechaSeleccionada->format('Y-m') !== $mesSeleccionado) {

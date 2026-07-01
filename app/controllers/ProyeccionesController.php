@@ -19,7 +19,7 @@ class ProyeccionesController {
         $usuario_id = $_SESSION['usuario_id'];
         $mesSeleccionado = $_SESSION['dashboard_mes_seleccionado'] ?? date('Y-m');
 
-        if (!$this->mesValido($mesSeleccionado)) {
+        if (!bh_mes_valido((string) $mesSeleccionado)) {
             $mesSeleccionado = date('Y-m');
         }
 
@@ -114,7 +114,7 @@ class ProyeccionesController {
         $categoria = trim((string) ($_POST['categoria'] ?? ''));
         $mesSeleccionado = trim((string) ($_POST['mes'] ?? ''));
 
-        if (!$this->mesValido($mesSeleccionado)) {
+        if (!bh_mes_valido($mesSeleccionado)) {
             echo json_encode(['ok' => false, 'msg' => 'Mes no válido']);
             return;
         }
@@ -857,10 +857,6 @@ class ProyeccionesController {
         $this->redirigirAProyecciones();
     }
 
-    private function mesValido($mes): bool{
-        return is_string($mes) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes) === 1;
-    }
-
     private function peticionPostAutenticada(): bool{
         if($_SERVER['REQUEST_METHOD'] !== 'POST'){
             $_SESSION['mensaje_error'] = 'Método no permitido.';
@@ -1258,7 +1254,7 @@ class ProyeccionesController {
     private function gastosFlexiblesPorCategoriaActual($usuario_id): array{
         $mesSeleccionado = $_SESSION['dashboard_mes_seleccionado'] ?? date('Y-m');
 
-        if (!$this->mesValido($mesSeleccionado)) {
+        if (!bh_mes_valido((string) $mesSeleccionado)) {
             $mesSeleccionado = date('Y-m');
         }
 

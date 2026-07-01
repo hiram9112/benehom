@@ -18,7 +18,7 @@ class DashboardController{
         //Si recibimos un mes válido del selector lo usamos,de lo contrario cargamos el mes actual.
         $mesActual = date('Y-m');
 
-        if (isset($_GET['mes']) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $_GET['mes'])) {
+        if (isset($_GET['mes']) && bh_mes_valido((string) $_GET['mes'])) {
             $mesActual = (string) $_GET['mes'];
         }
 

@@ -1,5 +1,10 @@
 <?php
 
+function bh_mes_valido(string $mes): bool
+{
+    return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes) === 1;
+}
+
 function gastoCategorias(): array
 {
     static $categorias = null;

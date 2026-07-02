@@ -100,29 +100,72 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarStickyAside();
   }
 
-  document.querySelectorAll("[data-summary-flip]").forEach((card) => {
-    let temporizadorRetorno = null;
+  const summaryDetails = document.querySelector("[data-summary-details]");
+  const summaryInlineAnchor = document.querySelector(
+    "[data-summary-inline-anchor]",
+  );
+  const summaryOffcanvasSlot = document.querySelector(
+    "[data-summary-offcanvas-slot]",
+  );
+  const summaryOffcanvas = document.getElementById("resumenMensualPanel");
 
-    const cerrarCard = () => {
-      if (!card.classList.contains("is-flipped")) {
+  if (summaryDetails && summaryInlineAnchor && summaryOffcanvasSlot) {
+    const mobileSummaryQuery = window.matchMedia("(max-width: 767.98px)");
+
+    const syncSummaryPlacement = () => {
+      if (mobileSummaryQuery.matches) {
+        if (summaryDetails.parentElement !== summaryOffcanvasSlot) {
+          summaryOffcanvasSlot.appendChild(summaryDetails);
+        }
+
         return;
       }
 
-      card.classList.remove("is-flipped");
-      card.setAttribute("aria-expanded", "false");
-      clearTimeout(temporizadorRetorno);
-      temporizadorRetorno = null;
+      if (summaryDetails.parentElement !== summaryInlineAnchor.parentElement) {
+        summaryInlineAnchor.before(summaryDetails);
+      }
+
+      if (summaryOffcanvas && typeof bootstrap !== "undefined") {
+        bootstrap.Offcanvas.getInstance(summaryOffcanvas)?.hide();
+      }
     };
 
-    const alternarCard = () => {
-      const estaGirada = card.classList.toggle("is-flipped");
-      card.setAttribute("aria-expanded", estaGirada ? "true" : "false");
-      clearTimeout(temporizadorRetorno);
-      temporizadorRetorno = null;
+    if (typeof mobileSummaryQuery.addEventListener === "function") {
+      mobileSummaryQuery.addEventListener("change", syncSummaryPlacement);
+    } else {
+      mobileSummaryQuery.addListener(syncSummaryPlacement);
+    }
 
-      if (estaGirada) {
-        temporizadorRetorno = setTimeout(cerrarCard, 10000);
+    syncSummaryPlacement();
+  }
+
+  let activeSummaryCard = null;
+  let summaryCardReturnTimer = null;
+
+  const closeActiveSummaryCard = () => {
+    if (!activeSummaryCard) {
+      return;
+    }
+
+    activeSummaryCard.classList.remove("is-flipped");
+    activeSummaryCard.setAttribute("aria-expanded", "false");
+    activeSummaryCard = null;
+    clearTimeout(summaryCardReturnTimer);
+    summaryCardReturnTimer = null;
+  };
+
+  document.querySelectorAll("[data-summary-flip]").forEach((card) => {
+    const alternarCard = () => {
+      if (activeSummaryCard === card) {
+        closeActiveSummaryCard();
+        return;
       }
+
+      closeActiveSummaryCard();
+      card.classList.add("is-flipped");
+      card.setAttribute("aria-expanded", "true");
+      activeSummaryCard = card;
+      summaryCardReturnTimer = setTimeout(closeActiveSummaryCard, 30000);
     };
 
     card.addEventListener("click", alternarCard);

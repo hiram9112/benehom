@@ -429,8 +429,12 @@
 
 .bh-dashboard-summary{
     grid-template-columns: 1fr;
-    gap: var(--bh-space-4);
+    gap: var(--bh-space-3);
     padding: var(--bh-space-4);
+}
+
+.bh-dashboard-period h1{
+    display: none;
 }
 
 .bh-dashboard-period #selector_mes{
@@ -439,6 +443,66 @@
 
 .bh-summary-metrics{
     grid-template-columns: 1fr;
+}
+
+.bh-summary-balance{
+    min-height: 6.75rem;
+}
+
+.bh-summary-details{
+    display: none;
+}
+
+.bh-summary-mobile-trigger{
+    justify-content: space-between;
+    width: 100%;
+    min-height: 48px;
+    padding-inline: var(--bh-space-4);
+    border-color: var(--bh-border-strong);
+    color: var(--bh-brand-strong);
+    background-color: var(--bh-surface-soft);
+}
+
+.bh-summary-mobile-trigger i{
+    font-size: 1rem;
+}
+
+.bh-summary-offcanvas{
+    width: min(100%, 34rem);
+    color: var(--bh-text-main);
+    background:
+        radial-gradient(circle at 18% 0%, rgba(62, 178, 37, 0.14), transparent 18rem),
+        var(--bh-surface-page);
+}
+
+.bh-summary-offcanvas .offcanvas-header{
+    align-items: flex-start;
+    padding: var(--bh-space-4);
+    border-bottom: var(--bh-border-subtle);
+    background-color: var(--bh-surface-card);
+}
+
+.bh-summary-offcanvas .offcanvas-title{
+    margin: 0;
+    color: var(--bh-brand-strong);
+    font-family: var(--bh-font-heading);
+    font-size: var(--bh-text-xl);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-summary-offcanvas .offcanvas-body{
+    padding: var(--bh-space-4);
+    overflow-y: auto;
+}
+
+.bh-summary-offcanvas .bh-summary-details{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--bh-space-3);
+}
+
+.bh-summary-offcanvas .bh-summary-metric{
+    min-height: 9.75rem;
 }
 
 .lista-ingresos li,
@@ -496,10 +560,6 @@
 }
 
 @media (min-width: 576px){
-    .bh-summary-metrics{
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .lista-ingresos li,
     .lista-gastos li{
         align-items: center;
@@ -543,7 +603,16 @@
 
 @media (min-width: 768px){
     .bh-dashboard-summary{
+        gap: var(--bh-space-4);
         padding: var(--bh-space-4) var(--bh-space-5);
+    }
+
+    .bh-dashboard-period h1{
+        display: block;
+    }
+
+    .bh-summary-balance{
+        min-height: 10.25rem;
     }
 
     .bh-dashboard-period #selector_mes{
@@ -552,6 +621,10 @@
 
     .bh-summary-metrics{
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .bh-summary-details{
+        display: contents;
     }
 }
 

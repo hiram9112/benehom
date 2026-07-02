@@ -59,13 +59,19 @@ bh_document_begin([
                         </div>
 
                         <div class="bh-summary-metrics" aria-live="polite">
-                            <div class="bh-summary-metric" id="resumen_ahorro_card">
+                            <div class="bh-summary-metric bh-summary-balance" id="resumen_ahorro_card">
                                 <div class="bh-summary-metric-heading">
                                     <span>Balance del mes</span>
                                 </div>
                                 <strong id="resumen_ahorro_real">0€</strong>
                             </div>
 
+                            <button type="button" class="bh-btn bh-btn-secondary bh-summary-mobile-trigger d-md-none" data-bs-toggle="offcanvas" data-bs-target="#resumenMensualPanel" aria-controls="resumenMensualPanel">
+                                <span>Ver resumen mensual</span>
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                            </button>
+
+                            <div class="bh-summary-details" data-summary-details>
                             <div class="bh-summary-metric bh-summary-flip-card" role="button" tabindex="0" aria-expanded="false" aria-label="Ver explicación sobre ingresos ahorrados" data-summary-flip>
                                 <div class="bh-summary-card-inner">
                                     <div class="bh-summary-card-face bh-summary-card-front">
@@ -125,6 +131,8 @@ bh_document_begin([
                                     </div>
                                 </div>
                             </div>
+                            </div>
+                            <span hidden data-summary-inline-anchor></span>
                         </div>
                     </header>
 
@@ -539,6 +547,18 @@ bh_document_begin([
                 </div>
                 </div>
             </main>
+    </div>
+
+    <div class="offcanvas offcanvas-end bh-summary-offcanvas d-md-none" tabindex="-1" id="resumenMensualPanel" aria-labelledby="resumenMensualPanelTitle">
+        <div class="offcanvas-header">
+            <div>
+                <h2 class="offcanvas-title" id="resumenMensualPanelTitle">Resumen mensual</h2>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar resumen mensual"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div data-summary-offcanvas-slot></div>
+        </div>
     </div>
 
     <?php bh_mobile_menu(); ?>

@@ -431,26 +431,33 @@ async function editarGastoInline(span) {
 }
 
 // Inicializa el selector de mes/año con Flatpickr
-flatpickr("#mes", {
-  locale: "es",
-  dateFormat: "Y-m", // Formato que espera el backend
-  defaultDate: document.getElementById("mes").value,
+const mesInput = document.getElementById("mes");
 
-  altInput: true,
-  altInputClass: "bh-input bh-month-input",
-  altFormat: "F Y", // lo que ve el usuario
+if (mesInput && window.flatpickr && window.monthSelectPlugin) {
+  flatpickr(mesInput, {
+    locale: "es",
+    dateFormat: "Y-m", // Formato que espera el backend
+    defaultDate: mesInput.value,
+    disableMobile: true,
 
-  plugins: [
-    new monthSelectPlugin({
-      shorthand: true, // Ene, Feb, Mar...
-      dateFormat: "Y-m",
-      altFormat: "F Y", // Texto visible: "Enero 2026"
-    }),
-  ],
-  onChange: function () {
-    // Enviar automáticamente al cambiar el mes
-    this._input.form.submit();
-  },
-});
+    altInput: true,
+    altInputClass: "bh-input bh-month-input",
+    altFormat: "F Y", // lo que ve el usuario
+
+    plugins: [
+      new monthSelectPlugin({
+        shorthand: true, // Ene, Feb, Mar...
+        dateFormat: "Y-m",
+        altFormat: "F Y", // Texto visible: "Enero 2026"
+      }),
+    ],
+    onChange: function () {
+      // Enviar automáticamente al cambiar el mes
+      if (this._input.form) {
+        this._input.form.submit();
+      }
+    },
+  });
+}
 
 

@@ -210,7 +210,7 @@ function bh_security_headers(): void
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
         "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
-        "connect-src 'self'",
+        "connect-src 'self' https://cdn.jsdelivr.net",
     ];
 
     if ($isHttps) {

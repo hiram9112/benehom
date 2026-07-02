@@ -75,16 +75,22 @@ function bh_mobile_nav(): void
 {
     ?>
     <!-- Boton menu movil -->
-    <div class="bh-mobile-nav d-md-none">
-        <button class="bh-btn bh-btn-primary bh-btn-icon"
-            type="button"
-            data-bs-toggle="offcanvas"
-            data-bs-target="#mobileMenu"
-            aria-controls="mobileMenu"
-            aria-label="Abrir menu">
-            <i class="bi bi-list" aria-hidden="true"></i>
-        </button>
-    </div>
+    <header class="bh-home-nav d-md-none" aria-label="Navegación principal">
+        <div class="bh-home-wrap">
+            <a class="bh-home-brand" href="<?= BASE_URL ?>index.php?r=dashboard/index" aria-label="BeneHom, ir al dashboard">
+                <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="BeneHom" width="120" height="80">
+            </a>
+
+            <button class="bh-btn bh-btn-primary bh-btn-icon bh-home-mobile-trigger"
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#mobileMenu"
+                aria-controls="mobileMenu"
+                aria-label="Abrir menú">
+                <i class="bi bi-list" aria-hidden="true"></i>
+            </button>
+        </div>
+    </header>
     <?php
 }
 

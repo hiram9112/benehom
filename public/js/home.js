@@ -69,45 +69,15 @@
     }
 
     /* ---------------------------------------------------------------------
-       Menu de navegacion en movil.
+       Cierra el offcanvas de la home sin interceptar el salto a la seccion.
     --------------------------------------------------------------------- */
-    var burger = document.querySelector('.bh-home-burger');
-    var panel = document.getElementById('bh-home-mobile');
-    var nav = document.querySelector('.bh-home-nav');
-
-    if (burger && panel && nav) {
-        function setMenu(open) {
-            burger.setAttribute('aria-expanded', open ? 'true' : 'false');
-            burger.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
-            panel.hidden = !open;
-            nav.classList.toggle('is-open', open);
-        }
-
-        burger.addEventListener('click', function () {
-            setMenu(burger.getAttribute('aria-expanded') !== 'true');
-        });
-
-        Array.prototype.forEach.call(panel.querySelectorAll('a'), function (a) {
-            a.addEventListener('click', function () { setMenu(false); });
-        });
-
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && burger.getAttribute('aria-expanded') === 'true') {
-                setMenu(false);
-                burger.focus();
-            }
-        });
-
-        document.addEventListener('click', function (e) {
-            if (burger.getAttribute('aria-expanded') === 'true' && !nav.contains(e.target)) {
-                setMenu(false);
-            }
-        });
-
-        window.addEventListener('resize', function () {
-            if (window.innerWidth > 991 && burger.getAttribute('aria-expanded') === 'true') {
-                setMenu(false);
-            }
+    var homeMobileMenu = document.getElementById('bh-home-mobile-menu');
+    if (homeMobileMenu && window.bootstrap && window.bootstrap.Offcanvas) {
+        Array.prototype.forEach.call(homeMobileMenu.querySelectorAll('a[href^="#"]'), function (link) {
+            link.addEventListener('click', function () {
+                var menu = window.bootstrap.Offcanvas.getInstance(homeMobileMenu);
+                if (menu) { menu.hide(); }
+            });
         });
     }
 

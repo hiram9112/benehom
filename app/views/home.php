@@ -73,26 +73,40 @@ bh_document_begin([
                 <a class="bh-btn bh-btn-primary" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario">Crear cuenta</a>
             </div>
 
-            <button class="bh-home-burger" type="button" aria-expanded="false" aria-controls="bh-home-mobile" aria-label="Abrir menú">
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
+            <button class="bh-btn bh-btn-primary bh-btn-icon bh-home-mobile-trigger" type="button" data-bs-toggle="offcanvas" data-bs-target="#bh-home-mobile-menu" aria-controls="bh-home-mobile-menu" aria-label="Abrir menú">
+                <i class="bi bi-list" aria-hidden="true"></i>
             </button>
         </div>
+    </header>
 
-        <div class="bh-home-mobile" id="bh-home-mobile" hidden>
-            <nav aria-label="Secciones de la página">
-                <a href="#como-funciona">Cómo funciona</a>
-                <a href="#funciones">Funciones</a>
-                <a href="#blog">Blog</a>
-                <a href="#faq">Preguntas frecuentes</a>
+    <div class="offcanvas offcanvas-start bh-mobile-menu bh-home-mobile-menu d-lg-none" tabindex="-1" id="bh-home-mobile-menu" aria-labelledby="bh-home-mobile-menu-title">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="bh-home-mobile-menu-title">Menú</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar menú"></button>
+        </div>
+
+        <div class="offcanvas-body">
+            <div class="logo-container text-center mb-4">
+                <a href="<?= BASE_URL ?>index.php" aria-label="BeneHom, ir al inicio">
+                    <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="Logo Benehom" class="logo-benehom">
+                </a>
+            </div>
+
+            <nav aria-label="Navegación principal móvil">
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="#como-funciona"><i class="bi bi-map" aria-hidden="true"></i><span>Cómo funciona</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#funciones"><i class="bi bi-stars" aria-hidden="true"></i><span>Funciones</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#blog"><i class="bi bi-journal-text" aria-hidden="true"></i><span>Blog</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faq"><i class="bi bi-question-circle" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
+                </ul>
             </nav>
-            <div class="bh-home-mobile-actions">
-                <a class="bh-btn bh-btn-secondary" href="<?= BASE_URL ?>index.php?r=auth/login">Iniciar sesión</a>
-                <a class="bh-btn bh-btn-primary" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario">Crear cuenta</a>
+
+            <div class="bh-home-mobile-access" aria-label="Acceso a cuenta">
+                <a class="bh-btn bh-home-mobile-login" href="<?= BASE_URL ?>index.php?r=auth/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i><span>Iniciar sesión</span></a>
+                <a class="bh-btn bh-home-mobile-signup" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario"><i class="bi bi-person-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
             </div>
         </div>
-    </header>
+    </div>
 
     <main id="contenido">
         <!-- ============================ Hero ============================ -->
@@ -682,5 +696,6 @@ bh_document_begin([
 
 <?php
 bh_document_end([
+    'include_bootstrap_js' => true,
     'body_end_extra' => '    <script src="' . bh_asset('js/home.js') . '" defer></script>' . PHP_EOL,
 ]);

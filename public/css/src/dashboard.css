@@ -577,16 +577,11 @@
         align-items: center;
     }
 
-    .bh-card-chart-header{
-        align-items: flex-start;
-        flex-direction: row;
-    }
-
-    .bh-segmented{
+    .bh-investment-snapshot-modal .bh-segmented{
         width: auto;
     }
 
-    .bh-segmented-button{
+    .bh-investment-snapshot-modal .bh-segmented-button{
         flex: 0 1 auto;
     }
 

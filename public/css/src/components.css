@@ -1035,11 +1035,24 @@
 }
 
 @media (min-width: 992px){
+    .bh-category-picker{
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+    }
+}
+
+/* En el dashboard, los formularios de finanzas se mantienen apilados hasta el
+   layout de escritorio (1481px); el picker global de 992px se restaura mas abajo
+   solo para las tarjetas de proyecciones. */
+.bh-dashboard-finance-stack .bh-category-picker{
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 1481px){
     .bh-guided-form{
         grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.35fr) auto;
     }
 
-    .bh-category-picker{
+    .bh-dashboard-finance-stack .bh-category-picker{
         grid-template-columns: repeat(2, minmax(180px, 1fr));
     }
 

@@ -19,3 +19,4 @@ phpunit.xml
 auditoria-seguridad.md
 auditoria-responsive.md
 auditoria-preproduccion.md
+auditoria-despliegue.md

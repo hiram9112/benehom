@@ -644,7 +644,7 @@
     }
 }
 
-@media (min-width: 992px){
+@media (min-width: 1481px){
     .bh-dashboard-summary{
         grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
     }

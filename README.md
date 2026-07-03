@@ -1,5 +1,7 @@
 # BeneHom
 
+[![CI](https://github.com/hiram9112/benehom/actions/workflows/ci.yml/badge.svg)](https://github.com/hiram9112/benehom/actions/workflows/ci.yml)
+
 BeneHom es una aplicación web para gestionar la economía familiar. Permite registrar ingresos y gastos, diferenciar gastos esenciales y flexibles, calcular el ahorro real del hogar, definir metas de ahorro y proyectar escenarios financieros de forma clara.
 
 Aplicación en producción: https://benehom.es
@@ -230,11 +232,10 @@ Cobertura actual de tests:
 - Helpers críticos: whitelists de categorías, formato de categorías/cantidades y CSRF.
 - Integración con base de datos: registro de usuarios, hashes de contraseña, emails duplicados, recuperación de contraseña, agregaciones de gastos y aislamiento por usuario.
 
-Queda fuera de esta fase:
+Queda fuera del alcance de los tests actuales:
 
 - Tests HTTP de controladores que dependen de `echo`, `header` y `exit`.
 - Tests e2e de interfaz, Chart.js y comportamiento visual.
-- Automatización en GitHub Actions, diferible a un sprint de CI/CD.
 
 ## Variables de entorno
 

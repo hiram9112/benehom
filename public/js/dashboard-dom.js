@@ -2,28 +2,24 @@ function crearEstadoVacioDashboard(tipo) {
   const estados = {
     ingresos: {
       icono: "bi-wallet2",
-      titulo: "Sin ingresos",
-      texto: "Añade un ingreso.",
+      titulo: "Aún no has registrado ingresos",
     },
     esenciales: {
       icono: "bi-house-heart",
-      titulo: "Sin gastos esenciales",
-      texto: "Añade un gasto esencial.",
+      titulo: "Aún no tienes gastos esenciales",
     },
     flexibles: {
       icono: "bi-basket2",
-      titulo: "Sin gastos flexibles",
-      texto: "Añade un gasto flexible.",
+      titulo: "Aún no tienes gastos flexibles",
     },
   };
 
   const estado = estados[tipo];
 
   return `
-    <div class="bh-empty-state bh-dashboard-empty-state">
-      <span class="bh-empty-state-icon" aria-hidden="true"><i class="bi ${estado.icono}" aria-hidden="true"></i></span>
-      <h4 class="bh-empty-state-title">${estado.titulo}</h4>
-      <p class="bh-empty-state-text">${estado.texto}</p>
+    <div class="bh-empty-state bh-dashboard-list-empty-state">
+      <div class="bh-empty-state-icon" aria-hidden="true"><i class="bi ${estado.icono}" aria-hidden="true"></i></div>
+      <h3 class="bh-empty-state-title">${estado.titulo}</h3>
     </div>`;
 }
 

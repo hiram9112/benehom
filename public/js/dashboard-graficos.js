@@ -453,8 +453,7 @@ function pintarCabeceraInstantaneaInversion(label) {
   }
 
   if (subtitulo) {
-    var meses = Number(datosInstantaneaInversion.mesesUsados) || 0;
-    subtitulo.textContent = 'Media mensual: ' + formatearEuros(datosInstantaneaInversion.mediaMensual) + '. Calculada con ' + meses + (meses === 1 ? ' mes con datos.' : ' meses con datos.');
+    subtitulo.textContent = 'Media mensual: ' + formatearEuros(datosInstantaneaInversion.mediaMensual) + '.';
   }
 }
 

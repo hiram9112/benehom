@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests and static analysis
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: benehom_test
+          MYSQL_USER: benehom_test_user
+          MYSQL_PASSWORD: test_password_123
+          MYSQL_ROOT_PASSWORD: root_password_123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ubenehom_test_user -ptest_password_123"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      APP_ENV: testing
+      APP_URL: http://localhost
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: benehom_test
+      DB_USER: benehom_test_user
+      DB_PASS: test_password_123
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit Unit and Integration suites
+        run: composer test
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse
+
+      - name: Build CSS
+        run: composer build:css
+
+      - name: Ensure generated CSS is committed
+        run: git diff --exit-code public/css/app.min.css

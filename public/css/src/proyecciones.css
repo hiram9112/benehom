@@ -524,6 +524,13 @@
     line-height: var(--bh-line-normal);
 }
 
+@media (max-width: 575.98px){
+    .bh-meta-metrics p{
+        justify-items: center;
+        text-align: center;
+    }
+}
+
 .bh-meta-metrics p > span{
     color: var(--bh-brand-strong);
     font-size: var(--bh-text-sm);
@@ -729,10 +736,13 @@
 
 .bh-meta-delete-form{
     display: flex;
-    grid-column: 3;
-    grid-row: 1;
     justify-content: flex-end;
     margin-left: auto;
+}
+
+.bh-meta-actions > .bh-meta-delete-form{
+    grid-column: 3;
+    grid-row: 1;
 }
 
 .bh-meta-empty-state{
@@ -1084,7 +1094,7 @@
     grid-template-columns: 1fr;
 }
 
-.bh-meta-delete-form{
+.bh-meta-actions > .bh-meta-delete-form{
     grid-column: 1;
     grid-row: auto;
     width: 100%;
@@ -1141,7 +1151,7 @@
         grid-template-columns: auto minmax(0, 1fr) auto;
     }
 
-    .bh-meta-delete-form{
+    .bh-meta-actions > .bh-meta-delete-form{
         grid-column: 3;
         grid-row: 1;
         width: auto;

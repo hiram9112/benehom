@@ -260,4 +260,8 @@ Antes de proponer cambios, revisa que la aplicación siga funcionando en entorno
 
 ## Licencia
 
-Este repositorio no incluye actualmente un archivo de licencia. Hasta que se añada una licencia explícita, el código queda bajo derechos reservados del autor.
+Este proyecto se publica como portfolio personal y muestra del desarrollo de BeneHom. No es software open source.
+
+El código, los textos, el diseño, la implementación y los materiales específicos de BeneHom quedan bajo derechos reservados del autor.
+
+Consulta el archivo `LICENSE` para más información.

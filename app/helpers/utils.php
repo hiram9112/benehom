@@ -362,10 +362,36 @@ function bh_render_error_page(int $statusCode, string $title, string $message, s
     exit;
 }
 
+function bh_configurar_phpmailer_smtp($mail): void
+{
+    $smtpUser = (string) ($_ENV['SMTP_USER'] ?? '');
+    $smtpHost = (string) ($_ENV['SMTP_HOST'] ?? '');
+    $smtpPort = (string) ($_ENV['SMTP_PORT'] ?? '');
+    $smtpSecure = (string) ($_ENV['SMTP_SECURE'] ?? '');
+    $smtpFrom = (string) ($_ENV['SMTP_FROM'] ?? '');
+    $smtpFromName = (string) ($_ENV['SMTP_FROM_NAME'] ?? '');
+
+    $smtpHost = $smtpHost !== '' ? $smtpHost : 'smtp.gmail.com';
+    $smtpPort = $smtpPort !== '' ? (int) $smtpPort : 587;
+    $smtpSecure = $smtpSecure !== '' ? $smtpSecure : 'tls';
+    $smtpFrom = $smtpFrom !== '' ? $smtpFrom : $smtpUser;
+    $smtpFromName = $smtpFromName !== '' ? $smtpFromName : 'BeneHom';
+
+    $mail->isSMTP();
+    $mail->Host       = $smtpHost;
+    $mail->SMTPAuth   = true;
+    $mail->Username   = $smtpUser;
+    $mail->Password   = (string) ($_ENV['SMTP_PASS'] ?? '');
+    $mail->SMTPSecure = $smtpSecure;
+    $mail->Port       = $smtpPort;
+
+    $mail->setFrom($smtpFrom, $smtpFromName);
+}
+
 /**
  * Envía email de recuperación de contraseña
  * Local: log
- * Producción: PGPMailer()
+ * Producción: PHPMailer()
  */
 function enviarEmailReset(string $email, string $resetLink): bool
 {
@@ -375,6 +401,7 @@ function enviarEmailReset(string $email, string $resetLink): bool
     $resetLink = rtrim($_ENV['APP_URL'], '/') . $resetLink;
 
     $subject = 'Recuperación de contraseña - BeneHom';
+    $safeLink = htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8');
 
     if ($appEnv === 'production') {
         try {
@@ -394,15 +421,7 @@ function enviarEmailReset(string $email, string $resetLink): bool
 
             $mail->CharSet = 'UTF-8';
 
-            $mail->isSMTP();
-            $mail->Host       = 'smtp.gmail.com';
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $_ENV['SMTP_USER'];
-            $mail->Password   = $_ENV['SMTP_PASS'];
-            $mail->SMTPSecure = 'tls';
-            $mail->Port       = 587;
-
-            $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
+            bh_configurar_phpmailer_smtp($mail);
             $mail->addAddress($email);
 
             $mail->isHTML(true);
@@ -413,7 +432,7 @@ function enviarEmailReset(string $email, string $resetLink): bool
             <p>Has solicitado restablecer tu contraseña.</p>
             <p><strong>Enlace (válido 30 minutos):</strong></p>
             <p>
-                <a href='{$resetLink}'>{$resetLink}</a>
+                <a href='{$safeLink}'>{$safeLink}</a>
             </p>
             <p>Si no lo solicitaste, ignora este mensaje.</p>
             <p>— Equipo de BeneHom</p>
@@ -477,15 +496,7 @@ function enviarEmailVerificacion(string $email, string $verificationLink): bool
 
             $mail->CharSet = 'UTF-8';
 
-            $mail->isSMTP();
-            $mail->Host       = 'smtp.gmail.com';
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $_ENV['SMTP_USER'];
-            $mail->Password   = $_ENV['SMTP_PASS'];
-            $mail->SMTPSecure = 'tls';
-            $mail->Port       = 587;
-
-            $mail->setFrom($_ENV['SMTP_USER'], 'BeneHom');
+            bh_configurar_phpmailer_smtp($mail);
             $mail->addAddress($email);
 
             $mail->isHTML(true);

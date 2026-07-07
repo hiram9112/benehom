@@ -860,7 +860,7 @@
     padding: 0;
     background-color: transparent;
     color: var(--bh-brand-strong);
-    font-size: var(--bh-text-base);
+    font-size: var(--bh-text-md);
     line-height: 1;
     cursor: pointer;
     vertical-align: middle;
@@ -884,7 +884,7 @@
     padding: 0;
     background-color: transparent;
     color: var(--bh-brand-strong);
-    font-size: var(--bh-text-base);
+    font-size: var(--bh-text-md);
     line-height: 1;
     cursor: pointer;
     vertical-align: middle;

@@ -19,7 +19,8 @@
     },
     "scripts": {
         "test": "phpunit",
-        "build:css": "php scripts/minify-css.php"
+        "build:css": "php scripts/minify-css.php",
+        "lint:design": "php scripts/design-drift-report.php"
     },
     "require": {
         "phpmailer/phpmailer": "^7.1",

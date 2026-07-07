@@ -92,6 +92,26 @@ function formatearCantidadPHP($valor)
     return number_format($valor, 2, ',', '');
 }
 
+function bh_format_amount($valor, int $decimals = 2): string
+{
+    $numero = is_numeric($valor) ? (float) $valor : 0.0;
+
+    return number_format($numero, $decimals, ',', '.');
+}
+
+function bh_format_money($valor, int $decimals = 2): string
+{
+    return bh_format_amount($valor, $decimals) . ' €';
+}
+
+function bh_format_money_delta($valor, int $decimals = 2): string
+{
+    $numero = is_numeric($valor) ? (float) $valor : 0.0;
+    $signo = $numero > 0 ? '+' : ($numero < 0 ? '-' : '');
+
+    return $signo . bh_format_money(abs($numero), $decimals);
+}
+
 function bh_url(string $ruta = ''): string
 {
     if (preg_match('#^https?://#i', $ruta)) {

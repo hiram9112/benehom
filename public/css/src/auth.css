@@ -10,7 +10,7 @@
     background:
         radial-gradient(circle at 12% 15%, rgba(62, 178, 37, 0.14), transparent 18rem),
         radial-gradient(circle at 86% 18%, rgba(22, 63, 127, 0.10), transparent 20rem),
-        linear-gradient(135deg, var(--bh-surface-page) 0%, var(--bh-color-ivory) 48%, var(--bh-color-sage-100) 100%);
+        linear-gradient(135deg, var(--bh-surface-page) 0%, var(--bh-surface-card) 48%, var(--bh-surface-soft) 100%);
 }
 
 .bh-auth-body::before{

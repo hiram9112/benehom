@@ -79,8 +79,8 @@
 }
 
 .bh-btn-danger:hover {
-    background-color: var(--bh-color-clay);
-    border-color: var(--bh-color-clay);
+    background-color: var(--bh-negative);
+    border-color: var(--bh-negative);
     color: var(--bh-text-inverse);
     box-shadow: var(--bh-shadow-soft);
 }
@@ -711,7 +711,7 @@
     padding: 1.5rem 1rem;
     margin: 0.5rem 0;
     color: var(--bh-brand-strong);
-    font-size: var(--bh-text-base);
+    font-size: var(--bh-text-md);
     font-weight: 500;
 }
 

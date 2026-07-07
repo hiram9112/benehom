@@ -286,7 +286,7 @@
 }
 
 .bg-side-menu .nav-link:hover{
-    color: var(--bh-color-sand);
+    color: var(--bh-text-inverse);
 }
 
 .bh-sidebar{
@@ -367,7 +367,7 @@
 .bh-sidebar .nav-link.is-active,
 .bh-sidebar .nav-link[aria-current="page"]{
     color: var(--bh-brand-strong);
-    background-color: var(--bh-color-ivory);
+    background-color: var(--bh-surface-card);
     box-shadow: var(--bh-shadow-soft);
 }
 
@@ -474,7 +474,7 @@
 .bh-mobile-menu .nav-link.is-active,
 .bh-mobile-menu .nav-link[aria-current="page"]{
     color: var(--bh-brand-strong) !important;
-    background-color: var(--bh-color-ivory);
+    background-color: var(--bh-surface-card);
     box-shadow: var(--bh-shadow-soft);
 }
 
@@ -550,7 +550,6 @@
     .bh-dashboard-aside{
         align-self: start;
         position: sticky;
-        top: var(--bh-dashboard-aside-sticky-top, var(--bh-space-4));
+        top: var(--bh-space-4);
     }
 }
-

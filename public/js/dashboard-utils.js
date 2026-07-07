@@ -106,6 +106,10 @@ function formatearPorcentajeConSigno(valor) {
 function formatearCantidad(valor) {
   const numero = Number(valor) || 0;
 
+  if (window.BHMoney) {
+    return window.BHMoney.formatAmount(numero);
+  }
+
   return new Intl.NumberFormat("es-ES", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

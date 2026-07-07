@@ -840,6 +840,8 @@ bh_modal([
 <?php ob_start(); ?>
 <!--Añadimos chart.js-->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js" integrity="sha384-XcdcwHqIPULERb2yDEM4R0XaQKU3YnDsrTmjACBZyfdVVqjh6xQ4/DCMd7XLcA6Y" crossorigin="anonymous"></script>
+<script src="<?= bh_asset('js/money-format.js') ?>"></script>
+<script src="<?= bh_asset('js/chart-theme.js') ?>"></script>
 
 <!--Cargamos token crsf-->
 <script<?= bh_nonce_attr() ?>>

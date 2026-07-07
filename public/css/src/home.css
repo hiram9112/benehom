@@ -143,8 +143,8 @@
 }
 
 .bh-home-mobile-signup{
-    border-color: var(--bh-color-ivory);
-    background-color: var(--bh-color-ivory);
+    border-color: var(--bh-surface-card);
+    background-color: var(--bh-surface-card);
     color: var(--bh-brand-strong);
     box-shadow: var(--bh-shadow-soft);
 }
@@ -328,7 +328,7 @@
     margin-top: var(--bh-space-4);
     padding: var(--bh-space-4) clamp(var(--bh-space-3), 4vw, var(--bh-space-5));
     border-radius: var(--bh-radius-md);
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
 }
 
 .bh-home-mock-total span,
@@ -481,7 +481,7 @@
     gap: 0.2rem;
     padding: var(--bh-space-4);
     border-radius: var(--bh-radius-md);
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
 }
 
 .bh-home-mock-sim-result span{
@@ -515,7 +515,7 @@
 
 .bh-home-mock-chips span:first-child{
     border-color: transparent;
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
     color: var(--bh-brand-strong);
 }
 
@@ -647,7 +647,7 @@
     width: 2.9rem;
     height: 2.9rem;
     border-radius: 14px;
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
     color: var(--bh-income);
 }
 
@@ -756,7 +756,7 @@
     align-items: center;
     padding: 0.3rem 0.8rem;
     border-radius: var(--bh-radius-pill);
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
     color: var(--bh-brand-strong);
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-bold);

@@ -1,20 +1,6 @@
-// Paleta BeneHom central — lee tokens de CSS con fallback
-const BH_COLORS = {
-  income:        getComputedStyle(document.documentElement).getPropertyValue('--bh-income').trim()        || '#33A64D',
-  incomeSoft:    getComputedStyle(document.documentElement).getPropertyValue('--bh-income-soft').trim()   || 'rgba(51,166,77,0.12)',
-  expense:       getComputedStyle(document.documentElement).getPropertyValue('--bh-expense').trim()       || '#B83E3E',
-  expenseSoft:   getComputedStyle(document.documentElement).getPropertyValue('--bh-expense-soft').trim()  || 'rgba(184,62,62,0.10)',
-  saving:        getComputedStyle(document.documentElement).getPropertyValue('--bh-saving').trim()        || '#3EB225',
-  savingSoft:    getComputedStyle(document.documentElement).getPropertyValue('--bh-saving-soft').trim()   || 'rgba(62,178,37,0.12)',
-  info:          getComputedStyle(document.documentElement).getPropertyValue('--bh-info').trim()          || '#163F7F',
-  infoSoft:      getComputedStyle(document.documentElement).getPropertyValue('--bh-info-soft').trim()     || 'rgba(22,63,127,0.08)',
-  neutral:       getComputedStyle(document.documentElement).getPropertyValue('--bh-neutral').trim()       || '#163F7F',
-  neutralSoft:   getComputedStyle(document.documentElement).getPropertyValue('--bh-neutral-soft').trim()  || '#E9F4EC',
-  textMain:      getComputedStyle(document.documentElement).getPropertyValue('--bh-text-main').trim()     || '#163F7F',
-  textMuted:     getComputedStyle(document.documentElement).getPropertyValue('--bh-text-muted').trim()    || 'rgba(22,63,127,0.72)',
-  borderColor:   getComputedStyle(document.documentElement).getPropertyValue('--bh-border-color').trim() || 'rgba(22,63,127,0.14)',
-  surfaceCard:   getComputedStyle(document.documentElement).getPropertyValue('--bh-surface-card').trim() || '#FDFEFD',
-};
+// Paleta BeneHom centralizada en chart-theme.js.
+const BH_CHART_THEME = window.BHChartTheme || {};
+const BH_COLORS = BH_CHART_THEME.colors || {};
 
 // Variable global para destruir gráficos al cambiar de mes
 let graficoPresupuesto = null;
@@ -33,14 +19,19 @@ let ultimoDisparadorInstantanea = null;
 // Helpers comunes
 // ----------------------------------------------------------------------
 
-const FONT_FAMILY = "'Nunito Sans', Arial, sans-serif";
-const BH_REDUCED_MOTION = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FONT_FAMILY = BH_CHART_THEME.fontFamily || "'Nunito Sans', Arial, sans-serif";
+const BH_REDUCED_MOTION = Boolean(BH_CHART_THEME.reducedMotion) || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 function formatearEuros(valor) {
   var numero = Number(valor) || 0;
   var opciones = Number.isInteger(numero)
-    ? { maximumFractionDigits: 0 }
+    ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
     : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+  if (window.BHMoney) {
+    return window.BHMoney.formatMoney(numero, opciones);
+  }
+
   return new Intl.NumberFormat('es-ES', opciones).format(numero) + ' \u20AC';
 }
 
@@ -63,6 +54,10 @@ function describirSerieEuros(labels, valores) {
 }
 
 function crearTooltipBeneHom() {
+  if (BH_CHART_THEME.tooltip) {
+    return BH_CHART_THEME.tooltip();
+  }
+
   return {
     backgroundColor: BH_COLORS.surfaceCard,
     titleColor: BH_COLORS.textMain,
@@ -77,6 +72,10 @@ function crearTooltipBeneHom() {
 }
 
 function crearLeyendaInferior() {
+  if (BH_CHART_THEME.legend) {
+    return BH_CHART_THEME.legend();
+  }
+
   return {
     position: 'bottom',
     labels: {

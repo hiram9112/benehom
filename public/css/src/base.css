@@ -8,64 +8,106 @@
  * CSS no admite var() en condiciones @media, por eso se usan px literales.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:wght@400;500;600;700&display=swap');
+/* Import recortado: Fraunces solo se usa en 600 (display).
+   Si algun archivo usa Nunito 500, reponer ese peso aqui. */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito+Sans:wght@400;600;700&display=swap');
 
 
 /* ==========================================================================
    Tokens
+   ==========================================================================
+   Una sola capa semantica: cada nombre dice su trabajo.
+   La capa de nombres de fantasia (cream, ivory, sage, sand, clay, cacao,
+   stone) desaparece como capa base: tenia varios nombres para un mismo hex
+   y hexes de distinto tono bajo una misma "rampa", que es donde nace el
+   drift. Sus nombres sobreviven solo como alias en el bloque de DEUDA
+   TEMPORAL, hasta que A0-F5 del Sprint 24 confirmen cero usos.
+   Regla madre: verde = dinero positivo, tinte azul = esenciales,
+   ambar = flexibles y avisos, rojo = negativo/destructivo,
+   azul marca = estructura y accion, neutros = texto y superficies.
    ========================================================================== */
 
 :root{
-    --bh-color-cream: #FDFEFD;
-    --bh-color-ivory: #FDFEFD;
-    --bh-color-sage-100: #E9F4EC;
-    --bh-color-sage-300: #33A64D;
-    --bh-color-sage-600: #3EB225;
-    --bh-color-sage-800: #163F7F;
-    --bh-color-sand: #E9F4EC;
-    --bh-color-clay: #B83E3E;
-    --bh-color-cacao: #163F7F;
-    --bh-color-stone: #163F7F;
-    --bh-color-border: #E9F4EC;
+    /* Marca */
+    --bh-brand: #163F7F;
+    --bh-brand-deep: #102D5C;      /* hover de primario y panel de foco */
+    --bh-brand-soft: #E8EFF8;
+    --bh-brand-strong: var(--bh-brand); /* alias legado */
 
-    --bh-surface-page: var(--bh-color-cream);
-    --bh-surface-card: var(--bh-color-ivory);
-    --bh-surface-soft: var(--bh-color-sage-100);
-    --bh-surface-muted: var(--bh-color-sand);
-    --bh-brand: var(--bh-color-sage-800);
-    --bh-brand-strong: var(--bh-color-sage-800);
-    --bh-accent: var(--bh-color-sage-600);
-    --bh-text-main: var(--bh-color-cacao);
-    --bh-text-muted: rgba(22, 63, 127, 0.72);
-    --bh-text-soft: rgba(22, 63, 127, 0.85);
-    --bh-text-inverse: var(--bh-color-ivory);
-    --bh-border-color: rgba(22, 63, 127, 0.14);
-    --bh-border-strong: rgba(51, 166, 77, 0.38);
+    /* Semantica de dinero y estado */
+    --bh-positive: #33A64D;        /* ingresos, ahorro, deltas buenos */
+    --bh-positive-soft: #E5F3E9;
+    --bh-essential: #4C71A8;       /* gastos esenciales: tinte de marca */
+    --bh-flexible: #B45309;        /* gastos flexibles y nivel aviso */
+    --bh-flexible-soft: #F6EBDD;
+    --bh-negative: #B83E3E;        /* negativo, sobre presupuesto, destructivo */
+    --bh-negative-soft: #FBEBEB;
+    --bh-info: var(--bh-brand);
+    --bh-info-soft: var(--bh-brand-soft);
 
-    --bh-income: #33A64D;
-    --bh-income-soft: rgba(51, 166, 77, 0.12);
-    --bh-expense: #B83E3E;
-    --bh-expense-soft: rgba(184, 62, 62, 0.10);
-    --bh-saving: #3EB225;
-    --bh-saving-soft: rgba(62, 178, 37, 0.12);
-    --bh-success: #33A64D;
-    --bh-success-soft: rgba(51, 166, 77, 0.12);
-    --bh-error: #B83E3E;
-    --bh-error-soft: rgba(184, 62, 62, 0.10);
-    --bh-warning: #3EB225;
-    --bh-warning-soft: rgba(62, 178, 37, 0.10);
-    --bh-warning-strong: #B45309;
-    --bh-info: #163F7F;
-    --bh-info-soft: rgba(22, 63, 127, 0.08);
-    --bh-neutral: var(--bh-color-sage-800);
-    --bh-neutral-soft: var(--bh-color-sage-100);
+    /* Alias de compatibilidad semantica: migrar call sites y retirar */
+    --bh-income: var(--bh-positive);
+    --bh-income-soft: var(--bh-positive-soft);
+    --bh-saving: var(--bh-positive);
+    --bh-saving-soft: var(--bh-positive-soft);
+    --bh-success: var(--bh-positive);
+    --bh-success-soft: var(--bh-positive-soft);
+    --bh-error: var(--bh-negative);
+    --bh-error-soft: var(--bh-negative-soft);
+    --bh-warning: var(--bh-flexible);
+    --bh-warning-soft: var(--bh-flexible-soft);
+    --bh-warning-strong: var(--bh-flexible);
 
-    --bh-font-heading: 'Fraunces', Georgia, serif;
+    /* ------------------------------------------------------------------
+       DEUDA TEMPORAL SPRINT 24 (F5 elimina este bloque completo)
+       Cubre tokens del base.css viejo que otros archivos pueden usar
+       directamente, para que el cambio de base.css no deje ninguna
+       variable indefinida. A0 confirma cuales tienen usos reales;
+       cada fase migra los suyos y F5 borra el bloque.
+       ------------------------------------------------------------------ */
+    --bh-expense: var(--bh-negative);          /* conserva el rojo actual hasta C/D/E */
+    --bh-expense-soft: var(--bh-negative-soft);
+    --bh-accent: var(--bh-positive);           /* ejecuta el "sin lima" aprobado */
+    --bh-color-cream: var(--bh-surface-card);
+    --bh-color-ivory: var(--bh-surface-card);
+    --bh-color-sage-100: var(--bh-surface-soft);
+    --bh-color-sage-300: var(--bh-positive);
+    --bh-color-sage-600: var(--bh-positive);   /* era el lima #3EB225 */
+    --bh-color-sage-800: var(--bh-brand);
+    --bh-color-sand: var(--bh-surface-soft);
+    --bh-color-clay: var(--bh-negative);
+    --bh-color-cacao: var(--bh-brand);
+    --bh-color-stone: var(--bh-brand);
+    --bh-color-border: var(--bh-border-color);
+    /* ------------------------------------------------------------------ */
+
+    /* Neutros: solidos, nada de rgba; el color del texto no debe
+       depender del fondo que tenga debajo */
+    --bh-text-main: #26313F;
+    --bh-text-muted: #5C6672;
+    --bh-text-soft: var(--bh-text-muted); /* alias legado */
+    --bh-text-inverse: #FDFEFD;
+    --bh-neutral: #5C6672;
+    --bh-neutral-soft: var(--bh-surface-soft);
+    --bh-border-color: #E3EAE4;
+    --bh-border-strong: #C7D2CA;
+
+    /* Superficies: pagina y card por fin se separan; con el borde
+       visible, la sombra en cards deja de ser necesaria */
+    --bh-surface-page: #F5F7F5;
+    --bh-surface-card: #FDFEFD;
+    --bh-surface-soft: #E9F4EC;    /* apoyo: chips neutros, hovers, boton secundario */
+    --bh-surface-muted: var(--bh-surface-soft);
+
+    /* Tipografia */
+    --bh-font-display: 'Fraunces', Georgia, serif; /* solo h1/h2, hero y panel de foco */
+    --bh-font-heading: var(--bh-font-display);     /* alias legado: fuera de h1/h2, migrar a interface */
     --bh-font-body: 'Nunito Sans', Arial, sans-serif;
     --bh-font-interface: 'Nunito Sans', Arial, sans-serif;
     --bh-text-xs: 0.75rem;
     --bh-text-sm: 0.875rem;
     --bh-text-md: 1rem;
+    --bh-text-base: var(--bh-text-md);       /* alias legado: migrar a --bh-text-md */
     --bh-text-lg: 1.125rem;
     --bh-text-xl: 1.5rem;
     --bh-text-2xl: 2rem;
@@ -86,6 +128,7 @@
     --bh-space-7: 3rem;
     --bh-space-8: 4rem;
 
+    /* Radios: lg solo modal y hero, md cards, sm controles */
     --bh-radius-sm: 10px;
     --bh-radius-md: 16px;
     --bh-radius-lg: 24px;
@@ -95,17 +138,22 @@
     --bh-border-subtle: var(--bh-border-width) solid var(--bh-border-color);
     --bh-border-accent: var(--bh-border-width) solid var(--bh-border-strong);
 
-    --bh-shadow-soft: 0 10px 30px rgba(22, 63, 127, 0.08);
-    --bh-shadow-card: 0 16px 40px rgba(22, 63, 127, 0.10);
-    --bh-shadow-raised: 0 20px 55px rgba(22, 63, 127, 0.14);
+    /* Sombras: solo capas flotantes (popover, dropdown, modal, offcanvas) */
+    --bh-shadow-pop: 0 10px 30px rgba(22, 63, 127, 0.10);
+    --bh-shadow-modal: 0 20px 55px rgba(22, 63, 127, 0.16);
+    --bh-shadow-soft: var(--bh-shadow-pop);    /* alias legado */
+    --bh-shadow-card: none;                    /* alias legado: apaga las burbujas de golpe */
+    --bh-shadow-raised: var(--bh-shadow-modal);/* alias legado */
 
+    /* Foco */
     --bh-focus-color: var(--bh-brand);
-    --bh-focus-ring-color: rgba(62, 178, 37, 0.28);
+    --bh-focus-ring-color: rgba(51, 166, 77, 0.40);
     --bh-focus-ring: 0 0 0 3px var(--bh-focus-ring-color);
 
     --bh-transition-fast: 120ms ease;
     --bh-transition-base: 180ms ease;
     --bh-transition-slow: 260ms ease;
+    --bh-dashboard-aside-sticky-top: var(--bh-space-4); /* alias Sprint 24 A0 */
 }
 
 
@@ -130,9 +178,8 @@ body{
     font-size: var(--bh-text-md);
     line-height: var(--bh-line-normal);
     color: var(--bh-text-main);
-    background:
-        radial-gradient(circle at top left, rgba(233, 244, 236, 0.82), transparent 32rem),
-        var(--bh-surface-page);
+    /* El gradiente radial de menta se elimina: pagina neutra y plana */
+    background-color: var(--bh-surface-page);
     text-rendering: optimizeLegibility;
     overflow-x: clip;
 }
@@ -143,12 +190,26 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: var(--bh-font-heading);
-    color: var(--bh-text-main);
+    color: var(--bh-brand);
     line-height: var(--bh-line-tight);
-    font-weight: var(--bh-weight-semibold);
     margin-top: 0;
     margin-bottom: var(--bh-space-3);
+}
+
+/* Fraunces solo en display y headline */
+h1,
+h2 {
+    font-family: var(--bh-font-display);
+    font-weight: var(--bh-weight-semibold);
+}
+
+/* Titulos de card y menores: interfaz en bold */
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--bh-font-interface);
+    font-weight: var(--bh-weight-bold);
 }
 
 h1 {
@@ -171,7 +232,7 @@ p {
 }
 
 a {
-    color: var(--bh-brand-strong);
+    color: var(--bh-brand);
     text-decoration-color: rgba(22, 63, 127, 0.35);
     text-underline-offset: 0.18em;
     transition:
@@ -180,7 +241,7 @@ a {
 }
 
 a:hover {
-    color: var(--bh-brand);
+    color: var(--bh-brand-deep);
     text-decoration-color: currentColor;
 }
 
@@ -212,14 +273,27 @@ td {
     text-align: left;
 }
 
+/* Cabecera de tabla: discreta, sin fondo menta */
 th {
-    color: var(--bh-brand-strong);
+    color: var(--bh-text-muted);
     font-weight: var(--bh-weight-bold);
-    background-color: var(--bh-surface-soft);
+    font-size: var(--bh-text-sm);
+    background-color: transparent;
 }
 
 tr:last-child td {
     border-bottom: 0;
+}
+
+/* Importes: cifras tabulares para que las columnas alineen.
+   Verificar que Nunito Sans respeta tnum: dos importes con digitos
+   distintos (111.111,11 y 999.999,99) deben ocupar el mismo ancho.
+   Si no lo hace, cargar Inter solo para importes y activar la
+   linea de font-family de abajo. */
+.bh-amount {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    /* font-family: 'Inter', var(--bh-font-body); */
 }
 
 button,
@@ -261,4 +335,3 @@ textarea:disabled {
     cursor: not-allowed;
     opacity: 0.65;
 }
-

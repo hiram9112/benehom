@@ -122,6 +122,89 @@ function crearEscalasVaciasConEuros(ocultarEjeX) {
   return escalas;
 }
 
+function obtenerTokenDashboard(nombre, fallback) {
+  var valor = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  return valor || fallback || '';
+}
+
+function crearItemsCascadaDashboard(valores) {
+  var ingresos = Number(valores.ingresos) || 0;
+  var esenciales = Number(valores.esenciales) || 0;
+  var flexibles = Number(valores.flexibles) || 0;
+  var posible = ingresos - esenciales;
+  var real = posible - flexibles;
+
+  return [
+    { label: 'Ingresos', start: 0, end: ingresos, value: ingresos, color: obtenerTokenDashboard('--bh-positive', BH_COLORS.positive) },
+    { label: 'Gastos esenciales', start: ingresos, end: posible, value: -esenciales, color: obtenerTokenDashboard('--bh-essential', BH_COLORS.essential) },
+    { label: 'Ahorro posible', start: 0, end: posible, value: posible, color: obtenerTokenDashboard('--bh-positive-soft', BH_COLORS.positiveSoft) },
+    { label: 'Gastos flexibles', start: posible, end: real, value: -flexibles, color: obtenerTokenDashboard('--bh-flexible', BH_COLORS.flexible) },
+    { label: 'Ahorro real', start: 0, end: real, value: real, color: real < 0 ? obtenerTokenDashboard('--bh-negative', BH_COLORS.negative) : obtenerTokenDashboard('--bh-positive', BH_COLORS.positive) },
+  ];
+}
+
+function crearGraficoCascadaDashboard(canvas, valores, opciones) {
+  if (!canvas || !window.Chart) return null;
+
+  var opcionesGrafico = opciones || {};
+  var items = Array.isArray(valores) ? valores : crearItemsCascadaDashboard(valores || {});
+  var pluginEtiquetas = {
+    id: 'bhDashboardWaterfallLabels',
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx;
+      var meta = chart.getDatasetMeta(0);
+
+      ctx.save();
+      ctx.fillStyle = BH_COLORS.textMain || obtenerTokenDashboard('--bh-text-main');
+      ctx.font = '700 12px ' + FONT_FAMILY;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+
+      meta.data.forEach(function (bar, index) {
+        var item = items[index];
+        if (!item) return;
+
+        var value = item.value ?? ((Number(item.end) || 0) - (Number(item.start) || 0));
+        var y = value < 0 ? bar.y + 18 : bar.y - 6;
+        ctx.fillText(formatearEuros(value), bar.x, y);
+      });
+
+      ctx.restore();
+    },
+  };
+
+  return new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: items.map(function (item) { return item.label; }),
+      datasets: [{
+        data: items.map(function (item) { return [item.start, item.end]; }),
+        backgroundColor: items.map(function (item) { return item.color; }),
+        borderRadius: 10,
+        borderSkipped: false,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: opcionesGrafico.animation ?? !BH_REDUCED_MOTION,
+      plugins: {
+        legend: { display: false },
+        tooltip: Object.assign(crearTooltipBeneHom(), {
+          callbacks: {
+            label: function (context) {
+              var item = items[context.dataIndex];
+              return item ? formatearEuros(item.value) : '';
+            },
+          },
+        }),
+      },
+      scales: crearEscalasConEuros(false),
+    },
+    plugins: [pluginEtiquetas],
+  });
+}
+
 function crearEscalasHorizontalesVaciasConEuros() {
   return {
     x: {
@@ -911,3 +994,4 @@ window.cargarGraficoGastosEsenciales6m = cargarGraficoGastosEsenciales6m;
 window.cargarGraficoAhorros6m = cargarGraficoAhorros6m;
 window.cargarGraficoEscalaHabitos = cargarGraficoEscalaHabitos;
 window.abrirInstantaneaCategoria = abrirInstantaneaCategoria;
+window.crearGraficoCascadaDashboard = crearGraficoCascadaDashboard;

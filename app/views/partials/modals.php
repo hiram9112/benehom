@@ -11,7 +11,7 @@
  * Uso típico (modal informativo):
  *   bh_info_modal('infoIngresos', '¿Qué son los ingresos?', '<p>...</p>');
  *
- * Uso avanzado (cuerpo dinámico, pie personalizado, variante de marca):
+ * Uso avanzado (cuerpo dinámico, pie personalizado, variante de foco):
  *   bh_modal([
  *       'id'      => 'modalConfirmacion',
  *       'title'   => 'Confirmar acción',
@@ -32,17 +32,17 @@ if (!function_exists('bh_modal')) {
      *   - title      (string)              título visible en la cabecera.
      *   - titleId    (string)              id del <h2> del título; útil cuando el JS
      *                                      actualiza el texto (p. ej. modalConfirmacionTitulo).
-     *   - eyebrow    (string)              kicker corto sobre el título (solo variante branded).
+     *   - eyebrow    (string)              kicker corto sobre el título.
      *   - subtitle   (string)              subtítulo bajo el título.
      *   - subtitleId (string)              id del subtítulo (p. ej. para rellenar por JS).
      *   - size       (string)              'default' | 'lg' | 'sm'.
-     *   - variant    (string)              '' | 'branded' (instantánea de inversión, azul de marca).
+     *   - variant    (string)              '' | 'focus' (panel azul de foco).
      *   - body       (string)              HTML interior del cuerpo.
      *   - bodyId     (string)              id del .bh-modal-body (contenido dinámico).
      *   - footer     (string|null)         HTML de los botones del pie.
      *                                        - omitido  => un único botón "Cerrar".
      *                                        - null     => sin pie.
-     *   - closeWhite (bool)                fuerza el botón de cierre claro (por defecto en branded).
+     *   - closeWhite (bool)                fuerza el botón de cierre claro (por defecto en focus).
      */
     function bh_modal(array $o): void
     {
@@ -56,7 +56,7 @@ if (!function_exists('bh_modal')) {
         $variant    = $o['variant'] ?? '';
         $body       = $o['body'] ?? '';
         $bodyId     = $o['bodyId'] ?? ($id . 'Body');
-        $closeWhite = $o['closeWhite'] ?? ($variant === 'branded');
+        $closeWhite = $o['closeWhite'] ?? ($variant === 'focus');
 
         // Pie: si no se pasa la clave, mostramos un "Cerrar" por defecto.
         // Si se pasa null explícitamente, no se renderiza pie.
@@ -72,8 +72,8 @@ if (!function_exists('bh_modal')) {
         }
 
         $contentClass = 'modal-content bh-modal';
-        if ($variant === 'branded') {
-            $contentClass .= ' bh-investment-snapshot-modal';
+        if ($variant === 'focus') {
+            $contentClass .= ' bh-focus-panel';
         }
 
         $closeClass = 'btn-close' . ($closeWhite ? ' btn-close-white' : '');

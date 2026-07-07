@@ -36,13 +36,19 @@
 
     /* Semantica de dinero y estado */
     --bh-positive: #33A64D;        /* ingresos, ahorro, deltas buenos */
+    --bh-positive-ink: #246E35;
     --bh-positive-soft: #E5F3E9;
     --bh-essential: #4C71A8;       /* gastos esenciales: tinte de marca */
+    --bh-essential-ink: #274F86;
+    --bh-essential-soft: #E7EEF8;
     --bh-flexible: #B45309;        /* gastos flexibles y nivel aviso */
+    --bh-flexible-ink: #7A3A05;
     --bh-flexible-soft: #F6EBDD;
     --bh-negative: #B83E3E;        /* negativo, sobre presupuesto, destructivo */
+    --bh-negative-ink: #8F2F2F;
     --bh-negative-soft: #FBEBEB;
     --bh-info: var(--bh-brand);
+    --bh-info-ink: var(--bh-brand-deep);
     --bh-info-soft: var(--bh-brand-soft);
 
     /* Alias de compatibilidad semantica: migrar call sites y retirar */
@@ -88,6 +94,7 @@
     --bh-text-soft: var(--bh-text-muted); /* alias legado */
     --bh-text-inverse: #FDFEFD;
     --bh-neutral: #5C6672;
+    --bh-neutral-ink: #3F4852;
     --bh-neutral-soft: var(--bh-surface-soft);
     --bh-border-color: #E3EAE4;
     --bh-border-strong: #C7D2CA;

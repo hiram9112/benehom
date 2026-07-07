@@ -762,7 +762,7 @@ bh_modal([
     'eyebrow'    => 'Simulación educativa',
     'subtitleId' => 'modalInstantaneaSubtitulo',
     'size'       => 'lg',
-    'variant'    => 'branded',
+    'variant'    => 'focus',
     'footer'     => null,
     'body'       => <<<'HTML'
 <div class="bh-investment-snapshot-controls">

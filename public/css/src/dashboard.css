@@ -74,69 +74,6 @@
     line-height: var(--bh-line-normal);
 }
 
-/* ==========================================================================
-   Instantánea de inversión — variante azul de marca
-   ========================================================================== */
-
-.bh-investment-snapshot-modal{
-    background-color: var(--bh-brand-strong);
-    color: #fff;
-}
-
-.bh-investment-snapshot-modal .bh-modal-header{
-    background-color: transparent;
-    border-color: rgba(255, 255, 255, 0.18);
-}
-
-.bh-investment-snapshot-modal .bh-modal-title,
-.bh-investment-snapshot-modal .bh-investment-snapshot-years,
-.bh-investment-snapshot-modal .bh-investment-snapshot-row strong{
-    color: #fff;
-}
-
-.bh-investment-snapshot-modal .bh-modal-eyebrow,
-.bh-investment-snapshot-modal .bh-modal-subtitle,
-.bh-investment-snapshot-modal .bh-investment-snapshot-head,
-.bh-investment-snapshot-modal .bh-control-label{
-    color: rgba(255, 255, 255, 0.82);
-}
-
-.bh-investment-snapshot-modal .bh-segmented{
-    background-color: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.18);
-}
-
-.bh-investment-snapshot-modal .bh-segmented-button{
-    color: rgba(255, 255, 255, 0.75);
-}
-
-.bh-investment-snapshot-modal .bh-segmented-button:hover{
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.14);
-}
-
-.bh-investment-snapshot-modal .bh-segmented-button.is-active,
-.bh-investment-snapshot-modal .bh-segmented-button[aria-pressed="true"]{
-    color: var(--bh-brand-strong);
-    background-color: #fff;
-}
-
-.bh-investment-snapshot-modal .bh-investment-snapshot-row{
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.18);
-}
-
-.bh-investment-snapshot-modal .bh-investment-generated{
-    color: #1B5E20;
-    background-color: #fff;
-}
-
-.bh-investment-snapshot-modal .bh-investment-disclaimer{
-    color: rgba(255, 255, 255, 0.82);
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.18);
-}
-
 .bh-empty-state {
     display: grid;
     justify-items: center;
@@ -584,11 +521,11 @@
         align-items: center;
     }
 
-    .bh-investment-snapshot-modal .bh-segmented{
+    .bh-focus-panel .bh-segmented{
         width: auto;
     }
 
-    .bh-investment-snapshot-modal .bh-segmented-button{
+    .bh-focus-panel .bh-segmented-button{
         flex: 0 1 auto;
     }
 

@@ -129,6 +129,7 @@ function bh_document_end(array $opciones = []): void
     ?>
 <?php if ($includeBootstrapJs): ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="<?= bh_asset('js/bh-components.js') ?>"></script>
 <?php endif; ?>
 <?php if ($includeFlashJs): ?>
     <script src="<?= bh_asset('js/flash.js') ?>"></script>

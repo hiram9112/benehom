@@ -432,9 +432,29 @@ async function editarGastoInline(span) {
 
 // Inicializa el selector de mes/año con Flatpickr
 const mesInput = document.getElementById("mes");
+let mesPicker = null;
+
+function crearFechaMes(valor) {
+  const partes = String(valor || "").split("-");
+  const year = Number(partes[0]);
+  const monthIndex = Number(partes[1]) - 1;
+
+  if (!year || Number.isNaN(monthIndex)) {
+    return new Date();
+  }
+
+  return new Date(year, monthIndex, 1);
+}
+
+function formatearValorMes(fecha) {
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
 
 if (mesInput && window.flatpickr && window.monthSelectPlugin) {
-  flatpickr(mesInput, {
+  mesPicker = flatpickr(mesInput, {
     locale: "es",
     dateFormat: "Y-m", // Formato que espera el backend
     defaultDate: mesInput.value,
@@ -459,5 +479,23 @@ if (mesInput && window.flatpickr && window.monthSelectPlugin) {
     },
   });
 }
+
+document.querySelectorAll("[data-month-shift]").forEach((boton) => {
+  boton.addEventListener("click", () => {
+    if (!mesInput?.form) return;
+
+    const fecha = crearFechaMes(mesInput.value);
+    fecha.setMonth(fecha.getMonth() + Number(boton.dataset.monthShift || 0));
+    const nuevoMes = formatearValorMes(fecha);
+
+    mesInput.value = nuevoMes;
+
+    if (mesPicker) {
+      mesPicker.setDate(nuevoMes, false, "Y-m");
+    }
+
+    mesInput.form.submit();
+  });
+});
 
 

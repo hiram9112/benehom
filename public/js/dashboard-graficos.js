@@ -4,6 +4,7 @@ const BH_COLORS = BH_CHART_THEME.colors || {};
 
 // Variable global para destruir gráficos al cambiar de mes
 let graficoPresupuesto = null;
+let graficoHistoriaMes = null;
 let graficoGastosFlexibles6m = null;
 let graficoGastosEsenciales6m = null;
 let graficoAhorros6m = null;
@@ -14,6 +15,11 @@ let indiceBarraActiva = 0;
 let datosInstantaneaInversion = null;
 let estadoInstantaneaInversion = { aportacion: 'todo', rentabilidad: '3' };
 let ultimoDisparadorInstantanea = null;
+let datosHistoriaMesActuales = null;
+const BH_HERO_CHART_MOBILE_QUERY = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(max-width: 640px)')
+  : null;
+window.bhDashboardHeroSeries = window.bhDashboardHeroSeries || {};
 
 // ----------------------------------------------------------------------
 // Helpers comunes
@@ -137,26 +143,164 @@ function crearItemsCascadaDashboard(valores) {
   return [
     { label: 'Ingresos', start: 0, end: ingresos, value: ingresos, color: obtenerTokenDashboard('--bh-positive', BH_COLORS.positive) },
     { label: 'Gastos esenciales', start: ingresos, end: posible, value: -esenciales, color: obtenerTokenDashboard('--bh-essential', BH_COLORS.essential) },
-    { label: 'Ahorro posible', start: 0, end: posible, value: posible, color: obtenerTokenDashboard('--bh-positive-soft', BH_COLORS.positiveSoft) },
+    { label: 'Ahorro posible', start: 0, end: posible, value: posible, color: obtenerTokenDashboard('--bh-waterfall-subtotal-fill', BH_COLORS.positiveSoft), isSubtotal: true },
     { label: 'Gastos flexibles', start: posible, end: real, value: -flexibles, color: obtenerTokenDashboard('--bh-flexible', BH_COLORS.flexible) },
     { label: 'Ahorro real', start: 0, end: real, value: real, color: real < 0 ? obtenerTokenDashboard('--bh-negative', BH_COLORS.negative) : obtenerTokenDashboard('--bh-positive', BH_COLORS.positive) },
   ];
+}
+
+function calcularMaximoCascada(items) {
+  var maximo = items.reduce(function (actual, item) {
+    return Math.max(actual, Number(item.start) || 0, Number(item.end) || 0);
+  }, 0);
+  var paso = maximo > 3000 ? 1000 : 500;
+
+  return Math.max(paso, Math.ceil(maximo / paso) * paso);
+}
+
+function formatearEurosCascada(valor, sinDecimales) {
+  var numero = Number(valor) || 0;
+  var opcionesEnteras = { maximumFractionDigits: 0 };
+
+  function formatearAbsoluto(cantidad) {
+    if (!sinDecimales) return formatearEuros(cantidad);
+
+    return new Intl.NumberFormat('es-ES', opcionesEnteras).format(cantidad) + ' €';
+  }
+
+  if (numero < 0) {
+    return '−' + formatearAbsoluto(Math.abs(numero));
+  }
+
+  return formatearAbsoluto(numero);
+}
+
+function esGraficoHistoriaMovil() {
+  return Boolean(BH_HERO_CHART_MOBILE_QUERY && BH_HERO_CHART_MOBILE_QUERY.matches);
+}
+
+function mesSeleccionadoResumen() {
+  if (typeof nombreMesResumen === 'function') {
+    return nombreMesResumen(document.getElementById('mes')?.value);
+  }
+
+  return 'este mes';
+}
+
+function hayMovimientosHistoriaMes(valores) {
+  return (Number(valores.ingresos) || 0) !== 0
+    || (Number(valores.gastosEsenciales) || 0) !== 0
+    || (Number(valores.gastosFlexibles) || 0) !== 0;
 }
 
 function crearGraficoCascadaDashboard(canvas, valores, opciones) {
   if (!canvas || !window.Chart) return null;
 
   var opcionesGrafico = opciones || {};
+  var graficoVacio = Boolean(opcionesGrafico.empty);
+  var esMovil = opcionesGrafico.mobile ?? esGraficoHistoriaMovil();
   var items = Array.isArray(valores) ? valores : crearItemsCascadaDashboard(valores || {});
+  var escalas = crearEscalasConEuros(false);
+  var maximoEscala = graficoVacio ? 1 : calcularMaximoCascada(items);
+
+  if (graficoVacio) {
+    escalas.y.min = -1;
+    escalas.y.max = 1;
+    escalas.y.grid = Object.assign({}, escalas.y.grid || {}, {
+      display: !esMovil,
+      color: obtenerTokenDashboard('--bh-border-color', BH_COLORS.borderColor),
+    });
+    escalas.y.ticks = Object.assign({}, escalas.y.ticks || {}, { display: false, callback: function () { return ''; } });
+  } else {
+    escalas.y.max = maximoEscala;
+    escalas.y.grid = Object.assign({}, escalas.y.grid || {}, { display: !esMovil });
+    escalas.y.ticks = Object.assign({}, escalas.y.ticks || {}, {
+      display: !esMovil,
+      stepSize: maximoEscala / 6,
+    });
+  }
+
+  escalas.y.border = Object.assign({}, escalas.y.border || {}, { display: false });
+  escalas.x.ticks = Object.assign({}, escalas.x.ticks || {}, {
+    autoSkip: false,
+    maxRotation: 0,
+    minRotation: 0,
+    callback: function (_value, index) {
+      var label = items[index] ? items[index].label : '';
+      var etiquetas = {
+        'Gastos esenciales': ['Gastos', 'esenciales'],
+        'Ahorro posible': ['Ahorro', 'posible'],
+        'Gastos flexibles': ['Gastos', 'flexibles'],
+        'Ahorro real': ['Ahorro', 'real'],
+      };
+
+      return etiquetas[label] || label;
+    },
+  });
   var pluginEtiquetas = {
     id: 'bhDashboardWaterfallLabels',
     afterDatasetsDraw: function (chart) {
       var ctx = chart.ctx;
       var meta = chart.getDatasetMeta(0);
+      var yScale = chart.scales.y;
+
+      if (yScale) {
+        var ceroY = yScale.getPixelForValue(0);
+
+        if (Number.isFinite(ceroY)) {
+          ctx.save();
+          ctx.strokeStyle = obtenerTokenDashboard('--bh-border-strong', BH_COLORS.borderColor);
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(chart.chartArea.left, ceroY);
+          ctx.lineTo(chart.chartArea.right, ceroY);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      if (graficoVacio) return;
+
+      if (meta.data.length >= 5 && yScale) {
+        var conectores = [
+          { from: 0, to: 1, value: items[0] ? items[0].end : 0 },
+          { from: 1, to: 2, value: items[1] ? items[1].end : 0 },
+          { from: 2, to: 3, value: items[2] ? items[2].end : 0 },
+          { from: 3, to: 4, value: items[3] ? items[3].end : 0 },
+        ];
+
+        ctx.save();
+        ctx.strokeStyle = obtenerTokenDashboard('--bh-text-muted', BH_COLORS.textMuted);
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+
+        conectores.forEach(function (conector) {
+          var origen = meta.data[conector.from];
+          var destino = meta.data[conector.to];
+
+          if (!origen || !destino) return;
+
+          var origenProps = origen.getProps(['x', 'width'], true);
+          var destinoProps = destino.getProps(['x', 'width'], true);
+          var y = yScale.getPixelForValue(conector.value);
+          var x1 = origenProps.x + (origenProps.width / 2);
+          var x2 = destinoProps.x - (destinoProps.width / 2);
+
+          if (!Number.isFinite(y) || x2 <= x1) return;
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y);
+          ctx.lineTo(x2, y);
+          ctx.stroke();
+        });
+
+        ctx.restore();
+      }
 
       ctx.save();
       ctx.fillStyle = BH_COLORS.textMain || obtenerTokenDashboard('--bh-text-main');
-      ctx.font = '700 12px ' + FONT_FAMILY;
+      ctx.font = '600 ' + (esMovil ? '11px ' : '12px ') + FONT_FAMILY;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
@@ -165,8 +309,9 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
         if (!item) return;
 
         var value = item.value ?? ((Number(item.end) || 0) - (Number(item.start) || 0));
-        var y = value < 0 ? bar.y + 18 : bar.y - 6;
-        ctx.fillText(formatearEuros(value), bar.x, y);
+        var props = bar.getProps(['x', 'y', 'base'], true);
+        var y = Math.max(12, Math.min(props.y, props.base) - 8);
+        ctx.fillText(formatearEurosCascada(value, esMovil), props.x, y);
       });
 
       ctx.restore();
@@ -180,28 +325,126 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
       datasets: [{
         data: items.map(function (item) { return [item.start, item.end]; }),
         backgroundColor: items.map(function (item) { return item.color; }),
-        borderRadius: 10,
+        borderColor: items.map(function (item) { return item.color; }),
+        borderWidth: 0,
+        borderRadius: 6,
         borderSkipped: false,
+        barPercentage: esMovil ? 0.9 : 0.88,
+        categoryPercentage: esMovil ? 0.94 : 0.9,
+        maxBarThickness: esMovil ? 76 : 86,
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      aspectRatio: 2,
       animation: opcionesGrafico.animation ?? !BH_REDUCED_MOTION,
+      layout: { padding: esMovil ? { top: 26, right: 0, bottom: 0, left: 0 } : { top: 30, right: 4, bottom: 0, left: 4 } },
       plugins: {
         legend: { display: false },
-        tooltip: Object.assign(crearTooltipBeneHom(), {
+        tooltip: graficoVacio ? { enabled: false } : Object.assign(crearTooltipBeneHom(), {
           callbacks: {
+            title: function () {
+              return '';
+            },
             label: function (context) {
               var item = items[context.dataIndex];
-              return item ? formatearEuros(item.value) : '';
+              if (!item) return '';
+
+              return item.label + ' · ' + formatearEurosCascada(item.value, false);
             },
           },
         }),
       },
-      scales: crearEscalasConEuros(false),
+      scales: escalas,
     },
     plugins: [pluginEtiquetas],
+  });
+}
+
+function actualizarGraficoHistoriaMes(valores) {
+  var canvas = document.getElementById('graficoHistoriaMes');
+
+  if (!canvas) return;
+
+  datosHistoriaMesActuales = {
+    ingresos: valores.ingresos,
+    gastosEsenciales: valores.gastosEsenciales,
+    gastosFlexibles: valores.gastosFlexibles,
+    ahorroReal: valores.ahorroReal,
+  };
+
+  var tieneMovimientos = hayMovimientosHistoriaMes(datosHistoriaMesActuales);
+  var mes = mesSeleccionadoResumen();
+  var empty = document.getElementById('graficoHistoriaMesEmpty');
+  var emptyMes = document.getElementById('graficoHistoriaMesEmptyMes');
+
+  if (empty) empty.hidden = tieneMovimientos;
+  if (emptyMes) emptyMes.textContent = mes;
+
+  if (graficoHistoriaMes) { graficoHistoriaMes.destroy(); graficoHistoriaMes = null; }
+
+  graficoHistoriaMes = crearGraficoCascadaDashboard(
+    canvas,
+    tieneMovimientos
+      ? {
+          ingresos: valores.ingresos,
+          esenciales: valores.gastosEsenciales,
+          flexibles: valores.gastosFlexibles,
+        }
+      : { ingresos: 0, esenciales: 0, flexibles: 0 },
+    { empty: !tieneMovimientos, mobile: esGraficoHistoriaMovil() }
+  );
+
+  if (!tieneMovimientos) {
+    actualizarResumenGrafico(
+      'graficoHistoriaMesResumen',
+      'Aún no hay movimientos en ' + mes + '. Usa el botón para añadir el primer ingreso.'
+    );
+    return;
+  }
+
+  actualizarResumenGrafico(
+    'graficoHistoriaMesResumen',
+    'La historia del mes: ingresos ' + formatearEuros(valores.ingresos) +
+      ', gastos esenciales ' + formatearEuros(valores.gastosEsenciales) +
+      ', ahorro posible ' + formatearEuros((Number(valores.ingresos) || 0) - (Number(valores.gastosEsenciales) || 0)) +
+      ', gastos flexibles ' + formatearEuros(valores.gastosFlexibles) +
+      ' y ahorro real ' + formatearEuros(valores.ahorroReal) + '.'
+  );
+}
+
+function registrarResponsiveHistoriaMes() {
+  if (!BH_HERO_CHART_MOBILE_QUERY) return;
+
+  var regenerar = function () {
+    if (!datosHistoriaMesActuales) return;
+    actualizarGraficoHistoriaMes(datosHistoriaMesActuales);
+  };
+
+  if (typeof BH_HERO_CHART_MOBILE_QUERY.addEventListener === 'function') {
+    BH_HERO_CHART_MOBILE_QUERY.addEventListener('change', regenerar);
+  } else {
+    BH_HERO_CHART_MOBILE_QUERY.addListener(regenerar);
+  }
+}
+
+function registrarCtaHeroVacio() {
+  var cta = document.querySelector('[data-hero-empty-cta]');
+
+  if (!cta) return;
+
+  cta.addEventListener('click', function () {
+    var destino = document.getElementById('formIngresos');
+    var foco = document.getElementById('categoria_ingreso') || destino?.querySelector('select, input, textarea, button');
+
+    if (destino) {
+      destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (foco) {
+      window.setTimeout(function () { foco.focus({ preventScroll: true }); }, 450);
+    }
   });
 }
 
@@ -562,7 +805,6 @@ function renderizarInstantaneaInversion() {
 // ----------------------------------------------------------------------
 async function cargarGraficoPresupuesto() {
   var canvas = document.getElementById('graficoPresupuestoMensual');
-  var ctx = canvas.getContext('2d');
   var mesSeleccionado = document.getElementById('mes').value;
   var datos = new FormData();
   datos.append('mes', mesSeleccionado);
@@ -581,12 +823,20 @@ async function cargarGraficoPresupuesto() {
 
     var valores = data.data;
     actualizarTotales(valores);
+    window.bhDashboardFlexibleShareLabel = valores.ingresos > 0
+      ? formatearPorcentaje((Number(valores.gastosFlexibles) / Number(valores.ingresos)) * 100) + ' %'
+      : '0 %';
+    actualizarGraficoHistoriaMes(valores);
     actualizarResumenGrafico(
       'graficoPresupuestoMensualResumen',
       'Presupuesto mensual: ingresos ' + formatearEuros(valores.ingresos) +
         ', gastos totales ' + formatearEuros(valores.gastosTotales) +
         ' y ahorro real ' + formatearEuros(valores.ahorroReal) + '.'
     );
+
+    if (!canvas) return;
+
+    var ctx = canvas.getContext('2d');
 
     if (graficoPresupuesto) { graficoPresupuesto.destroy(); graficoPresupuesto = null; }
 
@@ -668,7 +918,7 @@ async function cargarGraficoGastosFlexibles6m() {
     var valores = data.data.valores;
     var serie = filtrarMesesConValores(meses, valores);
     var graficoVacio = serie.valores.length === 0;
-    actualizarResumenVariacionGastos('flexible', serie.valores);
+    actualizarResumenVariacionGastos('flexible', valores, meses);
     actualizarResumenGrafico(
       'graficoGastosFlexibles6mResumen',
       'Evolución de gastos flexibles: ' + describirSerieEuros(serie.meses, serie.valores)
@@ -735,7 +985,7 @@ async function cargarGraficoGastosEsenciales6m() {
     var valores = data.data.valores;
     var serie = filtrarMesesConValores(meses, valores);
     var graficoVacio = serie.valores.length === 0;
-    actualizarResumenVariacionGastos('esencial', serie.valores);
+    actualizarResumenVariacionGastos('esencial', valores, meses);
     actualizarResumenGrafico(
       'graficoGastosEsenciales6mResumen',
       'Evolución de gastos esenciales: ' + describirSerieEuros(serie.meses, serie.valores)
@@ -995,3 +1245,6 @@ window.cargarGraficoAhorros6m = cargarGraficoAhorros6m;
 window.cargarGraficoEscalaHabitos = cargarGraficoEscalaHabitos;
 window.abrirInstantaneaCategoria = abrirInstantaneaCategoria;
 window.crearGraficoCascadaDashboard = crearGraficoCascadaDashboard;
+
+registrarResponsiveHistoriaMes();
+registrarCtaHeroVacio();

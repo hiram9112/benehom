@@ -1326,9 +1326,8 @@
 
 .bh-modal-header {
     display: flex;
-    align-items: flex-start;
-    gap: var(--bh-space-4);
-    padding: var(--bh-space-5);
+    align-items: stretch;
+    padding: var(--bh-space-4) var(--bh-space-5);
     border-bottom: var(--bh-border-subtle);
     background-color: var(--bh-surface-soft);
 }
@@ -1337,15 +1336,23 @@
     display: flex;
     flex-direction: column;
     gap: var(--bh-space-1);
+    width: 100%;
     min-width: 0;
+}
+
+.bh-modal-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--bh-space-4);
 }
 
 .bh-modal-header .btn-close {
     margin: 0;
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    padding: 0.875rem;
+    width: 36px;
+    height: 36px;
+    padding: 0.625rem;
     background-position: center;
 }
 
@@ -1357,6 +1364,8 @@
 }
 
 .bh-modal-title {
+    flex: 1;
+    min-width: 0;
     margin: 0;
     color: var(--bh-brand-strong);
     font-family: var(--bh-font-interface);

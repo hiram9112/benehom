@@ -153,7 +153,7 @@ function calcularMaximoCascada(items) {
   var maximo = items.reduce(function (actual, item) {
     return Math.max(actual, Number(item.start) || 0, Number(item.end) || 0);
   }, 0);
-  var paso = maximo > 3000 ? 1000 : 500;
+  var paso = 400;
 
   return Math.max(paso, Math.ceil(maximo / paso) * paso);
 }
@@ -216,7 +216,8 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
     escalas.y.grid = Object.assign({}, escalas.y.grid || {}, { display: !esMovil });
     escalas.y.ticks = Object.assign({}, escalas.y.ticks || {}, {
       display: !esMovil,
-      stepSize: maximoEscala / 6,
+      precision: 0,
+      stepSize: 400,
     });
   }
 

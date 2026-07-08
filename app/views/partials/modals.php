@@ -5,7 +5,7 @@
  *
  * Una única plantilla para todos los modales centrados del proyecto, de modo
  * que la información se muestre siempre igual: mismo tamaño, misma tipografía
- * (legible) y misma estructura (cabecera + cuerpo + pie). El estilo vive en
+ * (legible) y misma estructura (cabecera + cuerpo + pie opcional). El estilo vive en
  * las clases bh-modal* de public/css/src/components.css.
  *
  * Uso típico (modal informativo):
@@ -89,12 +89,14 @@ if (!function_exists('bh_modal')) {
                             <?php if ($eyebrow !== ''): ?>
                                 <p class="bh-modal-eyebrow"><?= $eyebrow ?></p>
                             <?php endif; ?>
-                            <h2 class="modal-title bh-modal-title" id="<?= htmlspecialchars($titleId) ?>"><?= $title ?></h2>
+                            <div class="bh-modal-title-row">
+                                <h2 class="modal-title bh-modal-title" id="<?= htmlspecialchars($titleId) ?>"><?= $title ?></h2>
+                                <button type="button" class="<?= $closeClass ?>" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
                             <?php if ($subtitle !== '' || $subtitleId !== ''): ?>
                                 <p class="bh-modal-subtitle"<?= $subtitleIdAttr ?>><?= $subtitle ?></p>
                             <?php endif; ?>
                         </div>
-                        <button type="button" class="<?= $closeClass ?>" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
 
                     <div class="modal-body bh-modal-body"<?= $bodyIdAttr ?>><?= $body ?></div>
@@ -109,7 +111,7 @@ if (!function_exists('bh_modal')) {
     }
 
     /**
-     * Atajo para los modales informativos (cabecera + texto + único botón "Cerrar").
+     * Atajo para los modales informativos (cabecera + texto; cierre con la X).
      *
      * @param string $id    id del modal.
      * @param string $title título visible.
@@ -118,7 +120,7 @@ if (!function_exists('bh_modal')) {
      */
     function bh_info_modal(string $id, string $title, string $body, array $o = []): void
     {
-        bh_modal(array_merge($o, [
+        bh_modal(array_merge(['footer' => null], $o, [
             'id'    => $id,
             'title' => $title,
             'body'  => $body,

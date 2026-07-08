@@ -512,16 +512,6 @@
     color: var(--bh-text-main);
     background-color: var(--bh-success-soft);
     text-align: center;
-    cursor: pointer;
-}
-
-.bh-hero-balance:hover,
-.bh-hero-balance:focus-visible{
-    outline: none;
-}
-
-.bh-hero-balance:focus-visible{
-    box-shadow: var(--bh-focus-ring);
 }
 
 .bh-hero-balance-label{
@@ -664,17 +654,6 @@
     font-size: 0.8125rem;
     line-height: var(--bh-line-normal);
     text-align: left;
-    cursor: pointer;
-}
-
-.bh-dashboard-kpi:hover,
-.bh-dashboard-kpi:focus-visible{
-    color: var(--bh-brand);
-    outline: none;
-}
-
-.bh-dashboard-kpi:focus-visible{
-    box-shadow: var(--bh-focus-ring);
 }
 
 .bh-dashboard-kpi strong{

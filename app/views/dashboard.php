@@ -79,40 +79,40 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                     </figure>
 
                     <div class="bh-hero-info">
-                        <button type="button" class="bh-dashboard-balance bh-hero-balance" id="resumen_ahorro_card" data-bs-toggle="modal" data-bs-target="#infoHeroBalance" aria-live="polite">
+                        <div class="bh-dashboard-balance bh-hero-balance" id="resumen_ahorro_card" aria-live="polite">
                             <span class="bh-hero-balance-label">Balance del mes</span>
                             <strong id="resumen_ahorro_real" class="bh-amount">0,00 €</strong>
                             <span class="bh-hero-balance-subtitle" id="resumen_ahorro_mes">Ahorro real de este mes</span>
-                        </button>
+                        </div>
 
                         <div class="bh-dashboard-kpis bh-hero-insights" aria-live="polite">
                             <section class="bh-hero-insight-group" aria-labelledby="heroIngresosTitulo">
                                 <h3 id="heroIngresosTitulo">Sobre tus ingresos</h3>
 
-                                <button type="button" class="bh-dashboard-kpi bh-hero-insight-row" id="resumen_ingresos_ahorrados_card" data-bs-toggle="modal" data-bs-target="#infoHeroAhorroReal">
+                                <div class="bh-dashboard-kpi bh-hero-insight-row" id="resumen_ingresos_ahorrados_card">
                                     <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-saving" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Ahorro real</span><span class="bh-hero-insight-detail" id="resumen_ingresos_ahorrados_detalle"></span></span></span>
                                     <strong id="resumen_ingresos_ahorrados" class="bh-amount">0 %</strong>
-                                </button>
+                                </div>
 
-                                <button type="button" class="bh-dashboard-kpi bh-hero-insight-row is-flexible" id="resumen_gastos_flexibles_peso_card" data-bs-toggle="modal" data-bs-target="#infoHeroPesoFlexibles">
+                                <div class="bh-dashboard-kpi bh-hero-insight-row is-flexible" id="resumen_gastos_flexibles_peso_card">
                                     <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos flexibles</span><span class="bh-hero-insight-detail" id="resumen_gastos_flexibles_peso_detalle"></span></span></span>
                                     <strong id="resumen_gastos_flexibles_peso" class="bh-amount">0 %</strong>
-                                </button>
+                                </div>
                             </section>
 
                             <section class="bh-hero-insight-group" aria-labelledby="heroComparativaTitulo">
                                 <h3 id="heroComparativaTitulo">Comparado con <span id="resumen_variacion_esenciales_mes">mes anterior</span></h3>
                                 <span id="resumen_variacion_flexibles_mes" class="visually-hidden">mes anterior</span>
 
-                                <button type="button" class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-essential" id="resumen_variacion_esenciales_card" data-bs-toggle="modal" data-bs-target="#infoHeroEsenciales" hidden>
+                                <div class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-essential" id="resumen_variacion_esenciales_card" hidden>
                                     <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-essential" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos esenciales</span><span class="bh-hero-insight-detail" id="resumen_variacion_esenciales_detalle"></span></span></span>
                                     <strong id="resumen_variacion_esenciales" class="bh-amount">0 %</strong>
-                                </button>
+                                </div>
 
-                                <button type="button" class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-flexible" id="resumen_variacion_flexibles_card" data-bs-toggle="modal" data-bs-target="#infoHeroFlexibles" hidden>
+                                <div class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-flexible" id="resumen_variacion_flexibles_card" hidden>
                                     <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos flexibles</span><span class="bh-hero-insight-detail" id="resumen_variacion_flexibles_detalle"></span></span></span>
                                     <strong id="resumen_variacion_flexibles" class="bh-amount">0 %</strong>
-                                </button>
+                                </div>
                             </section>
                         </div>
                     </div>
@@ -549,31 +549,6 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
 
 <?php bh_mobile_menu(); ?>
 
-<?php bh_info_modal('infoHeroBalance', 'Balance del mes', <<<'HTML'
-<p>Resume cuánto dinero queda al final del mes después de ingresos, gastos esenciales y gastos flexibles.</p>
-<p>Si es positivo, el mes deja margen. Si es negativo, te indica que ese mes se gastó más de lo que entró.</p>
-HTML); ?>
-
-<?php bh_info_modal('infoHeroAhorroReal', 'Ahorro real sobre ingresos', <<<'HTML'
-<p>Indica qué porcentaje de tus ingresos terminó realmente disponible después de cubrir gastos esenciales y flexibles.</p>
-<p>Úsalo como una lectura rápida de margen real: no busca culpar, sino mostrar cuánto espacio queda para decidir mejor.</p>
-HTML); ?>
-
-<?php bh_info_modal('infoHeroEsenciales', 'Variación de gastos esenciales', <<<'HTML'
-<p>Compara tus gastos esenciales con el mes anterior y muestra si subieron o bajaron los compromisos básicos del hogar.</p>
-<p>Si cambian mucho, conviene revisar facturas, cuotas o clasificaciones para entender qué movió esa base mensual.</p>
-HTML); ?>
-
-<?php bh_info_modal('infoHeroFlexibles', 'Variación de gastos flexibles', <<<'HTML'
-<p>Compara tus gastos flexibles con el mes anterior y ayuda a detectar cambios en tus decisiones de consumo.</p>
-<p>Una subida no siempre es un problema, pero sí una señal útil para revisar hábitos y recuperar margen si lo necesitas.</p>
-HTML); ?>
-
-<?php bh_info_modal('infoHeroPesoFlexibles', 'Peso de los gastos flexibles', <<<'HTML'
-<p>Muestra qué parte de tus ingresos se destinó a gastos flexibles durante el mes.</p>
-<p>Este dato señala margen de decisión: ayuda a ver qué puedes ajustar sin tocar los gastos esenciales del hogar.</p>
-HTML); ?>
-
 <!--Modal de ingresos-->
 <?php bh_info_modal('infoIngresos', '¿Qué son los ingresos?', <<<'HTML'
 <p>Los ingresos representan el dinero que entra en tu hogar durante el mes.</p>
@@ -830,6 +805,7 @@ bh_modal([
     'titleId' => 'modalInfoTitulo',
     'bodyId'  => 'modalInfoTexto',
     'body'    => '',
+    'footer'  => null,
 ]);
 ?>
 

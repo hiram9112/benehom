@@ -92,12 +92,12 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                                 <h3 id="heroIngresosTitulo">Sobre tus ingresos</h3>
 
                                 <div class="bh-dashboard-kpi bh-hero-insight-row" id="resumen_ingresos_ahorrados_card">
-                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-saving" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Ahorro real</span><span class="bh-hero-insight-detail" id="resumen_ingresos_ahorrados_detalle"></span></span></span>
+                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-saving" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Ahorro real <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bh-popover data-bh-popover-title="Ahorro real" data-bh-popover="Es lo que realmente queda al final del mes después de ingresos, gastos esenciales y gastos flexibles." aria-label="Información sobre ahorro real"><i class="ti ti-info-circle" aria-hidden="true"></i></button></span><span class="bh-hero-insight-detail" id="resumen_ingresos_ahorrados_detalle"></span></span></span>
                                     <strong id="resumen_ingresos_ahorrados" class="bh-amount">0 %</strong>
                                 </div>
 
                                 <div class="bh-dashboard-kpi bh-hero-insight-row is-flexible" id="resumen_gastos_flexibles_peso_card">
-                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos flexibles</span><span class="bh-hero-insight-detail" id="resumen_gastos_flexibles_peso_detalle"></span></span></span>
+                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos flexibles <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bh-popover data-bh-popover-title="Gastos flexibles" data-bh-popover="Este porcentaje muestra qué parte de tus ingresos se va a gastos no esenciales. Es el dato heredado del quinto KPI antiguo." aria-label="Información sobre gastos flexibles en ingresos"><i class="ti ti-info-circle" aria-hidden="true"></i></button></span><span class="bh-hero-insight-detail" id="resumen_gastos_flexibles_peso_detalle"></span></span></span>
                                     <strong id="resumen_gastos_flexibles_peso" class="bh-amount">0 %</strong>
                                 </div>
                             </section>
@@ -107,7 +107,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                                 <span id="resumen_variacion_flexibles_mes" class="visually-hidden">mes anterior</span>
 
                                 <div class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-essential" id="resumen_variacion_esenciales_card" hidden>
-                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-essential" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos esenciales</span><span class="bh-hero-insight-detail" id="resumen_variacion_esenciales_detalle"></span></span></span>
+                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-essential" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos esenciales <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bh-popover data-bh-popover-title="Variación de esenciales" data-bh-popover="Compara tus gastos esenciales con el mes anterior. Una subida sostenida puede indicar cambios de coste o movimientos mal clasificados." aria-label="Información sobre variación de gastos esenciales"><i class="ti ti-info-circle" aria-hidden="true"></i></button></span><span class="bh-hero-insight-detail" id="resumen_variacion_esenciales_detalle"></span></span></span>
                                     <strong id="resumen_variacion_esenciales" class="bh-amount">0 %</strong>
                                 </div>
 
@@ -184,7 +184,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                                     <div class="bh-movement-group-head">
                                         <h4 id="movimientosIngresosTitulo">Ingresos
                                             <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoIngresos" aria-label="Información sobre ingresos">
-                                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                                <i class="ti ti-info-circle" aria-hidden="true"></i>
                                             </button>
                                         </h4>
                                     </div>
@@ -221,7 +221,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                                     <div class="bh-movement-group-head">
                                         <h4 id="movimientosEsencialesTitulo">Gastos esenciales
                                             <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoGastosEsenciales" aria-label="Información sobre gastos esenciales">
-                                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                                <i class="ti ti-info-circle" aria-hidden="true"></i>
                                             </button>
                                         </h4>
                                     </div>
@@ -261,7 +261,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                                     <div class="bh-movement-group-head">
                                         <h4 id="movimientosFlexiblesTitulo">Gastos flexibles
                                             <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoGastosFlexibles" aria-label="Información sobre gastos flexibles">
-                                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                                <i class="ti ti-info-circle" aria-hidden="true"></i>
                                             </button>
                                         </h4>
                                     </div>
@@ -299,314 +299,49 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                             </div>
                         </div>
                     </div>
-
-                    <?php if (false): ?>
-                    <!-- Ingresos-->
-                    <div class="bh-card bh-card-finance">
-                        <div class="bh-card-header">
-                            <h2 class="titulo">
-                                Ingresos
-                                <button type="button"
-                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#infoIngresos"
-                                    aria-label="Información sobre ingresos">
-                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
-                                </button>
-
-                            </h2>
-                        </div>
-                        <div class="bh-card-body">
-                            <form id="formIngresos" class="bh-form bh-guided-form">
-                                <?= csrf_field() ?>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="categoria_ingreso">Categoría</label>
-                                    <div class="bh-select-shell">
-                                        <select name="categoria_ingreso" id="categoria_ingreso" class="bh-select" required>
-                                            <option value="" selected disabled>Selecciona un tipo de ingreso</option>
-                                            <?php foreach ($categoriasIngreso as $valorCategoriaIngreso => $labelCategoriaIngreso): ?>
-                                                <option value="<?= htmlspecialchars($valorCategoriaIngreso, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($labelCategoriaIngreso, ENT_QUOTES, 'UTF-8') ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="cantidad_ingreso">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_ingreso" id="cantidad_ingreso" class="bh-input" step="0.01" inputmode="decimal" required>
-                                </div>
-
-                                <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
-
-                                <button type="submit" class="bh-btn bh-btn-primary">Añadir ingreso</button>
-                            </form>
-
-                            <!--Contenedor para manejar de manera dinámica los ingresos utilizando AJAX y PHP-->
-                            <div id="lista_ingresos" class="lista-ingresos">
-                                <?php if (!empty($ingresos)): ?>
-                                    <ul>
-                                        <?php foreach ($ingresos as $ingreso): ?>
-                                            <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="ingreso-<?= $ingreso['id'] ?>" class="bh-movement-item"
-                                                data-id="<?= $ingreso['id'] ?>"
-                                                data-cantidad="<?= htmlspecialchars((string) $ingreso['cantidad'], ENT_QUOTES, 'UTF-8') ?>">
-                                                <div class="bh-movement-main">
-                                                    <span class="bh-movement-label categoria_ingreso_individual"><?= htmlspecialchars(formatearCategoria($ingreso['categoria'])) ?></span>
-                                                </div>
-                                                <div class="bh-movement-side">
-                                                    <span class="bh-movement-amount cantidad_ingreso" data-id="<?= $ingreso['id'] ?>"><?= formatearCantidadPHP($ingreso['cantidad']) ?></span><span class="bh-money-symbol">€</span>
-                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="<?= $ingreso['id'] ?>" aria-label="Eliminar ingreso <?= htmlspecialchars(formatearCategoria($ingreso['categoria']), ENT_QUOTES, 'UTF-8') ?>">
-                                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                                    </button>
-                                                </div>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php else: ?>
-                                    <div class="bh-empty-state bh-dashboard-list-empty-state">
-                                        <div class="bh-empty-state-icon" aria-hidden="true">
-                                            <i class="bi bi-wallet2" aria-hidden="true"></i>
-                                        </div>
-                                        <h3 class="bh-empty-state-title">Aún no has registrado ingresos</h3>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!--Usaremos este elemento para mostrar de manera dinámica el total de ingresos -->
-                            <p id="total_ingresos_texto" class="mt-2 fw-bold total-texto total-ingreso"></p>
-                        </div>
-
-                    </div>
-
-
-
-                    <!--Gastos esenciales-->
-                    <div class="bh-card bh-card-finance">
-                        <div class="bh-card-header">
-                            <h2 class="titulo ">Gastos esenciales
-                                <button type="button"
-                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#infoGastosEsenciales"
-                                    aria-label="Información sobre gastos esenciales">
-                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
-                                </button>
-                            </h2>
-                        </div>
-                        <div class="bh-card-body">
-                            <form id="formGastosEsenciales" class="bh-form bh-guided-form">
-                                <?= csrf_field() ?>
-
-                                <div class="bh-category-picker" data-category-picker data-category-type="esencial">
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="area_gasto_esencial">Área del gasto</label>
-                                        <div class="bh-select-shell">
-                                            <select id="area_gasto_esencial" class="bh-select" data-area-select required>
-                                                <option value="" selected disabled>Selecciona un área</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="categoria_gasto_esencial">Concepto</label>
-                                        <div class="bh-select-shell">
-                                            <select name="categoria_gasto_esencial" id="categoria_gasto_esencial" class="bh-select" data-concept-select required disabled>
-                                                <option value="" selected>Elige primero un área</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="cantidad_gasto_esencial">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_gasto_esencial" id="cantidad_gasto_esencial" class="bh-input"
-                                        step="0.01" inputmode="decimal" required>
-                                </div>
-
-                                <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
-
-                                <button type="submit" class="bh-btn bh-btn-primary">Añadir gasto</button>
-
-
-                            </form>
-
-
-                            <!--Contenedor para manejar de manera dinámica los gastos esenciales utilizando AJAX y PHP-->
-                            <div id="lista_gastos_esenciales" class="lista-gastos">
-                                <?php if (!empty($gastosEsenciales)): ?>
-                                    <ul>
-                                        <?php foreach ($gastosEsenciales as $gastoEsencial): ?>
-                                            <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="gasto-<?= $gastoEsencial['id'] ?>" class="bh-movement-item"
-                                                data-id="<?= $gastoEsencial['id'] ?>"
-                                                data-cantidad="<?= htmlspecialchars((string) $gastoEsencial['cantidad'], ENT_QUOTES, 'UTF-8') ?>"
-                                                data-tipo="<?= $gastoEsencial['tipo'] ?>">
-                                                <div class="bh-movement-main">
-                                                    <span class="bh-movement-label categoria_gasto_esencial"><?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria'])) ?></span>
-                                                </div>
-                                                <div class="bh-movement-side">
-                                                    <span class="bh-movement-amount cantidad_gasto_esencial cantidad_gasto" data-id="<?= $gastoEsencial['id'] ?>"><?= formatearCantidadPHP($gastoEsencial['cantidad']) ?></span><span class="bh-money-symbol">€</span>
-                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoEsencial['id'] ?>" aria-label="Eliminar gasto esencial <?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria']), ENT_QUOTES, 'UTF-8') ?>">
-                                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                                    </button>
-                                                </div>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php else: ?>
-                                    <div class="bh-empty-state bh-dashboard-list-empty-state">
-                                        <div class="bh-empty-state-icon" aria-hidden="true">
-                                            <i class="bi bi-house-heart" aria-hidden="true"></i>
-                                        </div>
-                                        <h3 class="bh-empty-state-title">Aún no has registrado gastos esenciales</h3>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <div class="bh-totals-inline-row">
-                                <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos esenciales -->
-                                <p id="total_gastos_esenciales_texto" class="mt-2 fw-bold total-texto total-gasto"></p>
-
-                                <!--Usaremos este elemento para mostrar de manera dinámica el ahorro posible  -->
-                                <div class="bh-total-info-row">
-                                    <p id="ahorro_posible_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
-                                    <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorroPosible" aria-label="Información sobre ahorro posible">
-                                        <i class="bi bi-info-circle" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-
-                        </div>
-
-                    </div>
-
-
-
-                    <!--Gastos flexibles-->
-                    <div class="bh-card bh-card-finance">
-                        <div class="bh-card-header">
-                            <h2 class="titulo">
-                                Gastos flexibles
-                                <button type="button"
-                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#infoGastosFlexibles"
-                                    aria-label="Información sobre gastos flexibles">
-                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
-                                </button>
-                            </h2>
-                        </div>
-                        <div class="bh-card-body">
-                            <form id="formGastosFlexibles" class="bh-form bh-guided-form">
-                                <?= csrf_field() ?>
-
-                                <div class="bh-category-picker" data-category-picker data-category-type="flexible">
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="area_gasto_flexible">Área del gasto</label>
-                                        <div class="bh-select-shell">
-                                            <select id="area_gasto_flexible" class="bh-select" data-area-select required>
-                                                <option value="" selected disabled>Selecciona un área</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="bh-field">
-                                        <label class="bh-label" for="categoria_gasto_flexible">Concepto</label>
-                                        <div class="bh-select-shell">
-                                            <select name="categoria_gasto_flexible" id="categoria_gasto_flexible" class="bh-select" data-concept-select required disabled>
-                                                <option value="" selected>Elige primero un área</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="bh-field">
-                                    <label class="bh-label" for="cantidad_gasto_flexible">Cantidad(€)</label>
-                                    <input type="number" name="cantidad_gasto_flexible" id="cantidad_gasto_flexible" class="bh-input"
-                                        step="0.01" inputmode="decimal" required>
-                                </div>
-
-                                <!--Enviamos el valor del mes seleccionado , esto será especialmente útil cuando el usuario queira insertar valores en meses pasados-->
-                                <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
-
-                                <button type="submit" class="bh-btn bh-btn-primary">Añadir gasto</button>
-
-
-                            </form>
-
-                            <!--Contenedor para manejar de manera dinámica los gastos flexibles utilizando AJAX y PHP-->
-                            <div id="lista_gastos_flexibles" class="lista-gastos">
-                                <?php if (!empty($gastosFlexibles)): ?>
-                                    <ul>
-                                        <?php foreach ($gastosFlexibles as $gastoFlexible): ?>
-                                            <!--Agregamos manejo de id de forma dinámica para usarlo en ajax-->
-                                            <li id="gasto-<?= $gastoFlexible['id'] ?>" class="bh-movement-item"
-                                                data-id="<?= $gastoFlexible['id'] ?>"
-                                                data-cantidad="<?= htmlspecialchars((string) $gastoFlexible['cantidad'], ENT_QUOTES, 'UTF-8') ?>"
-                                                data-tipo="<?= $gastoFlexible['tipo'] ?>">
-                                                <div class="bh-movement-main">
-                                                    <span class="bh-movement-label categoria_gasto_flexible"><?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria'])) ?></span>
-                                                </div>
-                                                <div class="bh-movement-side">
-                                                    <span class="bh-movement-amount cantidad_gasto_flexible cantidad_gasto" data-id="<?= $gastoFlexible['id'] ?>"><?= formatearCantidadPHP($gastoFlexible['cantidad']) ?></span><span class="bh-money-symbol">€</span>
-                                                    <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoFlexible['id'] ?>" aria-label="Eliminar gasto flexible <?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria']), ENT_QUOTES, 'UTF-8') ?>">
-                                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                                    </button>
-                                                </div>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php else: ?>
-                                    <div class="bh-empty-state bh-dashboard-list-empty-state">
-                                        <div class="bh-empty-state-icon" aria-hidden="true">
-                                            <i class="bi bi-basket2" aria-hidden="true"></i>
-                                        </div>
-                                        <h3 class="bh-empty-state-title">Aún no has registrado gastos flexibles</h3>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <div class="bh-totals-inline-row">
-                                <!--Usaremos este elemento para mostrar de manera dinámica el total de gastos flexibles -->
-                                <p id="total_gastos_flexibles_texto" class="mt-2 fw-bold total-texto total-gasto"></p>
-                                <!--Usaremos este elemento para mostrar de manera dinámica el ahorro real -->
-                                <div class="bh-total-info-row">
-                                    <p id="ahorro_real_texto" class="mt-1 fw-bold texto-resumen total-texto total-ahorro"></p>
-                                    <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorroReal" aria-label="Información sobre ahorro real">
-                                        <i class="bi bi-info-circle" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <?php endif; ?>
                 </section>
 
                 <!--Panel lateral derecho-->
                 <aside class="bh-dashboard-aside">
+                    <!--Gráfico top de gastos flexibles-->
+                    <div class="bh-card bh-card-chart bh-card-habits-scale">
+                        <div class="bh-card-chart-header">
+                            <h2>
+                                Top de gastos flexibles
+                                <button type="button"
+                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#infoEscalaHabitosMedia"
+                                    data-escala-habitos-info
+                                    aria-label="Información sobre el top de gastos flexibles">
+                                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                                </button>
+                            </h2>
 
-                    <!--Gráfico presupuesto mensual-->
-                    <div class="bh-card bh-card-chart">
-                        <h2>
-                            Presupuesto mensual
-                            <button type="button"
-                                class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
-                                data-bs-toggle="modal"
-                                data-bs-target="#infoPresupuestoMensual"
-                                aria-label="Información sobre presupuesto mensual">
-                                <i class="bi bi-info-circle" aria-hidden="true"></i>
-                            </button>
-                        </h2>
-                        <div class="contenedor-grafico">
-                            <canvas id="graficoPresupuestoMensual" role="img" aria-label="Gráfico de barras del presupuesto mensual" aria-describedby="graficoPresupuestoMensualResumen"></canvas>
+                            <div class="bh-segmented" role="group" aria-label="Seleccionar vista del gráfico">
+                                <button type="button"
+                                    id="btnEscalaHabitosMes"
+                                    class="bh-segmented-button is-active"
+                                    data-escala-habitos="mes"
+                                    aria-pressed="true">
+                                    Media mensual
+                                </button>
+                                <button type="button"
+                                    id="btnEscalaHabitosAnio"
+                                    class="bh-segmented-button"
+                                    data-escala-habitos="anio"
+                                    aria-pressed="false">
+                                    Proyección anual
+                                </button>
+                            </div>
                         </div>
-                        <p id="graficoPresupuestoMensualResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con ingresos, gastos totales y ahorro real.</p>
+
+                        <div class="contenedor-grafico bh-scale-chart-container">
+                            <canvas id="graficoEscalaHabitos" role="img" tabindex="0" aria-label="Gráfico de barras del top de gastos flexibles. Usa las flechas para recorrer las barras y Enter para abrir la instantánea de inversión." aria-describedby="graficoEscalaHabitosResumen"></canvas>
+                        </div>
+
+                        <p id="graficoEscalaHabitosResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con las principales categorías de gasto flexible.</p>
+                        <p class="bh-chart-hint"><i class="ti ti-hand-finger" aria-hidden="true"></i> Toca una barra y descubre qué pasaría si invirtieras ese dinero en lugar de gastarlo</p>
                     </div>
 
                     <!--Gráfico Ahorros 6m-->
@@ -618,7 +353,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                                 data-bs-toggle="modal"
                                 data-bs-target="#infoEvolucionAhorro"
                                 aria-label="Información sobre evolución del ahorro">
-                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                <i class="ti ti-info-circle" aria-hidden="true"></i>
                             </button>
                         </h2>
                         <div class="contenedor-grafico">
@@ -639,7 +374,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                                     data-bs-target="#infoEvolucionFlexibles"
                                     data-evolucion-gastos-info
                                     aria-label="Información sobre la evolución de gastos">
-                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                    <i class="ti ti-info-circle" aria-hidden="true"></i>
                                 </button>
                             </h2>
 
@@ -678,46 +413,6 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                         </div>
                     </div>
 
-                    <!--Gráfico top 5 de gastos flexibles-->
-                    <div class="bh-card bh-card-chart bh-card-habits-scale">
-                        <div class="bh-card-chart-header">
-                            <h2>
-                                Top de gastos flexibles
-                                <button type="button"
-                                    class="bh-btn bh-btn-icon bh-btn-ghost info-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#infoEscalaHabitosMedia"
-                                    data-escala-habitos-info
-                                    aria-label="Información sobre el top 5 de gastos flexibles">
-                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
-                                </button>
-                            </h2>
-
-                            <div class="bh-segmented" role="group" aria-label="Seleccionar vista del gráfico">
-                                <button type="button"
-                                    id="btnEscalaHabitosMes"
-                                    class="bh-segmented-button is-active"
-                                    data-escala-habitos="mes"
-                                    aria-pressed="true">
-                                    Media mensual
-                                </button>
-                                <button type="button"
-                                    id="btnEscalaHabitosAnio"
-                                    class="bh-segmented-button"
-                                    data-escala-habitos="anio"
-                                    aria-pressed="false">
-                                    Proyección anual
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="contenedor-grafico bh-scale-chart-container">
-                            <canvas id="graficoEscalaHabitos" role="img" tabindex="0" aria-label="Gráfico de barras del top de gastos flexibles. Usa las flechas para recorrer las barras y Enter para abrir la instantánea de inversión." aria-describedby="graficoEscalaHabitosResumen"></canvas>
-                        </div>
-
-                        <p id="graficoEscalaHabitosResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con las principales categorías de gasto flexible.</p>
-                        <p class="bh-chart-hint"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i> Toca una barra y descubre qué pasaría si invirtieras ese dinero en lugar de gastarlo</p>
-                    </div>
                 </aside>
             </div>
         </div>
@@ -763,33 +458,6 @@ HTML); ?>
     <strong>bienestar financiero</strong>.
     En muchos casos, el efecto puede notarse de un mes a otro.
 </p>
-HTML); ?>
-
-<!--Modal de ahorro posible-->
-<?php bh_info_modal('infoAhorroPosible', '¿Qué es el ahorro posible?', <<<'HTML'
-<p>Es una referencia: muestra cuánto podrías ahorrar si solo tuvieras ingresos y gastos esenciales.</p>
-<p>Tener 0 gastos flexibles no suele ser realista, pero ayuda a ver tu potencial de ahorro y el impacto de tus decisiones de consumo.</p>
-HTML); ?>
-
-<!--Modal de ahorro real-->
-<?php bh_info_modal('infoAhorroReal', '¿Qué es el ahorro real?', <<<'HTML'
-<p>Es lo que realmente queda al final del mes después de ingresos, gastos esenciales y gastos flexibles.</p>
-<p>Muestra el resultado final de tus decisiones financieras del mes.</p>
-HTML); ?>
-
-<!--Modal Gráfico de presupuesto mensual-->
-<?php bh_info_modal('infoPresupuestoMensual', '¿Cómo interpretar el presupuesto mensual?', <<<'HTML'
-<p>Este gráfico muestra un resumen claro de tu economía en el mes actual.</p>
-<p><strong>Compara tus ingresos con el total de gastos</strong> y te indica cuánto dinero estás
-    ahorrando o perdiendo al final del mes.
-</p>
-<p>Si el <strong>ahorro es positivo</strong>, significa que <strong>gastas menos de lo que ingresas</strong>.
-    Si es <strong>negativo</strong>, estás en déficit: estás <strong>gastando más dinero del que entra</strong>.
-</p>
-<p>Este gráfico te permite detectar desequilibrios rápidamente
-    y tomar decisiones para mejorar tu situación financiera.
-</p>
-<p>Puedes pasar el cursor sobre cada barra para ver el valor exacto.</p>
 HTML); ?>
 
 <!--Modal Gráfico de evolución del ahorro-->

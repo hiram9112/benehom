@@ -43,9 +43,9 @@
 
 .bh-investment-snapshot-row strong{
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-lg);
-    font-weight: var(--bh-weight-semibold);
+    font-weight: var(--bh-weight-bold);
 }
 
 .bh-investment-snapshot-years{
@@ -103,8 +103,9 @@
 .bh-empty-state-title {
     margin: 0;
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-xl);
+    font-weight: var(--bh-weight-bold);
 }
 
 .bh-empty-state-text {
@@ -135,89 +136,6 @@
 /* ==========================================================================
    Datos financieros
    ========================================================================== */
-
-.total-texto{
-    padding: 10px 14px;
-    font-size: 15px;
-    font-weight: 500;
-    margin-top: 14px;
-    border-radius: 6px;
-    display: inline-block;
-    box-shadow: var(--bh-shadow-soft);
-}
-
-.total-ingreso{
-    background-color: var(--bh-income-soft);
-    color: var(--bh-text-main);
-}
-
-.total-ingreso strong{
-    color:var(--bh-income);
-}
-
-.total-gasto{
-    background-color: var(--bh-expense-soft);
-    color: var(--bh-text-main);
-}
-
-.total-gasto strong{
-    color: var(--bh-expense);
-}
-
-.total-ahorro{
-    background-color: var(--bh-saving-soft);
-    color: var(--bh-text-main);
-}
-
-.total-ahorro strong{
-    color: var(--bh-saving);
-}
-
-.bh-totals-inline-row{
-    display: flex;
-    align-items: center;
-    gap: var(--bh-space-2);
-    flex-wrap: wrap;
-    margin-top: 14px;
-}
-
-.bh-totals-inline-row .total-texto{
-    margin-top: 0 !important;
-    margin-bottom: 0;
-}
-
-.bh-total-info-row{
-    display: inline-flex;
-    align-items: center;
-    gap: var(--bh-space-2);
-    padding: 10px 10px 10px 14px;
-    border-radius: 6px;
-    background-color: var(--bh-saving-soft);
-    box-shadow: var(--bh-shadow-soft);
-}
-
-.bh-total-info-row:has(.valor-positivo){
-    background-color: var(--bh-income-soft);
-}
-
-.bh-total-info-row:has(.valor-negativo){
-    background-color: var(--bh-expense-soft);
-}
-
-.bh-total-info-row .total-texto{
-    padding: 0;
-    border-radius: 0;
-    background-color: transparent;
-    box-shadow: none;
-}
-
-.bh-total-info-row .bh-btn-icon{
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
-    min-height: 44px;
-    margin-top: 0;
-}
 
 .lista-ingresos,
 .lista-gastos{
@@ -463,9 +381,9 @@
 }
 
 .bh-checkpoint-inline-info{
-    width: 28px;
-    min-width: 28px;
-    height: 28px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
     font-size: var(--bh-text-xs);
 }
 
@@ -631,25 +549,6 @@
     align-items: center;
 }
 
-.valor-positivo{
-    background-color: var(--bh-income-soft);
-    color: var(--bh-text-main) !important;
-}
-
-.valor-negativo{
-    background-color: var(--bh-expense-soft);
-    color: var(--bh-text-main) !important;
-}
-
-.valor-positivo strong{
-    color: var(--bh-income) !important;
-}
-
-.valor-negativo strong{
-    color: var(--bh-expense) !important;
-}
-
-
 /* ==========================================================================
    Graficos
    ========================================================================== */
@@ -665,7 +564,7 @@
     margin-top: var(--bh-space-3);
 }
 
-#graficoHistoriaMes,#graficoPresupuestoMensual,#graficoGastosFlexibles6m,#graficoGastosEsenciales6m,#graficoAhorros6m,#graficoEscalaHabitos{
+#graficoHistoriaMes,#graficoGastosFlexibles6m,#graficoGastosEsenciales6m,#graficoAhorros6m,#graficoEscalaHabitos{
     height: 100% !important;
     display: block;
 }
@@ -993,6 +892,10 @@
 }
 
 .bh-hero-insight-label-text{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bh-space-1);
+    flex-wrap: wrap;
     color: var(--bh-text-muted);
 }
 
@@ -1074,84 +977,6 @@
 
 .bh-waterfall-detail strong{
     color: var(--bh-flexible-ink);
-}
-
-.bh-dashboard-summary{
-    grid-template-columns: 1fr;
-    gap: var(--bh-space-3);
-    padding: var(--bh-space-4);
-}
-
-.bh-dashboard-period h1{
-    display: none;
-}
-
-.bh-dashboard-period #selector_mes{
-    width: 100%;
-}
-
-.bh-summary-metrics{
-    grid-template-columns: 1fr;
-}
-
-.bh-summary-balance{
-    min-height: 6.75rem;
-}
-
-.bh-summary-details{
-    display: none;
-}
-
-.bh-summary-mobile-trigger{
-    justify-content: space-between;
-    width: 100%;
-    min-height: 48px;
-    padding-inline: var(--bh-space-4);
-    border-color: var(--bh-border-strong);
-    color: var(--bh-brand-strong);
-    background-color: var(--bh-surface-soft);
-}
-
-.bh-summary-mobile-trigger i{
-    font-size: 1rem;
-}
-
-.bh-summary-offcanvas{
-    width: min(100%, 34rem);
-    color: var(--bh-text-main);
-    background:
-        radial-gradient(circle at 18% 0%, rgba(62, 178, 37, 0.14), transparent 18rem),
-        var(--bh-surface-page);
-}
-
-.bh-summary-offcanvas .offcanvas-header{
-    align-items: flex-start;
-    padding: var(--bh-space-4);
-    border-bottom: var(--bh-border-subtle);
-    background-color: var(--bh-surface-card);
-}
-
-.bh-summary-offcanvas .offcanvas-title{
-    margin: 0;
-    color: var(--bh-brand-strong);
-    font-family: var(--bh-font-heading);
-    font-size: var(--bh-text-xl);
-    font-weight: var(--bh-weight-semibold);
-}
-
-.bh-summary-offcanvas .offcanvas-body{
-    padding: var(--bh-space-4);
-    overflow-y: auto;
-}
-
-.bh-summary-offcanvas .bh-summary-details{
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--bh-space-3);
-}
-
-.bh-summary-offcanvas .bh-summary-metric{
-    min-height: 9.75rem;
 }
 
 .lista-ingresos li,
@@ -1262,30 +1087,6 @@
         padding: var(--bh-space-5);
     }
 
-    .bh-dashboard-summary{
-        gap: var(--bh-space-4);
-        padding: var(--bh-space-4) var(--bh-space-5);
-    }
-
-    .bh-dashboard-period h1{
-        display: block;
-    }
-
-    .bh-summary-balance{
-        min-height: 10.25rem;
-    }
-
-    .bh-dashboard-period #selector_mes{
-        width: min(100%, 13rem);
-    }
-
-    .bh-summary-metrics{
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .bh-summary-details{
-        display: contents;
-    }
 }
 
 @media (min-width: 480px) and (max-width: 899px){
@@ -1340,15 +1141,5 @@
         gap: var(--bh-space-2);
         min-height: 2rem;
         padding: 0.35rem 0;
-    }
-}
-
-@media (min-width: 1481px){
-    .bh-dashboard-summary{
-        grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
-    }
-
-    .bh-summary-metrics{
-        grid-template-columns: repeat(5, minmax(7.25rem, 1fr));
     }
 }

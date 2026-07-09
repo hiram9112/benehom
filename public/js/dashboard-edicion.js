@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (data.ok) {
               eliminarIngresoDelDOM(id);
-              cargarGraficoPresupuesto();
+              cargarEstadoGeneralDashboard();
               cargarGraficoGastosFlexibles6m();
               cargarGraficoGastosEsenciales6m();
               cargarGraficoAhorros6m();
@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.ok) {
               eliminarGastoDelDOM(id);
 
-              cargarGraficoPresupuesto();
+              cargarEstadoGeneralDashboard();
               cargarGraficoGastosFlexibles6m();
               cargarGraficoGastosEsenciales6m();
               cargarGraficoAhorros6m();
@@ -134,14 +134,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   //Cargamos el gráfico al entrar
   cargarGraficoAhorros6m();
-  cargarGraficoPresupuesto();
+  cargarEstadoGeneralDashboard();
   cargarGraficoGastosFlexibles6m();
   cargarGraficoGastosEsenciales6m();
   cargarGraficoEscalaHabitos();
 
   //Actulizamos el gráfico al cambiar el mes
   document.getElementById("mes").addEventListener("change", () => {
-    cargarGraficoPresupuesto();
+    cargarEstadoGeneralDashboard();
     cargarGraficoGastosFlexibles6m();
     cargarGraficoGastosEsenciales6m();
     cargarGraficoAhorros6m();

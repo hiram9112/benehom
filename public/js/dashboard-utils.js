@@ -34,8 +34,8 @@ function actualizarTotales(valores) {
   const tAhorro = formatearCantidad(ahorroReal);
   const signoBalance = ahorroReal > 0 ? "+" : ahorroReal < 0 ? "-" : "";
   const tBalanceResumen = `${signoBalance}${formatearCantidad(Math.abs(ahorroReal))}`;
-  const ahorroPosibleInfoBtn = `<button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn bh-checkpoint-inline-info" data-bs-toggle="modal" data-bs-target="#infoAhorroPosible" aria-label="Información sobre ahorro posible"><i class="bi bi-info-circle" aria-hidden="true"></i></button>`;
-  const ahorroRealInfoBtn = `<button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn bh-checkpoint-inline-info" data-bs-toggle="modal" data-bs-target="#infoAhorroReal" aria-label="Información sobre ahorro real"><i class="bi bi-info-circle" aria-hidden="true"></i></button>`;
+  const ahorroPosibleInfoBtn = `<button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn bh-checkpoint-inline-info" data-bh-popover data-bh-popover-title="Ahorro posible" data-bh-popover="Es una referencia: muestra cuánto podrías ahorrar si solo tuvieras ingresos y gastos esenciales." aria-label="Información sobre ahorro posible"><i class="ti ti-info-circle" aria-hidden="true"></i></button>`;
+  const ahorroRealInfoBtn = `<button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn bh-checkpoint-inline-info" data-bh-popover data-bh-popover-title="Ahorro real" data-bh-popover="Es lo que realmente queda al final del mes después de ingresos, gastos esenciales y gastos flexibles." aria-label="Información sobre ahorro real"><i class="ti ti-info-circle" aria-hidden="true"></i></button>`;
 
   //Totales de las tarjetas
   document.getElementById("total_ingresos_texto").innerHTML =
@@ -128,6 +128,10 @@ function actualizarTotales(valores) {
     ahorroPosibleNumero >= 0 ? "valor-positivo" : "valor-negativo",
   );
   ahorroElem?.classList.add(ahorroReal >= 0 ? "valor-positivo" : "valor-negativo");
+
+  if (window.BHComponents) {
+    window.BHComponents.initEducationPopovers(document);
+  }
 }
 
 function actualizarResumenVariacionGastos(tipo, valores, meses) {

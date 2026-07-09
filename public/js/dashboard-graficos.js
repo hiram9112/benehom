@@ -3,7 +3,6 @@ const BH_CHART_THEME = window.BHChartTheme || {};
 const BH_COLORS = BH_CHART_THEME.colors || {};
 
 // Variable global para destruir gráficos al cambiar de mes
-let graficoPresupuesto = null;
 let graficoHistoriaMes = null;
 let graficoGastosFlexibles6m = null;
 let graficoGastosEsenciales6m = null;
@@ -807,10 +806,9 @@ function renderizarInstantaneaInversion() {
 }
 
 // ----------------------------------------------------------------------
-// Gráfico: Presupuesto mensual
+// Estado general del mes: totales, hero y cascada.
 // ----------------------------------------------------------------------
-async function cargarGraficoPresupuesto() {
-  var canvas = document.getElementById('graficoPresupuestoMensual');
+async function cargarEstadoGeneralDashboard() {
   var mesSeleccionado = document.getElementById('mes').value;
   var datos = new FormData();
   datos.append('mes', mesSeleccionado);
@@ -833,67 +831,8 @@ async function cargarGraficoPresupuesto() {
       ? formatearPorcentaje((Number(valores.gastosFlexibles) / Number(valores.ingresos)) * 100) + ' %'
       : '0 %';
     actualizarGraficoHistoriaMes(valores);
-    actualizarResumenGrafico(
-      'graficoPresupuestoMensualResumen',
-      'Presupuesto mensual: ingresos ' + formatearEuros(valores.ingresos) +
-        ', gastos totales ' + formatearEuros(valores.gastosTotales) +
-        ' y ahorro real ' + formatearEuros(valores.ahorroReal) + '.'
-    );
-
-    if (!canvas) return;
-
-    var ctx = canvas.getContext('2d');
-
-    if (graficoPresupuesto) { graficoPresupuesto.destroy(); graficoPresupuesto = null; }
-
-    graficoPresupuesto = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Ingresos', 'Gastos totales', 'Ahorro real'],
-        datasets: [{
-          data: [valores.ingresos, valores.gastosTotales, valores.ahorroReal],
-          backgroundColor: [
-            BH_COLORS.income,
-            BH_COLORS.expense,
-            valores.ahorroReal >= 0 ? BH_COLORS.info : BH_COLORS.expense,
-          ],
-          borderRadius: 10,
-          barThickness: 28,
-        }],
-      },
-      options: crearOpcionesGrafico({
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              var nombres = ['Ingresos', 'Gastos totales', 'Ahorro real'];
-              return nombres[context.dataIndex] + ': ' + formatearEuros(context.parsed.y);
-            },
-          },
-        },
-        legend: {
-          position: 'bottom',
-          labels: {
-            font: { family: FONT_FAMILY, size: 12 },
-            color: BH_COLORS.textMain,
-            usePointStyle: true,
-            pointStyle: 'rectRounded',
-            boxWidth: 14,
-            padding: 14,
-            generateLabels: function () {
-              var colorAhorro = valores.ahorroReal >= 0 ? BH_COLORS.info : BH_COLORS.expense;
-              return [
-                { text: 'Ingresos',       fillStyle: BH_COLORS.income,  strokeStyle: BH_COLORS.income,  pointStyle: 'rectRounded' },
-                { text: 'Gastos totales', fillStyle: BH_COLORS.expense, strokeStyle: BH_COLORS.expense, pointStyle: 'rectRounded' },
-                { text: 'Ahorro real',    fillStyle: colorAhorro,       strokeStyle: colorAhorro,       pointStyle: 'rectRounded' },
-              ];
-            },
-          },
-        },
-        scales: crearEscalasConEuros(true),
-      }),
-    });
   } catch (error) {
-    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar el gráfico.' });
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar los datos del mes.' });
   }
 }
 
@@ -939,11 +878,11 @@ async function cargarGraficoGastosFlexibles6m() {
         datasets: [{
           label: 'Gastos flexibles',
           data: serie.valores,
-          borderColor: BH_COLORS.expense,
-          backgroundColor: BH_COLORS.expenseSoft,
+          borderColor: BH_COLORS.flexible,
+          backgroundColor: BH_COLORS.flexibleSoft,
           borderWidth: 2,
           pointRadius: 4,
-          pointBackgroundColor: BH_COLORS.expense,
+          pointBackgroundColor: BH_COLORS.flexible,
           tension: 0.35,
         }],
       },
@@ -1006,11 +945,11 @@ async function cargarGraficoGastosEsenciales6m() {
         datasets: [{
           label: 'Gastos esenciales',
           data: serie.valores,
-          borderColor: BH_COLORS.info,
-          backgroundColor: BH_COLORS.infoSoft,
+          borderColor: BH_COLORS.essential,
+          backgroundColor: BH_COLORS.essentialSoft,
           borderWidth: 2,
           pointRadius: 4,
-          pointBackgroundColor: BH_COLORS.info,
+          pointBackgroundColor: BH_COLORS.essential,
           tension: 0.35,
         }],
       },
@@ -1073,7 +1012,7 @@ async function cargarGraficoAhorros6m() {
             label: 'Ahorro posible',
             data: serie.ahorroPosible,
             backgroundColor: serie.ahorroPosible.map(function (v) {
-              return v >= 0 ? BH_COLORS.income : BH_COLORS.expense;
+              return v >= 0 ? BH_COLORS.positiveSoft : BH_COLORS.negative;
             }),
             barPercentage: 0.9,
             categoryPercentage: 0.6,
@@ -1082,7 +1021,7 @@ async function cargarGraficoAhorros6m() {
             label: 'Ahorro real',
             data: serie.ahorroReal,
             backgroundColor: serie.ahorroReal.map(function (v) {
-              return v >= 0 ? BH_COLORS.info : BH_COLORS.expense;
+              return v >= 0 ? BH_COLORS.positive : BH_COLORS.negative;
             }),
             barPercentage: 0.9,
             categoryPercentage: 0.6,
@@ -1108,9 +1047,9 @@ async function cargarGraficoAhorros6m() {
             padding: 14,
             generateLabels: function () {
               return [
-                { text: 'Ahorro posible (+)', fillStyle: BH_COLORS.income, strokeStyle: BH_COLORS.income, pointStyle: 'rectRounded' },
-                { text: 'Ahorro real (+)',     fillStyle: BH_COLORS.info, strokeStyle: BH_COLORS.info, pointStyle: 'rectRounded' },
-                { text: 'Valores negativos',    fillStyle: BH_COLORS.expense, strokeStyle: BH_COLORS.expense, pointStyle: 'rectRounded' },
+                { text: 'Ahorro posible (+)', fillStyle: BH_COLORS.positiveSoft, strokeStyle: BH_COLORS.positiveSoft, pointStyle: 'rectRounded' },
+                { text: 'Ahorro real (+)',     fillStyle: BH_COLORS.positive, strokeStyle: BH_COLORS.positive, pointStyle: 'rectRounded' },
+                { text: 'Valores negativos',    fillStyle: BH_COLORS.negative, strokeStyle: BH_COLORS.negative, pointStyle: 'rectRounded' },
               ];
             },
           },
@@ -1165,9 +1104,8 @@ function renderizarGraficoEscalaHabitos() {
     return escalaHabitosActiva === 'anio' ? item.anual : item.mediaMensual;
   });
   var graficoVacio = valores.length === 0;
-  var colores = datosEscalaHabitos.map(function (_item, index) {
-    var paleta = [BH_COLORS.expense, BH_COLORS.info, BH_COLORS.saving, BH_COLORS.neutral, BH_COLORS.income];
-    return paleta[index % paleta.length];
+  var colores = datosEscalaHabitos.map(function () {
+    return BH_COLORS.flexible;
   });
   var tipoValor = escalaHabitosActiva === 'anio' ? 'proyección anual' : 'media mensual';
   var resumenEscala = labels.length
@@ -1244,7 +1182,7 @@ function renderizarGraficoEscalaHabitos() {
 }
 
 // Exponer globalmente
-window.cargarGraficoPresupuesto = cargarGraficoPresupuesto;
+window.cargarEstadoGeneralDashboard = cargarEstadoGeneralDashboard;
 window.cargarGraficoGastosFlexibles6m = cargarGraficoGastosFlexibles6m;
 window.cargarGraficoGastosEsenciales6m = cargarGraficoGastosEsenciales6m;
 window.cargarGraficoAhorros6m = cargarGraficoAhorros6m;

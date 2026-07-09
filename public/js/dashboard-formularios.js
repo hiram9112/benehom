@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function refrescarDashboard() {
-    cargarGraficoPresupuesto();
+    cargarEstadoGeneralDashboard();
     cargarGraficoGastosFlexibles6m();
     cargarGraficoGastosEsenciales6m();
     cargarGraficoAhorros6m();

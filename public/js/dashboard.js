@@ -80,10 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (dashboardAside) {
     const actualizarStickyAside = () => {
       const offset = 16;
-      const top = Math.min(
-        offset,
-        window.innerHeight - dashboardAside.offsetHeight - offset,
-      );
+      const top = window.innerHeight - dashboardAside.offsetHeight - offset;
 
       dashboardAside.style.setProperty(
         "--bh-dashboard-aside-sticky-top",
@@ -99,85 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("resize", actualizarStickyAside);
     actualizarStickyAside();
   }
-
-  const summaryDetails = document.querySelector("[data-summary-details]");
-  const summaryInlineAnchor = document.querySelector(
-    "[data-summary-inline-anchor]",
-  );
-  const summaryOffcanvasSlot = document.querySelector(
-    "[data-summary-offcanvas-slot]",
-  );
-  const summaryOffcanvas = document.getElementById("resumenMensualPanel");
-
-  if (summaryDetails && summaryInlineAnchor && summaryOffcanvasSlot) {
-    const mobileSummaryQuery = window.matchMedia("(max-width: 767.98px)");
-
-    const syncSummaryPlacement = () => {
-      if (mobileSummaryQuery.matches) {
-        if (summaryDetails.parentElement !== summaryOffcanvasSlot) {
-          summaryOffcanvasSlot.appendChild(summaryDetails);
-        }
-
-        return;
-      }
-
-      if (summaryDetails.parentElement !== summaryInlineAnchor.parentElement) {
-        summaryInlineAnchor.before(summaryDetails);
-      }
-
-      if (summaryOffcanvas && typeof bootstrap !== "undefined") {
-        bootstrap.Offcanvas.getInstance(summaryOffcanvas)?.hide();
-      }
-    };
-
-    if (typeof mobileSummaryQuery.addEventListener === "function") {
-      mobileSummaryQuery.addEventListener("change", syncSummaryPlacement);
-    } else {
-      mobileSummaryQuery.addListener(syncSummaryPlacement);
-    }
-
-    syncSummaryPlacement();
-  }
-
-  let activeSummaryCard = null;
-  let summaryCardReturnTimer = null;
-
-  const closeActiveSummaryCard = () => {
-    if (!activeSummaryCard) {
-      return;
-    }
-
-    activeSummaryCard.classList.remove("is-flipped");
-    activeSummaryCard.setAttribute("aria-expanded", "false");
-    activeSummaryCard = null;
-    clearTimeout(summaryCardReturnTimer);
-    summaryCardReturnTimer = null;
-  };
-
-  document.querySelectorAll("[data-summary-flip]").forEach((card) => {
-    const alternarCard = () => {
-      if (activeSummaryCard === card) {
-        closeActiveSummaryCard();
-        return;
-      }
-
-      closeActiveSummaryCard();
-      card.classList.add("is-flipped");
-      card.setAttribute("aria-expanded", "true");
-      activeSummaryCard = card;
-      summaryCardReturnTimer = setTimeout(closeActiveSummaryCard, 30000);
-    };
-
-    card.addEventListener("click", alternarCard);
-    card.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") {
-        return;
-      }
-
-      event.preventDefault();
-      alternarCard();
-    });
-  });
 
 });
 
@@ -270,7 +188,7 @@ async function editarIngresoInline(span) {
         }
 
         //Actualizamos gráficos
-        window.cargarGraficoPresupuesto();
+        window.cargarEstadoGeneralDashboard();
         window.cargarGraficoGastosFlexibles6m();
         window.cargarGraficoGastosEsenciales6m();
         window.cargarGraficoAhorros6m();
@@ -396,7 +314,7 @@ async function editarGastoInline(span) {
         );
 
         //Actualizamos gráficos
-        window.cargarGraficoPresupuesto();
+        window.cargarEstadoGeneralDashboard();
         window.cargarGraficoGastosFlexibles6m();
         window.cargarGraficoGastosEsenciales6m();
         window.cargarGraficoAhorros6m();

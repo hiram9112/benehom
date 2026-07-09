@@ -5,6 +5,8 @@
     scope.querySelectorAll('[data-bh-popover]').forEach((trigger) => {
       const content = trigger.getAttribute('data-bh-popover');
       if (!content) return;
+      if (trigger.dataset.bhPopoverReady === 'true') return;
+      trigger.dataset.bhPopoverReady = 'true';
 
       const instance = window.bootstrap.Popover.getOrCreateInstance(trigger, {
         container: 'body',

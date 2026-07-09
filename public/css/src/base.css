@@ -153,10 +153,13 @@
     --bh-shadow-card: none;                    /* alias legado: apaga las burbujas de golpe */
     --bh-shadow-raised: var(--bh-shadow-modal);/* alias legado */
 
-    /* Foco */
-    --bh-focus-color: var(--bh-brand);
-    --bh-focus-ring-color: rgba(51, 166, 77, 0.40);
-    --bh-focus-ring: 0 0 0 3px var(--bh-focus-ring-color);
+    /* Foco: doble anillo para que sea visible tanto sobre blanco como
+       sobre tintes de chip; el color verde a 40% tiene 1.5:1 sobre
+       blanco, insuficiente como unico indicador. */
+    --bh-focus-color: var(--bh-positive);
+    --bh-focus-ring-color: rgba(51, 166, 77, 0.45);
+    --bh-focus-outline: 0 0 0 2px var(--bh-surface-card);
+    --bh-focus-ring: var(--bh-focus-outline), 0 0 0 4px var(--bh-focus-ring-color);
 
     --bh-transition-fast: 120ms ease;
     --bh-transition-base: 180ms ease;

@@ -91,28 +91,28 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                             <section class="bh-hero-insight-group" aria-labelledby="heroIngresosTitulo">
                                 <h3 id="heroIngresosTitulo">Sobre tus ingresos</h3>
 
-                                <div class="bh-dashboard-kpi bh-hero-insight-row" id="resumen_ingresos_ahorrados_card">
-                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-saving" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Ahorro real <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bh-popover data-bh-popover-title="Ahorro real" data-bh-popover="Es lo que realmente queda al final del mes después de ingresos, gastos esenciales y gastos flexibles." aria-label="Información sobre ahorro real"><i class="ti ti-info-circle" aria-hidden="true"></i></button></span><span class="bh-hero-insight-detail" id="resumen_ingresos_ahorrados_detalle"></span></span></span>
-                                    <strong id="resumen_ingresos_ahorrados" class="bh-amount">0 %</strong>
-                                </div>
+                                        <div class="bh-dashboard-kpi bh-hero-insight-row" id="resumen_ingresos_ahorrados_card">
+                                            <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-saving" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Porcentaje de ahorro real</span><span class="bh-hero-insight-detail" id="resumen_ingresos_ahorrados_detalle"></span></span></span>
+                                            <strong id="resumen_ingresos_ahorrados" class="bh-amount">0 %</strong>
+                                        </div>
 
-                                <div class="bh-dashboard-kpi bh-hero-insight-row is-flexible" id="resumen_gastos_flexibles_peso_card">
-                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos flexibles <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bh-popover data-bh-popover-title="Gastos flexibles" data-bh-popover="Este porcentaje muestra qué parte de tus ingresos se va a gastos no esenciales. Es el dato heredado del quinto KPI antiguo." aria-label="Información sobre gastos flexibles en ingresos"><i class="ti ti-info-circle" aria-hidden="true"></i></button></span><span class="bh-hero-insight-detail" id="resumen_gastos_flexibles_peso_detalle"></span></span></span>
-                                    <strong id="resumen_gastos_flexibles_peso" class="bh-amount">0 %</strong>
-                                </div>
+                                        <div class="bh-dashboard-kpi bh-hero-insight-row is-flexible" id="resumen_gastos_flexibles_peso_card">
+                                            <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Porcentaje de gasto flexible</span><span class="bh-hero-insight-detail" id="resumen_gastos_flexibles_peso_detalle"></span></span></span>
+                                            <strong id="resumen_gastos_flexibles_peso" class="bh-amount">0 %</strong>
+                                        </div>
                             </section>
 
                             <section class="bh-hero-insight-group" aria-labelledby="heroComparativaTitulo">
                                 <h3 id="heroComparativaTitulo">Comparado con <span id="resumen_variacion_esenciales_mes">mes anterior</span></h3>
                                 <span id="resumen_variacion_flexibles_mes" class="visually-hidden">mes anterior</span>
 
-                                <div class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-essential" id="resumen_variacion_esenciales_card" hidden>
-                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-essential" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos esenciales <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bh-popover data-bh-popover-title="Variación de esenciales" data-bh-popover="Compara tus gastos esenciales con el mes anterior. Una subida sostenida puede indicar cambios de coste o movimientos mal clasificados." aria-label="Información sobre variación de gastos esenciales"><i class="ti ti-info-circle" aria-hidden="true"></i></button></span><span class="bh-hero-insight-detail" id="resumen_variacion_esenciales_detalle"></span></span></span>
-                                    <strong id="resumen_variacion_esenciales" class="bh-amount">0 %</strong>
-                                </div>
+                                    <div class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-essential" id="resumen_variacion_esenciales_card" hidden>
+                                        <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-essential" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Variación de gastos esenciales</span><span class="bh-hero-insight-detail" id="resumen_variacion_esenciales_detalle"></span></span></span>
+                                        <strong id="resumen_variacion_esenciales" class="bh-amount">0 %</strong>
+                                    </div>
 
                                 <div class="bh-dashboard-kpi bh-hero-insight-row bh-hero-insight-delta is-flexible" id="resumen_variacion_flexibles_card" hidden>
-                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Gastos flexibles</span><span class="bh-hero-insight-detail" id="resumen_variacion_flexibles_detalle"></span></span></span>
+                                    <span class="bh-hero-insight-label"><span class="bh-hero-insight-dot is-flexible" aria-hidden="true"></span><span class="bh-hero-insight-copy"><span class="bh-hero-insight-label-text">Variación de gastos flexibles</span><span class="bh-hero-insight-detail" id="resumen_variacion_flexibles_detalle"></span></span></span>
                                     <strong id="resumen_variacion_flexibles" class="bh-amount">0 %</strong>
                                 </div>
                             </section>

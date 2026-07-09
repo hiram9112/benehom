@@ -737,6 +737,13 @@
     font-family: var(--bh-font-interface);
 }
 
+.bh-education-popover.popover:focus,
+.bh-education-popover.popover:focus-visible{
+    outline: none;
+    box-shadow: var(--bh-shadow-pop), var(--bh-focus-ring);
+    border-color: var(--bh-positive);
+}
+
 .bh-education-popover .popover-arrow::before,
 .bh-education-popover .popover-arrow::after{
     border-top-color: var(--bh-border-color);

@@ -1,4 +1,29 @@
 (() => {
+  function decoratePopoverTip(tip, trigger) {
+    if (!tip) return;
+    const baseId = tip.id;
+
+    tip.setAttribute('role', 'dialog');
+    tip.setAttribute('aria-modal', 'false');
+    tip.tabIndex = -1;
+
+    const headerEl = tip.querySelector('.popover-header');
+    if (headerEl) {
+      headerEl.id = `${baseId}-title`;
+      tip.setAttribute('aria-labelledby', headerEl.id);
+    }
+
+    const bodyEl = tip.querySelector('.popover-body');
+    if (bodyEl) {
+      bodyEl.id = `${baseId}-body`;
+      if (!tip.getAttribute('aria-labelledby')) {
+        tip.setAttribute('aria-label', trigger.getAttribute('aria-label') || 'Información');
+      } else {
+        tip.setAttribute('aria-describedby', bodyEl.id);
+      }
+    }
+  }
+
   function initEducationPopovers(scope = document) {
     if (!window.bootstrap || !window.bootstrap.Popover) return;
 
@@ -8,40 +33,84 @@
       if (trigger.dataset.bhPopoverReady === 'true') return;
       trigger.dataset.bhPopoverReady = 'true';
 
+      const titleAttr = trigger.getAttribute('data-bh-popover-title') || '';
+      trigger.setAttribute('aria-haspopup', 'dialog');
+      trigger.setAttribute('aria-expanded', 'false');
+
       const instance = window.bootstrap.Popover.getOrCreateInstance(trigger, {
         container: 'body',
         content,
         customClass: 'bh-education-popover',
         html: trigger.getAttribute('data-bh-popover-html') === 'true',
         placement: trigger.getAttribute('data-bh-popover-placement') || 'auto',
-        title: trigger.getAttribute('data-bh-popover-title') || '',
+        title: titleAttr,
         trigger: 'click',
       });
 
-      trigger.setAttribute('aria-expanded', 'false');
+      const syncAriaControls = () => {
+        const tip = instance.tip;
+        if (tip && tip.id) {
+          trigger.setAttribute('aria-controls', tip.id);
+        }
+      };
+
+      trigger.addEventListener('inserted.bs.popover', () => {
+        const tip = instance.tip;
+        if (tip) {
+          syncAriaControls();
+          decoratePopoverTip(tip, trigger);
+        }
+      });
 
       trigger.addEventListener('shown.bs.popover', () => {
         trigger.setAttribute('aria-expanded', 'true');
+        const tip = instance.tip;
+        if (tip) {
+          syncAriaControls();
+          decoratePopoverTip(tip, trigger);
+        }
       });
 
       trigger.addEventListener('hidden.bs.popover', () => {
         trigger.setAttribute('aria-expanded', 'false');
+        trigger.focus({ preventScroll: true });
       });
 
       trigger.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        instance.hide();
-        trigger.focus({ preventScroll: true });
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          instance.hide();
+        }
       });
+    });
+
+    document.addEventListener('mousedown', (event) => {
+      const openTriggers = Array.from(
+        document.querySelectorAll('[data-bh-popover][aria-expanded="true"]')
+      );
+      if (!openTriggers.length) return;
+
+      const target = event.target;
+      for (let i = openTriggers.length - 1; i >= 0; i -= 1) {
+        const trigger = openTriggers[i];
+        if (trigger.contains(target)) continue;
+        const tip = window.bootstrap.Popover.getInstance(trigger)?.tip;
+        if (tip && tip.contains(target)) continue;
+        window.bootstrap.Popover.getInstance(trigger)?.hide();
+      }
     });
 
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
 
-      document.querySelectorAll('[data-bh-popover][aria-expanded="true"]').forEach((trigger) => {
-        const instance = window.bootstrap.Popover.getInstance(trigger);
-        if (instance) instance.hide();
-      });
+      const openTriggers = Array.from(
+        document.querySelectorAll('[data-bh-popover][aria-expanded="true"]')
+      );
+      if (!openTriggers.length) return;
+
+      const lastTrigger = openTriggers[openTriggers.length - 1];
+      const instance = window.bootstrap.Popover.getInstance(lastTrigger);
+      if (instance) instance.hide();
     });
   }
 

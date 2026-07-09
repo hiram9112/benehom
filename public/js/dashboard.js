@@ -259,7 +259,7 @@ async function editarIngresoInline(span) {
         const nuevoSpan = document.createElement("span");
         nuevoSpan.textContent = formatearCantidad(nuevoValor);
         nuevoSpan.dataset.id = id;
-        nuevoSpan.classList.add("bh-movement-amount", "cantidad_ingreso");
+        nuevoSpan.classList.add("bh-movement-amount", "cantidad_ingreso", "bh-amount");
 
         //Reemplazamos el input con el span que contiene el nuevo valor
         input.replaceWith(nuevoSpan);
@@ -374,12 +374,14 @@ async function editarGastoInline(span) {
             "bh-movement-amount",
             "cantidad_gasto_esencial",
             "cantidad_gasto",
+            "bh-amount",
           );
         } else {
           nuevoSpan.classList.add(
             "bh-movement-amount",
             "cantidad_gasto_flexible",
             "cantidad_gasto",
+            "bh-amount",
           );
         }
 

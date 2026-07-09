@@ -26,7 +26,9 @@ bh_mobile_nav();
 $categoriasGasto = gastoCategorias();
 $labelsCategoriasGasto = gastoCategoriaLabels();
 $categoriasIngreso = ingresoCategorias();
-$labelsCategorias = array_merge($labelsCategoriasGasto, $categoriasIngreso);
+$labelsCategoriasIngreso = ingresoCategoriaLabels();
+$categoriasMovimiento = array_merge(['ingreso' => $categoriasIngreso], $categoriasGasto);
+$labelsCategorias = array_merge($labelsCategoriasGasto, $labelsCategoriasIngreso);
 $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
 ?>
 
@@ -125,6 +127,180 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
 
                 <!--Panel central-->
                 <section class="bh-dashboard-finance-stack">
+                    <div class="bh-card bh-card-finance bh-month-movements-card" aria-labelledby="movimientosMesTitulo">
+                        <div class="bh-card-header bh-month-movements-header">
+                            <h3 id="movimientosMesTitulo" class="titulo">Movimientos del mes</h3>
+                        </div>
+
+                        <div class="bh-card-body">
+                            <form id="formMovimientoMes" class="bh-form bh-movement-inline-form" data-movement-form>
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="mes_seleccionado" value="<?= htmlspecialchars($mesSeleccionado, ENT_QUOTES, 'UTF-8') ?>">
+
+                                <div class="bh-movement-fields-row">
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="movimiento_tipo">Tipo de movimiento</label>
+                                        <div class="bh-select-shell">
+                                            <select id="movimiento_tipo" name="tipo_movimiento" class="bh-select" data-movement-type required>
+                                                <option value="" selected disabled>Selecciona un tipo</option>
+                                                <option value="ingreso">Ingreso</option>
+                                                <option value="esencial">Gasto esencial</option>
+                                                <option value="flexible">Gasto flexible</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="bh-category-picker" data-movement-category-picker>
+                                        <div class="bh-field">
+                                            <label class="bh-label" for="movimiento_area">Área</label>
+                                            <div class="bh-select-shell">
+                                                <select id="movimiento_area" class="bh-select" data-area-select required disabled>
+                                                    <option value="" selected disabled>Selecciona un área</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="bh-field">
+                                            <label class="bh-label" for="movimiento_concepto">Concepto</label>
+                                            <div class="bh-select-shell">
+                                                <select id="movimiento_concepto" class="bh-select" data-concept-select required disabled>
+                                                    <option value="" selected disabled>Selecciona un concepto</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bh-field">
+                                        <label class="bh-label" for="movimiento_cantidad">Cantidad (€)</label>
+                                        <input type="number" name="cantidad_movimiento" id="movimiento_cantidad" class="bh-input" step="0.01" inputmode="decimal" placeholder="0,00" required>
+                                    </div>
+
+                                    <button type="submit" id="movimiento_submit" class="bh-btn bh-btn-primary" data-movement-submit>+ Añadir</button>
+                                </div>
+                            </form>
+
+                            <div class="bh-movement-groups" aria-label="Movimientos registrados en el mes">
+                                <section class="bh-movement-group is-income" aria-labelledby="movimientosIngresosTitulo">
+                                    <div class="bh-movement-group-head">
+                                        <h4 id="movimientosIngresosTitulo">Ingresos
+                                            <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoIngresos" aria-label="Información sobre ingresos">
+                                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                            </button>
+                                        </h4>
+                                    </div>
+
+                                    <div id="lista_ingresos" class="lista-ingresos">
+                                        <?php if (!empty($ingresos)): ?>
+                                            <ul>
+                                                <?php foreach ($ingresos as $ingreso): ?>
+                                                    <li id="ingreso-<?= $ingreso['id'] ?>" class="bh-movement-item" data-id="<?= $ingreso['id'] ?>" data-cantidad="<?= htmlspecialchars((string) $ingreso['cantidad'], ENT_QUOTES, 'UTF-8') ?>">
+                                                        <div class="bh-movement-main">
+                                                            <span class="bh-movement-label categoria_ingreso_individual"><?= htmlspecialchars(formatearCategoria($ingreso['categoria'])) ?></span>
+                                                        </div>
+                                                        <div class="bh-movement-side">
+                                                            <span class="bh-movement-sign is-income" aria-hidden="true">+</span><span class="bh-movement-amount cantidad_ingreso bh-amount" data-id="<?= $ingreso['id'] ?>"><?= bh_format_amount($ingreso['cantidad']) ?></span><span class="bh-money-symbol">€</span>
+                                                            <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="<?= $ingreso['id'] ?>" aria-label="Eliminar ingreso <?= htmlspecialchars(formatearCategoria($ingreso['categoria']), ENT_QUOTES, 'UTF-8') ?>">
+                                                                <i class="ti ti-trash" aria-hidden="true"></i>
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <div class="bh-empty-state bh-dashboard-list-empty-state"><h3 class="bh-empty-state-title">Sin ingresos aún</h3></div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="bh-movement-group-action">
+                                        <button type="button" class="bh-context-link" data-movimiento-atajo="ingreso">+ Añadir ingreso</button>
+                                    </div>
+                                    <p id="total_ingresos_texto" class="bh-checkpoint-row is-income"></p>
+                                </section>
+
+                                <section class="bh-movement-group is-essential" aria-labelledby="movimientosEsencialesTitulo">
+                                    <div class="bh-movement-group-head">
+                                        <h4 id="movimientosEsencialesTitulo">Gastos esenciales
+                                            <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoGastosEsenciales" aria-label="Información sobre gastos esenciales">
+                                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                            </button>
+                                        </h4>
+                                    </div>
+
+                                    <div id="lista_gastos_esenciales" class="lista-gastos">
+                                        <?php if (!empty($gastosEsenciales)): ?>
+                                            <ul>
+                                                <?php foreach ($gastosEsenciales as $gastoEsencial): ?>
+                                                    <li id="gasto-<?= $gastoEsencial['id'] ?>" class="bh-movement-item" data-id="<?= $gastoEsencial['id'] ?>" data-cantidad="<?= htmlspecialchars((string) $gastoEsencial['cantidad'], ENT_QUOTES, 'UTF-8') ?>" data-tipo="<?= $gastoEsencial['tipo'] ?>">
+                                                        <div class="bh-movement-main">
+                                                            <span class="bh-movement-label categoria_gasto_esencial"><?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria'])) ?></span>
+                                                        </div>
+                                                        <div class="bh-movement-side">
+                                                            <span class="bh-movement-sign is-expense" aria-hidden="true">−</span><span class="bh-movement-amount cantidad_gasto_esencial cantidad_gasto bh-amount" data-id="<?= $gastoEsencial['id'] ?>"><?= bh_format_amount($gastoEsencial['cantidad']) ?></span><span class="bh-money-symbol">€</span>
+                                                            <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoEsencial['id'] ?>" aria-label="Eliminar gasto esencial <?= htmlspecialchars(formatearCategoria($gastoEsencial['categoria']), ENT_QUOTES, 'UTF-8') ?>">
+                                                                <i class="ti ti-trash" aria-hidden="true"></i>
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <div class="bh-empty-state bh-dashboard-list-empty-state"><h3 class="bh-empty-state-title">Sin gastos aún</h3></div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="bh-movement-group-action">
+                                        <button type="button" class="bh-context-link" data-movimiento-atajo="esencial">+ Añadir gasto esencial</button>
+                                    </div>
+                                    <div class="bh-checkpoint-stack">
+                                        <p id="total_gastos_esenciales_texto" class="bh-checkpoint-row is-essential"></p>
+                                        <p id="ahorro_posible_texto" class="bh-checkpoint-row is-saving"></p>
+                                    </div>
+                                </section>
+
+                                <section class="bh-movement-group is-flexible" aria-labelledby="movimientosFlexiblesTitulo">
+                                    <div class="bh-movement-group-head">
+                                        <h4 id="movimientosFlexiblesTitulo">Gastos flexibles
+                                            <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoGastosFlexibles" aria-label="Información sobre gastos flexibles">
+                                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                            </button>
+                                        </h4>
+                                    </div>
+
+                                    <div id="lista_gastos_flexibles" class="lista-gastos">
+                                        <?php if (!empty($gastosFlexibles)): ?>
+                                            <ul>
+                                                <?php foreach ($gastosFlexibles as $gastoFlexible): ?>
+                                                    <li id="gasto-<?= $gastoFlexible['id'] ?>" class="bh-movement-item" data-id="<?= $gastoFlexible['id'] ?>" data-cantidad="<?= htmlspecialchars((string) $gastoFlexible['cantidad'], ENT_QUOTES, 'UTF-8') ?>" data-tipo="<?= $gastoFlexible['tipo'] ?>">
+                                                        <div class="bh-movement-main">
+                                                            <span class="bh-movement-label categoria_gasto_flexible"><?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria'])) ?></span>
+                                                        </div>
+                                                        <div class="bh-movement-side">
+                                                            <span class="bh-movement-sign is-expense" aria-hidden="true">−</span><span class="bh-movement-amount cantidad_gasto_flexible cantidad_gasto bh-amount" data-id="<?= $gastoFlexible['id'] ?>"><?= bh_format_amount($gastoFlexible['cantidad']) ?></span><span class="bh-money-symbol">€</span>
+                                                            <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="<?= $gastoFlexible['id'] ?>" aria-label="Eliminar gasto flexible <?= htmlspecialchars(formatearCategoria($gastoFlexible['categoria']), ENT_QUOTES, 'UTF-8') ?>">
+                                                                <i class="ti ti-trash" aria-hidden="true"></i>
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <div class="bh-empty-state bh-dashboard-list-empty-state"><h3 class="bh-empty-state-title">Sin gastos aún</h3></div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="bh-movement-group-action">
+                                        <button type="button" class="bh-context-link" data-movimiento-atajo="flexible">+ Añadir gasto flexible</button>
+                                    </div>
+                                    <div class="bh-checkpoint-stack">
+                                        <p id="total_gastos_flexibles_texto" class="bh-checkpoint-row is-flexible"></p>
+                                        <p id="ahorro_real_texto" class="bh-checkpoint-row is-saving"></p>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php if (false): ?>
                     <!-- Ingresos-->
                     <div class="bh-card bh-card-finance">
                         <div class="bh-card-header">
@@ -409,6 +585,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                         </div>
                     </div>
 
+                    <?php endif; ?>
                 </section>
 
                 <!--Panel lateral derecho-->
@@ -819,6 +996,7 @@ bh_modal([
 <script<?= bh_nonce_attr() ?>>
     window.CSRF_TOKEN = "<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>";
     window.BH_GASTO_CATEGORIAS = <?= json_encode($categoriasGasto, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    window.BH_MOVIMIENTO_CATEGORIAS = <?= json_encode($categoriasMovimiento, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     window.BH_GASTO_CATEGORIA_LABELS = <?= json_encode($labelsCategorias, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     </script>
 

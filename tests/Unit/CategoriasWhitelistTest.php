@@ -32,12 +32,17 @@ final class CategoriasWhitelistTest extends TestCase
 
     public function testAceptaCategoriasDeIngresoDelCatalogo(): void
     {
-        foreach (array_keys(\ingresoCategorias()) as $categoria) {
-            self::assertTrue(
-                \ingresoCategoriaPermitida($categoria),
-                "La categoria {$categoria} deberia estar permitida como ingreso."
-            );
+        foreach (\ingresoCategorias() as $grupo) {
+            foreach (array_keys($grupo['conceptos']) as $categoria) {
+                self::assertTrue(
+                    \ingresoCategoriaPermitida($categoria),
+                    "La categoria {$categoria} deberia estar permitida como ingreso."
+                );
+            }
         }
+
+        self::assertTrue(\ingresoCategoriaPermitida('salario'));
+        self::assertTrue(\ingresoCategoriaPermitida('prestaciones_ayudas'));
     }
 
     public function testRechazaCategoriasDeIngresoDesconocidasOGastos(): void

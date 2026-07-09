@@ -60,9 +60,39 @@ function ingresoCategorias(): array
     return $categorias;
 }
 
+function ingresoCategoriaLabelsLegacy(): array
+{
+    return [
+        'salario' => 'Salario o nómina',
+        'actividad_propia' => 'Actividad propia o autónomo',
+        'prestaciones_ayudas' => 'Prestaciones y ayudas públicas',
+        'alquileres' => 'Ingresos por alquiler',
+        'inversiones' => 'Inversiones, dividendos e intereses',
+        'ventas_segunda_mano' => 'Ventas de segunda mano',
+        'aportaciones_regalos' => 'Aportaciones o regalos familiares',
+    ];
+}
+
+function ingresoCategoriaLabels(): array
+{
+    $labels = [];
+
+    foreach (ingresoCategorias() as $grupo) {
+        foreach (($grupo['conceptos'] ?? []) as $valor => $label) {
+            $labels[$valor] = $label;
+        }
+    }
+
+    foreach (ingresoCategoriaLabelsLegacy() as $valor => $label) {
+        $labels[$valor] ??= $label;
+    }
+
+    return $labels;
+}
+
 function ingresoCategoriaPermitida(string $categoria): bool
 {
-    return isset(ingresoCategorias()[$categoria]);
+    return isset(ingresoCategoriaLabels()[$categoria]);
 }
 
 //Funcion para formatear las categorias
@@ -73,7 +103,7 @@ function formatearCategoria($texto){
         return $labels[$texto];
     }
 
-    $labelsIngresos = ingresoCategorias();
+    $labelsIngresos = ingresoCategoriaLabels();
 
     if (isset($labelsIngresos[$texto])) {
         return $labelsIngresos[$texto];

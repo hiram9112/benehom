@@ -34,18 +34,20 @@ function actualizarTotales(valores) {
   const tAhorro = formatearCantidad(ahorroReal);
   const signoBalance = ahorroReal > 0 ? "+" : ahorroReal < 0 ? "-" : "";
   const tBalanceResumen = `${signoBalance}${formatearCantidad(Math.abs(ahorroReal))}`;
+  const ahorroPosibleInfoBtn = `<button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn bh-checkpoint-inline-info" data-bs-toggle="modal" data-bs-target="#infoAhorroPosible" aria-label="Información sobre ahorro posible"><i class="bi bi-info-circle" aria-hidden="true"></i></button>`;
+  const ahorroRealInfoBtn = `<button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn bh-checkpoint-inline-info" data-bs-toggle="modal" data-bs-target="#infoAhorroReal" aria-label="Información sobre ahorro real"><i class="bi bi-info-circle" aria-hidden="true"></i></button>`;
 
   //Totales de las tarjetas
   document.getElementById("total_ingresos_texto").innerHTML =
-    `Ingresos del mes: <strong>${tIngresos}€</strong>`;
+    `Ingresos del mes · <strong class="bh-amount">${tIngresos} €</strong>`;
   document.getElementById("total_gastos_esenciales_texto").innerHTML =
-    `Gastos esenciales del mes: <strong>${tGastosEsenciales}€</strong>`;
+    `Gastos esenciales del mes · <strong class="bh-amount">${tGastosEsenciales} €</strong>`;
   document.getElementById("ahorro_posible_texto").innerHTML =
-    `Ahorro posible: <strong>${tAhorroPosible}€</strong>`;
+    `<span class="bh-checkpoint-label">Ahorro posible ${ahorroPosibleInfoBtn}</span><strong class="bh-amount">${tAhorroPosible} €</strong>`;
   document.getElementById("total_gastos_flexibles_texto").innerHTML =
-    `Gastos flexibles del mes: <strong>${tGastosFlexibles}€</strong>`;
+    `Gastos flexibles del mes · <strong class="bh-amount">${tGastosFlexibles} €</strong>`;
   document.getElementById("ahorro_real_texto").innerHTML =
-    `Ahorro real del mes: <strong>${tAhorro}€</strong>`;
+    `<span class="bh-checkpoint-label">Ahorro real del mes ${ahorroRealInfoBtn}</span><strong class="bh-amount">${tAhorro} €</strong>`;
 
   //Resumen mensual superior
   const resumenAhorro = document.getElementById("resumen_ahorro_real");
@@ -118,14 +120,14 @@ function actualizarTotales(valores) {
   const ahorroElem = document.getElementById("ahorro_real_texto");
 
   //Rmovemos clases anteriores
-  ahorroPosibleElem.classList.remove("valor-positivo", "valor-negativo");
-  ahorroElem.classList.remove("valor-positivo", "valor-negativo");
+  ahorroPosibleElem?.classList.remove("valor-positivo", "valor-negativo");
+  ahorroElem?.classList.remove("valor-positivo", "valor-negativo");
 
   //Aplicamos color según valor
-  ahorroPosibleElem.classList.add(
+  ahorroPosibleElem?.classList.add(
     ahorroPosibleNumero >= 0 ? "valor-positivo" : "valor-negativo",
   );
-  ahorroElem.classList.add(ahorroReal >= 0 ? "valor-positivo" : "valor-negativo");
+  ahorroElem?.classList.add(ahorroReal >= 0 ? "valor-positivo" : "valor-negativo");
 }
 
 function actualizarResumenVariacionGastos(tipo, valores, meses) {

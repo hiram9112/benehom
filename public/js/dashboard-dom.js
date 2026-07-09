@@ -1,16 +1,13 @@
 function crearEstadoVacioDashboard(tipo) {
   const estados = {
     ingresos: {
-      icono: "bi-wallet2",
-      titulo: "Aún no has registrado ingresos",
+      titulo: "Sin ingresos aún",
     },
     esenciales: {
-      icono: "bi-house-heart",
-      titulo: "Aún no tienes gastos esenciales",
+      titulo: "Sin gastos aún",
     },
     flexibles: {
-      icono: "bi-basket2",
-      titulo: "Aún no tienes gastos flexibles",
+      titulo: "Sin gastos aún",
     },
   };
 
@@ -18,7 +15,6 @@ function crearEstadoVacioDashboard(tipo) {
 
   return `
     <div class="bh-empty-state bh-dashboard-list-empty-state">
-      <div class="bh-empty-state-icon" aria-hidden="true"><i class="bi ${estado.icono}" aria-hidden="true"></i></div>
       <h3 class="bh-empty-state-title">${estado.titulo}</h3>
     </div>`;
 }
@@ -95,8 +91,8 @@ function agregarIngresoAlDOM(ingreso) {
       <span class="bh-movement-label categoria_ingreso_individual">${categoriaIngresoLabel}</span>
     </div>
     <div class="bh-movement-side">
-      <span class="bh-movement-amount cantidad_ingreso" data-id="${ingreso.id}">${formatearCantidad(ingreso.cantidad)}</span><span class="bh-money-symbol">€</span>
-      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="${ingreso.id}" aria-label="Eliminar ingreso ${categoriaIngresoLabel}"><i class="bi bi-trash" aria-hidden="true"></i></button>
+      <span class="bh-movement-sign is-income" aria-hidden="true">+</span><span class="bh-movement-amount cantidad_ingreso bh-amount" data-id="${ingreso.id}">${formatearCantidad(ingreso.cantidad)}</span><span class="bh-money-symbol">€</span>
+      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_ingreso" data-id="${ingreso.id}" aria-label="Eliminar ingreso ${categoriaIngresoLabel}"><i class="ti ti-trash" aria-hidden="true"></i></button>
     </div>
     `;
 
@@ -162,8 +158,8 @@ function agregarGastoEsencialAlDOM(gastoEsencial) {
       <span class="bh-movement-label categoria_gasto_esencial">${categoriaGastoEsencialLabel}</span>
     </div>
     <div class="bh-movement-side">
-      <span class="bh-movement-amount cantidad_gasto_esencial cantidad_gasto" data-id="${gastoEsencial.id}">${formatearCantidad(gastoEsencial.cantidad)}</span><span class="bh-money-symbol">€</span>
-      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoEsencial.id}" aria-label="Eliminar gasto esencial ${categoriaGastoEsencialLabel}"><i class="bi bi-trash" aria-hidden="true"></i></button>
+      <span class="bh-movement-sign is-expense" aria-hidden="true">−</span><span class="bh-movement-amount cantidad_gasto_esencial cantidad_gasto bh-amount" data-id="${gastoEsencial.id}">${formatearCantidad(gastoEsencial.cantidad)}</span><span class="bh-money-symbol">€</span>
+      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoEsencial.id}" aria-label="Eliminar gasto esencial ${categoriaGastoEsencialLabel}"><i class="ti ti-trash" aria-hidden="true"></i></button>
     </div>
     `;
 
@@ -205,8 +201,8 @@ function agregarGastoFlexibleAlDOM(gastoFlexible) {
       <span class="bh-movement-label categoria_gasto_flexible">${categoriaGastoFlexibleLabel}</span>
     </div>
     <div class="bh-movement-side">
-      <span class="bh-movement-amount cantidad_gasto_flexible cantidad_gasto" data-id="${gastoFlexible.id}">${formatearCantidad(gastoFlexible.cantidad)}</span><span class="bh-money-symbol">€</span>
-      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoFlexible.id}" aria-label="Eliminar gasto flexible ${categoriaGastoFlexibleLabel}"><i class="bi bi-trash" aria-hidden="true"></i></button>
+      <span class="bh-movement-sign is-expense" aria-hidden="true">−</span><span class="bh-movement-amount cantidad_gasto_flexible cantidad_gasto bh-amount" data-id="${gastoFlexible.id}">${formatearCantidad(gastoFlexible.cantidad)}</span><span class="bh-money-symbol">€</span>
+      <button class="bh-btn bh-btn-icon bh-btn-ghost eliminar_gasto" data-id="${gastoFlexible.id}" aria-label="Eliminar gasto flexible ${categoriaGastoFlexibleLabel}"><i class="ti ti-trash" aria-hidden="true"></i></button>
     </div>
     `;
 

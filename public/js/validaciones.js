@@ -33,8 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  //Aplicamos la validación a los tres formularios
-  validarFormulario("formIngresos", "cantidad_ingreso");
-  validarFormulario("formGastosEsenciales", "cantidad_gasto_esencial");
-  validarFormulario("formGastosFlexibles", "cantidad_gasto_flexible");
+  //Aplicamos la validación al formulario inline de movimientos del mes.
+  validarFormulario("formMovimientoMes", "movimiento_cantidad");
 });

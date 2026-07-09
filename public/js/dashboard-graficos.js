@@ -436,8 +436,13 @@ function registrarCtaHeroVacio() {
   if (!cta) return;
 
   cta.addEventListener('click', function () {
-    var destino = document.getElementById('formIngresos');
-    var foco = document.getElementById('categoria_ingreso') || destino?.querySelector('select, input, textarea, button');
+    var destino = document.getElementById('formMovimientoMes');
+
+    if (typeof window.bhSeleccionarTipoMovimiento === 'function') {
+      window.bhSeleccionarTipoMovimiento('ingreso');
+    }
+
+    var foco = document.getElementById('movimiento_area') || destino?.querySelector('select, input, textarea, button');
 
     if (destino) {
       destino.scrollIntoView({ behavior: 'smooth', block: 'start' });

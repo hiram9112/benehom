@@ -40,6 +40,50 @@ function formatearEuros(valor) {
   return new Intl.NumberFormat('es-ES', opciones).format(numero) + ' \u20AC';
 }
 
+function formatearMesGrafico(valor) {
+  var partes = String(valor || '').split('-');
+  var year = Number(partes[0]);
+  var month = Number(partes[1]);
+
+  if (!year || !month) {
+    return String(valor || '');
+  }
+
+  var nombre = new Intl.DateTimeFormat('es-ES', { month: 'long' })
+    .format(new Date(year, month - 1, 1));
+
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1)+ " " + year;
+}
+
+function formatearMesEjeGrafico(valor) {
+  var partes = String(valor || '').split('-');
+  var year = Number(partes[0]);
+  var month = Number(partes[1]);
+
+  if (!year || !month) {
+    return String(valor || '');
+  }
+
+  var abrev = new Intl.DateTimeFormat('es-ES', { month: 'short' })
+    .format(new Date(year, month - 1, 1))
+    .replace('.', '')
+    .trim();
+
+  return abrev.charAt(0).toUpperCase() + abrev.slice(1);
+}
+
+function aplicarAbreviaturasMesEjeX(escalas) {
+  if (!escalas || !escalas.x || !escalas.x.ticks) return escalas;
+
+  escalas.x.ticks.callback = function (value) {
+    var label = this.getLabelForValue(value);
+
+    return formatearMesEjeGrafico(label);
+  };
+
+  return escalas;
+}
+
 function actualizarResumenGrafico(id, texto) {
   var resumen = document.getElementById(id);
 
@@ -54,8 +98,14 @@ function describirSerieEuros(labels, valores) {
   }
 
   return labels.map(function (label, index) {
-    return label + ': ' + formatearEuros(valores[index]);
+    return formatearMesGrafico(label) + ': ' + describirValorSerieEuros(valores[index]);
   }).join('; ') + '.';
+}
+
+function describirValorSerieEuros(valor) {
+  return valor === null || typeof valor === 'undefined'
+    ? 'sin datos'
+    : formatearEuros(valor);
 }
 
 function crearTooltipBeneHom() {
@@ -516,42 +566,52 @@ function crearOpcionesGrafico(opts) {
   return opciones;
 }
 
-function filtrarMesesConValores(meses, valores) {
-  var mesesFiltrados = [];
-  var valoresFiltrados = [];
-
-  meses.forEach(function (mes, index) {
-    var valor = Number(valores[index]) || 0;
-
-    if (valor > 0) {
-      mesesFiltrados.push(mes);
-      valoresFiltrados.push(valor);
-    }
+function prepararSerieGastosConHuecos(meses, valores) {
+  var primerMesConDatos = valores.findIndex(function (valor) {
+    return (Number(valor) || 0) > 0;
   });
 
-  return { meses: mesesFiltrados, valores: valoresFiltrados };
+  if (primerMesConDatos === -1) {
+    return { meses: [], valores: [] };
+  }
+
+  return {
+    meses: meses.slice(primerMesConDatos),
+    valores: valores.slice(primerMesConDatos).map(function (valor) {
+      var numero = Number(valor) || 0;
+
+      return numero > 0 ? numero : null;
+    }),
+  };
 }
 
-function filtrarAhorrosConDatos(meses, ahorroPosible, ahorroReal, tieneDatos) {
-  var mesesFiltrados = [];
-  var posibleFiltrado = [];
-  var realFiltrado = [];
-
-  meses.forEach(function (mes, index) {
+function prepararSerieAhorrosConHuecos(meses, ahorroPosible, ahorroReal, tieneDatos) {
+  var datosPorMes = meses.map(function (_mes, index) {
     var posible = Number(ahorroPosible[index]) || 0;
     var real = Number(ahorroReal[index]) || 0;
     var hayDatos = Array.isArray(tieneDatos)
       ? Boolean(tieneDatos[index])
       : (posible !== 0 || real !== 0);
 
-    if (hayDatos) {
-      mesesFiltrados.push(mes);
-      posibleFiltrado.push(posible);
-      realFiltrado.push(real);
-    }
+    return { hayDatos: hayDatos, posible: posible, real: real };
+  });
+  var primerMesConDatos = datosPorMes.findIndex(function (dato) {
+    return dato.hayDatos;
   });
 
-  return { meses: mesesFiltrados, ahorroPosible: posibleFiltrado, ahorroReal: realFiltrado };
+  if (primerMesConDatos === -1) {
+    return { meses: [], ahorroPosible: [], ahorroReal: [] };
+  }
+
+  return {
+    meses: meses.slice(primerMesConDatos),
+    ahorroPosible: datosPorMes.slice(primerMesConDatos).map(function (dato) {
+      return dato.hayDatos ? dato.posible : null;
+    }),
+    ahorroReal: datosPorMes.slice(primerMesConDatos).map(function (dato) {
+      return dato.hayDatos ? dato.real : null;
+    }),
+  };
 }
 
 function redimensionarGraficoEvolucionGastos(tipo) {
@@ -861,7 +921,7 @@ async function cargarGraficoGastosFlexibles6m() {
 
     var meses = data.data.meses;
     var valores = data.data.valores;
-    var serie = filtrarMesesConValores(meses, valores);
+    var serie = prepararSerieGastosConHuecos(meses, valores);
     var graficoVacio = serie.valores.length === 0;
     actualizarResumenVariacionGastos('flexible', valores, meses);
     actualizarResumenGrafico(
@@ -883,19 +943,27 @@ async function cargarGraficoGastosFlexibles6m() {
           borderWidth: 2,
           pointRadius: 4,
           pointBackgroundColor: BH_COLORS.flexible,
+          spanGaps: false,
           tension: 0.35,
         }],
       },
       options: crearOpcionesGrafico({
         tooltip: {
           callbacks: {
+            title: function (items) {
+              var label = items && items[0] ? items[0].label : '';
+
+              return formatearMesGrafico(label);
+            },
             label: function (context) {
               return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },
         legend: false,
-        scales: graficoVacio ? crearEscalasVaciasConEuros(false) : crearEscalasConEuros(false),
+        scales: graficoVacio
+          ? crearEscalasVaciasConEuros(false)
+          : aplicarAbreviaturasMesEjeX(crearEscalasConEuros(false)),
       }),
     });
   } catch (error) {
@@ -928,7 +996,7 @@ async function cargarGraficoGastosEsenciales6m() {
 
     var meses = data.data.meses;
     var valores = data.data.valores;
-    var serie = filtrarMesesConValores(meses, valores);
+    var serie = prepararSerieGastosConHuecos(meses, valores);
     var graficoVacio = serie.valores.length === 0;
     actualizarResumenVariacionGastos('esencial', valores, meses);
     actualizarResumenGrafico(
@@ -950,19 +1018,27 @@ async function cargarGraficoGastosEsenciales6m() {
           borderWidth: 2,
           pointRadius: 4,
           pointBackgroundColor: BH_COLORS.essential,
+          spanGaps: false,
           tension: 0.35,
         }],
       },
       options: crearOpcionesGrafico({
         tooltip: {
           callbacks: {
+            title: function (items) {
+              var label = items && items[0] ? items[0].label : '';
+
+              return formatearMesGrafico(label);
+            },
             label: function (context) {
               return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },
         legend: false,
-        scales: graficoVacio ? crearEscalasVaciasConEuros(false) : crearEscalasConEuros(false),
+        scales: graficoVacio
+          ? crearEscalasVaciasConEuros(false)
+          : aplicarAbreviaturasMesEjeX(crearEscalasConEuros(false)),
       }),
     });
   } catch (error) {
@@ -992,10 +1068,11 @@ async function cargarGraficoAhorros6m() {
     var meses = data.data.meses;
     var ahorroPosible = data.data.ahorroPosible;
     var ahorroReal = data.data.ahorroReal;
-    var serie = filtrarAhorrosConDatos(meses, ahorroPosible, ahorroReal, data.data.tieneDatos);
+    var serie = prepararSerieAhorrosConHuecos(meses, ahorroPosible, ahorroReal, data.data.tieneDatos);
+    var graficoVacio = serie.meses.length === 0;
     var resumenAhorro = serie.meses.length
       ? serie.meses.map(function (mes, index) {
-        return mes + ': ahorro posible ' + formatearEuros(serie.ahorroPosible[index]) + ', ahorro real ' + formatearEuros(serie.ahorroReal[index]);
+        return formatearMesGrafico(mes) + ': ahorro posible ' + describirValorSerieEuros(serie.ahorroPosible[index]) + ', ahorro real ' + describirValorSerieEuros(serie.ahorroReal[index]);
       }).join('; ') + '.'
       : 'No hay datos suficientes para mostrar la evolución del ahorro.';
 
@@ -1031,6 +1108,11 @@ async function cargarGraficoAhorros6m() {
       options: crearOpcionesGrafico({
         tooltip: {
           callbacks: {
+            title: function (items) {
+              var label = items && items[0] ? items[0].label : '';
+
+              return formatearMesGrafico(label);
+            },
             label: function (context) {
               return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
@@ -1054,7 +1136,9 @@ async function cargarGraficoAhorros6m() {
             },
           },
         },
-        scales: crearEscalasConEuros(true),
+        scales: graficoVacio
+          ? crearEscalasVaciasConEuros(true)
+          : aplicarAbreviaturasMesEjeX(crearEscalasConEuros(false)),
       }),
     });
   } catch (error) {

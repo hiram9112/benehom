@@ -82,11 +82,15 @@ bh_security_headers();
 //***********************************************TIMEOUT DE SESIÓN POR INACTIVIDAD
 
 $sessionIdleTimeout = (int) ($_ENV['SESSION_IDLE_TIMEOUT'] ?? 1800);
+$sessionIdleMessage = 'Tu sesión se ha cerrado por inactividad. Vuelve a iniciar sesión para continuar.';
 
 if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
     $lastActivity = (int) ($_SESSION['last_activity'] ?? time());
 
     if (bh_session_idle_expired($lastActivity, $sessionIdleTimeout)) {
+        $currentRoute = isset($_GET['r']) ? trim((string) $_GET['r'], '/') : 'home/index';
+        $isAjaxTimeout = bh_is_ajax_request($currentRoute);
+
         $_SESSION = [];
 
         if (ini_get('session.use_cookies')) {
@@ -103,9 +107,17 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
         }
 
         session_destroy();
+
+        if ($isAjaxTimeout) {
+            http_response_code(401);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'msg' => $sessionIdleMessage]);
+            exit;
+        }
+
         session_start();
 
-        $_SESSION['mensaje_error'] = 'Tu sesión ha caducado por inactividad. Vuelve a iniciar sesión.';
+        $_SESSION['mensaje_error'] = $sessionIdleMessage;
         header("Location: " . BASE_URL . "index.php?r=auth/login");
         exit;
     }
@@ -237,7 +249,7 @@ if (!$usuarioLogueado && !in_array($route, $rutasPublicas, true)) {
     if (bh_is_ajax_request($route)) {
         http_response_code(401);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'msg' => 'Tu sesión ha caducado. Vuelve a iniciar sesión.']);
+        echo json_encode(['ok' => false, 'msg' => $sessionIdleMessage]);
         exit;
     }
 

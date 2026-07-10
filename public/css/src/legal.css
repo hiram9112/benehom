@@ -1,7 +1,6 @@
 .bh-legal-section-title{
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-lg);
     font-weight: var(--bh-weight-semibold);
     line-height: var(--bh-line-tight);
 }
-

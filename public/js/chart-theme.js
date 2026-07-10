@@ -10,8 +10,8 @@
   var colors = {
     income: token("--bh-income", "#33A64D"),
     incomeSoft: token("--bh-income-soft", "#E5F3E9"),
-    expense: token("--bh-expense", "#B83E3E"),
-    expenseSoft: token("--bh-expense-soft", "#FBEBEB"),
+    expense: token("--bh-negative", "#B83E3E"),
+    expenseSoft: token("--bh-negative-soft", "#FBEBEB"),
     saving: token("--bh-saving", "#33A64D"),
     savingSoft: token("--bh-saving-soft", "#E5F3E9"),
     positive: token("--bh-positive", "#33A64D"),

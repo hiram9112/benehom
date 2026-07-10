@@ -16,13 +16,13 @@
     display: grid;
     place-items: center;
     border-radius: var(--bh-radius-pill);
-    background: linear-gradient(135deg, var(--bh-brand) 0%, var(--bh-accent) 100%);
+    background: linear-gradient(135deg, var(--bh-brand) 0%, var(--bh-positive) 100%);
     color: var(--bh-text-inverse);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: 2rem;
     font-weight: var(--bh-weight-semibold);
     line-height: 1;
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
     user-select: none;
 }
 
@@ -57,7 +57,7 @@
 
 .bh-account-meta i{
     flex: 0 0 auto;
-    color: var(--bh-accent);
+    color: var(--bh-positive);
 }
 
 /* Requisitos de contraseña en vivo */
@@ -104,8 +104,8 @@
 
 /* Zona peligrosa */
 .bh-card-danger{
-    border-color: var(--bh-expense);
-    background-color: var(--bh-expense-soft);
+    border-color: var(--bh-negative);
+    background-color: var(--bh-negative-soft);
 }
 
 .bh-card-danger .bh-card-header{
@@ -117,12 +117,12 @@
     display: flex;
     align-items: center;
     gap: var(--bh-space-2);
-    color: var(--bh-expense);
+    color: var(--bh-negative);
 }
 
 .bh-account-danger-subtitle{
     margin: 0 0 var(--bh-space-2);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-lg);
     color: var(--bh-text-main);
 }

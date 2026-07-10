@@ -199,8 +199,8 @@ function crearItemsCascadaDashboard(valores) {
 }
 
 function crearItemsCascadaFantasma() {
-  var ghostFill = obtenerTokenDashboard('--bh-border-color', '#E3EAE4');
-  var ghostBorder = obtenerTokenDashboard('--bh-border-strong', '#C7D2CA');
+  var ghostFill = obtenerTokenDashboard('--bh-border-color', BH_COLORS.borderColor);
+  var ghostBorder = obtenerTokenDashboard('--bh-border-strong', BH_COLORS.borderColor);
   var labels = ['Ingresos', 'Gastos esenciales', 'Ahorro posible', 'Gastos flexibles', 'Ahorro real'];
   var heights = [
     { start: 0, end: 100 },

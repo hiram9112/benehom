@@ -23,8 +23,13 @@ $checks = [
 $allowlist = [
     'hex_fuera_allowlist' => [
         'public/css/src/base.css',
+        'app/views/home.php',
         'app/views/partials/head.php',
         'public/js/chart-theme.js',
+    ],
+    'rgba_brand_lime' => [
+        'public/css/src/base.css',
+        'app/views/home.php',
     ],
 ];
 
@@ -80,7 +85,7 @@ foreach (iterFiles($paths) as $file) {
     }
 }
 
-echo "Design drift report (informativo Sprint 24 A)\n";
+echo "Design drift report (bloqueante Sprint 24 G)\n";
 echo str_repeat('=', 45) . "\n";
 
 if ($findings === []) {
@@ -92,5 +97,5 @@ foreach ($findings as $finding) {
     echo '[' . $finding['check'] . '] ' . $finding['file'] . ':' . $finding['line'] . ' ' . $finding['content'] . "\n";
 }
 
-echo "\nTotal: " . count($findings) . " hallazgos informativos.\n";
-exit(0);
+echo "\nTotal: " . count($findings) . " hallazgos bloqueantes.\n";
+exit(1);

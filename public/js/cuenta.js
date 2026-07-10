@@ -28,8 +28,8 @@ function initRequisitosPassword() {
 
       const icono = li.querySelector("i");
       if (icono) {
-        icono.classList.toggle("bi-check-circle-fill", cumple);
-        icono.classList.toggle("bi-circle", !cumple);
+        icono.classList.toggle("ti-circle-check-filled", cumple);
+        icono.classList.toggle("ti-circle", !cumple);
       }
     });
   }

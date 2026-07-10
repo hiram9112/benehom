@@ -25,7 +25,7 @@ bh_auth_begin(
         <div class="bh-password-field">
             <input type="password" name="password" id="password" class="bh-input" autocomplete="current-password" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">
-                <i class="bi bi-eye" aria-hidden="true"></i>
+                <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
         </div>
     </div>

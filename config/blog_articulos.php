@@ -11,7 +11,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 6,
         'destacado' => true,
-        'icono' => 'bi-clipboard-check',
+        'icono' => 'ti ti-clipboard-check',
         'contenido' => [
             [
                 'titulo' => 'Para qué sirve de verdad un presupuesto',
@@ -47,7 +47,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-percent',
+        'icono' => 'ti ti-percentage',
         'contenido' => [
             [
                 'titulo' => 'Qué es la regla 50/30/20',
@@ -83,7 +83,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-wallet2',
+        'icono' => 'ti ti-wallet',
         'contenido' => [
             [
                 'titulo' => 'Por qué cuesta ahorrar (y no es falta de voluntad)',
@@ -119,7 +119,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 6,
         'destacado' => false,
-        'icono' => 'bi-life-preserver',
+        'icono' => 'ti ti-lifebuoy',
         'contenido' => [
             [
                 'titulo' => 'Qué significa de verdad (y qué no)',
@@ -155,7 +155,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-piggy-bank',
+        'icono' => 'ti ti-pig-money',
         'contenido' => [
             [
                 'titulo' => 'La pregunta: ¿cuánto puedo ahorrar realmente?',
@@ -191,7 +191,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-list-check',
+        'icono' => 'ti ti-list-check',
         'contenido' => [
             [
                 'titulo' => 'Gastos fijos y gastos variables',
@@ -227,7 +227,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-bullseye',
+        'icono' => 'ti ti-target-arrow',
         'contenido' => [
             [
                 'titulo' => 'Por qué se abandonan las metas de ahorro',
@@ -263,7 +263,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-calculator',
+        'icono' => 'ti ti-calculator',
         'contenido' => [
             [
                 'titulo' => 'Qué es el interés compuesto',
@@ -299,7 +299,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 4,
         'destacado' => false,
-        'icono' => 'bi-bar-chart-line',
+        'icono' => 'ti ti-chart-bar',
         'contenido' => [
             [
                 'titulo' => 'Qué son los gastos hormiga',
@@ -335,7 +335,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-shield-check',
+        'icono' => 'ti ti-shield-check',
         'contenido' => [
             [
                 'titulo' => 'Qué es y para qué sirve un fondo de emergencia',
@@ -371,7 +371,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 4,
         'destacado' => false,
-        'icono' => 'bi-graph-up-arrow',
+        'icono' => 'ti ti-trending-up',
         'contenido' => [
             [
                 'titulo' => 'Qué es la inflación',
@@ -407,7 +407,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-house-check',
+        'icono' => 'ti ti-home-check',
         'contenido' => [
             [
                 'titulo' => 'La pregunta correcta no es solo si puedes pagar la cuota',
@@ -443,7 +443,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-pie-chart',
+        'icono' => 'ti ti-chart-pie',
         'contenido' => [
             [
                 'titulo' => 'Antes de invertir, ordena la base',
@@ -486,7 +486,7 @@ return [
         'estado' => 'publicado',
         'lectura_min' => 5,
         'destacado' => false,
-        'icono' => 'bi-bank',
+        'icono' => 'ti ti-building-bank',
         'contenido' => [
             [
                 'titulo' => 'La diferencia no está solo en la cuota inicial',

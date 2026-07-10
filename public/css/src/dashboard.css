@@ -84,7 +84,7 @@
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-lg);
     background-color: var(--bh-surface-card);
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
     text-align: center;
 }
 
@@ -540,7 +540,7 @@
     display: inline-block !important;
     vertical-align: middle;
     padding:6px 12px;
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
 }
 
 .resumen-flex{

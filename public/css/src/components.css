@@ -116,7 +116,7 @@
     background-color: var(--bh-surface-card);
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-lg);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
     color: var(--bh-text-main);
     overflow: hidden;
 }
@@ -136,7 +136,7 @@
 
 .bh-card-finance {
     border-color: var(--bh-border-strong);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
 }
 
 .bh-dashboard-empty-state{
@@ -339,7 +339,7 @@
 
 .card{
     background-color: var(--bh-surface-card);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
 }
 
 .card-header{
@@ -374,7 +374,7 @@
     background: var(--bh-surface-card);
     border:1px solid var(--bh-border-strong);
     border-radius: 8px;
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
     padding: 30px 40px;
 }
 
@@ -412,7 +412,7 @@
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-md);
     background-color: var(--bh-brand-strong);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
     color: var(--bh-text-inverse);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-semibold);
@@ -1326,7 +1326,7 @@
     border-radius: var(--bh-radius-lg);
     background-color: var(--bh-surface-card);
     color: var(--bh-text-main);
-    box-shadow: var(--bh-shadow-raised);
+    box-shadow: var(--bh-shadow-modal);
     overflow: hidden;
 }
 
@@ -1648,7 +1648,7 @@
 
 .formulario-bh button:hover{
     background-color: var(--bh-brand);
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
 }
 
 .bh-guided-form{
@@ -1833,5 +1833,5 @@
 }
 
 .bh-skip-link:focus-visible{
-    box-shadow: var(--bh-focus-ring), var(--bh-shadow-card);
+    box-shadow: var(--bh-focus-ring);
 }

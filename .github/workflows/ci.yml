@@ -56,6 +56,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Run design drift lint
+        run: composer lint:design
+
       - name: Run PHPUnit Unit and Integration suites
         run: composer test
 

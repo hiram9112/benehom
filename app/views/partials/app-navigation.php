@@ -12,25 +12,25 @@ function bh_navigation_items(): array
             'label' => 'Dashboard',
             'route' => 'dashboard/index',
             'href' => BASE_URL . 'index.php?r=dashboard/index',
-            'icon' => 'bi-house-door',
+            'icon' => 'ti ti-home',
         ],
         [
             'label' => 'Proyecciones',
             'route' => 'proyecciones/index',
             'href' => BASE_URL . 'index.php?r=proyecciones/index',
-            'icon' => 'bi-sliders2',
+            'icon' => 'ti ti-adjustments-horizontal',
         ],
         [
             'label' => 'Blog',
             'route' => 'blog/index',
             'href' => bh_blog_url(),
-            'icon' => 'bi-journal-text',
+            'icon' => 'ti ti-notebook',
         ],
         [
             'label' => 'Cuenta',
             'route' => 'cuenta/index',
             'href' => BASE_URL . 'index.php?r=cuenta/index',
-            'icon' => 'bi-person',
+            'icon' => 'ti ti-user',
         ],
     ];
 }
@@ -45,7 +45,7 @@ function bh_navigation_link(array $item): string
     $ariaCurrent = $isActive ? ' aria-current="page"' : '';
 
     return sprintf(
-        '<a class="%s"%s href="%s"><i class="bi %s" aria-hidden="true"></i><span>%s</span></a>',
+        '<a class="%s"%s href="%s"><i class="%s" aria-hidden="true"></i><span>%s</span></a>',
         $class,
         $ariaCurrent,
         htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8'),
@@ -64,7 +64,7 @@ function bh_navigation_list(bool $includeLogout = false): void
 
     if ($includeLogout) {
         echo '<li class="nav-item mt-3">';
-        echo '<a class="nav-link bh-nav-logout" href="' . htmlspecialchars(BASE_URL . 'index.php?r=auth/logout', ENT_QUOTES, 'UTF-8') . '"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Cerrar sesión</span></a>';
+        echo '<a class="nav-link bh-nav-logout" href="' . htmlspecialchars(BASE_URL . 'index.php?r=auth/logout', ENT_QUOTES, 'UTF-8') . '"><i class="ti ti-logout" aria-hidden="true"></i><span>Cerrar sesión</span></a>';
         echo '</li>';
     }
 
@@ -87,7 +87,7 @@ function bh_mobile_nav(): void
                 data-bs-target="#mobileMenu"
                 aria-controls="mobileMenu"
                 aria-label="Abrir menú">
-                <i class="bi bi-list" aria-hidden="true"></i>
+                <i class="ti ti-menu-2" aria-hidden="true"></i>
             </button>
         </div>
     </header>
@@ -112,7 +112,7 @@ function bh_sidebar(): void
 
         <!--Enlace para cerrar sesion-->
         <div class="bh-sidebar-footer">
-            <a class="nav-link bh-nav-logout" href="<?= BASE_URL ?>index.php?r=auth/logout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Cerrar sesión</span></a>
+            <a class="nav-link bh-nav-logout" href="<?= BASE_URL ?>index.php?r=auth/logout"><i class="ti ti-logout" aria-hidden="true"></i><span>Cerrar sesión</span></a>
         </div>
     </aside>
     <?php

@@ -8,8 +8,8 @@
     min-height: 100dvh;
     overflow-x: hidden;
     background:
-        radial-gradient(circle at 12% 15%, rgba(62, 178, 37, 0.14), transparent 18rem),
-        radial-gradient(circle at 86% 18%, rgba(22, 63, 127, 0.10), transparent 20rem),
+        radial-gradient(circle at 12% 15%, color-mix(in srgb, var(--bh-positive) 14%, transparent), transparent 18rem),
+        radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--bh-brand) 10%, transparent), transparent 20rem),
         linear-gradient(135deg, var(--bh-surface-page) 0%, var(--bh-surface-card) 48%, var(--bh-surface-soft) 100%);
 }
 
@@ -22,7 +22,7 @@
     border-radius: 42% 58% 54% 46%;
     background:
         radial-gradient(circle at 34% 32%, rgba(253, 254, 253, 0.82), transparent 0 34%),
-        linear-gradient(145deg, rgba(51, 166, 77, 0.22), rgba(62, 178, 37, 0.12));
+        linear-gradient(145deg, color-mix(in srgb, var(--bh-positive) 22%, transparent), color-mix(in srgb, var(--bh-positive) 12%, transparent));
     filter: blur(0.5px);
     opacity: 0.9;
     z-index: 0;
@@ -38,7 +38,7 @@
     border-radius: 55% 45% 42% 58%;
     background:
         radial-gradient(circle at 68% 32%, rgba(253, 254, 253, 0.76), transparent 0 28%),
-        linear-gradient(135deg, rgba(22, 63, 127, 0.12), rgba(233, 244, 236, 0.78));
+        linear-gradient(135deg, color-mix(in srgb, var(--bh-brand) 12%, transparent), color-mix(in srgb, var(--bh-surface-soft) 78%, transparent));
     opacity: 0.78;
     z-index: 0;
     pointer-events: none;

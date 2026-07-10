@@ -113,7 +113,7 @@ if (!function_exists('bh_render_meta_card')) {
                         tabindex="0"
                         aria-label="Editar importe objetivo de la meta">
                         <span data-editable-text><?= bh_proy_formatear_euros($meta['importe_objetivo']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -145,7 +145,7 @@ if (!function_exists('bh_render_meta_card')) {
                         data-bs-toggle="modal"
                         data-bs-target="#infoProyeccionGastosFlexibles"
                         aria-label="Información sobre proyección de gastos flexibles">
-                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                        <i class="ti ti-info-circle" aria-hidden="true"></i>
                     </button>
                 </div>
 
@@ -197,7 +197,7 @@ if (!function_exists('bh_render_meta_card')) {
                     <?= csrf_field() ?>
                     <input type="hidden" name="id" value="<?= $metaId ?>">
                     <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta meta retirará su aportación de la capacidad usada. ¿Quieres continuar?">
-                        <i class="bi bi-trash3" aria-hidden="true"></i>
+                        <i class="ti ti-trash" aria-hidden="true"></i>
                         Eliminar meta
                     </button>
                 </form>
@@ -242,7 +242,7 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                         tabindex="0"
                         aria-label="Editar capital inicial">
                         <span data-editable-text><?= bh_proy_formatear_euros($escenario['capital_inicial']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -257,7 +257,7 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                         tabindex="0"
                         aria-label="Editar aportación mensual">
                         <span data-editable-text><?= bh_proy_formatear_euros($escenario['aportacion_mensual']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -281,7 +281,7 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                         tabindex="0"
                         aria-label="Editar rendimiento anual">
                         <span data-editable-text><?= bh_proy_formatear_porcentaje($escenario['rentabilidad_anual']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -296,7 +296,7 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                         tabindex="0"
                         aria-label="Editar plazo en años">
                         <span data-editable-text><?= $plazoAnios ?> <?= $plazoAnios === 1 ? 'año' : 'años' ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
 
@@ -319,7 +319,7 @@ if (!function_exists('bh_render_escenario_inversion_card')) {
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $escenarioId ?>">
                 <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar este escenario de inversión no modificará ningún dato real. ¿Quieres continuar?">
-                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                    <i class="ti ti-trash" aria-hidden="true"></i>
                     Eliminar escenario
                 </button>
             </form>
@@ -356,7 +356,7 @@ if (!function_exists('bh_render_inflacion_card')) {
                         tabindex="0"
                         aria-label="Editar cantidad inicial">
                         <span data-editable-text><?= bh_proy_formatear_euros($proyeccion['cantidad_inicial']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -372,7 +372,7 @@ if (!function_exists('bh_render_inflacion_card')) {
                         tabindex="0"
                         aria-label="Editar inflación anual">
                         <span data-editable-text><?= bh_proy_formatear_porcentaje($proyeccion['inflacion_anual']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -387,7 +387,7 @@ if (!function_exists('bh_render_inflacion_card')) {
                         tabindex="0"
                         aria-label="Editar plazo en años">
                         <span data-editable-text><?= intval($proyeccion['plazo_anios']) ?> <?= intval($proyeccion['plazo_anios']) === 1 ? 'año' : 'años' ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -417,7 +417,7 @@ if (!function_exists('bh_render_inflacion_card')) {
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $proyeccionId ?>">
                 <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta proyección de inflación no modificará ningún dato real. ¿Quieres continuar?">
-                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                    <i class="ti ti-trash" aria-hidden="true"></i>
                     Eliminar proyección
                 </button>
             </form>
@@ -454,7 +454,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
                         tabindex="0"
                         aria-label="Editar precio del inmueble">
                         <span data-editable-text><?= bh_proy_formatear_euros($calculadora['precio_inmueble']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -470,7 +470,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
                         tabindex="0"
                         aria-label="Editar porcentaje financiado">
                         <span data-editable-text><?= bh_proy_formatear_porcentaje($calculadora['porcentaje_financiacion']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -481,7 +481,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
                     <span class="bh-mortgage-metric-label">
                         Ahorros necesarios
                         <button type="button" class="bh-metric-info-btn" data-bs-toggle="modal" data-bs-target="#infoAhorrosNecesariosHipoteca" aria-label="Qué son los ahorros necesarios">
-                            <i class="bi bi-info-circle" aria-hidden="true"></i>
+                            <i class="ti ti-info-circle" aria-hidden="true"></i>
                         </button>
                     </span>
                     <strong data-hipoteca-value="entrada_necesaria"><?= bh_proy_formatear_euros($calculadora['entrada_necesaria']) ?></strong>
@@ -499,7 +499,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
                         tabindex="0"
                         aria-label="Editar interés anual">
                         <span data-editable-text><?= bh_proy_formatear_porcentaje($calculadora['interes_anual']) ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -514,7 +514,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
                         tabindex="0"
                         aria-label="Editar plazo en años">
                         <span data-editable-text><?= intval($calculadora['plazo_anios']) ?> <?= intval($calculadora['plazo_anios']) === 1 ? 'año' : 'años' ?></span>
-                        <i class="bi bi-pencil bh-editable-icon" aria-hidden="true"></i>
+                        <i class="ti ti-pencil bh-editable-icon" aria-hidden="true"></i>
                     </strong>
                 </p>
                 <p>
@@ -540,7 +540,7 @@ if (!function_exists('bh_render_calculadora_hipoteca_card')) {
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $calculadoraId ?>">
                 <button type="submit" class="bh-btn bh-btn-danger" data-confirm="Eliminar esta calculadora de hipoteca no modificará ningún dato real. ¿Quieres continuar?">
-                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                    <i class="ti ti-trash" aria-hidden="true"></i>
                     Eliminar calculadora
                 </button>
             </form>

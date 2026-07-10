@@ -56,13 +56,13 @@ bh_document_begin([
                         <h1 id="accountName"><?= htmlspecialchars($nombreUsuario, ENT_QUOTES, 'UTF-8') ?></h1>
                         <?php if ($emailUsuario !== ''): ?>
                             <p class="bh-account-meta">
-                                <i class="bi bi-envelope" aria-hidden="true"></i>
+                                <i class="ti ti-mail" aria-hidden="true"></i>
                                 <span><?= htmlspecialchars($emailUsuario, ENT_QUOTES, 'UTF-8') ?></span>
                             </p>
                         <?php endif; ?>
                         <?php if ($miembroDesde !== null): ?>
                             <p class="bh-account-meta">
-                                <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                <i class="ti ti-calendar" aria-hidden="true"></i>
                                 <span>Miembro desde <?= htmlspecialchars($miembroDesde, ENT_QUOTES, 'UTF-8') ?></span>
                             </p>
                         <?php endif; ?>
@@ -85,7 +85,7 @@ bh_document_begin([
                                 <input type="password" id="password_actual" name="password_actual" class="bh-input" autocomplete="current-password" required>
                                 <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
                                     data-bh-password-toggle="password_actual" aria-label="Mostrar contraseña" aria-pressed="false">
-                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                    <i class="ti ti-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -97,14 +97,14 @@ bh_document_begin([
                                     autocomplete="new-password" aria-describedby="passwordRequisitos" required>
                                 <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
                                     data-bh-password-toggle="password_nueva" aria-label="Mostrar contraseña" aria-pressed="false">
-                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                    <i class="ti ti-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
                             <ul class="bh-password-requirements" id="passwordRequisitos">
-                                <li data-req="length"><i class="bi bi-circle" aria-hidden="true"></i><span>Al menos 8 caracteres</span></li>
-                                <li data-req="upper"><i class="bi bi-circle" aria-hidden="true"></i><span>Una letra mayúscula</span></li>
-                                <li data-req="lower"><i class="bi bi-circle" aria-hidden="true"></i><span>Una letra minúscula</span></li>
-                                <li data-req="number"><i class="bi bi-circle" aria-hidden="true"></i><span>Un número</span></li>
+                                <li data-req="length"><i class="ti ti-circle" aria-hidden="true"></i><span>Al menos 8 caracteres</span></li>
+                                <li data-req="upper"><i class="ti ti-circle" aria-hidden="true"></i><span>Una letra mayúscula</span></li>
+                                <li data-req="lower"><i class="ti ti-circle" aria-hidden="true"></i><span>Una letra minúscula</span></li>
+                                <li data-req="number"><i class="ti ti-circle" aria-hidden="true"></i><span>Un número</span></li>
                             </ul>
                         </div>
 
@@ -115,7 +115,7 @@ bh_document_begin([
                                     autocomplete="new-password" aria-describedby="passwordMatchError" required>
                                 <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
                                     data-bh-password-toggle="password_confirmacion_nueva" aria-label="Mostrar contraseña" aria-pressed="false">
-                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                    <i class="ti ti-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
                             <p class="bh-field-error" id="passwordMatchError" role="alert" hidden>Las contraseñas no coinciden.</p>
@@ -139,7 +139,7 @@ bh_document_begin([
                         <?= csrf_field() ?>
                         <div class="bh-field">
                             <button type="submit" class="bh-btn bh-btn-secondary">
-                                <i class="bi bi-download" aria-hidden="true"></i>
+                                <i class="ti ti-download" aria-hidden="true"></i>
                                 Descargar mis datos (JSON)
                             </button>
                         </div>
@@ -157,19 +157,19 @@ bh_document_begin([
                     <ul class="list-unstyled mb-0">
                         <li class="mb-2">
                             <a href="<?= htmlspecialchars(bh_public_page_url('privacidad'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
-                                <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                                <i class="ti ti-file-text" aria-hidden="true"></i>
                                 Política de Privacidad
                             </a>
                         </li>
                         <li class="mb-2">
                             <a href="<?= htmlspecialchars(bh_public_page_url('terminos'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
-                                <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                                <i class="ti ti-file-text" aria-hidden="true"></i>
                                 Términos y Condiciones de Uso
                             </a>
                         </li>
                         <li>
                             <a href="<?= htmlspecialchars(bh_public_page_url('aviso'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
-                                <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                                <i class="ti ti-file-text" aria-hidden="true"></i>
                                 Aviso Legal
                             </a>
                         </li>
@@ -181,7 +181,7 @@ bh_document_begin([
             <section class="bh-card bh-card-danger" aria-labelledby="dangerZoneTitle">
                 <div class="bh-card-header bh-card-danger-header">
                     <h2 class="m-0 bh-card-section-title" id="dangerZoneTitle">
-                        <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+                        <i class="ti ti-alert-octagon" aria-hidden="true"></i>
                         Acción irreversible
                     </h2>
                 </div>
@@ -198,7 +198,7 @@ bh_document_begin([
                                 <input type="password" id="password_confirmacion" name="password_confirmacion" class="bh-input" autocomplete="current-password" required>
                                 <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button"
                                     data-bh-password-toggle="password_confirmacion" aria-label="Mostrar contraseña" aria-pressed="false">
-                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                    <i class="ti ti-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>

@@ -125,7 +125,7 @@ bh_document_begin([
                                 </p>
                             </div>
                             <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearMetaAhorroPanel" aria-controls="crearMetaAhorroPanel">
-                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                <i class="ti ti-circle-plus" aria-hidden="true"></i>
                                 Nueva proyección
                             </button>
                         </div>
@@ -137,7 +137,7 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="meta" <?= empty($metasAhorroPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-journal-plus" aria-hidden="true"></i>
+                                    <i class="ti ti-notebook-plus" aria-hidden="true"></i>
                                 </div>
                                 <h3 class="bh-empty-state-title">Aún no tienes metas guardadas</h3>
                                 <p class="bh-empty-state-text">
@@ -164,7 +164,7 @@ bh_document_begin([
                                 </p>
                             </div>
                             <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearEscenarioInversionPanel" aria-controls="crearEscenarioInversionPanel">
-                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                <i class="ti ti-circle-plus" aria-hidden="true"></i>
                                 Nueva proyección
                             </button>
                         </div>
@@ -176,7 +176,7 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inversion" <?= empty($escenariosInversionPreparados) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-graph-up" aria-hidden="true"></i>
+                                    <i class="ti ti-trending-up" aria-hidden="true"></i>
                                 </div>
                                 <h3 class="bh-empty-state-title">Aún no tienes escenarios de inversión</h3>
                                 <p class="bh-empty-state-text">
@@ -203,7 +203,7 @@ bh_document_begin([
                                 </p>
                             </div>
                             <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearInflacionProyeccionPanel" aria-controls="crearInflacionProyeccionPanel">
-                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                <i class="ti ti-circle-plus" aria-hidden="true"></i>
                                 Nueva proyección
                             </button>
                         </div>
@@ -215,7 +215,7 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="inflacion" <?= empty($proyeccionesInflacionPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-cash-stack" aria-hidden="true"></i>
+                                    <i class="ti ti-cash" aria-hidden="true"></i>
                                 </div>
                                 <h3 class="bh-empty-state-title">Aún no tienes proyecciones de inflación</h3>
                                 <p class="bh-empty-state-text">
@@ -242,7 +242,7 @@ bh_document_begin([
                                 </p>
                             </div>
                             <button type="button" class="bh-btn bh-btn-primary" data-bs-toggle="offcanvas" data-bs-target="#crearCalculadoraHipotecaPanel" aria-controls="crearCalculadoraHipotecaPanel">
-                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                <i class="ti ti-circle-plus" aria-hidden="true"></i>
                                 Nueva proyección
                             </button>
                         </div>
@@ -254,7 +254,7 @@ bh_document_begin([
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="hipoteca" <?= empty($calculadorasHipotecaPreparadas) ? '' : ' hidden' ?>>
                                 <div class="bh-empty-state-icon" aria-hidden="true">
-                                    <i class="bi bi-house" aria-hidden="true"></i>
+                                    <i class="ti ti-home" aria-hidden="true"></i>
                                 </div>
                                 <h3 class="bh-empty-state-title">Aún no tienes calculadoras de hipoteca</h3>
                                 <p class="bh-empty-state-text">
@@ -320,7 +320,7 @@ bh_document_begin([
                 </div>
 
                 <button type="submit" class="bh-btn bh-btn-primary">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    <i class="ti ti-circle-plus" aria-hidden="true"></i>
                     Crear proyección
                 </button>
             </form>
@@ -362,7 +362,7 @@ bh_document_begin([
                             <button type="button" class="bh-metric-info-btn"
                                 data-bs-toggle="modal" data-bs-target="#infoRentabilidadMediaInversion"
                                 aria-label="Cómo funciona la rentabilidad anual media estimada">
-                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                <i class="ti ti-info-circle" aria-hidden="true"></i>
                             </button>
                         </span>
                         <input class="bh-input" type="number" id="inversion_rentabilidad_anual" name="rentabilidad_anual" min="0" step="0.01" inputmode="decimal" required>
@@ -395,7 +395,7 @@ bh_document_begin([
                 </div>
 
                 <button type="submit" class="bh-btn bh-btn-primary">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    <i class="ti ti-circle-plus" aria-hidden="true"></i>
                     Crear proyección
                 </button>
             </form>
@@ -439,7 +439,7 @@ bh_document_begin([
                 </div>
 
                 <button type="submit" class="bh-btn bh-btn-primary">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    <i class="ti ti-circle-plus" aria-hidden="true"></i>
                     Crear proyección
                 </button>
             </form>
@@ -463,7 +463,7 @@ bh_document_begin([
                     <button type="button" class="bh-metric-info-btn"
                         data-bs-toggle="modal" data-bs-target="#infoAmortizacionFrancesa"
                         aria-label="Cómo funciona el sistema de amortización francés">
-                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                        <i class="ti ti-info-circle" aria-hidden="true"></i>
                     </button>
                 </div>
 
@@ -508,7 +508,7 @@ bh_document_begin([
                 </label>
 
                 <button type="submit" class="bh-btn bh-btn-primary is-disabled" aria-disabled="true">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    <i class="ti ti-circle-plus" aria-hidden="true"></i>
                     Crear proyección
                 </button>
             </form>

@@ -74,7 +74,7 @@ bh_document_begin([
             </div>
 
             <button class="bh-btn bh-btn-primary bh-btn-icon bh-home-mobile-trigger" type="button" data-bs-toggle="offcanvas" data-bs-target="#bh-home-mobile-menu" aria-controls="bh-home-mobile-menu" aria-label="Abrir menú">
-                <i class="bi bi-list" aria-hidden="true"></i>
+                <i class="ti ti-menu-2" aria-hidden="true"></i>
             </button>
         </div>
     </header>
@@ -94,16 +94,16 @@ bh_document_begin([
 
             <nav aria-label="Navegación principal móvil">
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="#como-funciona"><i class="bi bi-map" aria-hidden="true"></i><span>Cómo funciona</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#funciones"><i class="bi bi-stars" aria-hidden="true"></i><span>Funciones</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#blog"><i class="bi bi-journal-text" aria-hidden="true"></i><span>Blog</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#faq"><i class="bi bi-question-circle" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#como-funciona"><i class="ti ti-map" aria-hidden="true"></i><span>Cómo funciona</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#funciones"><i class="ti ti-sparkles" aria-hidden="true"></i><span>Funciones</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#blog"><i class="ti ti-notebook" aria-hidden="true"></i><span>Blog</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faq"><i class="ti ti-help-circle" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
                 </ul>
             </nav>
 
             <div class="bh-home-mobile-access" aria-label="Acceso a cuenta">
-                <a class="bh-btn bh-home-mobile-login" href="<?= BASE_URL ?>index.php?r=auth/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i><span>Iniciar sesión</span></a>
-                <a class="bh-btn bh-home-mobile-signup" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario"><i class="bi bi-person-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
+                <a class="bh-btn bh-home-mobile-login" href="<?= BASE_URL ?>index.php?r=auth/login"><i class="ti ti-login" aria-hidden="true"></i><span>Iniciar sesión</span></a>
+                <a class="bh-btn bh-home-mobile-signup" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario"><i class="ti ti-user-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
             </div>
         </div>
     </div>

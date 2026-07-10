@@ -17,7 +17,7 @@
     grid-template-columns: 1fr;
     color: var(--bh-text-main);
     background:
-        radial-gradient(circle at 14rem 4rem, rgba(62, 178, 37, 0.10), transparent 24rem),
+        radial-gradient(circle at 14rem 4rem, color-mix(in srgb, var(--bh-positive) 10%, transparent), transparent 24rem),
         linear-gradient(135deg, var(--bh-surface-page) 0%, var(--bh-surface-soft) 100%);
     overflow-x: clip;
 }
@@ -114,10 +114,10 @@
     padding: var(--bh-space-5) var(--bh-space-4);
     color: var(--bh-text-inverse);
     background:
-        linear-gradient(180deg, rgba(22, 63, 127, 0.18), transparent 42%),
+        linear-gradient(180deg, color-mix(in srgb, var(--bh-brand) 18%, transparent), transparent 42%),
         var(--bh-brand-strong);
     border-right: 1px solid rgba(253, 254, 253, 0.14);
-    box-shadow: 12px 0 36px rgba(22, 63, 127, 0.12);
+    box-shadow: none;
 }
 
 .bh-sidebar nav{
@@ -182,7 +182,7 @@
 .bh-sidebar .nav-link[aria-current="page"]{
     color: var(--bh-brand-strong);
     background-color: var(--bh-surface-card);
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
 }
 
 .bh-sidebar-footer{
@@ -225,7 +225,7 @@
 .bh-mobile-menu{
     color: var(--bh-text-inverse);
     background:
-        linear-gradient(180deg, rgba(22, 63, 127, 0.18), transparent 36%),
+        linear-gradient(180deg, color-mix(in srgb, var(--bh-brand) 18%, transparent), transparent 36%),
         var(--bh-brand-strong);
 }
 
@@ -289,7 +289,7 @@
 .bh-mobile-menu .nav-link[aria-current="page"]{
     color: var(--bh-brand-strong) !important;
     background-color: var(--bh-surface-card);
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
 }
 
 .logo-container a {
@@ -364,6 +364,6 @@
     .bh-dashboard-aside{
         align-self: start;
         position: sticky;
-        top: var(--bh-dashboard-aside-sticky-top, var(--bh-space-4));
+        top: var(--bh-space-4);
     }
 }

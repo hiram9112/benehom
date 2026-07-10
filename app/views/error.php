@@ -25,7 +25,7 @@ bh_document_begin([
             </header>
 
             <p class="bh-error-note">
-                <i class="bi bi-shield-check" aria-hidden="true"></i>
+                <i class="ti ti-shield-check" aria-hidden="true"></i>
                 <span>Tu información sigue protegida. Puedes volver a un punto seguro y continuar cuando estés listo.</span>
             </p>
 

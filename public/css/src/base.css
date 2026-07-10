@@ -65,29 +65,6 @@
     --bh-warning-soft: var(--bh-flexible-soft);
     --bh-warning-strong: var(--bh-flexible);
 
-    /* ------------------------------------------------------------------
-       DEUDA TEMPORAL SPRINT 24 (F5 elimina este bloque completo)
-       Cubre tokens del base.css viejo que otros archivos pueden usar
-       directamente, para que el cambio de base.css no deje ninguna
-       variable indefinida. A0 confirma cuales tienen usos reales;
-       cada fase migra los suyos y F5 borra el bloque.
-       ------------------------------------------------------------------ */
-    --bh-expense: var(--bh-negative);          /* conserva el rojo actual hasta C/D/E */
-    --bh-expense-soft: var(--bh-negative-soft);
-    --bh-accent: var(--bh-positive);           /* ejecuta el "sin lima" aprobado */
-    --bh-color-cream: var(--bh-surface-card);
-    --bh-color-ivory: var(--bh-surface-card);
-    --bh-color-sage-100: var(--bh-surface-soft);
-    --bh-color-sage-300: var(--bh-positive);
-    --bh-color-sage-600: var(--bh-positive);   /* era el lima #3EB225 */
-    --bh-color-sage-800: var(--bh-brand);
-    --bh-color-sand: var(--bh-surface-soft);
-    --bh-color-clay: var(--bh-negative);
-    --bh-color-cacao: var(--bh-brand);
-    --bh-color-stone: var(--bh-brand);
-    --bh-color-border: var(--bh-border-color);
-    /* ------------------------------------------------------------------ */
-
     /* Neutros: solidos, nada de rgba; el color del texto no debe
        depender del fondo que tenga debajo */
     --bh-text-main: #26313F;
@@ -109,13 +86,11 @@
 
     /* Tipografia */
     --bh-font-display: 'Fraunces', Georgia, serif; /* solo h1/h2, hero y panel de foco */
-    --bh-font-heading: var(--bh-font-display);     /* alias legado: fuera de h1/h2, migrar a interface */
     --bh-font-body: 'Nunito Sans', Arial, sans-serif;
     --bh-font-interface: 'Nunito Sans', Arial, sans-serif;
     --bh-text-xs: 0.75rem;
     --bh-text-sm: 0.875rem;
     --bh-text-md: 1rem;
-    --bh-text-base: var(--bh-text-md);       /* alias legado: migrar a --bh-text-md */
     --bh-text-lg: 1.125rem;
     --bh-text-xl: 1.5rem;
     --bh-text-2xl: 2rem;
@@ -149,9 +124,6 @@
     /* Sombras: solo capas flotantes (popover, dropdown, modal, offcanvas) */
     --bh-shadow-pop: 0 10px 30px rgba(22, 63, 127, 0.10);
     --bh-shadow-modal: 0 20px 55px rgba(22, 63, 127, 0.16);
-    --bh-shadow-soft: var(--bh-shadow-pop);    /* alias legado */
-    --bh-shadow-card: none;                    /* alias legado: apaga las burbujas de golpe */
-    --bh-shadow-raised: var(--bh-shadow-modal);/* alias legado */
 
     /* Foco: doble anillo para que sea visible tanto sobre blanco como
        sobre tintes de chip; el color verde a 40% tiene 1.5:1 sobre
@@ -164,7 +136,6 @@
     --bh-transition-fast: 120ms ease;
     --bh-transition-base: 180ms ease;
     --bh-transition-slow: 260ms ease;
-    --bh-dashboard-aside-sticky-top: var(--bh-space-4); /* alias Sprint 24 A0 */
 }
 
 

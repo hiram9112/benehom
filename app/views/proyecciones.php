@@ -44,6 +44,14 @@ bh_document_begin([
 
                         <p class="bh-projections-kicker">Simulador educativo</p>
                         <h1 id="proyecciones-titulo">Descubre cómo tus decisiones de hoy moldean tu futuro financiero</h1>
+                        <nav class="bh-jump-nav bh-projections-jump-nav" aria-label="Saltar a seccion">
+                            <ul class="bh-jump-nav-list">
+                                <li><a href="#metas" class="bh-jump-nav-link">Metas</a></li>
+                                <li><a href="#inversion" class="bh-jump-nav-link">Inversion</a></li>
+                                <li><a href="#inflacion" class="bh-jump-nav-link">Inflacion</a></li>
+                                <li><a href="#hipoteca" class="bh-jump-nav-link">Hipoteca</a></li>
+                            </ul>
+                        </nav>
                         <p class="bh-projections-intro-lead">
                             Anticípate antes de decidir: simula metas de ahorro, inversiones, inflación o cuotas
                             hipotecarias y observa el impacto que tendrían a largo plazo, sin modificar tus datos
@@ -102,7 +110,7 @@ bh_document_begin([
                 </article>
             </section>
 
-            <section aria-labelledby="metas-ahorro-titulo" class="bh-projections-goals">
+            <section id="metas" aria-labelledby="metas-ahorro-titulo" class="bh-projections-goals">
                 <div class="bh-projections-goals-grid">
                     <article class="bh-card bh-meta-list-card">
                         <div class="bh-card-header bh-projections-module-header">
@@ -141,7 +149,7 @@ bh_document_begin([
                 </div>
             </section>
 
-            <section aria-labelledby="inversion-educativa-titulo" class="bh-projections-investments">
+            <section id="inversion" aria-labelledby="inversion-educativa-titulo" class="bh-projections-investments">
                 <div class="bh-projections-investments-grid">
                     <article class="bh-card bh-investment-list-card">
                         <div class="bh-card-header bh-projections-module-header">
@@ -180,7 +188,7 @@ bh_document_begin([
                 </div>
             </section>
 
-            <section aria-labelledby="inflacion-temporal-titulo" class="bh-projections-inflation">
+            <section id="inflacion" aria-labelledby="inflacion-temporal-titulo" class="bh-projections-inflation">
                 <div class="bh-projections-inflation-grid">
                     <article class="bh-card bh-inflation-list-card">
                         <div class="bh-card-header bh-projections-module-header">
@@ -219,7 +227,7 @@ bh_document_begin([
                 </div>
             </section>
 
-            <section aria-labelledby="hipoteca-calculadora-titulo" class="bh-projections-mortgage">
+            <section id="hipoteca" aria-labelledby="hipoteca-calculadora-titulo" class="bh-projections-mortgage">
                 <div class="bh-projections-mortgage-grid">
                     <article class="bh-card bh-mortgage-list-card">
                         <div class="bh-card-header bh-projections-module-header">

@@ -57,7 +57,7 @@
     align-items: center;
     padding: 0.35rem 0.65rem;
     border-radius: var(--bh-radius-pill);
-    color: var(--bh-saving);
+    color: var(--bh-positive-ink);
     background-color: var(--bh-saving-soft);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-bold);
@@ -392,7 +392,7 @@
 }
 
 .bh-checkpoint-row.is-income strong{
-    color: var(--bh-positive);
+    color: var(--bh-positive-ink);
 }
 
 .bh-checkpoint-row.is-essential{
@@ -416,7 +416,7 @@
 }
 
 .bh-checkpoint-row.is-saving.valor-positivo strong{
-    color: var(--bh-positive);
+    color: var(--bh-positive-ink);
 }
 
 .bh-checkpoint-row.is-saving.valor-negativo{
@@ -722,7 +722,7 @@
     border: 0;
     border-radius: var(--bh-radius-sm);
     color: var(--bh-text-main);
-    background-color: var(--bh-success-soft);
+    background-color: var(--bh-surface-soft);
     text-align: center;
 }
 
@@ -733,7 +733,7 @@
 }
 
 .bh-hero-balance strong{
-    color: var(--bh-positive);
+    color: var(--bh-positive-ink);
     font-size: clamp(1.5rem, 6vw, 1.875rem);
     font-weight: var(--bh-weight-bold);
     line-height: var(--bh-line-tight);

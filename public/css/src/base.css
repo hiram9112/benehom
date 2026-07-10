@@ -74,14 +74,14 @@
     --bh-neutral: #5C6672;
     --bh-neutral-ink: #3F4852;
     --bh-neutral-soft: var(--bh-surface-soft);
-    --bh-border-color: #E3EAE4;
-    --bh-border-strong: #C7D2CA;
+    --bh-border-color: #DDE4EC;
+    --bh-border-strong: #C8D4E2;
 
     /* Superficies: pagina y card por fin se separan; con el borde
        visible, la sombra en cards deja de ser necesaria */
-    --bh-surface-page: #F5F7F5;
-    --bh-surface-card: #FDFEFD;
-    --bh-surface-soft: #E9F4EC;    /* apoyo: chips neutros, hovers, boton secundario */
+    --bh-surface-page: #F6F7FA;
+    --bh-surface-card: #FFFFFF;
+    --bh-surface-soft: #EEF2F7;    /* apoyo neutral: chips neutros, hovers, boton secundario */
     --bh-surface-muted: var(--bh-surface-soft);
 
     /* Tipografia */

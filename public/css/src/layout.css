@@ -17,7 +17,7 @@
     grid-template-columns: 1fr;
     color: var(--bh-text-main);
     background:
-        radial-gradient(circle at 14rem 4rem, color-mix(in srgb, var(--bh-positive) 10%, transparent), transparent 24rem),
+        radial-gradient(circle at 14rem 4rem, color-mix(in srgb, var(--bh-brand) 8%, transparent), transparent 24rem),
         linear-gradient(135deg, var(--bh-surface-page) 0%, var(--bh-surface-soft) 100%);
     overflow-x: clip;
 }

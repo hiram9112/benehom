@@ -56,7 +56,7 @@
     align-self: stretch;
     align-items: stretch;
     background:
-        radial-gradient(circle at top right, color-mix(in srgb, var(--bh-positive) 8%, transparent), transparent 16rem),
+        radial-gradient(circle at top right, color-mix(in srgb, var(--bh-brand) 6%, transparent), transparent 16rem),
         var(--bh-surface-card);
 }
 

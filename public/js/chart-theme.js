@@ -25,7 +25,7 @@
     info: token("--bh-info", "#163F7F"),
     infoSoft: token("--bh-info-soft", "#E8EFF8"),
     neutral: token("--bh-neutral", "#5C6672"),
-    neutralSoft: token("--bh-neutral-soft", "#E9F4EC"),
+    neutralSoft: token("--bh-neutral-soft", "#EEF2F7"),
     textMain: token("--bh-text-main", "#26313F"),
     textMuted: token("--bh-text-muted", "#5C6672"),
     borderColor: token("--bh-border-color", "#E3EAE4"),

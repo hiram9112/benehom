@@ -118,7 +118,7 @@
 .bh-projections-savings-card{
     border-color: rgba(253, 254, 253, 0.18);
     background:
-        radial-gradient(circle at top right, rgba(233, 244, 236, 0.18), transparent 13rem),
+        radial-gradient(circle at top right, rgba(253, 254, 253, 0.14), transparent 13rem),
         var(--bh-brand-strong);
     box-shadow: none;
 }
@@ -488,7 +488,7 @@
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-lg);
     background:
-        linear-gradient(135deg, rgba(233, 244, 236, 0.72), rgba(253, 254, 253, 0.96));
+        linear-gradient(135deg, var(--bh-surface-soft), var(--bh-surface-card));
     transition:
         border-color var(--bh-transition-base),
         box-shadow var(--bh-transition-base),
@@ -757,7 +757,7 @@
 }
 
 .bh-select-shell .bh-select.is-saving-selected{
-    border-color: rgba(51, 166, 77, 0.34);
+    border-color: color-mix(in srgb, var(--bh-positive) 34%, transparent);
     color: var(--bh-success);
 }
 
@@ -841,7 +841,7 @@
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-lg);
     background:
-        radial-gradient(circle at top right, color-mix(in srgb, var(--bh-positive) 10%, transparent), transparent 14rem),
+        radial-gradient(circle at top right, color-mix(in srgb, var(--bh-brand) 6%, transparent), transparent 14rem),
         linear-gradient(135deg, color-mix(in srgb, var(--bh-surface-card) 96%, transparent), color-mix(in srgb, var(--bh-surface-soft) 70%, transparent));
     transition:
         border-color var(--bh-transition-base),

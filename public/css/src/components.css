@@ -311,13 +311,13 @@
     gap: var(--bh-space-2);
     padding: var(--bh-space-3);
     border-radius: var(--bh-radius-md);
-    background-color: var(--bh-saving-soft);
+    background-color: var(--bh-info-soft);
     color: var(--bh-text-main);
 }
 
 .bh-chart-hint i{
     flex: 0 0 auto;
-    color: var(--bh-saving);
+    color: var(--bh-brand);
 }
 
 #graficoEscalaHabitos:focus-visible{
@@ -540,7 +540,7 @@
 
 .bh-badge-saving {
     background-color: var(--bh-saving-soft);
-    color: var(--bh-saving);
+    color: var(--bh-positive-ink);
 }
 
 .bh-badge-neutral {

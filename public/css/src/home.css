@@ -95,7 +95,7 @@
 .bh-home-nav-links a:hover{
     color: var(--bh-brand-strong);
     text-decoration: underline;
-    text-decoration-color: var(--bh-saving);
+    text-decoration-color: var(--bh-brand-strong);
     text-underline-offset: 0.4em;
 }
 
@@ -218,7 +218,7 @@
     z-index: -1;
     border-radius: 44px;
     background:
-        radial-gradient(120% 120% at 80% 8%, color-mix(in srgb, var(--bh-positive) 18%, transparent), transparent 60%),
+        radial-gradient(120% 120% at 80% 8%, color-mix(in srgb, var(--bh-brand) 8%, transparent), transparent 60%),
         radial-gradient(120% 120% at 6% 92%, color-mix(in srgb, var(--bh-brand) 10%, transparent), transparent 55%);
 }
 
@@ -589,7 +589,7 @@
     flex: none;
     width: 1.3rem;
     height: 1.3rem;
-    color: var(--bh-income);
+    color: var(--bh-brand);
 }
 
 /* --- Encabezados de seccion --- */
@@ -649,7 +649,7 @@
     height: 2.9rem;
     border-radius: 14px;
     background-color: var(--bh-surface-soft);
-    color: var(--bh-income);
+    color: var(--bh-brand);
 }
 
 .bh-home-benefit-icon svg{
@@ -673,8 +673,8 @@
 .bh-home-method{
     padding-block: clamp(3rem, 7vw, 5.5rem);
     background:
-        radial-gradient(circle at 85% 4%, color-mix(in srgb, var(--bh-positive) 22%, transparent), transparent 28rem),
-        radial-gradient(circle at -4% 104%, rgba(51, 166, 77, 0.14), transparent 24rem),
+        radial-gradient(circle at 85% 4%, rgba(253, 254, 253, 0.10), transparent 28rem),
+        radial-gradient(circle at -4% 104%, color-mix(in srgb, var(--bh-brand) 22%, transparent), transparent 24rem),
         var(--bh-brand-strong);
 }
 
@@ -703,9 +703,9 @@
     width: 2.5rem;
     height: 2.5rem;
     margin-bottom: var(--bh-space-4);
-    border: 1.5px solid color-mix(in srgb, var(--bh-positive) 65%, transparent);
+    border: 1.5px solid rgba(253, 254, 253, 0.34);
     border-radius: 50%;
-    color: var(--bh-saving);
+    color: var(--bh-text-inverse);
     font-family: var(--bh-font-interface);
     font-size: 1.2rem;
     font-weight: var(--bh-weight-semibold);
@@ -804,7 +804,7 @@
     width: 1.15rem;
     height: 1.15rem;
     border-radius: 50%;
-    background-color: var(--bh-saving-soft);
+    background-color: var(--bh-brand-soft);
 }
 
 .bh-home-feature-points li::after{
@@ -814,8 +814,8 @@
     top: 0.42rem;
     width: 0.4rem;
     height: 0.2rem;
-    border-left: 2px solid var(--bh-income);
-    border-bottom: 2px solid var(--bh-income);
+    border-left: 2px solid var(--bh-brand);
+    border-bottom: 2px solid var(--bh-brand);
     transform: rotate(-45deg);
 }
 
@@ -824,7 +824,7 @@
     padding: clamp(1rem, 3vw, 2rem);
     border-radius: clamp(20px, 3vw, 32px);
     background:
-        radial-gradient(120% 120% at 80% 0%, color-mix(in srgb, var(--bh-positive) 10%, transparent), transparent 60%),
+        radial-gradient(120% 120% at 80% 0%, color-mix(in srgb, var(--bh-brand) 6%, transparent), transparent 60%),
         var(--bh-surface-soft);
 }
 
@@ -913,7 +913,7 @@
     width: 2.5rem;
     height: 3px;
     border-radius: var(--bh-radius-pill);
-    background-color: var(--bh-saving);
+    background-color: var(--bh-brand);
 }
 
 .bh-home-belief h2{
@@ -996,7 +996,7 @@
 .bh-home-security-list svg{
     width: 1.6rem;
     height: 1.6rem;
-    color: var(--bh-income);
+    color: var(--bh-brand);
 }
 
 .bh-home-security-list h3{
@@ -1098,7 +1098,7 @@
     padding: clamp(2rem, 4.5vw, 3.5rem);
     border-radius: 28px;
     background:
-        radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--bh-positive) 25%, transparent), transparent 18rem),
+        radial-gradient(circle at 88% 12%, rgba(253, 254, 253, 0.12), transparent 18rem),
         var(--bh-brand-strong);
     box-shadow: none;
 }
@@ -1311,7 +1311,7 @@
 
     .bh-home-benefit:hover,
     .bh-home-blog-card:hover{
-        border-color: color-mix(in srgb, var(--bh-positive) 40%, transparent);
+        border-color: var(--bh-border-strong);
         box-shadow: none;
         transform: translateY(-3px);
     }

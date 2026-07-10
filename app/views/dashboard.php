@@ -74,8 +74,8 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                     <figure class="bh-dashboard-waterfall bh-hero-chart">
                         <canvas id="graficoHistoriaMes" role="img" aria-label="Gráfico de cascada con ingresos, gastos esenciales, ahorro posible, gastos flexibles y ahorro real" aria-describedby="graficoHistoriaMesResumen"></canvas>
                         <div class="bh-hero-chart-empty" id="graficoHistoriaMesEmpty" hidden>
-                            <p>Aún no hay movimientos en <span id="graficoHistoriaMesEmptyMes">este mes</span></p>
-                            <button type="button" class="bh-hero-chart-empty-cta" data-hero-empty-cta>Añadir el primer ingreso →</button>
+                            <p id="graficoHistoriaMesEmptyTitulo">Aún no hay movimientos en <span id="graficoHistoriaMesEmptyMes">este mes</span></p>
+                            <button type="button" class="bh-btn bh-btn-primary bh-hero-chart-empty-cta" data-hero-empty-cta>+ Añadir primer ingreso</button>
                         </div>
                         <figcaption id="graficoHistoriaMesResumen" class="visually-hidden" aria-live="polite">La cascada se actualizará con los datos del mes seleccionado.</figcaption>
                     </figure>
@@ -338,6 +338,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
 
                         <div class="contenedor-grafico bh-scale-chart-container">
                             <canvas id="graficoEscalaHabitos" role="img" tabindex="0" aria-label="Gráfico de barras del top de gastos flexibles. Usa las flechas para recorrer las barras y Enter para abrir la instantánea de inversión." aria-describedby="graficoEscalaHabitosResumen"></canvas>
+                            <span class="bh-chart-empty-chip" id="chipEscalaHabitosVacio" hidden>Se dibujará con tus primeros gastos flexibles</span>
                         </div>
 
                         <p id="graficoEscalaHabitosResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con las principales categorías de gasto flexible.</p>
@@ -358,6 +359,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                         </h2>
                         <div class="contenedor-grafico">
                             <canvas id="graficoAhorros6m" role="img" aria-label="Gráfico de barras de ahorro posible y ahorro real de los últimos meses" aria-describedby="graficoAhorros6mResumen"></canvas>
+                            <span class="bh-chart-empty-chip" id="chipAhorros6mVacio" hidden>Se dibujará con tu primer mes de movimientos</span>
                         </div>
                         <p id="graficoAhorros6mResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con la evolución de ahorro posible y ahorro real.</p>
                     </div>
@@ -401,6 +403,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                         <div id="panelEvolucionFlexibles" class="bh-chart-panel" role="region" aria-labelledby="btnEvolucionFlexibles">
                             <div class="contenedor-grafico">
                                 <canvas id="graficoGastosFlexibles6m" role="img" aria-label="Gráfico de línea de gastos flexibles de los últimos meses" aria-describedby="graficoGastosFlexibles6mResumen"></canvas>
+                                <span class="bh-chart-empty-chip" id="chipGastosFlexVacio" hidden>Se dibujará con tus primeros gastos</span>
                             </div>
                             <p id="graficoGastosFlexibles6mResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con la evolución de gastos flexibles.</p>
                         </div>
@@ -408,6 +411,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                         <div id="panelEvolucionEsenciales" class="bh-chart-panel" role="region" aria-labelledby="btnEvolucionEsenciales" hidden>
                             <div class="contenedor-grafico">
                                 <canvas id="graficoGastosEsenciales6m" role="img" aria-label="Gráfico de línea de gastos esenciales de los últimos meses" aria-describedby="graficoGastosEsenciales6mResumen"></canvas>
+                                <span class="bh-chart-empty-chip" id="chipGastosEsenVacio" hidden>Se dibujará con tus primeros gastos</span>
                             </div>
                             <p id="graficoGastosEsenciales6mResumen" class="visually-hidden" aria-live="polite">El gráfico se actualizará con la evolución de gastos esenciales.</p>
                         </div>

@@ -198,6 +198,31 @@ function crearItemsCascadaDashboard(valores) {
   ];
 }
 
+function crearItemsCascadaFantasma() {
+  var ghostFill = obtenerTokenDashboard('--bh-border-color', '#E3EAE4');
+  var ghostBorder = obtenerTokenDashboard('--bh-border-strong', '#C7D2CA');
+  var labels = ['Ingresos', 'Gastos esenciales', 'Ahorro posible', 'Gastos flexibles', 'Ahorro real'];
+  var heights = [
+    { start: 0, end: 100 },
+    { start: 55, end: 100 },
+    { start: 0, end: 55 },
+    { start: 30, end: 55 },
+    { start: 0, end: 30 },
+  ];
+
+  return heights.map(function (h, i) {
+    return {
+      label: labels[i],
+      start: h.start,
+      end: h.end,
+      value: h.end - h.start,
+      color: ghostFill,
+      borderColor: ghostBorder,
+      ghost: true,
+    };
+  });
+}
+
 function calcularMaximoCascada(items) {
   var maximo = items.reduce(function (actual, item) {
     return Math.max(actual, Number(item.start) || 0, Number(item.end) || 0);
@@ -248,18 +273,24 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
   var opcionesGrafico = opciones || {};
   var graficoVacio = Boolean(opcionesGrafico.empty);
   var esMovil = opcionesGrafico.mobile ?? esGraficoHistoriaMovil();
-  var items = Array.isArray(valores) ? valores : crearItemsCascadaDashboard(valores || {});
+  var items = graficoVacio
+    ? crearItemsCascadaFantasma()
+    : (Array.isArray(valores) ? valores : crearItemsCascadaDashboard(valores || {}));
   var escalas = crearEscalasConEuros(false);
-  var maximoEscala = graficoVacio ? 1 : calcularMaximoCascada(items);
+  var maximoEscala = graficoVacio ? 100 : calcularMaximoCascada(items);
 
   if (graficoVacio) {
-    escalas.y.min = -1;
-    escalas.y.max = 1;
+    escalas.y.min = 0;
+    escalas.y.max = 100;
     escalas.y.grid = Object.assign({}, escalas.y.grid || {}, {
       display: !esMovil,
       color: obtenerTokenDashboard('--bh-border-color', BH_COLORS.borderColor),
     });
-    escalas.y.ticks = Object.assign({}, escalas.y.ticks || {}, { display: false, callback: function () { return ''; } });
+    escalas.y.ticks = Object.assign({}, escalas.y.ticks || {}, {
+      display: !esMovil,
+      stepSize: 25,
+      callback: function () { return ''; },
+    });
   } else {
     escalas.y.max = maximoEscala;
     escalas.y.grid = Object.assign({}, escalas.y.grid || {}, { display: !esMovil });
@@ -310,8 +341,6 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
         }
       }
 
-      if (graficoVacio) return;
-
       if (meta.data.length >= 5 && yScale) {
         var conectores = [
           { from: 0, to: 1, value: items[0] ? items[0].end : 0 },
@@ -321,7 +350,9 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
         ];
 
         ctx.save();
-        ctx.strokeStyle = obtenerTokenDashboard('--bh-text-muted', BH_COLORS.textMuted);
+        ctx.strokeStyle = graficoVacio
+          ? obtenerTokenDashboard('--bh-border-color', BH_COLORS.borderColor)
+          : obtenerTokenDashboard('--bh-text-muted', BH_COLORS.textMuted);
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
 
@@ -347,6 +378,8 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
 
         ctx.restore();
       }
+
+      if (graficoVacio) return;
 
       ctx.save();
       ctx.fillStyle = BH_COLORS.textMain || obtenerTokenDashboard('--bh-text-main');
@@ -375,8 +408,8 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
       datasets: [{
         data: items.map(function (item) { return [item.start, item.end]; }),
         backgroundColor: items.map(function (item) { return item.color; }),
-        borderColor: items.map(function (item) { return item.color; }),
-        borderWidth: 0,
+        borderColor: items.map(function (item) { return item.borderColor || item.color; }),
+        borderWidth: graficoVacio ? 1 : 0,
         borderRadius: 6,
         borderSkipped: false,
         barPercentage: esMovil ? 0.9 : 0.88,
@@ -388,7 +421,7 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
       responsive: true,
       maintainAspectRatio: false,
       aspectRatio: 2,
-      animation: opcionesGrafico.animation ?? !BH_REDUCED_MOTION,
+      animation: graficoVacio ? false : (opcionesGrafico.animation ?? !BH_REDUCED_MOTION),
       layout: { padding: esMovil ? { top: 26, right: 0, bottom: 0, left: 0 } : { top: 30, right: 4, bottom: 0, left: 4 } },
       plugins: {
         legend: { display: false },
@@ -923,6 +956,8 @@ async function cargarGraficoGastosFlexibles6m() {
     var valores = data.data.valores;
     var serie = prepararSerieGastosConHuecos(meses, valores);
     var graficoVacio = serie.valores.length === 0;
+    var chipFlex = document.getElementById('chipGastosFlexVacio');
+    if (chipFlex) chipFlex.hidden = !graficoVacio;
     actualizarResumenVariacionGastos('flexible', valores, meses);
     actualizarResumenGrafico(
       'graficoGastosFlexibles6mResumen',
@@ -998,6 +1033,8 @@ async function cargarGraficoGastosEsenciales6m() {
     var valores = data.data.valores;
     var serie = prepararSerieGastosConHuecos(meses, valores);
     var graficoVacio = serie.valores.length === 0;
+    var chipEsen = document.getElementById('chipGastosEsenVacio');
+    if (chipEsen) chipEsen.hidden = !graficoVacio;
     actualizarResumenVariacionGastos('esencial', valores, meses);
     actualizarResumenGrafico(
       'graficoGastosEsenciales6mResumen',
@@ -1070,6 +1107,8 @@ async function cargarGraficoAhorros6m() {
     var ahorroReal = data.data.ahorroReal;
     var serie = prepararSerieAhorrosConHuecos(meses, ahorroPosible, ahorroReal, data.data.tieneDatos);
     var graficoVacio = serie.meses.length === 0;
+    var chipAhorro = document.getElementById('chipAhorros6mVacio');
+    if (chipAhorro) chipAhorro.hidden = !graficoVacio;
     var resumenAhorro = serie.meses.length
       ? serie.meses.map(function (mes, index) {
         return formatearMesGrafico(mes) + ': ahorro posible ' + describirValorSerieEuros(serie.ahorroPosible[index]) + ', ahorro real ' + describirValorSerieEuros(serie.ahorroReal[index]);
@@ -1188,6 +1227,8 @@ function renderizarGraficoEscalaHabitos() {
     return escalaHabitosActiva === 'anio' ? item.anual : item.mediaMensual;
   });
   var graficoVacio = valores.length === 0;
+  var chipEscala = document.getElementById('chipEscalaHabitosVacio');
+  if (chipEscala) chipEscala.hidden = !graficoVacio;
   var colores = datosEscalaHabitos.map(function () {
     return BH_COLORS.flexible;
   });

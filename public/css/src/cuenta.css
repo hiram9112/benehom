@@ -60,36 +60,6 @@
     color: var(--bh-positive);
 }
 
-/* Requisitos de contraseña en vivo */
-.bh-password-requirements{
-    list-style: none;
-    margin: var(--bh-space-3) 0 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
-    gap: var(--bh-space-1) var(--bh-space-4);
-}
-
-.bh-password-requirements li{
-    display: flex;
-    align-items: center;
-    gap: var(--bh-space-2);
-    font-size: var(--bh-text-sm);
-    color: var(--bh-text-muted);
-    transition: color var(--bh-transition-fast);
-}
-
-.bh-password-requirements li i{
-    font-size: 0.9rem;
-    color: var(--bh-text-muted);
-    transition: color var(--bh-transition-fast);
-}
-
-.bh-password-requirements li.is-met,
-.bh-password-requirements li.is-met i{
-    color: var(--bh-success);
-}
-
 /* Mensaje de error en línea bajo un campo */
 .bh-field-error{
     margin: var(--bh-space-2) 0 0;

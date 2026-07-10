@@ -1,47 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
-  initRequisitosPassword();
+  initCoincidenciaPassword();
   initEliminarCuenta();
 });
 
-// Comprobación en vivo de los requisitos de la contraseña nueva y su confirmación
-function initRequisitosPassword() {
+// Validación de que la confirmación coincide con la nueva contraseña
+function initCoincidenciaPassword() {
   const nueva = document.getElementById("password_nueva");
-  const lista = document.getElementById("passwordRequisitos");
-
-  if (!nueva || !lista) return;
-
-  const reglas = {
-    length: (v) => v.length >= 8,
-    upper: (v) => /[A-Z]/.test(v),
-    lower: (v) => /[a-z]/.test(v),
-    number: (v) => /[0-9]/.test(v),
-  };
-
-  function evaluarRequisitos() {
-    const valor = nueva.value;
-
-    lista.querySelectorAll("li[data-req]").forEach((li) => {
-      const regla = reglas[li.dataset.req];
-      const cumple = typeof regla === "function" ? regla(valor) : false;
-
-      li.classList.toggle("is-met", cumple);
-
-      const icono = li.querySelector("i");
-      if (icono) {
-        icono.classList.toggle("ti-circle-check-filled", cumple);
-        icono.classList.toggle("ti-circle", !cumple);
-      }
-    });
-  }
-
-  nueva.addEventListener("input", evaluarRequisitos);
-
-  // Validación de que la confirmación coincide con la nueva contraseña
   const confirmacion = document.getElementById("password_confirmacion_nueva");
   const matchError = document.getElementById("passwordMatchError");
   const form = document.getElementById("formCambiarPassword");
 
-  if (!confirmacion || !matchError) return;
+  if (!nueva || !confirmacion || !matchError) return;
 
   function comprobarCoincidencia() {
     const hayDesajuste =

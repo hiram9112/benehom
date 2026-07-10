@@ -1547,6 +1547,49 @@
     background-color: var(--bh-surface-soft);
 }
 
+.bh-password-requirements{
+    list-style: none;
+    margin: var(--bh-space-3) 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: var(--bh-space-1) var(--bh-space-4);
+}
+
+.bh-password-requirements li{
+    display: flex;
+    align-items: center;
+    gap: var(--bh-space-2);
+    font-size: var(--bh-text-sm);
+    color: var(--bh-text-muted);
+}
+
+.bh-password-requirements li i{
+    position: relative;
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+    border: 1.5px solid currentColor;
+    border-radius: var(--bh-radius-pill);
+    color: var(--bh-text-muted);
+    font-size: 0;
+}
+
+.bh-password-requirements li i::before{
+    content: "";
+}
+
+.bh-password-requirements li.is-met i::after{
+    content: "";
+    width: 0.32rem;
+    height: 0.55rem;
+    border-right: 2px solid var(--bh-brand-strong);
+    border-bottom: 2px solid var(--bh-brand-strong);
+    transform: translateY(-0.06rem) rotate(45deg);
+}
+
 .bh-help {
     color: var(--bh-text-muted);
     font-size: var(--bh-text-xs);

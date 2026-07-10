@@ -100,7 +100,7 @@ bh_document_begin([
                                     <i class="ti ti-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
-                            <ul class="bh-password-requirements" id="passwordRequisitos">
+                            <ul class="bh-password-requirements" id="passwordRequisitos" data-bh-password-requirements="password_nueva">
                                 <li data-req="length"><i class="ti ti-circle" aria-hidden="true"></i><span>Al menos 8 caracteres</span></li>
                                 <li data-req="upper"><i class="ti ti-circle" aria-hidden="true"></i><span>Una letra mayúscula</span></li>
                                 <li data-req="lower"><i class="ti ti-circle" aria-hidden="true"></i><span>Una letra minúscula</span></li>
@@ -229,6 +229,7 @@ bh_document_begin([
     ?>
 <?php ob_start(); ?>
     <script src="<?= bh_asset('js/password-toggle.js') ?>"></script>
+    <script src="<?= bh_asset('js/password-requirements.js') ?>"></script>
     <script src="<?= bh_asset('js/cuenta.js') ?>"></script>
 <?php
 $bhCuentaBodyEndExtra = ob_get_clean();

@@ -513,7 +513,8 @@
     font-weight: var(--bh-weight-semibold);
 }
 
-.bh-home-mock-chips span:first-child{
+.bh-home-mock-chips span:first-child,
+.bh-home-mock-chips span.is-active{
     border-color: transparent;
     background-color: var(--bh-surface-soft);
     color: var(--bh-brand-strong);

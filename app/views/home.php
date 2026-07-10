@@ -123,43 +123,44 @@ bh_document_begin([
                 </div>
 
                 <div class="bh-home-hero-art bh-reveal">
-                    <div class="bh-home-mock bh-home-mock-ledger" role="img" aria-label="Ejemplo del resumen mensual de BeneHom: 2.450 euros de ingresos, 1.420 de gastos esenciales, 445 flexibles y un ahorro real de 585 euros, el 24 por ciento de lo que ha entrado">
+                    <div class="bh-home-mock bh-home-mock-ledger" role="img" aria-label="Ejemplo de la historia del mes de BeneHom: 2.450 euros de ingresos, 1.420 euros de gastos esenciales, 1.030 euros de ahorro posible, 445 euros de gastos flexibles y 585 euros de ahorro real">
                         <div class="bh-home-mock-head">
-                            <h2>Resumen del mes</h2>
+                            <h2>La historia del mes</h2>
                             <span>Junio</span>
                         </div>
-                        <ul class="bh-home-mock-rows">
-                            <li>
-                                <div class="bh-home-mock-row-head">
-                                    <span>Ingresos</span>
-                                    <strong>2.450&nbsp;€</strong>
-                                </div>
-                                <div class="bh-home-mock-bar"><span class="is-income" style="--w:100%"></span></div>
-                            </li>
-                            <li>
-                                <div class="bh-home-mock-row-head">
-                                    <span>Gastos esenciales</span>
-                                    <strong>1.420&nbsp;€</strong>
-                                </div>
-                                <div class="bh-home-mock-bar"><span class="is-essential" style="--w:58%"></span></div>
-                            </li>
-                            <li>
-                                <div class="bh-home-mock-row-head">
-                                    <span>Gastos flexibles</span>
-                                    <strong>445&nbsp;€</strong>
-                                </div>
-                                <div class="bh-home-mock-bar"><span class="is-flexible" style="--w:18%"></span></div>
-                            </li>
-                        </ul>
+                        <div class="bh-home-mock-chartlet">
+                            <svg class="bh-home-chart-svg" viewBox="0 0 360 168" role="img" aria-label="Gráfico de cascada con ingresos, gastos esenciales, ahorro posible, gastos flexibles y ahorro real">
+                                <line x1="16" y1="130" x2="344" y2="130" stroke="rgba(22,63,127,0.16)" stroke-width="1" />
+                                <line x1="64" y1="31" x2="94" y2="31" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <line x1="134" y1="88" x2="164" y2="88" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <line x1="204" y1="88" x2="234" y2="88" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <line x1="274" y1="106" x2="304" y2="106" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <rect x="24" y="31" width="40" height="99" rx="6" fill="var(--bh-positive)" />
+                                <rect x="94" y="31" width="40" height="57" rx="6" fill="var(--bh-essential)" />
+                                <rect x="164" y="88" width="40" height="42" rx="6" fill="var(--bh-positive-soft)" />
+                                <rect x="234" y="88" width="40" height="18" rx="6" fill="var(--bh-flexible)" />
+                                <rect x="304" y="106" width="40" height="24" rx="6" fill="var(--bh-positive)" />
+                                <text x="44" y="22" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">2.450€</text>
+                                <text x="114" y="22" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">−1.420€</text>
+                                <text x="184" y="79" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">1.030€</text>
+                                <text x="254" y="79" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">−445€</text>
+                                <text x="324" y="97" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">585€</text>
+                                <text x="44" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Ingresos</text>
+                                <text x="114" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Esenciales</text>
+                                <text x="184" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Posible</text>
+                                <text x="254" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Flexibles</text>
+                                <text x="324" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Real</text>
+                            </svg>
+                        </div>
                         <div class="bh-home-mock-total">
-                            <span>Ahorro real del mes</span>
+                            <span>Balance del mes</span>
                             <strong>585&nbsp;€</strong>
-                            <small>Un 24&nbsp;% de lo que ha entrado.</small>
+                            <small>Ahorro real de junio.</small>
                         </div>
                     </div>
 
                     <div class="bh-home-mock-slip" aria-hidden="true">
-                        <span class="bh-home-mock-slip-tag">Proyección guardada</span>
+                        <span class="bh-home-mock-slip-tag">Proyección simulada</span>
                         <p class="bh-home-mock-slip-q">¿Y si aparto 150&nbsp;€ al mes?</p>
                         <p class="bh-home-mock-slip-a">La meta de 3.600&nbsp;€ se cumpliría en 24 meses.</p>
                     </div>
@@ -469,18 +470,18 @@ bh_document_begin([
                         </ul>
                     </div>
                     <div class="bh-home-feature-art">
-                        <div class="bh-home-mock bh-home-mock-sim" role="img" aria-label="Ejemplo de simulación educativa: invertir los 90 euros mensuales que se gastan en ocio podría llegar a 6.200 euros en cinco años y a 26.200 euros en quince años">
+                        <div class="bh-home-mock bh-home-mock-sim" role="img" aria-label="Ejemplo de simulación educativa: invertir todo el gasto de ocio, 90 euros al mes, con una rentabilidad orientativa del 3 por ciento podría llegar a 5.812 euros en cinco años y a 20.362 euros en quince años">
                             <span class="bh-home-mock-slip-tag">Simulación educativa</span>
                             <p class="bh-home-mock-slip-q">Si invirtieras tu gasto de ocio: 90&nbsp;€ al mes.</p>
                             <div class="bh-home-mock-bar"><span class="is-flexible" style="--w:70%"></span></div>
                             <div class="bh-home-mock-sim-result">
-                                <div><span>A 5 años</span><strong>6.200&nbsp;€</strong></div>
-                                <div><span>A 15 años</span><strong class="is-pos">26.200&nbsp;€</strong></div>
+                                <div><span>A 5 años</span><strong>5.812&nbsp;€</strong></div>
+                                <div><span>A 15 años</span><strong class="is-pos">20.362&nbsp;€</strong></div>
                             </div>
                             <div class="bh-home-mock-chips">
                                 <span>Todo</span>
                                 <span>La mitad</span>
-                                <span>3%</span>
+                                <span class="is-active">3%</span>
                                 <span>6%</span>
                                 <span>9%</span>
                             </div>

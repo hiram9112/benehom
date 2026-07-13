@@ -364,6 +364,6 @@
     .bh-dashboard-aside{
         align-self: start;
         position: sticky;
-        top: var(--bh-space-4);
+        top: var(--bh-dashboard-aside-sticky-top, var(--bh-space-4));
     }
 }

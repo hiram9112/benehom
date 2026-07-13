@@ -182,6 +182,12 @@ function obtenerTokenDashboard(nombre, fallback) {
   return valor || fallback || '';
 }
 
+function obtenerColorHoverChart(color) {
+  return window.Chart?.helpers?.getHoverColor
+    ? window.Chart.helpers.getHoverColor(color)
+    : color;
+}
+
 function crearItemsCascadaDashboard(valores) {
   var ingresos = Number(valores.ingresos) || 0;
   var esenciales = Number(valores.esenciales) || 0;
@@ -276,6 +282,9 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
   var items = graficoVacio
     ? crearItemsCascadaFantasma()
     : (Array.isArray(valores) ? valores : crearItemsCascadaDashboard(valores || {}));
+  var coloresBarras = items.map(function (item) {
+    return graficoVacio ? item.color : obtenerColorHoverChart(item.color);
+  });
   var escalas = crearEscalasConEuros(false);
   var maximoEscala = graficoVacio ? 100 : calcularMaximoCascada(items);
 
@@ -407,7 +416,8 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
       labels: items.map(function (item) { return item.label; }),
       datasets: [{
         data: items.map(function (item) { return [item.start, item.end]; }),
-        backgroundColor: items.map(function (item) { return item.color; }),
+        backgroundColor: coloresBarras,
+        hoverBackgroundColor: coloresBarras,
         borderColor: items.map(function (item) { return item.borderColor || item.color; }),
         borderWidth: graficoVacio ? 1 : 0,
         borderRadius: 6,
@@ -1107,6 +1117,12 @@ async function cargarGraficoAhorros6m() {
     var ahorroReal = data.data.ahorroReal;
     var serie = prepararSerieAhorrosConHuecos(meses, ahorroPosible, ahorroReal, data.data.tieneDatos);
     var graficoVacio = serie.meses.length === 0;
+    var coloresAhorroPosible = serie.ahorroPosible.map(function (v) {
+      return obtenerColorHoverChart(v >= 0 ? BH_COLORS.positiveSoft : BH_COLORS.negative);
+    });
+    var coloresAhorroReal = serie.ahorroReal.map(function (v) {
+      return obtenerColorHoverChart(v >= 0 ? BH_COLORS.positive : BH_COLORS.negative);
+    });
     var chipAhorro = document.getElementById('chipAhorros6mVacio');
     if (chipAhorro) chipAhorro.hidden = !graficoVacio;
     var resumenAhorro = serie.meses.length
@@ -1127,18 +1143,16 @@ async function cargarGraficoAhorros6m() {
           {
             label: 'Ahorro posible',
             data: serie.ahorroPosible,
-            backgroundColor: serie.ahorroPosible.map(function (v) {
-              return v >= 0 ? BH_COLORS.positiveSoft : BH_COLORS.negative;
-            }),
+            backgroundColor: coloresAhorroPosible,
+            hoverBackgroundColor: coloresAhorroPosible,
             barPercentage: 0.9,
             categoryPercentage: 0.6,
           },
           {
             label: 'Ahorro real',
             data: serie.ahorroReal,
-            backgroundColor: serie.ahorroReal.map(function (v) {
-              return v >= 0 ? BH_COLORS.positive : BH_COLORS.negative;
-            }),
+            backgroundColor: coloresAhorroReal,
+            hoverBackgroundColor: coloresAhorroReal,
             barPercentage: 0.9,
             categoryPercentage: 0.6,
           },
@@ -1167,10 +1181,14 @@ async function cargarGraficoAhorros6m() {
             boxWidth: 14,
             padding: 14,
             generateLabels: function () {
+              var colorPosible = obtenerColorHoverChart(BH_COLORS.positiveSoft);
+              var colorReal = obtenerColorHoverChart(BH_COLORS.positive);
+              var colorNegativo = obtenerColorHoverChart(BH_COLORS.negative);
+
               return [
-                { text: 'Ahorro posible (+)', fillStyle: BH_COLORS.positiveSoft, strokeStyle: BH_COLORS.positiveSoft, pointStyle: 'rectRounded' },
-                { text: 'Ahorro real (+)',     fillStyle: BH_COLORS.positive, strokeStyle: BH_COLORS.positive, pointStyle: 'rectRounded' },
-                { text: 'Valores negativos',    fillStyle: BH_COLORS.negative, strokeStyle: BH_COLORS.negative, pointStyle: 'rectRounded' },
+                { text: 'Ahorro posible (+)', fillStyle: colorPosible, strokeStyle: colorPosible, pointStyle: 'rectRounded' },
+                { text: 'Ahorro real (+)',     fillStyle: colorReal, strokeStyle: colorReal, pointStyle: 'rectRounded' },
+                { text: 'Valores negativos',    fillStyle: colorNegativo, strokeStyle: colorNegativo, pointStyle: 'rectRounded' },
               ];
             },
           },

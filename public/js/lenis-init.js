@@ -18,6 +18,10 @@
     );
   }
 
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
   function destroyLenis() {
     if (!window.BHLenis || typeof window.BHLenis.destroy !== 'function') return;
 
@@ -47,7 +51,8 @@
     window.BHLenis = new window.Lenis({
       autoRaf: true,
       smoothWheel: true,
-      lerp: 0.1,
+      duration: 1,
+      easing: easeOutCubic,
       anchors: true,
       syncTouch: false,
       stopInertiaOnNavigate: true

@@ -62,7 +62,12 @@
         updateTopBtn();
 
         topBtn.addEventListener('click', function () {
-            window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+            if (window.BHLenis && typeof window.BHLenis.scrollTo === 'function') {
+                window.BHLenis.scrollTo(0);
+            } else {
+                window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+            }
+
             var brand = document.querySelector('.bh-home-brand');
             if (brand) { brand.focus({ preventScroll: true }); }
         });

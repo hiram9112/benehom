@@ -1059,6 +1059,10 @@
     color: var(--bh-text-main);
 }
 
+.bh-projections-page section[id]{
+    scroll-margin-top: 5rem;
+}
+
 .bh-projections-offcanvas .offcanvas-header{
     align-items: flex-start;
     padding: var(--bh-space-4);

@@ -197,6 +197,7 @@ function bh_css_tags(): string
     $cssFiles = ($_ENV['APP_ENV'] ?? 'local') === 'production'
         ? ['css/app.min.css']
         : [
+            'css/src/vendor/lenis.css',
             'css/src/base.css',
             'css/src/layout.css',
             'css/src/components.css',

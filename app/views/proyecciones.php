@@ -6,6 +6,7 @@ bh_document_begin([
     'description' => 'Simulador privado de BeneHom para explorar metas, ahorro, inversión, inflación e hipoteca con fines educativos.',
     'canonical' => bh_url('index.php?r=proyecciones/index'),
     'robots' => 'noindex',
+    'body_class' => 'bh-projections-page',
 ]);
 ?>
     <?php
@@ -45,7 +46,7 @@ bh_document_begin([
                         <p class="bh-projections-kicker">Simulador educativo</p>
                         <h1 id="proyecciones-titulo">Descubre cómo tus decisiones de hoy moldean tu futuro financiero</h1>
                         <nav class="bh-jump-nav bh-projections-jump-nav" aria-label="Saltar a seccion">
-                            <ul class="bh-jump-nav-list">
+                            <ul class="bh-jump-nav-list" data-lenis-prevent>
                                 <li><a href="#metas" class="bh-jump-nav-link">Metas</a></li>
                                 <li><a href="#inversion" class="bh-jump-nav-link">Inversion</a></li>
                                 <li><a href="#inflacion" class="bh-jump-nav-link">Inflacion</a></li>
@@ -276,7 +277,7 @@ bh_document_begin([
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
-        <div class="offcanvas-body">
+        <div class="offcanvas-body" data-lenis-prevent>
             <form method="POST" action="index.php?r=proyecciones/crearMetaAhorro" class="bh-form js-meta-form" data-ajax-create data-section="meta" data-ajax-action="index.php?r=proyecciones/crearMetaAhorroAjax">
                 <?= csrf_field() ?>
 
@@ -335,7 +336,7 @@ bh_document_begin([
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
-        <div class="offcanvas-body">
+        <div class="offcanvas-body" data-lenis-prevent>
             <form method="POST" action="index.php?r=proyecciones/crearEscenarioInversion" class="bh-form" data-ajax-create data-section="inversion" data-ajax-action="index.php?r=proyecciones/crearEscenarioInversionAjax">
                 <?= csrf_field() ?>
 
@@ -410,7 +411,7 @@ bh_document_begin([
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
-        <div class="offcanvas-body">
+        <div class="offcanvas-body" data-lenis-prevent>
             <form method="POST" action="index.php?r=proyecciones/crearInflacionProyeccion" class="bh-form" data-ajax-create data-section="inflacion" data-ajax-action="index.php?r=proyecciones/crearInflacionProyeccionAjax">
                 <?= csrf_field() ?>
 
@@ -454,7 +455,7 @@ bh_document_begin([
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
         </div>
-        <div class="offcanvas-body">
+        <div class="offcanvas-body" data-lenis-prevent>
             <form method="POST" action="index.php?r=proyecciones/crearCalculadoraHipoteca" class="bh-form" data-ajax-create data-section="hipoteca" data-ajax-action="index.php?r=proyecciones/crearCalculadoraHipotecaAjax">
                 <?= csrf_field() ?>
 

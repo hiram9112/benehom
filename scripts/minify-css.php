@@ -10,6 +10,7 @@ $sourceDir = $basePath . '/public/css/src';
 $outputFile = $basePath . '/public/css/app.min.css';
 
 $cssFiles = [
+    'vendor/lenis.css',
     'base.css',
     'layout.css',
     'components.css',

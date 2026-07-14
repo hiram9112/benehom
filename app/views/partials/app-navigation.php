@@ -136,7 +136,7 @@ function bh_mobile_menu(): void
             </button>
         </div>
 
-        <div class="offcanvas-body">
+        <div class="offcanvas-body" data-lenis-prevent>
             <div class="logo-container text-center mb-4">
                 <a href="<?= BASE_URL ?>index.php?r=dashboard/index">
                     <img src="<?= BASE_URL ?>img/logo-benehom.png"

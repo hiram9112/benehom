@@ -99,7 +99,7 @@ if (!function_exists('bh_modal')) {
                         </div>
                     </div>
 
-                    <div class="modal-body bh-modal-body"<?= $bodyIdAttr ?>><?= $body ?></div>
+                    <div class="modal-body bh-modal-body" data-lenis-prevent<?= $bodyIdAttr ?>><?= $body ?></div>
 
                     <?php if ($footer !== null && $footer !== ''): ?>
                         <div class="modal-footer bh-modal-footer"><?= $footer ?></div>

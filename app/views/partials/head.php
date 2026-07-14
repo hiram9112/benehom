@@ -126,6 +126,8 @@ function bh_document_end(array $opciones = []): void
     $includeFlashJs = (bool) ($opciones['include_flash_js'] ?? false);
     $bodyEndExtra = (string) ($opciones['body_end_extra'] ?? '');
     ?>
+    <script src="<?= bh_asset('js/vendor/lenis/lenis.min.js') ?>"></script>
+    <script src="<?= bh_asset('js/lenis-init.js') ?>"></script>
 <?php if ($includeBootstrapJs): ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script src="<?= bh_asset('js/bh-components.js') ?>"></script>

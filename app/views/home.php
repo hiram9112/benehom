@@ -85,7 +85,7 @@ bh_document_begin([
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar menú"></button>
         </div>
 
-        <div class="offcanvas-body">
+        <div class="offcanvas-body" data-lenis-prevent>
             <div class="logo-container text-center mb-4">
                 <a href="<?= BASE_URL ?>index.php" aria-label="BeneHom, ir al inicio">
                     <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="Logo Benehom" class="logo-benehom">

@@ -327,6 +327,15 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
       return etiquetas[label] || label;
     },
   });
+  var duracionAnimacionCascada = 1000;
+  var inicioAnimacionCascada = Date.now();
+  var esCascadaAnimada = !graficoVacio && !BH_REDUCED_MOTION;
+
+  function obtenerProgresoCascada() {
+    if (!esCascadaAnimada) return 1;
+    return Math.min(1, (Date.now() - inicioAnimacionCascada) / duracionAnimacionCascada);
+  }
+
   var pluginEtiquetas = {
     id: 'bhDashboardWaterfallLabels',
     afterDatasetsDraw: function (chart) {
@@ -364,6 +373,7 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
           : obtenerTokenDashboard('--bh-text-muted', BH_COLORS.textMuted);
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
+        ctx.globalAlpha = obtenerProgresoCascada();
 
         conectores.forEach(function (conector) {
           var origen = meta.data[conector.from];
@@ -371,10 +381,12 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
 
           if (!origen || !destino) return;
 
-          var origenProps = origen.getProps(['x', 'width'], true);
+          var fromItem = items[conector.from];
+          var endProp = fromItem.end >= fromItem.start ? 'y' : 'base';
+          var origenAnimated = origen.getProps(['x', 'width', endProp]);
           var destinoProps = destino.getProps(['x', 'width'], true);
-          var y = yScale.getPixelForValue(conector.value);
-          var x1 = origenProps.x + (origenProps.width / 2);
+          var y = origenAnimated[endProp];
+          var x1 = origenAnimated.x + (origenAnimated.width / 2);
           var x2 = destinoProps.x - (destinoProps.width / 2);
 
           if (!Number.isFinite(y) || x2 <= x1) return;
@@ -390,7 +402,12 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
 
       if (graficoVacio) return;
 
+      var alphaEtiquetas = Math.max(0, Math.min(1, (obtenerProgresoCascada() - 0.4) / 0.6));
+
+      if (alphaEtiquetas <= 0) return;
+
       ctx.save();
+      ctx.globalAlpha = alphaEtiquetas;
       ctx.fillStyle = BH_COLORS.textMain || obtenerTokenDashboard('--bh-text-main');
       ctx.font = '600 ' + (esMovil ? '11px ' : '12px ') + FONT_FAMILY;
       ctx.textAlign = 'center';
@@ -431,7 +448,7 @@ function crearGraficoCascadaDashboard(canvas, valores, opciones) {
       responsive: true,
       maintainAspectRatio: false,
       aspectRatio: 2,
-      animation: graficoVacio ? false : (opcionesGrafico.animation ?? !BH_REDUCED_MOTION),
+      animation: graficoVacio ? false : (BH_REDUCED_MOTION ? false : { duration: duracionAnimacionCascada, easing: 'easeOutQuart' }),
       layout: { padding: esMovil ? { top: 26, right: 0, bottom: 0, left: 0 } : { top: 30, right: 4, bottom: 0, left: 4 } },
       plugins: {
         legend: { display: false },
@@ -593,6 +610,7 @@ function crearOpcionesGrafico(opts) {
   var opciones = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: BH_REDUCED_MOTION ? false : { duration: 1000, easing: 'easeOutQuart' },
     layout: {
       padding: { top: 5, bottom: 20, left: 0, right: 0 },
     },
@@ -1293,7 +1311,7 @@ function renderizarGraficoEscalaHabitos() {
 
   opcionesEscalaHabitos.layout.padding.top = 28;
   opcionesEscalaHabitos.indexAxis = 'y';
-  opcionesEscalaHabitos.animation = BH_REDUCED_MOTION ? false : { duration: 180, easing: 'easeOutQuart' };
+  opcionesEscalaHabitos.animation = BH_REDUCED_MOTION ? false : { duration: 1000, easing: 'easeOutQuart' };
   opcionesEscalaHabitos.onHover = function (event, elementos) {
     if (event.native && event.native.target) {
       event.native.target.style.cursor = elementos.length ? 'pointer' : 'default';

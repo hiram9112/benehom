@@ -42,9 +42,9 @@
     --bh-essential: #4C71A8;       /* gastos esenciales: tinte de marca */
     --bh-essential-ink: #274F86;
     --bh-essential-soft: #E7EEF8;
-    --bh-flexible: #B45309;        /* gastos flexibles y nivel aviso */
-    --bh-flexible-ink: #7A3A05;
-    --bh-flexible-soft: #F6EBDD;
+    --bh-flexible: #DB2777;        /* gastos flexibles y nivel aviso */
+    --bh-flexible-ink: #9D174D;
+    --bh-flexible-soft: #FCE7F3;
     --bh-negative: #B83E3E;        /* negativo, sobre presupuesto, destructivo */
     --bh-negative-ink: #8F2F2F;
     --bh-negative-soft: #FBEBEB;

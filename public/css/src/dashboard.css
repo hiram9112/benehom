@@ -932,6 +932,10 @@
     background-color: var(--bh-essential);
 }
 
+.bh-hero-insight-delta.is-danger .bh-hero-insight-dot{
+    background-color: var(--bh-negative);
+}
+
 .bh-dashboard-kpi.is-positive strong{
     color: var(--bh-positive);
 }

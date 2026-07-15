@@ -212,7 +212,7 @@ function actualizarResumenVariacionGastos(tipo, valores, meses) {
   if (card) {
     card.hidden = false;
     card.classList.remove("is-positive", "is-warning", "is-danger", "is-empty");
-    card.classList.add(variacion > 0 ? (esEsencial ? "is-warning" : "is-danger") : "is-positive");
+    card.classList.add(variacion > 0 ? "is-danger" : "is-positive");
   }
 }
 

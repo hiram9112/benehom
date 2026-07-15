@@ -150,14 +150,14 @@ function crearEscalasConEuros(ocultarEjeX) {
       grid: { display: false },
       ticks: ocultarEjeX
         ? { display: false }
-        : { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMuted },
+        : { font: { family: FONT_FAMILY, size: 11, weight: '500' }, color: BH_COLORS.textMain },
     },
     y: {
       beginAtZero: true,
       grid: { color: BH_COLORS.borderColor },
       ticks: {
-        font: { family: FONT_FAMILY, size: 11 },
-        color: BH_COLORS.textMuted,
+        font: { family: FONT_FAMILY, size: 11, weight: '500' },
+        color: BH_COLORS.textMain,
         padding: 6,
         callback: function (value) {
           return formatearEuros(value);
@@ -572,19 +572,19 @@ function crearEscalasHorizontalesVaciasConEuros() {
       grid: { color: BH_COLORS.borderColor },
       ticks: {
         stepSize: 50,
-        font: { family: FONT_FAMILY, size: 11 },
-        color: BH_COLORS.textMuted,
+        font: { family: FONT_FAMILY, size: 11, weight: '500' },
+        color: BH_COLORS.textMain,
         callback: function (value) { return formatearEuros(value); },
       },
     },
-    y: {
-      grid: { display: false },
-      ticks: { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMain },
-    },
-  };
-}
+      y: {
+        grid: { display: false },
+        ticks: { font: { family: FONT_FAMILY, size: 11, weight: '500' }, color: BH_COLORS.textMain },
+      },
+    };
+  }
 
-function crearOpcionesGrafico(opts) {
+  function crearOpcionesGrafico(opts) {
   var plugins = {};
 
   if (opts.tooltip) {
@@ -1297,14 +1297,14 @@ function renderizarGraficoEscalaHabitos() {
         beginAtZero: true,
         grid: { color: BH_COLORS.borderColor },
         ticks: {
-          font: { family: FONT_FAMILY, size: 11 },
-          color: BH_COLORS.textMuted,
+          font: { family: FONT_FAMILY, size: 11, weight: '500' },
+          color: BH_COLORS.textMain,
           callback: function (value) { return formatearEuros(value); },
         },
       },
       y: {
         grid: { display: false },
-        ticks: { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMain },
+        ticks: { font: { family: FONT_FAMILY, size: 11, weight: '500' }, color: BH_COLORS.textMain },
       },
     },
   });

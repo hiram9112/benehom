@@ -53,7 +53,7 @@
     return Object.assign({
       position: "bottom",
       labels: {
-        font: { family: fontFamily, size: 12 },
+        font: { family: fontFamily, size: 12, weight: "600" },
         color: colors.textMain,
         usePointStyle: true,
         pointStyle: "rectRounded",

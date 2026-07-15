@@ -45,7 +45,11 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                 <h1 class="visually-hidden">Dashboard financiero</h1>
 
                 <div class="bh-dashboard-hero-top">
-                    <h2 id="historiaMesTitulo">La historia del mes</h2>
+                    <h2 id="historiaMesTitulo">La historia del mes
+                        <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost info-btn" data-bs-toggle="modal" data-bs-target="#infoHistoriaMes" aria-label="Información sobre el gráfico de la historia del mes">
+                            <i class="ti ti-info-circle" aria-hidden="true"></i>
+                        </button>
+                    </h2>
 
                     <!--Selector de mes-->
                     <div id="selector_mes">
@@ -462,6 +466,19 @@ HTML); ?>
     <strong>bienestar financiero</strong>.
     En muchos casos, el efecto puede notarse de un mes a otro.
 </p>
+HTML); ?>
+
+<!--Modal Gráfico de la historia del mes-->
+<?php bh_info_modal('infoHistoriaMes', '¿Cómo leer el gráfico de la historia del mes?', <<<'HTML'
+<p>Este gráfico muestra, de un vistazo, <strong>qué ha pasado con tu dinero este mes,</strong> funciona como una <strong>cascada</strong>, así puedes seguir el camino completo del dinero.</p>
+<ul>
+    <li><strong>Ingresos</strong>: es el punto de partida, todo el dinero que ha entrado en el hogar durante el mes.</li>
+    <li><strong>Gastos esenciales</strong>: se restan a continuación, son los pagos necesarios para vivir (vivienda, suministros, seguros…).</li>
+    <li><strong>Ahorro posible</strong>: es el dinero que <em>podrías</em> haber ahorrado si solo hubieras tenido gastos esenciales. Cuanto más alto, más margen tienes.</li>
+    <li><strong>Gastos flexibles</strong>: se restan después, son los gastos ligados a tus hábitos y decisiones de consumo.</li>
+    <li><strong>Ahorro real</strong>: es la barra final, lo que realmente te queda (o te falta) al terminar el mes.</li>
+</ul>
+<p>Si la última barra está <strong>por encima de cero</strong>, has conseguido ahorrar. Si está <strong>por debajo</strong>, has gastado más de lo que has ingresado y has tenido que recurrir a ahorros anteriores.</p>
 HTML); ?>
 
 <!--Modal Gráfico de evolución del ahorro-->

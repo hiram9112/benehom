@@ -104,7 +104,7 @@ return [
             'label' => 'Restauración',
             'help' => 'Consumo de comida o bebida fuera de la compra básica del hogar.',
             'items' => [
-                'restaurantes_bares_cafeterias' => 'Restaurantes, bares y cafeterías',
+                'restaurantes_bares_cafeterias' => 'Bares y restaurantes',
                 'comida_domicilio' => 'Comida a domicilio',
                 'otros_gastos_restauracion' => 'Otros gastos de restauración',
             ],

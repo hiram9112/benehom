@@ -72,7 +72,7 @@ function actualizarTotales(valores) {
   if (resumenGastosFlexiblesDetalle) {
     resumenGastosFlexiblesDetalle.textContent = pesoGastosFlexibles === null
       ? describirAusenciaRatio(mesActual, sinMovimientos)
-      : "Parte del ingreso que va a gasto no esencial";
+      : `De cada 100 € ingresados, ${formatearCantidad(pesoGastosFlexibles)} € van a gasto flexible`;
   }
 
   [ahorroCard, ingresosAhorradosCard, gastosFlexiblesCard].forEach((card) => {

@@ -523,6 +523,9 @@ HTML); ?>
 <p>
     Si los valores <strong>empiezan a subir o a bajar de forma notable</strong>,
     es una señal de que <strong>algo está cambiando</strong> y conviene revisarlo.
+    A veces no es que estés haciendo nada diferente, sino que
+    <strong>los precios suben por la inflación</strong> y eso encarece
+    los mismos gastos de siempre.
 </p>
 <p>
     En algunos casos, este gráfico ayuda a detectar

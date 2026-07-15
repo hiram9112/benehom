@@ -153,7 +153,7 @@ bh_document_begin([
                                 <text x="324" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Real</text>
                             </svg>
                         </div>
-                        <div class="bh-home-mock-total">
+                        <div class="bh-home-mock-total is-positive">
                             <span>Balance del mes</span>
                             <strong>585&nbsp;€</strong>
                             <small>Ahorro real de junio.</small>

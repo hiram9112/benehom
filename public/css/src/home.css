@@ -362,6 +362,14 @@
     line-height: 1.05;
 }
 
+.bh-home-mock-total.is-positive{
+    background-color: var(--bh-positive-soft);
+}
+
+.bh-home-mock-total.is-positive strong{
+    color: var(--bh-positive-ink);
+}
+
 /* Slip / proyeccion */
 .bh-home-mock-slip{
     padding: var(--bh-space-4) var(--bh-space-5);

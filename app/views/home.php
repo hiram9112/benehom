@@ -109,6 +109,7 @@ bh_document_begin([
     </div>
 
     <main id="contenido">
+        <div class="bh-home-first-fold">
         <!-- ============================ Hero ============================ -->
         <section class="bh-home-hero" aria-labelledby="hero-title">
             <div class="bh-home-wrap bh-home-hero-grid">
@@ -122,7 +123,7 @@ bh_document_begin([
                     <p class="bh-home-cta-note">Gratis y sin tarjeta. Sin conectar tu banco ni instalar nada.</p>
                 </div>
 
-                <div class="bh-home-hero-art bh-reveal">
+                <div class="bh-home-hero-art">
                     <div class="bh-home-mock bh-home-mock-ledger" role="img" aria-label="Ejemplo de la historia del mes de BeneHom: 2.450 euros de ingresos, 1.420 euros de gastos esenciales, 1.030 euros de ahorro posible, 445 euros de gastos flexibles y 585 euros de ahorro real">
                         <div class="bh-home-mock-head">
                             <h2>La historia del mes</h2>
@@ -204,6 +205,7 @@ bh_document_begin([
                 </ul>
             </div>
         </section>
+        </div>
 
         <!-- ========================= Beneficios ========================= -->
         <section class="bh-home-benefits" aria-labelledby="benefits-title">
@@ -266,17 +268,17 @@ bh_document_begin([
                     <p>Registra cada mes tal y como ha sido, sin maquillarlo, y deja que los números cuenten el resto. Lo que ya ha pasado y lo que te gustaría probar viven en espacios distintos.</p>
                 </div>
                 <ol class="bh-home-steps">
-                    <li class="bh-reveal">
+                    <li>
                         <span aria-hidden="true">1</span>
                         <h3>Apunta el mes</h3>
                         <p>Registra tus ingresos y tus gastos, separando lo esencial (vivienda, comida, suministros) de lo flexible (ocio, compras, extras).</p>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <span aria-hidden="true">2</span>
                         <h3>Lee tus números</h3>
                         <p>El panel compara cuánto podrías ahorrar con cuánto ahorras de verdad, y los gráficos muestran cómo evoluciona esa diferencia.</p>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <span aria-hidden="true">3</span>
                         <h3>Proyecta aparte</h3>
                         <p>Si una decisión te ronda la cabeza, ponle números en una proyección. Se guarda en su propio espacio y no toca nada de lo registrado.</p>
@@ -294,7 +296,7 @@ bh_document_begin([
                 </div>
 
                 <!-- Feature 1: registro -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Registro</span>
                         <h3>Apunta gastos esenciales y flexibles</h3>
@@ -334,7 +336,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 2: ahorro real vs posible -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Ahorro</span>
                         <h3>Ahorro posible y ahorro real</h3>
@@ -367,7 +369,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 3: proyecciones -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Proyecciones</span>
                         <h3>Un simulador para cada pregunta</h3>
@@ -398,7 +400,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 4: gráficos -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Gráficos</span>
                         <h3>Tu dinero, desde varios ángulos</h3>
@@ -457,7 +459,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 5: invertir en vez de gastar -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Inversión</span>
                         <h3>¿Y si lo inviertes en vez de gastarlo?</h3>
@@ -527,7 +529,7 @@ bh_document_begin([
         <!-- ===================== Por qué importa ===================== -->
         <section class="bh-home-belief" id="por-que" aria-labelledby="belief-title">
             <div class="bh-home-wrap">
-                <div class="bh-home-belief-inner bh-reveal">
+                <div class="bh-home-belief-inner">
                     <span class="bh-home-belief-rule" aria-hidden="true"></span>
                     <h2 id="belief-title">Entender tu dinero no es un lujo. Es lo que te deja vivir tranquilo.</h2>
                     <p>Casi nunca descuadra el mes una gran decisión, sino muchas pequeñas que nunca paramos a mirar. Cuando ves tus cuentas con calma, el «a ver si este mes ahorro» se convierte en saber cuánto te queda y por qué.</p>
@@ -545,7 +547,7 @@ bh_document_begin([
                     <p class="bh-home-security-note">¿Quieres una copia de tus datos? Escríbenos a <a href="mailto:benehom_web@gmail.com">benehom_web@gmail.com</a>.</p>
                 </div>
                 <ul class="bh-home-security-list">
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <rect x="4" y="10" width="16" height="10" rx="2" />
                             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
@@ -555,7 +557,7 @@ bh_document_begin([
                             <p>Guardamos tus contraseñas cifradas, nunca en texto plano.</p>
                         </div>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="12" cy="12" r="9" />
                             <path d="M5 12h14" />
@@ -566,7 +568,7 @@ bh_document_begin([
                             <p>No compartimos ni vendemos tu información a terceros con fines publicitarios.</p>
                         </div>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M5 7h14" />
                             <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
@@ -577,7 +579,7 @@ bh_document_begin([
                             <p>Borra tu cuenta y todos tus datos cuando quieras, sin tener que pedir permiso.</p>
                         </div>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <rect x="3" y="4" width="8" height="16" rx="1.5" />
                             <rect x="13" y="4" width="8" height="16" rx="1.5" />
@@ -696,7 +698,13 @@ bh_document_begin([
     </button>
 
 <?php
+$bhHomeGsapScripts =
+    '    <script src="' . bh_asset('js/vendor/gsap/gsap.min.js') . '"></script>' . PHP_EOL .
+    '    <script src="' . bh_asset('js/vendor/gsap/ScrollTrigger.min.js') . '"></script>' . PHP_EOL .
+    '    <script src="' . bh_asset('js/vendor/gsap/SplitText.min.js') . '"></script>' . PHP_EOL .
+    '    <script src="' . bh_asset('js/home.js') . '" defer></script>' . PHP_EOL;
+
 bh_document_end([
     'include_bootstrap_js' => true,
-    'body_end_extra' => '    <script src="' . bh_asset('js/home.js') . '" defer></script>' . PHP_EOL,
+    'body_end_extra' => $bhHomeGsapScripts,
 ]);

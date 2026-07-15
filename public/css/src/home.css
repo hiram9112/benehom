@@ -28,7 +28,6 @@
 .bh-js .bh-reveal{
     opacity: 0;
     transform: translateY(22px);
-    will-change: opacity, transform;
 }
 
 .bh-js .bh-reveal.is-in{
@@ -158,8 +157,26 @@
 
 /* --- Hero --- */
 
+.bh-home-first-fold{
+    --bh-nav-height: 4.75rem;
+}
+
+@media (min-width: 992px){
+    .bh-home-first-fold{
+        min-height: calc(100svh - var(--bh-nav-height));
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+    }
+
+    .bh-home-first-fold > .bh-home-hero{
+        min-height: 0;
+        display: flex;
+        align-items: center;
+    }
+}
+
 .bh-home-hero{
-    padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(2rem, 5vw, 3.5rem);
+    padding-block: clamp(2rem, 4vw, 2.5rem) clamp(2rem, 5vw, 3.5rem);
 }
 
 .bh-home-hero-grid{
@@ -175,7 +192,7 @@
 
 .bh-home-hero h1{
     margin: 0 0 var(--bh-space-4);
-    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-size: clamp(2.4rem, 5vw, 4rem);
     line-height: 1.04;
     letter-spacing: -0.02em;
     text-wrap: balance;
@@ -1299,6 +1316,11 @@
     .bh-home-hero-copy > *:nth-child(3){ animation-delay: 0.12s; }
     .bh-home-hero-copy > *:nth-child(4){ animation-delay: 0.18s; }
 
+    /* GSAP controla la entrada del hero: desactivar la animacion CSS */
+    .bh-js .bh-home-hero-copy > *{
+        animation: none;
+    }
+
     .bh-home-benefit,
     .bh-home-blog-card,
     .bh-home-security-list li,
@@ -1530,5 +1552,11 @@
 
     .bh-home-footer-top{
         grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    }
+}
+
+@media (min-width: 1200px){
+    .bh-home-hero .bh-home-wrap{
+        width: min(100% - 3rem, 1220px);
     }
 }

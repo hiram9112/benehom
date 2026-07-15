@@ -258,8 +258,8 @@ function bh_security_headers(): void
         "frame-ancestors 'none'",
         "object-src 'none'",
         "img-src 'self' data:",
-        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "font-src 'self' https://cdn.jsdelivr.net data:",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
         "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
         "connect-src 'self' https://cdn.jsdelivr.net",
     ];

@@ -7,13 +7,15 @@ declare(strict_types=1);
 // Configuración de cookies de sesión
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 
+ini_set('session.use_strict_mode', '1');
+
 session_set_cookie_params([
-    'lifetime' => 0,          // Sesión hasta cerrar navegador
+    'lifetime' => 0,
     'path' => '/',
     'domain' => '',
-    'secure' => $secure,      // true solo si hay HTTPS
-    'httponly' => true,       // JS no puede acceder
-    'samesite' => 'Lax',      // Protección básica CSRF
+    'secure' => $secure,
+    'httponly' => true,
+    'samesite' => 'Lax',
 ]);
 
 // Iniciamos sesión PHP

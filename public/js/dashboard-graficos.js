@@ -563,6 +563,77 @@ function registrarCtaHeroVacio() {
   });
 }
 
+function registrarCtaImportarHero() {
+  var cta = document.querySelector('[data-hero-import-cta]');
+
+  if (!cta) return;
+
+  cta.addEventListener('click', function () {
+    if (typeof window.abrirModalConfirmacion !== 'function') return;
+
+    window.abrirModalConfirmacion({
+      titulo: 'Importar mes anterior',
+      mensaje: 'Se importarán únicamente tus ingresos y gastos esenciales del mes anterior. Los gastos flexibles no se copiarán: regístralos manualmente para revisarlos y tenerlos presentes cada mes.',
+      onConfirm: function () {
+        importarMesAnterior();
+      }
+    });
+  });
+}
+
+async function importarMesAnterior() {
+  var mesInput = document.getElementById('mes');
+  var mesDestino = mesInput ? mesInput.value : '';
+
+  if (!mesDestino) {
+    if (typeof window.abrirModalInfo === 'function') {
+      window.abrirModalInfo({
+        titulo: 'Error',
+        mensaje: 'No se pudo determinar el mes actual.'
+      });
+    }
+    return;
+  }
+
+  var formData = new FormData();
+  formData.append('mes_destino', mesDestino);
+
+  if (typeof window.CSRF_TOKEN !== 'undefined') {
+    formData.append('_csrf', window.CSRF_TOKEN);
+  }
+
+  try {
+    var respuesta = await fetch('index.php?r=dashboard/importarMesAnteriorAjax', {
+      method: 'POST',
+      body: formData
+    });
+
+    var data = await respuesta.json();
+
+    if (data.ok) {
+      if (typeof window.mostrarFlash === 'function') {
+        window.mostrarFlash(data.msg, 'success', 5000);
+      }
+
+      window.location.href = 'index.php?r=dashboard/index&mes=' + encodeURIComponent(mesDestino);
+    } else {
+      if (typeof window.abrirModalInfo === 'function') {
+        window.abrirModalInfo({
+          titulo: 'No se pudo importar',
+          mensaje: data.msg || 'La importación no pudo completarse. Inténtalo de nuevo.'
+        });
+      }
+    }
+  } catch (error) {
+    if (typeof window.abrirModalInfo === 'function') {
+      window.abrirModalInfo({
+        titulo: 'Problema de conexión',
+        mensaje: 'No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.'
+      });
+    }
+  }
+}
+
 function crearEscalasHorizontalesVaciasConEuros() {
   return {
     x: {
@@ -1353,3 +1424,4 @@ window.crearGraficoCascadaDashboard = crearGraficoCascadaDashboard;
 
 registrarResponsiveHistoriaMes();
 registrarCtaHeroVacio();
+registrarCtaImportarHero();

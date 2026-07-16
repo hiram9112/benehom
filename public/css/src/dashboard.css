@@ -811,6 +811,17 @@
     justify-self: center;
 }
 
+.bh-hero-chart-empty-actions{
+    display: flex;
+    flex-direction: column;
+    gap: var(--bh-space-2);
+    width: 100%;
+}
+
+.bh-hero-chart-empty-actions .bh-btn{
+    width: 100%;
+}
+
 .bh-chart-empty-chip{
     position: absolute;
     top: 50%;

@@ -618,8 +618,8 @@ bh_document_begin([
                         <p>No. Lo que ya ha pasado y lo que pruebas viven en espacios separados. Una proyección nunca cambia tus datos reales del mes.</p>
                     </details>
                     <details class="bh-home-faq-item">
-                        <summary>¿Puedo copiar los ingresos y gastos de un mes a otro?</summary>
-                        <p>No, y es algo que hemos decidido a propósito. Apuntar el mes desde cero es justo lo que te mantiene en contacto con tu dinero: si lo copias todo en automático, el registro se vuelve un trámite y es la forma más fácil de perderle el rastro a los gastos. Preparar el presupuesto no debería llevarte más de una hora al mes, y ese pequeño rato es lo que de verdad ayuda a mejorar. No buscamos complicarte la vida, sino que cada mes vuelvas a mirar tus números con intención.</p>
+                        <summary>¿Puedo importar los ingresos y gastos de un mes a otro?</summary>
+                        <p>Sí. Cuando un mes está vacío puedes importar los ingresos y gastos esenciales del mes anterior. Los gastos flexibles no se copian: debes registrarlos manualmente para revisarlos con intención y tenerlos presentes cada mes.</p>
                     </details>
                     <details class="bh-home-faq-item">
                         <summary>¿Puedo usarlo en el móvil?</summary>

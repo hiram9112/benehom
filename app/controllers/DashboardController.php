@@ -1,6 +1,7 @@
 <?php
 require_once APP_PATH.'/models/Ingreso.php';
 require_once APP_PATH.'/models/Gasto.php';
+require_once APP_PATH.'/services/ImportacionMensual.php';
 
 class DashboardController{
     //Mostramos el panel principal
@@ -56,6 +57,65 @@ class DashboardController{
 
         //cargamos la vista del panel principal, de esta forma tendremos acceso a toda la información necesaria para mantenerla actualizada
         require APP_PATH.'/views/dashboard.php';
+    }
+
+    public function importarMesAnteriorAjax(){
+
+        if($_SERVER['REQUEST_METHOD']!=='POST'){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Método no permitido"
+            ]);
+            return;
+        }
+
+        if(!isset($_SESSION['usuario_id'])){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Sesión no válida"
+            ]);
+            return;
+        }
+
+        $usuario_id=$_SESSION['usuario_id'];
+        $mesDestino=trim((string)($_POST['mes_destino']??''));
+
+        if(!bh_mes_valido($mesDestino)){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Mes no válido"
+            ]);
+            return;
+        }
+
+        $resultado = ImportacionMensual::importar($usuario_id, $mesDestino);
+
+        if ($resultado['ok']) {
+            $resumen = $resultado['resumen'];
+            $ingresos = $resumen['ingresos'];
+            $esenciales = $resumen['esenciales'];
+
+            $textoIngresos = $ingresos === 1 ? '1 ingreso' : $ingresos . ' ingresos';
+            $textoEsenciales = $esenciales === 1 ? '1 gasto esencial' : $esenciales . ' gastos esenciales';
+
+            $mensaje = sprintf(
+                'Se importaron %s y %s del mes anterior. Recuerda que los gastos flexibles no se importan: debes registrarlos manualmente.',
+                $textoIngresos,
+                $textoEsenciales
+            );
+
+            echo json_encode([
+                "ok"=>true,
+                "msg"=>$mensaje,
+                "resumen"=>$resumen
+            ]);
+        } else {
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>$resultado['msg'],
+                "codigo"=>$resultado['codigo'] ?? null
+            ]);
+        }
     }
     
 }

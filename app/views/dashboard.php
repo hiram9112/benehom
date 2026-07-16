@@ -79,7 +79,13 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
                         <canvas id="graficoHistoriaMes" role="img" aria-label="Gráfico de cascada con ingresos, gastos esenciales, ahorro posible, gastos flexibles y ahorro real" aria-describedby="graficoHistoriaMesResumen"></canvas>
                         <div class="bh-hero-chart-empty" id="graficoHistoriaMesEmpty" hidden>
                             <p id="graficoHistoriaMesEmptyTitulo">Aún no hay movimientos en <span id="graficoHistoriaMesEmptyMes">este mes</span></p>
-                            <button type="button" class="bh-btn bh-btn-primary bh-hero-chart-empty-cta" data-hero-empty-cta>+ Añadir primer ingreso</button>
+                            <div class="bh-hero-chart-empty-actions">
+                                <button type="button" class="bh-btn bh-btn-primary bh-hero-chart-empty-cta" data-hero-import-cta>
+                                    <i class="ti ti-download" aria-hidden="true"></i>
+                                    Importar datos
+                                </button>
+                                <button type="button" class="bh-btn bh-btn-secondary bh-hero-chart-empty-cta" data-hero-empty-cta>+ Añadir primer ingreso</button>
+                            </div>
                         </div>
                         <figcaption id="graficoHistoriaMesResumen" class="visually-hidden" aria-live="polite">La cascada se actualizará con los datos del mes seleccionado.</figcaption>
                     </figure>

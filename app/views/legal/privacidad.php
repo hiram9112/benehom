@@ -84,10 +84,30 @@ bh_document_begin([
 
             <h2 class="mt-4 bh-legal-section-title">8. Cookies</h2>
             <p>
-                La aplicación utiliza únicamente cookies técnicas de sesión, necesarias para
-                mantener tu sesión iniciada. No se utilizan cookies de análisis, seguimiento
+                La aplicación utiliza únicamente una cookie técnica de sesión, estrictamente
+                necesaria para mantener tu sesión iniciada y proteger las solicitudes frente a
+                falsificaciones (CSRF). No se utilizan cookies de análisis, seguimiento
                 ni publicidad, por lo que no se requiere consentimiento adicional.
             </p>
+
+            <table class="mt-3">
+                <thead>
+                    <tr>
+                        <th>Cookie</th>
+                        <th>Finalidad</th>
+                        <th>Tipo</th>
+                        <th>Duración</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>PHPSESSID</td>
+                        <td>Mantener la sesión y autenticar al usuario</td>
+                        <td>Técnica y propia</td>
+                        <td>Hasta cerrar el navegador o finalizar la sesión</td>
+                    </tr>
+                </tbody>
+            </table>
 
             <h2 class="mt-4 bh-legal-section-title">9. Seguridad</h2>
             <p>

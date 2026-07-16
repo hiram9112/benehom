@@ -17,7 +17,7 @@ document.addEventListener("click", (event) => {
   );
 
   if (icon) {
-    icon.classList.toggle("bi-eye", !isHidden);
-    icon.classList.toggle("bi-eye-slash", isHidden);
+    icon.classList.toggle("ti-eye", !isHidden);
+    icon.classList.toggle("ti-eye-off", isHidden);
   }
 });

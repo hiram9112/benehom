@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
       conceptSelect.innerHTML = '<option value="" selected disabled>Selecciona un concepto</option>';
       conceptSelect.disabled = false;
 
-      Object.entries(grupo.items || {}).forEach(([valor, label]) => {
+      Object.entries(grupo.items || grupo.conceptos || {}).forEach(([valor, label]) => {
         const option = document.createElement("option");
         option.value = valor;
         option.textContent = label;

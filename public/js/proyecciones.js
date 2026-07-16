@@ -22,6 +22,13 @@
   const formatearCantidad = (valor) => {
     const numero = Number(valor) || 0;
 
+    if (window.BHMoney) {
+      return window.BHMoney.formatAmount(numero, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+    }
+
     return new Intl.NumberFormat("es-ES", {
       maximumFractionDigits: 2,
     }).format(numero);

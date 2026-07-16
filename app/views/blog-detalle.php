@@ -103,12 +103,12 @@ bh_document_begin([
             <article class="bh-blog-reading-shell">
                 <header class="bh-blog-detail-hero">
                     <a class="bh-blog-back-link" href="<?= htmlspecialchars(bh_blog_url(), ENT_QUOTES, 'UTF-8') ?>">
-                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        <i class="ti ti-arrow-left" aria-hidden="true"></i>
                         Volver al blog
                     </a>
                     <div class="bh-blog-detail-heading">
                         <span class="bh-blog-kicker">
-                            <i class="bi <?= htmlspecialchars($articulo['icono'] ?? 'bi-journal-text', ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
+                            <i class="<?= htmlspecialchars($articulo['icono'] ?? 'ti ti-notebook', ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
                             <?= htmlspecialchars($articulo['categoria'], ENT_QUOTES, 'UTF-8') ?>
                         </span>
                         <h1><?= htmlspecialchars($articulo['titulo'], ENT_QUOTES, 'UTF-8') ?></h1>
@@ -148,7 +148,7 @@ bh_document_begin([
 
                         <aside class="bh-blog-product-note" aria-label="Cómo aplicar este artículo en BeneHom">
                             <div class="bh-blog-product-note-icon" aria-hidden="true">
-                                <i class="bi bi-lightbulb" aria-hidden="true"></i>
+                                <i class="ti ti-bulb" aria-hidden="true"></i>
                             </div>
                             <div>
                                 <h2>Cómo usarlo en BeneHom</h2>

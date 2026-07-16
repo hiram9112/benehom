@@ -11,6 +11,7 @@ final class FormatoTest extends TestCase
     public function testFormateaCategoriaDesdeGastosIngresosYFallback(): void
     {
         self::assertSame('Alquiler o hipoteca', \formatearCategoria('alquiler_hipoteca'));
+        self::assertSame('Nómina', \formatearCategoria('nomina'));
         self::assertSame('Salario o nómina', \formatearCategoria('salario'));
         self::assertSame('Categoria Personalizada', \formatearCategoria('categoria_personalizada'));
     }

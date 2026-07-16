@@ -100,14 +100,14 @@ function bh_document_begin(array $opciones = []): void
 
     <title><?= htmlspecialchars($documentTitle, ENT_QUOTES, 'UTF-8') ?></title>
 
-    <link rel="icon" href="<?= BASE_URL ?>favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="16x16" href="<?= BASE_URL ?>favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="<?= BASE_URL ?>favicon-32x32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="<?= BASE_URL ?>apple-touch-icon.png">
+    <link rel="icon" href="<?= BASE_URL ?>img/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?= BASE_URL ?>img/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= BASE_URL ?>img/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= BASE_URL ?>img/apple-touch-icon.png">
     <link rel="manifest" href="<?= BASE_URL ?>site.webmanifest">
     <meta name="theme-color" content="#f5ead7">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/iconfont/tabler-icons.min.css" rel="stylesheet" crossorigin="anonymous">
 <?= bh_css_tags() ?>
 <?php if ($headExtra !== ''): ?>
 <?= $headExtra ?>
@@ -126,8 +126,11 @@ function bh_document_end(array $opciones = []): void
     $includeFlashJs = (bool) ($opciones['include_flash_js'] ?? false);
     $bodyEndExtra = (string) ($opciones['body_end_extra'] ?? '');
     ?>
+    <script src="<?= bh_asset('js/vendor/lenis/lenis.min.js') ?>"></script>
+    <script src="<?= bh_asset('js/lenis-init.js') ?>"></script>
 <?php if ($includeBootstrapJs): ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="<?= bh_asset('js/bh-components.js') ?>"></script>
 <?php endif; ?>
 <?php if ($includeFlashJs): ?>
     <script src="<?= bh_asset('js/flash.js') ?>"></script>

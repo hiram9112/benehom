@@ -1,5 +1,6 @@
 .env
 /vendor/
+/node_modules/
 .phpunit.result.cache
 coverage/
 
@@ -20,3 +21,5 @@ auditoria-seguridad.md
 auditoria-responsive.md
 auditoria-preproduccion.md
 auditoria-despliegue.md
+sprint-24-deuda.md
+planificación

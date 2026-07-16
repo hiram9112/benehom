@@ -44,10 +44,11 @@ final class AssetHelperTest extends TestCase
 
         $html = \bh_css_tags();
 
+        self::assertStringContainsString('/css/src/vendor/lenis.css?v=', $html);
         self::assertStringContainsString('/css/src/base.css?v=', $html);
         self::assertStringContainsString('/css/src/responsive.css?v=', $html);
         self::assertStringNotContainsString('/css/app.min.css', $html);
-        self::assertSame(11, substr_count($html, '<link rel="stylesheet"'));
+        self::assertSame(12, substr_count($html, '<link rel="stylesheet"'));
     }
 
     public function testCssTagsProductionCargaCssMinificado(): void

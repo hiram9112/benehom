@@ -1,23 +1,9 @@
-// Paleta BeneHom central — lee tokens de CSS con fallback
-const BH_COLORS = {
-  income:        getComputedStyle(document.documentElement).getPropertyValue('--bh-income').trim()        || '#33A64D',
-  incomeSoft:    getComputedStyle(document.documentElement).getPropertyValue('--bh-income-soft').trim()   || 'rgba(51,166,77,0.12)',
-  expense:       getComputedStyle(document.documentElement).getPropertyValue('--bh-expense').trim()       || '#B83E3E',
-  expenseSoft:   getComputedStyle(document.documentElement).getPropertyValue('--bh-expense-soft').trim()  || 'rgba(184,62,62,0.10)',
-  saving:        getComputedStyle(document.documentElement).getPropertyValue('--bh-saving').trim()        || '#3EB225',
-  savingSoft:    getComputedStyle(document.documentElement).getPropertyValue('--bh-saving-soft').trim()   || 'rgba(62,178,37,0.12)',
-  info:          getComputedStyle(document.documentElement).getPropertyValue('--bh-info').trim()          || '#163F7F',
-  infoSoft:      getComputedStyle(document.documentElement).getPropertyValue('--bh-info-soft').trim()     || 'rgba(22,63,127,0.08)',
-  neutral:       getComputedStyle(document.documentElement).getPropertyValue('--bh-neutral').trim()       || '#163F7F',
-  neutralSoft:   getComputedStyle(document.documentElement).getPropertyValue('--bh-neutral-soft').trim()  || '#E9F4EC',
-  textMain:      getComputedStyle(document.documentElement).getPropertyValue('--bh-text-main').trim()     || '#163F7F',
-  textMuted:     getComputedStyle(document.documentElement).getPropertyValue('--bh-text-muted').trim()    || 'rgba(22,63,127,0.72)',
-  borderColor:   getComputedStyle(document.documentElement).getPropertyValue('--bh-border-color').trim() || 'rgba(22,63,127,0.14)',
-  surfaceCard:   getComputedStyle(document.documentElement).getPropertyValue('--bh-surface-card').trim() || '#FDFEFD',
-};
+// Paleta BeneHom centralizada en chart-theme.js.
+const BH_CHART_THEME = window.BHChartTheme || {};
+const BH_COLORS = BH_CHART_THEME.colors || {};
 
 // Variable global para destruir gráficos al cambiar de mes
-let graficoPresupuesto = null;
+let graficoHistoriaMes = null;
 let graficoGastosFlexibles6m = null;
 let graficoGastosEsenciales6m = null;
 let graficoAhorros6m = null;
@@ -28,20 +14,74 @@ let indiceBarraActiva = 0;
 let datosInstantaneaInversion = null;
 let estadoInstantaneaInversion = { aportacion: 'todo', rentabilidad: '3' };
 let ultimoDisparadorInstantanea = null;
+let datosHistoriaMesActuales = null;
+const BH_HERO_CHART_MOBILE_QUERY = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(max-width: 640px)')
+  : null;
+window.bhDashboardHeroSeries = window.bhDashboardHeroSeries || {};
 
 // ----------------------------------------------------------------------
 // Helpers comunes
 // ----------------------------------------------------------------------
 
-const FONT_FAMILY = "'Nunito Sans', Arial, sans-serif";
-const BH_REDUCED_MOTION = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FONT_FAMILY = BH_CHART_THEME.fontFamily || "'Nunito Sans', Arial, sans-serif";
+const BH_REDUCED_MOTION = Boolean(BH_CHART_THEME.reducedMotion) || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 function formatearEuros(valor) {
   var numero = Number(valor) || 0;
   var opciones = Number.isInteger(numero)
-    ? { maximumFractionDigits: 0 }
+    ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
     : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+  if (window.BHMoney) {
+    return window.BHMoney.formatMoney(numero, opciones);
+  }
+
   return new Intl.NumberFormat('es-ES', opciones).format(numero) + ' \u20AC';
+}
+
+function formatearMesGrafico(valor) {
+  var partes = String(valor || '').split('-');
+  var year = Number(partes[0]);
+  var month = Number(partes[1]);
+
+  if (!year || !month) {
+    return String(valor || '');
+  }
+
+  var nombre = new Intl.DateTimeFormat('es-ES', { month: 'long' })
+    .format(new Date(year, month - 1, 1));
+
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1)+ " " + year;
+}
+
+function formatearMesEjeGrafico(valor) {
+  var partes = String(valor || '').split('-');
+  var year = Number(partes[0]);
+  var month = Number(partes[1]);
+
+  if (!year || !month) {
+    return String(valor || '');
+  }
+
+  var abrev = new Intl.DateTimeFormat('es-ES', { month: 'short' })
+    .format(new Date(year, month - 1, 1))
+    .replace('.', '')
+    .trim();
+
+  return abrev.charAt(0).toUpperCase() + abrev.slice(1);
+}
+
+function aplicarAbreviaturasMesEjeX(escalas) {
+  if (!escalas || !escalas.x || !escalas.x.ticks) return escalas;
+
+  escalas.x.ticks.callback = function (value) {
+    var label = this.getLabelForValue(value);
+
+    return formatearMesEjeGrafico(label);
+  };
+
+  return escalas;
 }
 
 function actualizarResumenGrafico(id, texto) {
@@ -58,11 +98,21 @@ function describirSerieEuros(labels, valores) {
   }
 
   return labels.map(function (label, index) {
-    return label + ': ' + formatearEuros(valores[index]);
+    return formatearMesGrafico(label) + ': ' + describirValorSerieEuros(valores[index]);
   }).join('; ') + '.';
 }
 
+function describirValorSerieEuros(valor) {
+  return valor === null || typeof valor === 'undefined'
+    ? 'sin datos'
+    : formatearEuros(valor);
+}
+
 function crearTooltipBeneHom() {
+  if (BH_CHART_THEME.tooltip) {
+    return BH_CHART_THEME.tooltip();
+  }
+
   return {
     backgroundColor: BH_COLORS.surfaceCard,
     titleColor: BH_COLORS.textMain,
@@ -77,6 +127,10 @@ function crearTooltipBeneHom() {
 }
 
 function crearLeyendaInferior() {
+  if (BH_CHART_THEME.legend) {
+    return BH_CHART_THEME.legend();
+  }
+
   return {
     position: 'bottom',
     labels: {
@@ -96,14 +150,14 @@ function crearEscalasConEuros(ocultarEjeX) {
       grid: { display: false },
       ticks: ocultarEjeX
         ? { display: false }
-        : { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMuted },
+        : { font: { family: FONT_FAMILY, size: 11, weight: '500' }, color: BH_COLORS.textMain },
     },
     y: {
       beginAtZero: true,
       grid: { color: BH_COLORS.borderColor },
       ticks: {
-        font: { family: FONT_FAMILY, size: 11 },
-        color: BH_COLORS.textMuted,
+        font: { family: FONT_FAMILY, size: 11, weight: '500' },
+        color: BH_COLORS.textMain,
         padding: 6,
         callback: function (value) {
           return formatearEuros(value);
@@ -123,6 +177,392 @@ function crearEscalasVaciasConEuros(ocultarEjeX) {
   return escalas;
 }
 
+function obtenerTokenDashboard(nombre, fallback) {
+  var valor = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  return valor || fallback || '';
+}
+
+function obtenerColorHoverChart(color) {
+  return window.Chart?.helpers?.getHoverColor
+    ? window.Chart.helpers.getHoverColor(color)
+    : color;
+}
+
+function crearItemsCascadaDashboard(valores) {
+  var ingresos = Number(valores.ingresos) || 0;
+  var esenciales = Number(valores.esenciales) || 0;
+  var flexibles = Number(valores.flexibles) || 0;
+  var posible = ingresos - esenciales;
+  var real = posible - flexibles;
+
+  return [
+    { label: 'Ingresos', start: 0, end: ingresos, value: ingresos, color: obtenerTokenDashboard('--bh-positive', BH_COLORS.positive) },
+    { label: 'Gastos esenciales', start: ingresos, end: posible, value: -esenciales, color: obtenerTokenDashboard('--bh-essential', BH_COLORS.essential) },
+    { label: 'Ahorro posible', start: 0, end: posible, value: posible, color: obtenerTokenDashboard('--bh-waterfall-subtotal-fill', BH_COLORS.positiveSoft), isSubtotal: true },
+    { label: 'Gastos flexibles', start: posible, end: real, value: -flexibles, color: obtenerTokenDashboard('--bh-flexible', BH_COLORS.flexible) },
+    { label: 'Ahorro real', start: 0, end: real, value: real, color: real < 0 ? obtenerTokenDashboard('--bh-negative', BH_COLORS.negative) : obtenerTokenDashboard('--bh-positive', BH_COLORS.positive) },
+  ];
+}
+
+function crearItemsCascadaFantasma() {
+  var ghostFill = obtenerTokenDashboard('--bh-border-color', BH_COLORS.borderColor);
+  var ghostBorder = obtenerTokenDashboard('--bh-border-strong', BH_COLORS.borderColor);
+  var labels = ['Ingresos', 'Gastos esenciales', 'Ahorro posible', 'Gastos flexibles', 'Ahorro real'];
+  var heights = [
+    { start: 0, end: 100 },
+    { start: 55, end: 100 },
+    { start: 0, end: 55 },
+    { start: 30, end: 55 },
+    { start: 0, end: 30 },
+  ];
+
+  return heights.map(function (h, i) {
+    return {
+      label: labels[i],
+      start: h.start,
+      end: h.end,
+      value: h.end - h.start,
+      color: ghostFill,
+      borderColor: ghostBorder,
+      ghost: true,
+    };
+  });
+}
+
+function calcularMaximoCascada(items) {
+  var maximo = items.reduce(function (actual, item) {
+    return Math.max(actual, Number(item.start) || 0, Number(item.end) || 0);
+  }, 0);
+  var paso = 400;
+
+  return Math.max(paso, Math.ceil(maximo / paso) * paso);
+}
+
+function formatearEurosCascada(valor, sinDecimales) {
+  var numero = Number(valor) || 0;
+  var opcionesEnteras = { maximumFractionDigits: 0 };
+
+  function formatearAbsoluto(cantidad) {
+    if (!sinDecimales) return formatearEuros(cantidad);
+
+    return new Intl.NumberFormat('es-ES', opcionesEnteras).format(cantidad) + ' €';
+  }
+
+  if (numero < 0) {
+    return '−' + formatearAbsoluto(Math.abs(numero));
+  }
+
+  return formatearAbsoluto(numero);
+}
+
+function esGraficoHistoriaMovil() {
+  return Boolean(BH_HERO_CHART_MOBILE_QUERY && BH_HERO_CHART_MOBILE_QUERY.matches);
+}
+
+function mesSeleccionadoResumen() {
+  if (typeof nombreMesResumen === 'function') {
+    return nombreMesResumen(document.getElementById('mes')?.value);
+  }
+
+  return 'este mes';
+}
+
+function hayMovimientosHistoriaMes(valores) {
+  return (Number(valores.ingresos) || 0) !== 0
+    || (Number(valores.gastosEsenciales) || 0) !== 0
+    || (Number(valores.gastosFlexibles) || 0) !== 0;
+}
+
+function crearGraficoCascadaDashboard(canvas, valores, opciones) {
+  if (!canvas || !window.Chart) return null;
+
+  var opcionesGrafico = opciones || {};
+  var graficoVacio = Boolean(opcionesGrafico.empty);
+  var esMovil = opcionesGrafico.mobile ?? esGraficoHistoriaMovil();
+  var items = graficoVacio
+    ? crearItemsCascadaFantasma()
+    : (Array.isArray(valores) ? valores : crearItemsCascadaDashboard(valores || {}));
+  var coloresBarras = items.map(function (item) {
+    return graficoVacio ? item.color : obtenerColorHoverChart(item.color);
+  });
+  var escalas = crearEscalasConEuros(false);
+  var maximoEscala = graficoVacio ? 100 : calcularMaximoCascada(items);
+
+  if (graficoVacio) {
+    escalas.y.min = 0;
+    escalas.y.max = 100;
+    escalas.y.grid = Object.assign({}, escalas.y.grid || {}, {
+      display: !esMovil,
+      color: obtenerTokenDashboard('--bh-border-color', BH_COLORS.borderColor),
+    });
+    escalas.y.ticks = Object.assign({}, escalas.y.ticks || {}, {
+      display: !esMovil,
+      stepSize: 25,
+      callback: function () { return ''; },
+    });
+  } else {
+    escalas.y.max = maximoEscala;
+    escalas.y.grid = Object.assign({}, escalas.y.grid || {}, { display: !esMovil });
+    escalas.y.ticks = Object.assign({}, escalas.y.ticks || {}, {
+      display: !esMovil,
+      precision: 0,
+      stepSize: 400,
+    });
+  }
+
+  escalas.y.border = Object.assign({}, escalas.y.border || {}, { display: false });
+  escalas.x.ticks = Object.assign({}, escalas.x.ticks || {}, {
+    autoSkip: false,
+    maxRotation: 0,
+    minRotation: 0,
+    callback: function (_value, index) {
+      var label = items[index] ? items[index].label : '';
+      var etiquetas = {
+        'Gastos esenciales': ['Gastos', 'esenciales'],
+        'Ahorro posible': ['Ahorro', 'posible'],
+        'Gastos flexibles': ['Gastos', 'flexibles'],
+        'Ahorro real': ['Ahorro', 'real'],
+      };
+
+      return etiquetas[label] || label;
+    },
+  });
+  var duracionAnimacionCascada = 1000;
+  var inicioAnimacionCascada = Date.now();
+  var esCascadaAnimada = !graficoVacio && !BH_REDUCED_MOTION;
+
+  function obtenerProgresoCascada() {
+    if (!esCascadaAnimada) return 1;
+    return Math.min(1, (Date.now() - inicioAnimacionCascada) / duracionAnimacionCascada);
+  }
+
+  var pluginEtiquetas = {
+    id: 'bhDashboardWaterfallLabels',
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx;
+      var meta = chart.getDatasetMeta(0);
+      var yScale = chart.scales.y;
+
+      if (yScale) {
+        var ceroY = yScale.getPixelForValue(0);
+
+        if (Number.isFinite(ceroY)) {
+          ctx.save();
+          ctx.strokeStyle = obtenerTokenDashboard('--bh-border-strong', BH_COLORS.borderColor);
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(chart.chartArea.left, ceroY);
+          ctx.lineTo(chart.chartArea.right, ceroY);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      if (meta.data.length >= 5 && yScale) {
+        var conectores = [
+          { from: 0, to: 1, value: items[0] ? items[0].end : 0 },
+          { from: 1, to: 2, value: items[1] ? items[1].end : 0 },
+          { from: 2, to: 3, value: items[2] ? items[2].end : 0 },
+          { from: 3, to: 4, value: items[3] ? items[3].end : 0 },
+        ];
+
+        ctx.save();
+        ctx.strokeStyle = graficoVacio
+          ? obtenerTokenDashboard('--bh-border-color', BH_COLORS.borderColor)
+          : obtenerTokenDashboard('--bh-text-muted', BH_COLORS.textMuted);
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.globalAlpha = obtenerProgresoCascada();
+
+        conectores.forEach(function (conector) {
+          var origen = meta.data[conector.from];
+          var destino = meta.data[conector.to];
+
+          if (!origen || !destino) return;
+
+          var fromItem = items[conector.from];
+          var endProp = fromItem.end >= fromItem.start ? 'y' : 'base';
+          var origenAnimated = origen.getProps(['x', 'width', endProp]);
+          var destinoProps = destino.getProps(['x', 'width'], true);
+          var y = origenAnimated[endProp];
+          var x1 = origenAnimated.x + (origenAnimated.width / 2);
+          var x2 = destinoProps.x - (destinoProps.width / 2);
+
+          if (!Number.isFinite(y) || x2 <= x1) return;
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y);
+          ctx.lineTo(x2, y);
+          ctx.stroke();
+        });
+
+        ctx.restore();
+      }
+
+      if (graficoVacio) return;
+
+      var alphaEtiquetas = Math.max(0, Math.min(1, (obtenerProgresoCascada() - 0.4) / 0.6));
+
+      if (alphaEtiquetas <= 0) return;
+
+      ctx.save();
+      ctx.globalAlpha = alphaEtiquetas;
+      ctx.fillStyle = BH_COLORS.textMain || obtenerTokenDashboard('--bh-text-main');
+      ctx.font = '600 ' + (esMovil ? '11px ' : '12px ') + FONT_FAMILY;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+
+      meta.data.forEach(function (bar, index) {
+        var item = items[index];
+        if (!item) return;
+
+        var value = item.value ?? ((Number(item.end) || 0) - (Number(item.start) || 0));
+        var props = bar.getProps(['x', 'y', 'base'], true);
+        var y = Math.max(12, Math.min(props.y, props.base) - 8);
+        ctx.fillText(formatearEurosCascada(value, esMovil), props.x, y);
+      });
+
+      ctx.restore();
+    },
+  };
+
+  return new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: items.map(function (item) { return item.label; }),
+      datasets: [{
+        data: items.map(function (item) { return [item.start, item.end]; }),
+        backgroundColor: coloresBarras,
+        hoverBackgroundColor: coloresBarras,
+        borderColor: items.map(function (item) { return item.borderColor || item.color; }),
+        borderWidth: graficoVacio ? 1 : 0,
+        borderRadius: 6,
+        borderSkipped: false,
+        barPercentage: esMovil ? 0.9 : 0.88,
+        categoryPercentage: esMovil ? 0.94 : 0.9,
+        maxBarThickness: esMovil ? 76 : 86,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      aspectRatio: 2,
+      animation: graficoVacio ? false : (BH_REDUCED_MOTION ? false : { duration: duracionAnimacionCascada, easing: 'easeOutQuart' }),
+      layout: { padding: esMovil ? { top: 26, right: 0, bottom: 0, left: 0 } : { top: 30, right: 4, bottom: 0, left: 4 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: graficoVacio ? { enabled: false } : Object.assign(crearTooltipBeneHom(), {
+          callbacks: {
+            title: function () {
+              return '';
+            },
+            label: function (context) {
+              var item = items[context.dataIndex];
+              if (!item) return '';
+
+              return item.label + ' · ' + formatearEurosCascada(item.value, false);
+            },
+          },
+        }),
+      },
+      scales: escalas,
+    },
+    plugins: [pluginEtiquetas],
+  });
+}
+
+function actualizarGraficoHistoriaMes(valores) {
+  var canvas = document.getElementById('graficoHistoriaMes');
+
+  if (!canvas) return;
+
+  datosHistoriaMesActuales = {
+    ingresos: valores.ingresos,
+    gastosEsenciales: valores.gastosEsenciales,
+    gastosFlexibles: valores.gastosFlexibles,
+    ahorroReal: valores.ahorroReal,
+  };
+
+  var tieneMovimientos = hayMovimientosHistoriaMes(datosHistoriaMesActuales);
+  var mes = mesSeleccionadoResumen();
+  var empty = document.getElementById('graficoHistoriaMesEmpty');
+  var emptyMes = document.getElementById('graficoHistoriaMesEmptyMes');
+
+  if (empty) empty.hidden = tieneMovimientos;
+  if (emptyMes) emptyMes.textContent = mes;
+
+  if (graficoHistoriaMes) { graficoHistoriaMes.destroy(); graficoHistoriaMes = null; }
+
+  graficoHistoriaMes = crearGraficoCascadaDashboard(
+    canvas,
+    tieneMovimientos
+      ? {
+          ingresos: valores.ingresos,
+          esenciales: valores.gastosEsenciales,
+          flexibles: valores.gastosFlexibles,
+        }
+      : { ingresos: 0, esenciales: 0, flexibles: 0 },
+    { empty: !tieneMovimientos, mobile: esGraficoHistoriaMovil() }
+  );
+
+  if (!tieneMovimientos) {
+    actualizarResumenGrafico(
+      'graficoHistoriaMesResumen',
+      'Aún no hay movimientos en ' + mes + '. Usa el botón para añadir el primer ingreso.'
+    );
+    return;
+  }
+
+  actualizarResumenGrafico(
+    'graficoHistoriaMesResumen',
+    'La historia del mes: ingresos ' + formatearEuros(valores.ingresos) +
+      ', gastos esenciales ' + formatearEuros(valores.gastosEsenciales) +
+      ', ahorro posible ' + formatearEuros((Number(valores.ingresos) || 0) - (Number(valores.gastosEsenciales) || 0)) +
+      ', gastos flexibles ' + formatearEuros(valores.gastosFlexibles) +
+      ' y ahorro real ' + formatearEuros(valores.ahorroReal) + '.'
+  );
+}
+
+function registrarResponsiveHistoriaMes() {
+  if (!BH_HERO_CHART_MOBILE_QUERY) return;
+
+  var regenerar = function () {
+    if (!datosHistoriaMesActuales) return;
+    actualizarGraficoHistoriaMes(datosHistoriaMesActuales);
+  };
+
+  if (typeof BH_HERO_CHART_MOBILE_QUERY.addEventListener === 'function') {
+    BH_HERO_CHART_MOBILE_QUERY.addEventListener('change', regenerar);
+  } else {
+    BH_HERO_CHART_MOBILE_QUERY.addListener(regenerar);
+  }
+}
+
+function registrarCtaHeroVacio() {
+  var cta = document.querySelector('[data-hero-empty-cta]');
+
+  if (!cta) return;
+
+  cta.addEventListener('click', function () {
+    var destino = document.getElementById('formMovimientoMes');
+
+    if (typeof window.bhSeleccionarTipoMovimiento === 'function') {
+      window.bhSeleccionarTipoMovimiento('ingreso');
+    }
+
+    var foco = document.getElementById('movimiento_area') || destino?.querySelector('select, input, textarea, button');
+
+    if (destino) {
+      destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (foco) {
+      window.setTimeout(function () { foco.focus({ preventScroll: true }); }, 450);
+    }
+  });
+}
+
 function crearEscalasHorizontalesVaciasConEuros() {
   return {
     x: {
@@ -132,19 +572,19 @@ function crearEscalasHorizontalesVaciasConEuros() {
       grid: { color: BH_COLORS.borderColor },
       ticks: {
         stepSize: 50,
-        font: { family: FONT_FAMILY, size: 11 },
-        color: BH_COLORS.textMuted,
+        font: { family: FONT_FAMILY, size: 11, weight: '500' },
+        color: BH_COLORS.textMain,
         callback: function (value) { return formatearEuros(value); },
       },
     },
-    y: {
-      grid: { display: false },
-      ticks: { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMain },
-    },
-  };
-}
+      y: {
+        grid: { display: false },
+        ticks: { font: { family: FONT_FAMILY, size: 11, weight: '500' }, color: BH_COLORS.textMain },
+      },
+    };
+  }
 
-function crearOpcionesGrafico(opts) {
+  function crearOpcionesGrafico(opts) {
   var plugins = {};
 
   if (opts.tooltip) {
@@ -170,6 +610,7 @@ function crearOpcionesGrafico(opts) {
   var opciones = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: BH_REDUCED_MOTION ? false : { duration: 1000, easing: 'easeOutQuart' },
     layout: {
       padding: { top: 5, bottom: 20, left: 0, right: 0 },
     },
@@ -186,42 +627,52 @@ function crearOpcionesGrafico(opts) {
   return opciones;
 }
 
-function filtrarMesesConValores(meses, valores) {
-  var mesesFiltrados = [];
-  var valoresFiltrados = [];
-
-  meses.forEach(function (mes, index) {
-    var valor = Number(valores[index]) || 0;
-
-    if (valor > 0) {
-      mesesFiltrados.push(mes);
-      valoresFiltrados.push(valor);
-    }
+function prepararSerieGastosConHuecos(meses, valores) {
+  var primerMesConDatos = valores.findIndex(function (valor) {
+    return (Number(valor) || 0) > 0;
   });
 
-  return { meses: mesesFiltrados, valores: valoresFiltrados };
+  if (primerMesConDatos === -1) {
+    return { meses: [], valores: [] };
+  }
+
+  return {
+    meses: meses.slice(primerMesConDatos),
+    valores: valores.slice(primerMesConDatos).map(function (valor) {
+      var numero = Number(valor) || 0;
+
+      return numero > 0 ? numero : null;
+    }),
+  };
 }
 
-function filtrarAhorrosConDatos(meses, ahorroPosible, ahorroReal, tieneDatos) {
-  var mesesFiltrados = [];
-  var posibleFiltrado = [];
-  var realFiltrado = [];
-
-  meses.forEach(function (mes, index) {
+function prepararSerieAhorrosConHuecos(meses, ahorroPosible, ahorroReal, tieneDatos) {
+  var datosPorMes = meses.map(function (_mes, index) {
     var posible = Number(ahorroPosible[index]) || 0;
     var real = Number(ahorroReal[index]) || 0;
     var hayDatos = Array.isArray(tieneDatos)
       ? Boolean(tieneDatos[index])
       : (posible !== 0 || real !== 0);
 
-    if (hayDatos) {
-      mesesFiltrados.push(mes);
-      posibleFiltrado.push(posible);
-      realFiltrado.push(real);
-    }
+    return { hayDatos: hayDatos, posible: posible, real: real };
+  });
+  var primerMesConDatos = datosPorMes.findIndex(function (dato) {
+    return dato.hayDatos;
   });
 
-  return { meses: mesesFiltrados, ahorroPosible: posibleFiltrado, ahorroReal: realFiltrado };
+  if (primerMesConDatos === -1) {
+    return { meses: [], ahorroPosible: [], ahorroReal: [] };
+  }
+
+  return {
+    meses: meses.slice(primerMesConDatos),
+    ahorroPosible: datosPorMes.slice(primerMesConDatos).map(function (dato) {
+      return dato.hayDatos ? dato.posible : null;
+    }),
+    ahorroReal: datosPorMes.slice(primerMesConDatos).map(function (dato) {
+      return dato.hayDatos ? dato.real : null;
+    }),
+  };
 }
 
 function redimensionarGraficoEvolucionGastos(tipo) {
@@ -476,11 +927,9 @@ function renderizarInstantaneaInversion() {
 }
 
 // ----------------------------------------------------------------------
-// Gráfico: Presupuesto mensual
+// Estado general del mes: totales, hero y cascada.
 // ----------------------------------------------------------------------
-async function cargarGraficoPresupuesto() {
-  var canvas = document.getElementById('graficoPresupuestoMensual');
-  var ctx = canvas.getContext('2d');
+async function cargarEstadoGeneralDashboard() {
   var mesSeleccionado = document.getElementById('mes').value;
   var datos = new FormData();
   datos.append('mes', mesSeleccionado);
@@ -499,63 +948,12 @@ async function cargarGraficoPresupuesto() {
 
     var valores = data.data;
     actualizarTotales(valores);
-    actualizarResumenGrafico(
-      'graficoPresupuestoMensualResumen',
-      'Presupuesto mensual: ingresos ' + formatearEuros(valores.ingresos) +
-        ', gastos totales ' + formatearEuros(valores.gastosTotales) +
-        ' y ahorro real ' + formatearEuros(valores.ahorroReal) + '.'
-    );
-
-    if (graficoPresupuesto) { graficoPresupuesto.destroy(); graficoPresupuesto = null; }
-
-    graficoPresupuesto = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Ingresos', 'Gastos totales', 'Ahorro real'],
-        datasets: [{
-          data: [valores.ingresos, valores.gastosTotales, valores.ahorroReal],
-          backgroundColor: [
-            BH_COLORS.income,
-            BH_COLORS.expense,
-            valores.ahorroReal >= 0 ? BH_COLORS.info : BH_COLORS.expense,
-          ],
-          borderRadius: 10,
-          barThickness: 28,
-        }],
-      },
-      options: crearOpcionesGrafico({
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              var nombres = ['Ingresos', 'Gastos totales', 'Ahorro real'];
-              return nombres[context.dataIndex] + ': ' + formatearEuros(context.parsed.y);
-            },
-          },
-        },
-        legend: {
-          position: 'bottom',
-          labels: {
-            font: { family: FONT_FAMILY, size: 12 },
-            color: BH_COLORS.textMain,
-            usePointStyle: true,
-            pointStyle: 'rectRounded',
-            boxWidth: 14,
-            padding: 14,
-            generateLabels: function () {
-              var colorAhorro = valores.ahorroReal >= 0 ? BH_COLORS.info : BH_COLORS.expense;
-              return [
-                { text: 'Ingresos',       fillStyle: BH_COLORS.income,  strokeStyle: BH_COLORS.income,  pointStyle: 'rectRounded' },
-                { text: 'Gastos totales', fillStyle: BH_COLORS.expense, strokeStyle: BH_COLORS.expense, pointStyle: 'rectRounded' },
-                { text: 'Ahorro real',    fillStyle: colorAhorro,       strokeStyle: colorAhorro,       pointStyle: 'rectRounded' },
-              ];
-            },
-          },
-        },
-        scales: crearEscalasConEuros(true),
-      }),
-    });
+    window.bhDashboardFlexibleShareLabel = valores.ingresos > 0
+      ? formatearPorcentaje((Number(valores.gastosFlexibles) / Number(valores.ingresos)) * 100) + ' %'
+      : '0 %';
+    actualizarGraficoHistoriaMes(valores);
   } catch (error) {
-    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar el gráfico.' });
+    abrirModalInfo({ titulo: 'Problema de conexión', mensaje: 'No se pudo contactar con el servidor para cargar los datos del mes.' });
   }
 }
 
@@ -584,9 +982,11 @@ async function cargarGraficoGastosFlexibles6m() {
 
     var meses = data.data.meses;
     var valores = data.data.valores;
-    var serie = filtrarMesesConValores(meses, valores);
+    var serie = prepararSerieGastosConHuecos(meses, valores);
     var graficoVacio = serie.valores.length === 0;
-    actualizarResumenVariacionGastos('flexible', serie.valores);
+    var chipFlex = document.getElementById('chipGastosFlexVacio');
+    if (chipFlex) chipFlex.hidden = !graficoVacio;
+    actualizarResumenVariacionGastos('flexible', valores, meses);
     actualizarResumenGrafico(
       'graficoGastosFlexibles6mResumen',
       'Evolución de gastos flexibles: ' + describirSerieEuros(serie.meses, serie.valores)
@@ -601,24 +1001,32 @@ async function cargarGraficoGastosFlexibles6m() {
         datasets: [{
           label: 'Gastos flexibles',
           data: serie.valores,
-          borderColor: BH_COLORS.expense,
-          backgroundColor: BH_COLORS.expenseSoft,
+          borderColor: BH_COLORS.flexible,
+          backgroundColor: BH_COLORS.flexibleSoft,
           borderWidth: 2,
           pointRadius: 4,
-          pointBackgroundColor: BH_COLORS.expense,
+          pointBackgroundColor: BH_COLORS.flexible,
+          spanGaps: false,
           tension: 0.35,
         }],
       },
       options: crearOpcionesGrafico({
         tooltip: {
           callbacks: {
+            title: function (items) {
+              var label = items && items[0] ? items[0].label : '';
+
+              return formatearMesGrafico(label);
+            },
             label: function (context) {
               return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },
         legend: false,
-        scales: graficoVacio ? crearEscalasVaciasConEuros(false) : crearEscalasConEuros(false),
+        scales: graficoVacio
+          ? crearEscalasVaciasConEuros(false)
+          : aplicarAbreviaturasMesEjeX(crearEscalasConEuros(false)),
       }),
     });
   } catch (error) {
@@ -651,9 +1059,11 @@ async function cargarGraficoGastosEsenciales6m() {
 
     var meses = data.data.meses;
     var valores = data.data.valores;
-    var serie = filtrarMesesConValores(meses, valores);
+    var serie = prepararSerieGastosConHuecos(meses, valores);
     var graficoVacio = serie.valores.length === 0;
-    actualizarResumenVariacionGastos('esencial', serie.valores);
+    var chipEsen = document.getElementById('chipGastosEsenVacio');
+    if (chipEsen) chipEsen.hidden = !graficoVacio;
+    actualizarResumenVariacionGastos('esencial', valores, meses);
     actualizarResumenGrafico(
       'graficoGastosEsenciales6mResumen',
       'Evolución de gastos esenciales: ' + describirSerieEuros(serie.meses, serie.valores)
@@ -668,24 +1078,32 @@ async function cargarGraficoGastosEsenciales6m() {
         datasets: [{
           label: 'Gastos esenciales',
           data: serie.valores,
-          borderColor: BH_COLORS.info,
-          backgroundColor: BH_COLORS.infoSoft,
+          borderColor: BH_COLORS.essential,
+          backgroundColor: BH_COLORS.essentialSoft,
           borderWidth: 2,
           pointRadius: 4,
-          pointBackgroundColor: BH_COLORS.info,
+          pointBackgroundColor: BH_COLORS.essential,
+          spanGaps: false,
           tension: 0.35,
         }],
       },
       options: crearOpcionesGrafico({
         tooltip: {
           callbacks: {
+            title: function (items) {
+              var label = items && items[0] ? items[0].label : '';
+
+              return formatearMesGrafico(label);
+            },
             label: function (context) {
               return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
           },
         },
         legend: false,
-        scales: graficoVacio ? crearEscalasVaciasConEuros(false) : crearEscalasConEuros(false),
+        scales: graficoVacio
+          ? crearEscalasVaciasConEuros(false)
+          : aplicarAbreviaturasMesEjeX(crearEscalasConEuros(false)),
       }),
     });
   } catch (error) {
@@ -715,10 +1133,19 @@ async function cargarGraficoAhorros6m() {
     var meses = data.data.meses;
     var ahorroPosible = data.data.ahorroPosible;
     var ahorroReal = data.data.ahorroReal;
-    var serie = filtrarAhorrosConDatos(meses, ahorroPosible, ahorroReal, data.data.tieneDatos);
+    var serie = prepararSerieAhorrosConHuecos(meses, ahorroPosible, ahorroReal, data.data.tieneDatos);
+    var graficoVacio = serie.meses.length === 0;
+    var coloresAhorroPosible = serie.ahorroPosible.map(function (v) {
+      return obtenerColorHoverChart(v >= 0 ? BH_COLORS.positiveSoft : BH_COLORS.negative);
+    });
+    var coloresAhorroReal = serie.ahorroReal.map(function (v) {
+      return obtenerColorHoverChart(v >= 0 ? BH_COLORS.positive : BH_COLORS.negative);
+    });
+    var chipAhorro = document.getElementById('chipAhorros6mVacio');
+    if (chipAhorro) chipAhorro.hidden = !graficoVacio;
     var resumenAhorro = serie.meses.length
       ? serie.meses.map(function (mes, index) {
-        return mes + ': ahorro posible ' + formatearEuros(serie.ahorroPosible[index]) + ', ahorro real ' + formatearEuros(serie.ahorroReal[index]);
+        return formatearMesGrafico(mes) + ': ahorro posible ' + describirValorSerieEuros(serie.ahorroPosible[index]) + ', ahorro real ' + describirValorSerieEuros(serie.ahorroReal[index]);
       }).join('; ') + '.'
       : 'No hay datos suficientes para mostrar la evolución del ahorro.';
 
@@ -734,18 +1161,16 @@ async function cargarGraficoAhorros6m() {
           {
             label: 'Ahorro posible',
             data: serie.ahorroPosible,
-            backgroundColor: serie.ahorroPosible.map(function (v) {
-              return v >= 0 ? BH_COLORS.income : BH_COLORS.expense;
-            }),
+            backgroundColor: coloresAhorroPosible,
+            hoverBackgroundColor: coloresAhorroPosible,
             barPercentage: 0.9,
             categoryPercentage: 0.6,
           },
           {
             label: 'Ahorro real',
             data: serie.ahorroReal,
-            backgroundColor: serie.ahorroReal.map(function (v) {
-              return v >= 0 ? BH_COLORS.info : BH_COLORS.expense;
-            }),
+            backgroundColor: coloresAhorroReal,
+            hoverBackgroundColor: coloresAhorroReal,
             barPercentage: 0.9,
             categoryPercentage: 0.6,
           },
@@ -754,6 +1179,11 @@ async function cargarGraficoAhorros6m() {
       options: crearOpcionesGrafico({
         tooltip: {
           callbacks: {
+            title: function (items) {
+              var label = items && items[0] ? items[0].label : '';
+
+              return formatearMesGrafico(label);
+            },
             label: function (context) {
               return context.dataset.label + ': ' + formatearEuros(context.parsed.y);
             },
@@ -769,15 +1199,21 @@ async function cargarGraficoAhorros6m() {
             boxWidth: 14,
             padding: 14,
             generateLabels: function () {
+              var colorPosible = obtenerColorHoverChart(BH_COLORS.positiveSoft);
+              var colorReal = obtenerColorHoverChart(BH_COLORS.positive);
+              var colorNegativo = obtenerColorHoverChart(BH_COLORS.negative);
+
               return [
-                { text: 'Ahorro posible (+)', fillStyle: BH_COLORS.income, strokeStyle: BH_COLORS.income, pointStyle: 'rectRounded' },
-                { text: 'Ahorro real (+)',     fillStyle: BH_COLORS.info, strokeStyle: BH_COLORS.info, pointStyle: 'rectRounded' },
-                { text: 'Valores negativos',    fillStyle: BH_COLORS.expense, strokeStyle: BH_COLORS.expense, pointStyle: 'rectRounded' },
+                { text: 'Ahorro posible (+)', fillStyle: colorPosible, strokeStyle: colorPosible, pointStyle: 'rectRounded' },
+                { text: 'Ahorro real (+)',     fillStyle: colorReal, strokeStyle: colorReal, pointStyle: 'rectRounded' },
+                { text: 'Valores negativos',    fillStyle: colorNegativo, strokeStyle: colorNegativo, pointStyle: 'rectRounded' },
               ];
             },
           },
         },
-        scales: crearEscalasConEuros(true),
+        scales: graficoVacio
+          ? crearEscalasVaciasConEuros(true)
+          : aplicarAbreviaturasMesEjeX(crearEscalasConEuros(false)),
       }),
     });
   } catch (error) {
@@ -827,9 +1263,10 @@ function renderizarGraficoEscalaHabitos() {
     return escalaHabitosActiva === 'anio' ? item.anual : item.mediaMensual;
   });
   var graficoVacio = valores.length === 0;
-  var colores = datosEscalaHabitos.map(function (_item, index) {
-    var paleta = [BH_COLORS.expense, BH_COLORS.info, BH_COLORS.saving, BH_COLORS.neutral, BH_COLORS.income];
-    return paleta[index % paleta.length];
+  var chipEscala = document.getElementById('chipEscalaHabitosVacio');
+  if (chipEscala) chipEscala.hidden = !graficoVacio;
+  var colores = datosEscalaHabitos.map(function () {
+    return BH_COLORS.flexible;
   });
   var tipoValor = escalaHabitosActiva === 'anio' ? 'proyección anual' : 'media mensual';
   var resumenEscala = labels.length
@@ -860,21 +1297,21 @@ function renderizarGraficoEscalaHabitos() {
         beginAtZero: true,
         grid: { color: BH_COLORS.borderColor },
         ticks: {
-          font: { family: FONT_FAMILY, size: 11 },
-          color: BH_COLORS.textMuted,
+          font: { family: FONT_FAMILY, size: 11, weight: '500' },
+          color: BH_COLORS.textMain,
           callback: function (value) { return formatearEuros(value); },
         },
       },
       y: {
         grid: { display: false },
-        ticks: { font: { family: FONT_FAMILY, size: 11 }, color: BH_COLORS.textMain },
+        ticks: { font: { family: FONT_FAMILY, size: 11, weight: '500' }, color: BH_COLORS.textMain },
       },
     },
   });
 
   opcionesEscalaHabitos.layout.padding.top = 28;
   opcionesEscalaHabitos.indexAxis = 'y';
-  opcionesEscalaHabitos.animation = BH_REDUCED_MOTION ? false : { duration: 180, easing: 'easeOutQuart' };
+  opcionesEscalaHabitos.animation = BH_REDUCED_MOTION ? false : { duration: 1000, easing: 'easeOutQuart' };
   opcionesEscalaHabitos.onHover = function (event, elementos) {
     if (event.native && event.native.target) {
       event.native.target.style.cursor = elementos.length ? 'pointer' : 'default';
@@ -906,9 +1343,13 @@ function renderizarGraficoEscalaHabitos() {
 }
 
 // Exponer globalmente
-window.cargarGraficoPresupuesto = cargarGraficoPresupuesto;
+window.cargarEstadoGeneralDashboard = cargarEstadoGeneralDashboard;
 window.cargarGraficoGastosFlexibles6m = cargarGraficoGastosFlexibles6m;
 window.cargarGraficoGastosEsenciales6m = cargarGraficoGastosEsenciales6m;
 window.cargarGraficoAhorros6m = cargarGraficoAhorros6m;
 window.cargarGraficoEscalaHabitos = cargarGraficoEscalaHabitos;
 window.abrirInstantaneaCategoria = abrirInstantaneaCategoria;
+window.crearGraficoCascadaDashboard = crearGraficoCascadaDashboard;
+
+registrarResponsiveHistoriaMes();
+registrarCtaHeroVacio();

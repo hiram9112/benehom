@@ -20,7 +20,7 @@ bh_auth_begin(
         <div class="bh-password-field">
             <input type="password" id="password" name="password" class="bh-input" autocomplete="new-password" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">
-                <i class="bi bi-eye" aria-hidden="true"></i>
+                <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
         </div>
     </div>
@@ -30,7 +30,7 @@ bh_auth_begin(
         <div class="bh-password-field">
             <input type="password" id="password_confirm" name="password_confirm" class="bh-input" autocomplete="new-password" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password_confirm" aria-label="Mostrar contraseña" aria-pressed="false">
-                <i class="bi bi-eye" aria-hidden="true"></i>
+                <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
         </div>
     </div>

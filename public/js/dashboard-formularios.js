@@ -1,186 +1,200 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // ----------------------------------------------------SECCIÓN Enventos submit
-  // Formularios-------------------------------------
-  // ----------------------------------------------------------------------------------------------------------------------------
+  const formMovimiento = document.getElementById("formMovimientoMes");
 
-  // ------------------------------------------Crear nuevo
-  // ingreso-------------------------------------------------- Seleccionamos el
-  // fomulario de ingresos
-  const formIngresos = document.getElementById("formIngresos");
+  if (!formMovimiento) {
+    return;
+  }
 
-  // Escuchamos el evento submit y usamos una función de tipo async para poder
-  // emplear el await
-  if (formIngresos) {
-    formIngresos.addEventListener("submit", async (e) => {
-      //evitamos que la pagina se recargue
-      e.preventDefault();
+  const tipoSelect = formMovimiento.querySelector("[data-movement-type]");
+  const submitButton = formMovimiento.querySelector("[data-movement-submit]");
+  const cantidadInput = document.getElementById("movimiento_cantidad");
+  const areaSelect = formMovimiento.querySelector("[data-area-select]");
+  const conceptSelect = formMovimiento.querySelector("[data-concept-select]");
+  const catalogo = window.BH_MOVIMIENTO_CATEGORIAS || {};
 
-      //capturamos los datos del formulario usando FormData
-      const datos = new FormData(formIngresos);
+  const configuracion = {
+    ingreso: {
+      endpoint: "index.php?r=ingreso/agregarAjax",
+      cantidad: "cantidad_ingreso",
+      categoria: "categoria_ingreso",
+      respuesta: "ingreso",
+      agregar: agregarIngresoAlDOM,
+      foco: "#movimiento_area",
+    },
+    esencial: {
+      endpoint: "index.php?r=gasto/agregarGastoEsencialAjax",
+      cantidad: "cantidad_gasto_esencial",
+      categoria: "categoria_gasto_esencial",
+      respuesta: "gasto_esencial",
+      agregar: agregarGastoEsencialAlDOM,
+      foco: "#movimiento_area",
+    },
+    flexible: {
+      endpoint: "index.php?r=gasto/agregarGastoFlexibleAjax",
+      cantidad: "cantidad_gasto_flexible",
+      categoria: "categoria_gasto_flexible",
+      respuesta: "gasto_flexible",
+      agregar: agregarGastoFlexibleAlDOM,
+      foco: "#movimiento_area",
+    },
+  };
 
-      try {
-        //Enviamos petición al servidor
-        const respuesta = await fetch("index.php?r=ingreso/agregarAjax", {
-          method: "POST",
-          body: datos,
-        });
+  function resetConcepto() {
+    if (!conceptSelect) return;
 
-        //Convertimos la respuesta a formato JSON
-        const data = await respuesta.json();
+    conceptSelect.innerHTML = '<option value="" selected disabled>Selecciona un concepto</option>';
+    conceptSelect.disabled = true;
+  }
 
-        //Si el servidor confirma éxito
-        if (data.ok) {
-          //LLamamos a la función auxiliar correpondiente
-          agregarIngresoAlDOM(data.ingreso);
+  function cargarConceptos(tipo) {
+    const grupo = catalogo[tipo]?.[areaSelect?.value];
 
-          //Actualizamos gráficos
-          cargarGraficoPresupuesto();
-          cargarGraficoGastosFlexibles6m();
-          cargarGraficoGastosEsenciales6m();
-          cargarGraficoAhorros6m();
-          cargarGraficoEscalaHabitos();
+    resetConcepto();
 
-          //Limpiamos campos  del formulario
-          formIngresos.reset();
-        } else {
-          abrirModalInfo({
-            titulo: "No se pudo completar la operación",
-            mensaje:
-              data.msg ||
-              "La operación no pudo completarse. Inténtalo de nuevo.",
-          });
-        }
-      } catch (error) {
-        abrirModalInfo({
-          titulo: "Problema de conexión",
-          mensaje:
-            "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
-        });
-      }
+    if (!grupo || !conceptSelect) {
+      return;
+    }
+
+    const conceptos = grupo.conceptos || grupo.items || {};
+
+    Object.entries(conceptos).forEach(([valor, label]) => {
+      const option = document.createElement("option");
+      option.value = valor;
+      option.textContent = label;
+      conceptSelect.appendChild(option);
+    });
+
+    conceptSelect.disabled = false;
+  }
+
+  function actualizarCatalogoCategorias(tipo) {
+    if (!areaSelect) return;
+
+    const grupos = catalogo[tipo] || {};
+    areaSelect.innerHTML = '<option value="" selected disabled>Selecciona un área</option>';
+    areaSelect.disabled = !tipo || !configuracion[tipo];
+    resetConcepto();
+
+    if (areaSelect.disabled) {
+      return;
+    }
+
+    Object.entries(grupos).forEach(([valor, grupo]) => {
+      const option = document.createElement("option");
+      option.value = valor;
+      option.textContent = grupo.label;
+      areaSelect.appendChild(option);
     });
   }
 
-  // ------------------------------------------Crear nuevo gasto
-  // esencial--------------------------------------- Seleccionamos el fomulario
-  // de gastos esenciales
-  const formGastosEsenciales = document.getElementById(
-    "formGastosEsenciales",
-  );
+  function actualizarFormularioMovimiento(tipo) {
+    actualizarCatalogoCategorias(tipo);
 
-  // Escuchamos el evento submit y usamos una función de tipo async para poder
-  // emplear el await
-  if (formGastosEsenciales) {
-    formGastosEsenciales.addEventListener("submit", async (e) => {
-      //evitamos que la pagina se recargue
-      e.preventDefault();
-
-      //capturamos los datos del formulario usando FormData
-      const datos = new FormData(formGastosEsenciales);
-
-      try {
-        //Enviamos petición al servidor
-        const respuesta = await fetch(
-          "index.php?r=gasto/agregarGastoEsencialAjax",
-          {
-            method: "POST",
-            body: datos,
-          },
-        );
-
-        //Convertimos la respuesta a formato JSON
-        const data = await respuesta.json();
-
-        //Si el servidor confirma éxito
-        if (data.ok) {
-          //LLamamos a la función auxiliar correpondiente
-          agregarGastoEsencialAlDOM(data.gasto_esencial);
-
-          //Actualizamos gráficos
-          cargarGraficoPresupuesto();
-          cargarGraficoGastosFlexibles6m();
-          cargarGraficoGastosEsenciales6m();
-          cargarGraficoAhorros6m();
-          cargarGraficoEscalaHabitos();
-
-          //Limpiamos campos  del formulario
-          formGastosEsenciales.reset();
-        } else {
-          abrirModalInfo({
-            titulo: "No se pudo completar la operación",
-            mensaje:
-              data.msg ||
-              "La operación no pudo completarse. Inténtalo de nuevo.",
-          });
-        }
-      } catch (error) {
-        abrirModalInfo({
-          titulo: "Problema de conexión",
-          mensaje:
-            "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
-        });
-      }
-    });
+    if (submitButton) {
+      submitButton.textContent = "+ Añadir";
+    }
   }
 
-  // ------------------------------------------Crear nuevo gasto
-  // flexible--------------------------------------- Seleccionamos el fomulario
-  // de gastos flexibles
-  const formGastosFlexibles = document.getElementById(
-    "formGastosFlexibles",
-  );
+  function crearDatosMovimiento(tipo) {
+    const config = configuracion[tipo] || configuracion.ingreso;
+    const datos = new FormData();
+    const csrf = formMovimiento.querySelector('[name="_csrf"]');
+    const mes = formMovimiento.querySelector('[name="mes_seleccionado"]');
 
-  // Escuchamos el evento submit y usamos una función de tipo async para poder
-  // emplear el await
-  if (formGastosFlexibles) {
-    formGastosFlexibles.addEventListener("submit", async (e) => {
-      //evitamos que la pagina se recargue
-      e.preventDefault();
+    if (csrf) datos.append("_csrf", csrf.value);
+    if (mes) datos.append("mes_seleccionado", mes.value);
+    if (conceptSelect) datos.append(config.categoria, conceptSelect.value);
+    if (cantidadInput) datos.append(config.cantidad, cantidadInput.value);
 
-      //capturamos los datos del formulario usando FormData
-      const datos = new FormData(formGastosFlexibles);
+    return datos;
+  }
 
-      try {
-        //Enviamos petición al servidor
-        const respuesta = await fetch(
-          "index.php?r=gasto/agregarGastoFlexibleAjax",
-          {
-            method: "POST",
-            body: datos,
-          },
-        );
+  function refrescarDashboard() {
+    cargarEstadoGeneralDashboard();
+    cargarGraficoGastosFlexibles6m();
+    cargarGraficoGastosEsenciales6m();
+    cargarGraficoAhorros6m();
+    cargarGraficoEscalaHabitos();
+  }
 
-        //Convertimos la respuesta a formato JSON
-        const data = await respuesta.json();
+  function enfocarPrimerCampo(tipo) {
+    const config = configuracion[tipo] || configuracion.ingreso;
+    const foco = formMovimiento.querySelector(config.foco) || cantidadInput;
 
-        //Si el servidor confirma éxito
-        if (data.ok) {
-          //LLamamos a la función auxiliar correpondiente
-          agregarGastoFlexibleAlDOM(data.gasto_flexible);
+    if (foco) {
+      window.setTimeout(() => foco.focus({ preventScroll: true }), 450);
+    }
+  }
 
-          //Actualizamos gráficos
-          cargarGraficoPresupuesto();
-          cargarGraficoGastosFlexibles6m();
-          cargarGraficoGastosEsenciales6m();
-          cargarGraficoAhorros6m();
-          cargarGraficoEscalaHabitos();
+  tipoSelect?.addEventListener("change", () => {
+    actualizarFormularioMovimiento(tipoSelect.value);
+    enfocarPrimerCampo(tipoSelect.value);
+  });
 
-          //Limpiamos campos  del formulario
-          formGastosFlexibles.reset();
-        } else {
-          abrirModalInfo({
-            titulo: "No se pudo completar la operación",
-            mensaje:
-              data.msg ||
-              "La operación no pudo completarse. Inténtalo de nuevo.",
-          });
-        }
-      } catch (error) {
+  areaSelect?.addEventListener("change", () => {
+    cargarConceptos(tipoSelect?.value || "");
+  });
+
+  document.querySelectorAll("[data-movimiento-atajo]").forEach((atajo) => {
+    atajo.addEventListener("click", () => {
+      const tipo = atajo.dataset.movimientoAtajo;
+
+      if (tipoSelect && configuracion[tipo]) {
+        tipoSelect.value = tipo;
+        actualizarFormularioMovimiento(tipo);
+      }
+
+      formMovimiento.scrollIntoView({ behavior: "smooth", block: "start" });
+      enfocarPrimerCampo(tipo);
+    });
+  });
+
+  window.bhSeleccionarTipoMovimiento = (tipo) => {
+    if (!tipoSelect || !configuracion[tipo]) return;
+
+    tipoSelect.value = tipo;
+    actualizarFormularioMovimiento(tipo);
+  };
+
+  formMovimiento.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!formMovimiento.reportValidity()) {
+      return;
+    }
+
+    const tipo = tipoSelect?.value || "ingreso";
+    const config = configuracion[tipo] || configuracion.ingreso;
+    const datos = crearDatosMovimiento(tipo);
+
+    try {
+      const respuesta = await fetch(config.endpoint, {
+        method: "POST",
+        body: datos,
+      });
+
+      const data = await respuesta.json();
+
+      if (data.ok) {
+        config.agregar(data[config.respuesta]);
+        refrescarDashboard();
+
+        formMovimiento.reset();
+        if (tipoSelect) tipoSelect.value = tipo;
+        actualizarFormularioMovimiento(tipo);
+      } else {
         abrirModalInfo({
-          titulo: "Problema de conexión",
-          mensaje:
-            "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+          titulo: "No se pudo completar la operación",
+          mensaje: data.msg || "La operación no pudo completarse. Inténtalo de nuevo.",
         });
       }
-    });
-  }
+    } catch (error) {
+      abrirModalInfo({
+        titulo: "Problema de conexión",
+        mensaje: "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+      });
+    }
+  });
+
+  actualizarFormularioMovimiento(tipoSelect?.value || "");
 });

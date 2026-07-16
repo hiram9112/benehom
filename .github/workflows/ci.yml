@@ -39,6 +39,18 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -56,6 +68,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Run design drift lint
+        run: composer lint:design
+
       - name: Run PHPUnit Unit and Integration suites
         run: composer test
 
@@ -65,5 +80,11 @@ jobs:
       - name: Build CSS
         run: composer build:css
 
-      - name: Ensure generated CSS is committed
-        run: git diff --exit-code public/css/app.min.css
+      - name: Ensure generated assets are committed
+        run: |
+          git diff --exit-code \
+            public/css/app.min.css \
+            public/js/vendor/gsap/gsap.min.js \
+            public/js/vendor/gsap/ScrollTrigger.min.js \
+            public/js/vendor/gsap/SplitText.min.js \
+            public/js/vendor/lenis/lenis.min.js

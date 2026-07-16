@@ -80,10 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (dashboardAside) {
     const actualizarStickyAside = () => {
       const offset = 16;
-      const top = Math.min(
-        offset,
-        window.innerHeight - dashboardAside.offsetHeight - offset,
-      );
+      const top = window.innerHeight - dashboardAside.offsetHeight - offset;
 
       dashboardAside.style.setProperty(
         "--bh-dashboard-aside-sticky-top",
@@ -99,85 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("resize", actualizarStickyAside);
     actualizarStickyAside();
   }
-
-  const summaryDetails = document.querySelector("[data-summary-details]");
-  const summaryInlineAnchor = document.querySelector(
-    "[data-summary-inline-anchor]",
-  );
-  const summaryOffcanvasSlot = document.querySelector(
-    "[data-summary-offcanvas-slot]",
-  );
-  const summaryOffcanvas = document.getElementById("resumenMensualPanel");
-
-  if (summaryDetails && summaryInlineAnchor && summaryOffcanvasSlot) {
-    const mobileSummaryQuery = window.matchMedia("(max-width: 767.98px)");
-
-    const syncSummaryPlacement = () => {
-      if (mobileSummaryQuery.matches) {
-        if (summaryDetails.parentElement !== summaryOffcanvasSlot) {
-          summaryOffcanvasSlot.appendChild(summaryDetails);
-        }
-
-        return;
-      }
-
-      if (summaryDetails.parentElement !== summaryInlineAnchor.parentElement) {
-        summaryInlineAnchor.before(summaryDetails);
-      }
-
-      if (summaryOffcanvas && typeof bootstrap !== "undefined") {
-        bootstrap.Offcanvas.getInstance(summaryOffcanvas)?.hide();
-      }
-    };
-
-    if (typeof mobileSummaryQuery.addEventListener === "function") {
-      mobileSummaryQuery.addEventListener("change", syncSummaryPlacement);
-    } else {
-      mobileSummaryQuery.addListener(syncSummaryPlacement);
-    }
-
-    syncSummaryPlacement();
-  }
-
-  let activeSummaryCard = null;
-  let summaryCardReturnTimer = null;
-
-  const closeActiveSummaryCard = () => {
-    if (!activeSummaryCard) {
-      return;
-    }
-
-    activeSummaryCard.classList.remove("is-flipped");
-    activeSummaryCard.setAttribute("aria-expanded", "false");
-    activeSummaryCard = null;
-    clearTimeout(summaryCardReturnTimer);
-    summaryCardReturnTimer = null;
-  };
-
-  document.querySelectorAll("[data-summary-flip]").forEach((card) => {
-    const alternarCard = () => {
-      if (activeSummaryCard === card) {
-        closeActiveSummaryCard();
-        return;
-      }
-
-      closeActiveSummaryCard();
-      card.classList.add("is-flipped");
-      card.setAttribute("aria-expanded", "true");
-      activeSummaryCard = card;
-      summaryCardReturnTimer = setTimeout(closeActiveSummaryCard, 30000);
-    };
-
-    card.addEventListener("click", alternarCard);
-    card.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") {
-        return;
-      }
-
-      event.preventDefault();
-      alternarCard();
-    });
-  });
 
 });
 
@@ -259,7 +177,7 @@ async function editarIngresoInline(span) {
         const nuevoSpan = document.createElement("span");
         nuevoSpan.textContent = formatearCantidad(nuevoValor);
         nuevoSpan.dataset.id = id;
-        nuevoSpan.classList.add("bh-movement-amount", "cantidad_ingreso");
+        nuevoSpan.classList.add("bh-movement-amount", "cantidad_ingreso", "bh-amount");
 
         //Reemplazamos el input con el span que contiene el nuevo valor
         input.replaceWith(nuevoSpan);
@@ -270,7 +188,7 @@ async function editarIngresoInline(span) {
         }
 
         //Actualizamos gráficos
-        window.cargarGraficoPresupuesto();
+        window.cargarEstadoGeneralDashboard();
         window.cargarGraficoGastosFlexibles6m();
         window.cargarGraficoGastosEsenciales6m();
         window.cargarGraficoAhorros6m();
@@ -374,12 +292,14 @@ async function editarGastoInline(span) {
             "bh-movement-amount",
             "cantidad_gasto_esencial",
             "cantidad_gasto",
+            "bh-amount",
           );
         } else {
           nuevoSpan.classList.add(
             "bh-movement-amount",
             "cantidad_gasto_flexible",
             "cantidad_gasto",
+            "bh-amount",
           );
         }
 
@@ -394,7 +314,7 @@ async function editarGastoInline(span) {
         );
 
         //Actualizamos gráficos
-        window.cargarGraficoPresupuesto();
+        window.cargarEstadoGeneralDashboard();
         window.cargarGraficoGastosFlexibles6m();
         window.cargarGraficoGastosEsenciales6m();
         window.cargarGraficoAhorros6m();
@@ -432,9 +352,29 @@ async function editarGastoInline(span) {
 
 // Inicializa el selector de mes/año con Flatpickr
 const mesInput = document.getElementById("mes");
+let mesPicker = null;
+
+function crearFechaMes(valor) {
+  const partes = String(valor || "").split("-");
+  const year = Number(partes[0]);
+  const monthIndex = Number(partes[1]) - 1;
+
+  if (!year || Number.isNaN(monthIndex)) {
+    return new Date();
+  }
+
+  return new Date(year, monthIndex, 1);
+}
+
+function formatearValorMes(fecha) {
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
 
 if (mesInput && window.flatpickr && window.monthSelectPlugin) {
-  flatpickr(mesInput, {
+  mesPicker = flatpickr(mesInput, {
     locale: "es",
     dateFormat: "Y-m", // Formato que espera el backend
     defaultDate: mesInput.value,
@@ -459,5 +399,23 @@ if (mesInput && window.flatpickr && window.monthSelectPlugin) {
     },
   });
 }
+
+document.querySelectorAll("[data-month-shift]").forEach((boton) => {
+  boton.addEventListener("click", () => {
+    if (!mesInput?.form) return;
+
+    const fecha = crearFechaMes(mesInput.value);
+    fecha.setMonth(fecha.getMonth() + Number(boton.dataset.monthShift || 0));
+    const nuevoMes = formatearValorMes(fecha);
+
+    mesInput.value = nuevoMes;
+
+    if (mesPicker) {
+      mesPicker.setDate(nuevoMes, false, "Y-m");
+    }
+
+    mesInput.form.submit();
+  });
+});
 
 

@@ -26,14 +26,73 @@
 
 .bh-projections-kicker{
     margin-bottom: var(--bh-space-2);
-    color: var(--bh-accent);
+    color: var(--bh-positive);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-bold);
     letter-spacing: 0.02em;
 }
 
 .bh-projections-intro-card h1{
-    margin-bottom: var(--bh-space-4);
+    margin-bottom: var(--bh-space-3);
+}
+
+.bh-projections-jump-nav{
+    position: static;
+    z-index: auto;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 0 var(--bh-space-4);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+.bh-projections-jump-nav .bh-jump-nav-list{
+    align-items: center;
+    gap: var(--bh-space-2);
+    padding: 0.15rem;
+}
+
+.bh-projections-jump-nav .bh-jump-nav-link{
+    min-height: 40px;
+    background-color: var(--bh-brand);
+    color: var(--bh-text-inverse);
+    box-shadow: none;
+    transform-origin: center;
+    transition:
+        background-color var(--bh-transition-base),
+        box-shadow var(--bh-transition-base),
+        color var(--bh-transition-base),
+        transform var(--bh-transition-base);
+}
+
+.bh-projections-jump-nav .bh-jump-nav-link:hover,
+.bh-projections-jump-nav .bh-jump-nav-link:focus-visible,
+.bh-projections-jump-nav .bh-jump-nav-link.is-active,
+.bh-projections-jump-nav .bh-jump-nav-link[aria-current="true"]{
+    background-color: var(--bh-brand-strong);
+    color: var(--bh-text-inverse);
+    box-shadow: none;
+    transform: scale(1.04);
+}
+
+.bh-projections-jump-nav .bh-jump-nav-link:focus-visible{
+    outline: 2px solid var(--bh-brand-strong);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce){
+    .bh-projections-jump-nav .bh-jump-nav-link{
+        transition: none;
+    }
+
+    .bh-projections-jump-nav .bh-jump-nav-link:hover,
+    .bh-projections-jump-nav .bh-jump-nav-link:focus-visible,
+    .bh-projections-jump-nav .bh-jump-nav-link.is-active,
+    .bh-projections-jump-nav .bh-jump-nav-link[aria-current="true"]{
+        transform: none;
+    }
 }
 
 .bh-projections-intro-card p{
@@ -59,9 +118,9 @@
 .bh-projections-savings-card{
     border-color: rgba(253, 254, 253, 0.18);
     background:
-        radial-gradient(circle at top right, rgba(233, 244, 236, 0.18), transparent 13rem),
+        radial-gradient(circle at top right, rgba(253, 254, 253, 0.14), transparent 13rem),
         var(--bh-brand-strong);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
 }
 
 .bh-projections-savings-card,
@@ -94,7 +153,7 @@
     align-items: center;
     min-height: 3.75rem;
     border-radius: var(--bh-radius-md);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-display);
     font-size: clamp(2.5rem, 5vw, 4.75rem);
     font-weight: var(--bh-weight-bold);
     line-height: 0.98;
@@ -184,7 +243,7 @@
     height: auto;
     min-height: 3.65rem;
     padding: 0.15rem 0.55rem;
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-display);
     font-size: clamp(2.15rem, 4.2vw, 3.55rem);
     font-weight: var(--bh-weight-bold);
     line-height: 0.98;
@@ -299,7 +358,7 @@
     background-color: var(--bh-surface-card);
     color: var(--bh-brand);
     border-color: var(--bh-border-strong);
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
 }
 
 .bh-projections-module-header .bh-btn-primary:focus-visible{
@@ -429,7 +488,7 @@
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-lg);
     background:
-        linear-gradient(135deg, rgba(233, 244, 236, 0.72), rgba(253, 254, 253, 0.96));
+        linear-gradient(135deg, var(--bh-surface-soft), var(--bh-surface-card));
     transition:
         border-color var(--bh-transition-base),
         box-shadow var(--bh-transition-base),
@@ -468,7 +527,7 @@
     gap: var(--bh-space-1);
     min-height: 2rem;
     padding: 0.2rem 0.35rem 0.2rem 0.6rem;
-    border: 1px solid rgba(62, 178, 37, 0.22);
+    border: 1px solid color-mix(in srgb, var(--bh-positive) 22%, transparent);
     border-radius: var(--bh-radius-pill);
     background-color: var(--bh-success-soft);
     color: var(--bh-brand-strong);
@@ -612,11 +671,11 @@
     gap: var(--bh-space-1);
     margin: 0;
     padding: var(--bh-space-4);
-    border: 1px solid rgba(22, 63, 127, 0.16);
+    border: 1px solid color-mix(in srgb, var(--bh-brand) 16%, transparent);
     border-radius: var(--bh-radius-md);
     background:
-        linear-gradient(90deg, rgba(22, 63, 127, 0.10), rgba(253, 254, 253, 0.88));
-    box-shadow: inset 3px 0 0 rgba(22, 63, 127, 0.26);
+        linear-gradient(90deg, color-mix(in srgb, var(--bh-brand) 10%, transparent), color-mix(in srgb, var(--bh-surface-card) 88%, transparent));
+    box-shadow: inset 3px 0 0 color-mix(in srgb, var(--bh-brand) 26%, transparent);
     color: var(--bh-brand-strong);
     line-height: var(--bh-line-normal);
 }
@@ -664,7 +723,7 @@
 .bh-meta-projection-title{
     margin: 0;
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-xl);
     font-weight: var(--bh-weight-semibold);
     line-height: var(--bh-line-tight);
@@ -698,7 +757,7 @@
 }
 
 .bh-select-shell .bh-select.is-saving-selected{
-    border-color: rgba(51, 166, 77, 0.34);
+    border-color: color-mix(in srgb, var(--bh-positive) 34%, transparent);
     color: var(--bh-success);
 }
 
@@ -709,8 +768,8 @@
 }
 
 .bh-meta-metrics p.is-projected{
-    border: 1px solid rgba(62, 178, 37, 0.22);
-    background-color: rgba(62, 178, 37, 0.10);
+    border: 1px solid color-mix(in srgb, var(--bh-positive) 22%, transparent);
+    background-color: color-mix(in srgb, var(--bh-positive) 10%, transparent);
     box-shadow: inset 0 0 0 1px rgba(253, 254, 253, 0.72);
 }
 
@@ -782,8 +841,8 @@
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-lg);
     background:
-        radial-gradient(circle at top right, rgba(62, 178, 37, 0.10), transparent 14rem),
-        linear-gradient(135deg, rgba(253, 254, 253, 0.96), rgba(233, 244, 236, 0.70));
+        radial-gradient(circle at top right, color-mix(in srgb, var(--bh-brand) 6%, transparent), transparent 14rem),
+        linear-gradient(135deg, color-mix(in srgb, var(--bh-surface-card) 96%, transparent), color-mix(in srgb, var(--bh-surface-soft) 70%, transparent));
     transition:
         border-color var(--bh-transition-base),
         box-shadow var(--bh-transition-base),
@@ -798,8 +857,8 @@
 .bh-inflation-card:focus-within,
 .bh-mortgage-card:hover,
 .bh-mortgage-card:focus-within{
-    border-color: rgba(22, 63, 127, 0.22);
-    box-shadow: 0 18px 38px rgba(22, 63, 127, 0.10);
+    border-color: var(--bh-border-strong);
+    box-shadow: none;
     transform: translateY(-3px);
 }
 
@@ -860,7 +919,7 @@
     padding: 0;
     background-color: transparent;
     color: var(--bh-brand-strong);
-    font-size: var(--bh-text-base);
+    font-size: var(--bh-text-md);
     line-height: 1;
     cursor: pointer;
     vertical-align: middle;
@@ -884,7 +943,7 @@
     padding: 0;
     background-color: transparent;
     color: var(--bh-brand-strong);
-    font-size: var(--bh-text-base);
+    font-size: var(--bh-text-md);
     line-height: 1;
     cursor: pointer;
     vertical-align: middle;
@@ -949,8 +1008,8 @@
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-md);
     background:
-        radial-gradient(circle at top right, rgba(22, 63, 127, 0.10), transparent 14rem),
-        linear-gradient(135deg, rgba(253, 254, 253, 0.98), rgba(233, 244, 236, 0.76));
+        radial-gradient(circle at top right, color-mix(in srgb, var(--bh-brand) 10%, transparent), transparent 14rem),
+        linear-gradient(135deg, color-mix(in srgb, var(--bh-surface-card) 98%, transparent), color-mix(in srgb, var(--bh-surface-soft) 76%, transparent));
 }
 
 .bh-inflation-result-panel[hidden]{
@@ -1000,6 +1059,10 @@
     color: var(--bh-text-main);
 }
 
+.bh-projections-page section[id]{
+    scroll-margin-top: 5rem;
+}
+
 .bh-projections-offcanvas .offcanvas-header{
     align-items: flex-start;
     padding: var(--bh-space-4);
@@ -1009,7 +1072,7 @@
 
 .bh-projections-offcanvas .offcanvas-title{
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-xl);
     font-weight: var(--bh-weight-semibold);
 }
@@ -1017,7 +1080,7 @@
 /* Titular informativo del sistema de amortización, encima del primer campo. */
 .bh-amortizacion-titular-text{
     color: var(--bh-brand-strong);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-md);
     font-weight: var(--bh-weight-semibold);
 }
@@ -1049,7 +1112,7 @@
 .bh-projections-investments .bh-input::placeholder,
 .bh-projections-inflation .bh-input::placeholder,
 .bh-projections-offcanvas .bh-input::placeholder{
-    color: rgba(22, 63, 127, 0.68);
+    color: var(--bh-text-muted);
 }
 
 .bh-projections-hero{

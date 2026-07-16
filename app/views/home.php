@@ -74,7 +74,7 @@ bh_document_begin([
             </div>
 
             <button class="bh-btn bh-btn-primary bh-btn-icon bh-home-mobile-trigger" type="button" data-bs-toggle="offcanvas" data-bs-target="#bh-home-mobile-menu" aria-controls="bh-home-mobile-menu" aria-label="Abrir menú">
-                <i class="bi bi-list" aria-hidden="true"></i>
+                <i class="ti ti-menu-2" aria-hidden="true"></i>
             </button>
         </div>
     </header>
@@ -85,7 +85,7 @@ bh_document_begin([
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar menú"></button>
         </div>
 
-        <div class="offcanvas-body">
+        <div class="offcanvas-body" data-lenis-prevent>
             <div class="logo-container text-center mb-4">
                 <a href="<?= BASE_URL ?>index.php" aria-label="BeneHom, ir al inicio">
                     <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="Logo Benehom" class="logo-benehom">
@@ -94,21 +94,22 @@ bh_document_begin([
 
             <nav aria-label="Navegación principal móvil">
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="#como-funciona"><i class="bi bi-map" aria-hidden="true"></i><span>Cómo funciona</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#funciones"><i class="bi bi-stars" aria-hidden="true"></i><span>Funciones</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#blog"><i class="bi bi-journal-text" aria-hidden="true"></i><span>Blog</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#faq"><i class="bi bi-question-circle" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#como-funciona"><i class="ti ti-map" aria-hidden="true"></i><span>Cómo funciona</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#funciones"><i class="ti ti-sparkles" aria-hidden="true"></i><span>Funciones</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#blog"><i class="ti ti-notebook" aria-hidden="true"></i><span>Blog</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faq"><i class="ti ti-help-circle" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
                 </ul>
             </nav>
 
             <div class="bh-home-mobile-access" aria-label="Acceso a cuenta">
-                <a class="bh-btn bh-home-mobile-login" href="<?= BASE_URL ?>index.php?r=auth/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i><span>Iniciar sesión</span></a>
-                <a class="bh-btn bh-home-mobile-signup" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario"><i class="bi bi-person-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
+                <a class="bh-btn bh-home-mobile-login" href="<?= BASE_URL ?>index.php?r=auth/login"><i class="ti ti-login" aria-hidden="true"></i><span>Iniciar sesión</span></a>
+                <a class="bh-btn bh-home-mobile-signup" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario"><i class="ti ti-user-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
             </div>
         </div>
     </div>
 
     <main id="contenido">
+        <div class="bh-home-first-fold">
         <!-- ============================ Hero ============================ -->
         <section class="bh-home-hero" aria-labelledby="hero-title">
             <div class="bh-home-wrap bh-home-hero-grid">
@@ -122,44 +123,45 @@ bh_document_begin([
                     <p class="bh-home-cta-note">Gratis y sin tarjeta. Sin conectar tu banco ni instalar nada.</p>
                 </div>
 
-                <div class="bh-home-hero-art bh-reveal">
-                    <div class="bh-home-mock bh-home-mock-ledger" role="img" aria-label="Ejemplo del resumen mensual de BeneHom: 2.450 euros de ingresos, 1.420 de gastos esenciales, 445 flexibles y un ahorro real de 585 euros, el 24 por ciento de lo que ha entrado">
+                <div class="bh-home-hero-art">
+                    <div class="bh-home-mock bh-home-mock-ledger" role="img" aria-label="Ejemplo de la historia del mes de BeneHom: 2.450 euros de ingresos, 1.420 euros de gastos esenciales, 1.030 euros de ahorro posible, 445 euros de gastos flexibles y 585 euros de ahorro real">
                         <div class="bh-home-mock-head">
-                            <h2>Resumen del mes</h2>
+                            <h2>La historia del mes</h2>
                             <span>Junio</span>
                         </div>
-                        <ul class="bh-home-mock-rows">
-                            <li>
-                                <div class="bh-home-mock-row-head">
-                                    <span>Ingresos</span>
-                                    <strong>2.450&nbsp;€</strong>
-                                </div>
-                                <div class="bh-home-mock-bar"><span class="is-income" style="--w:100%"></span></div>
-                            </li>
-                            <li>
-                                <div class="bh-home-mock-row-head">
-                                    <span>Gastos esenciales</span>
-                                    <strong>1.420&nbsp;€</strong>
-                                </div>
-                                <div class="bh-home-mock-bar"><span class="is-essential" style="--w:58%"></span></div>
-                            </li>
-                            <li>
-                                <div class="bh-home-mock-row-head">
-                                    <span>Gastos flexibles</span>
-                                    <strong>445&nbsp;€</strong>
-                                </div>
-                                <div class="bh-home-mock-bar"><span class="is-flexible" style="--w:18%"></span></div>
-                            </li>
-                        </ul>
-                        <div class="bh-home-mock-total">
-                            <span>Ahorro real del mes</span>
+                        <div class="bh-home-mock-chartlet">
+                            <svg class="bh-home-chart-svg" viewBox="0 0 360 168" role="img" aria-label="Gráfico de cascada con ingresos, gastos esenciales, ahorro posible, gastos flexibles y ahorro real">
+                                <line x1="16" y1="130" x2="344" y2="130" stroke="rgba(22,63,127,0.16)" stroke-width="1" />
+                                <line x1="64" y1="31" x2="94" y2="31" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <line x1="134" y1="88" x2="164" y2="88" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <line x1="204" y1="88" x2="234" y2="88" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <line x1="274" y1="106" x2="304" y2="106" stroke="rgba(22,63,127,0.34)" stroke-width="1" stroke-dasharray="4 4" />
+                                <rect x="24" y="31" width="40" height="99" rx="6" fill="var(--bh-positive)" />
+                                <rect x="94" y="31" width="40" height="57" rx="6" fill="var(--bh-essential)" />
+                                <rect x="164" y="88" width="40" height="42" rx="6" fill="var(--bh-positive-soft)" />
+                                <rect x="234" y="88" width="40" height="18" rx="6" fill="var(--bh-flexible)" />
+                                <rect x="304" y="106" width="40" height="24" rx="6" fill="var(--bh-positive)" />
+                                <text x="44" y="22" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">2.450€</text>
+                                <text x="114" y="22" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">−1.420€</text>
+                                <text x="184" y="79" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">1.030€</text>
+                                <text x="254" y="79" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">−445€</text>
+                                <text x="324" y="97" text-anchor="middle" fill="var(--bh-text-main)" font-size="12" font-weight="700">585€</text>
+                                <text x="44" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Ingresos</text>
+                                <text x="114" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Esenciales</text>
+                                <text x="184" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Posible</text>
+                                <text x="254" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Flexibles</text>
+                                <text x="324" y="154" text-anchor="middle" fill="var(--bh-brand)" font-size="10" font-weight="700">Real</text>
+                            </svg>
+                        </div>
+                        <div class="bh-home-mock-total is-positive">
+                            <span>Balance del mes</span>
                             <strong>585&nbsp;€</strong>
-                            <small>Un 24&nbsp;% de lo que ha entrado.</small>
+                            <small>Ahorro real de junio.</small>
                         </div>
                     </div>
 
                     <div class="bh-home-mock-slip" aria-hidden="true">
-                        <span class="bh-home-mock-slip-tag">Proyección guardada</span>
+                        <span class="bh-home-mock-slip-tag">Proyección simulada</span>
                         <p class="bh-home-mock-slip-q">¿Y si aparto 150&nbsp;€ al mes?</p>
                         <p class="bh-home-mock-slip-a">La meta de 3.600&nbsp;€ se cumpliría en 24 meses.</p>
                     </div>
@@ -203,6 +205,7 @@ bh_document_begin([
                 </ul>
             </div>
         </section>
+        </div>
 
         <!-- ========================= Beneficios ========================= -->
         <section class="bh-home-benefits" aria-labelledby="benefits-title">
@@ -265,17 +268,17 @@ bh_document_begin([
                     <p>Registra cada mes tal y como ha sido, sin maquillarlo, y deja que los números cuenten el resto. Lo que ya ha pasado y lo que te gustaría probar viven en espacios distintos.</p>
                 </div>
                 <ol class="bh-home-steps">
-                    <li class="bh-reveal">
+                    <li>
                         <span aria-hidden="true">1</span>
                         <h3>Apunta el mes</h3>
                         <p>Registra tus ingresos y tus gastos, separando lo esencial (vivienda, comida, suministros) de lo flexible (ocio, compras, extras).</p>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <span aria-hidden="true">2</span>
                         <h3>Lee tus números</h3>
                         <p>El panel compara cuánto podrías ahorrar con cuánto ahorras de verdad, y los gráficos muestran cómo evoluciona esa diferencia.</p>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <span aria-hidden="true">3</span>
                         <h3>Proyecta aparte</h3>
                         <p>Si una decisión te ronda la cabeza, ponle números en una proyección. Se guarda en su propio espacio y no toca nada de lo registrado.</p>
@@ -293,7 +296,7 @@ bh_document_begin([
                 </div>
 
                 <!-- Feature 1: registro -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Registro</span>
                         <h3>Apunta gastos esenciales y flexibles</h3>
@@ -333,7 +336,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 2: ahorro real vs posible -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Ahorro</span>
                         <h3>Ahorro posible y ahorro real</h3>
@@ -366,7 +369,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 3: proyecciones -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Proyecciones</span>
                         <h3>Un simulador para cada pregunta</h3>
@@ -397,7 +400,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 4: gráficos -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Gráficos</span>
                         <h3>Tu dinero, desde varios ángulos</h3>
@@ -456,7 +459,7 @@ bh_document_begin([
                 </article>
 
                 <!-- Feature 5: invertir en vez de gastar -->
-                <article class="bh-home-feature bh-reveal">
+                <article class="bh-home-feature">
                     <div class="bh-home-feature-text">
                         <span class="bh-home-feature-tag">Inversión</span>
                         <h3>¿Y si lo inviertes en vez de gastarlo?</h3>
@@ -469,18 +472,18 @@ bh_document_begin([
                         </ul>
                     </div>
                     <div class="bh-home-feature-art">
-                        <div class="bh-home-mock bh-home-mock-sim" role="img" aria-label="Ejemplo de simulación educativa: invertir los 90 euros mensuales que se gastan en ocio podría llegar a 6.200 euros en cinco años y a 26.200 euros en quince años">
+                        <div class="bh-home-mock bh-home-mock-sim" role="img" aria-label="Ejemplo de simulación educativa: invertir todo el gasto de ocio, 90 euros al mes, con una rentabilidad orientativa del 3 por ciento podría llegar a 5.812 euros en cinco años y a 20.362 euros en quince años">
                             <span class="bh-home-mock-slip-tag">Simulación educativa</span>
                             <p class="bh-home-mock-slip-q">Si invirtieras tu gasto de ocio: 90&nbsp;€ al mes.</p>
                             <div class="bh-home-mock-bar"><span class="is-flexible" style="--w:70%"></span></div>
                             <div class="bh-home-mock-sim-result">
-                                <div><span>A 5 años</span><strong>6.200&nbsp;€</strong></div>
-                                <div><span>A 15 años</span><strong class="is-pos">26.200&nbsp;€</strong></div>
+                                <div><span>A 5 años</span><strong>5.812&nbsp;€</strong></div>
+                                <div><span>A 15 años</span><strong class="is-pos">20.362&nbsp;€</strong></div>
                             </div>
                             <div class="bh-home-mock-chips">
                                 <span>Todo</span>
                                 <span>La mitad</span>
-                                <span>3%</span>
+                                <span class="is-active">3%</span>
                                 <span>6%</span>
                                 <span>9%</span>
                             </div>
@@ -526,9 +529,9 @@ bh_document_begin([
         <!-- ===================== Por qué importa ===================== -->
         <section class="bh-home-belief" id="por-que" aria-labelledby="belief-title">
             <div class="bh-home-wrap">
-                <div class="bh-home-belief-inner bh-reveal">
+                <div class="bh-home-belief-inner">
                     <span class="bh-home-belief-rule" aria-hidden="true"></span>
-                    <h2 id="belief-title">Entender tu dinero no es un lujo. Es lo que te deja vivir tranquilo.</h2>
+                    <h2 id="belief-title">Entender tu dinero no es un lujo. Es lo que te permite vivir tranquilo.</h2>
                     <p>Casi nunca descuadra el mes una gran decisión, sino muchas pequeñas que nunca paramos a mirar. Cuando ves tus cuentas con calma, el «a ver si este mes ahorro» se convierte en saber cuánto te queda y por qué.</p>
                     <p class="bh-home-belief-close">Para eso está BeneHom: para que mirar tus cuentas sea sencillo, y decidir, cosa tuya.</p>
                 </div>
@@ -544,7 +547,7 @@ bh_document_begin([
                     <p class="bh-home-security-note">¿Quieres una copia de tus datos? Escríbenos a <a href="mailto:benehom_web@gmail.com">benehom_web@gmail.com</a>.</p>
                 </div>
                 <ul class="bh-home-security-list">
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <rect x="4" y="10" width="16" height="10" rx="2" />
                             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
@@ -554,7 +557,7 @@ bh_document_begin([
                             <p>Guardamos tus contraseñas cifradas, nunca en texto plano.</p>
                         </div>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="12" cy="12" r="9" />
                             <path d="M5 12h14" />
@@ -565,7 +568,7 @@ bh_document_begin([
                             <p>No compartimos ni vendemos tu información a terceros con fines publicitarios.</p>
                         </div>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M5 7h14" />
                             <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
@@ -576,7 +579,7 @@ bh_document_begin([
                             <p>Borra tu cuenta y todos tus datos cuando quieras, sin tener que pedir permiso.</p>
                         </div>
                     </li>
-                    <li class="bh-reveal">
+                    <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <rect x="3" y="4" width="8" height="16" rx="1.5" />
                             <rect x="13" y="4" width="8" height="16" rx="1.5" />
@@ -695,7 +698,13 @@ bh_document_begin([
     </button>
 
 <?php
+$bhHomeGsapScripts =
+    '    <script src="' . bh_asset('js/vendor/gsap/gsap.min.js') . '"></script>' . PHP_EOL .
+    '    <script src="' . bh_asset('js/vendor/gsap/ScrollTrigger.min.js') . '"></script>' . PHP_EOL .
+    '    <script src="' . bh_asset('js/vendor/gsap/SplitText.min.js') . '"></script>' . PHP_EOL .
+    '    <script src="' . bh_asset('js/home.js') . '" defer></script>' . PHP_EOL;
+
 bh_document_end([
     'include_bootstrap_js' => true,
-    'body_end_extra' => '    <script src="' . bh_asset('js/home.js') . '" defer></script>' . PHP_EOL,
+    'body_end_extra' => $bhHomeGsapScripts,
 ]);

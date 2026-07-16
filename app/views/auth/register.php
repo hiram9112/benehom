@@ -26,11 +26,17 @@ bh_auth_begin(
     <div class="bh-field">
         <label for="password" class="bh-label">Contraseña:</label>
         <div class="bh-password-field">
-            <input type="password" class="bh-input" name="password" id="password" autocomplete="new-password" required>
+            <input type="password" class="bh-input" name="password" id="password" autocomplete="new-password" aria-describedby="registerPasswordRequisitos" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">
-                <i class="bi bi-eye" aria-hidden="true"></i>
+                <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
         </div>
+        <ul class="bh-password-requirements" id="registerPasswordRequisitos" data-bh-password-requirements="password">
+            <li data-req="length"><i class="ti ti-circle" aria-hidden="true"></i><span>Al menos 8 caracteres</span></li>
+            <li data-req="upper"><i class="ti ti-circle" aria-hidden="true"></i><span>Una letra mayúscula</span></li>
+            <li data-req="lower"><i class="ti ti-circle" aria-hidden="true"></i><span>Una letra minúscula</span></li>
+            <li data-req="number"><i class="ti ti-circle" aria-hidden="true"></i><span>Un número</span></li>
+        </ul>
     </div>
 
     <div class="bh-field">
@@ -38,7 +44,7 @@ bh_auth_begin(
         <div class="bh-password-field">
             <input type="password" class="bh-input" name="password_confirm" id="password_confirm" autocomplete="new-password" required>
             <button class="bh-btn bh-btn-icon bh-btn-ghost bh-password-toggle" type="button" data-bh-password-toggle="password_confirm" aria-label="Mostrar contraseña" aria-pressed="false">
-                <i class="bi bi-eye" aria-hidden="true"></i>
+                <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
         </div>
     </div>

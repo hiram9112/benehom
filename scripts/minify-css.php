@@ -10,6 +10,7 @@ $sourceDir = $basePath . '/public/css/src';
 $outputFile = $basePath . '/public/css/app.min.css';
 
 $cssFiles = [
+    'vendor/lenis.css',
     'base.css',
     'layout.css',
     'components.css',
@@ -49,6 +50,8 @@ try {
     fwrite(STDERR, "CSS minification failed: {$exception->getMessage()}\n");
     exit(1);
 }
+
+$minifiedCss = str_replace('../../assets/', '../assets/', $minifiedCss);
 
 $header = "/* Generated file. Do not edit manually. Run composer build:css. */\n";
 $temporaryFile = $outputFile . '.tmp';

@@ -56,7 +56,7 @@
     align-self: stretch;
     align-items: stretch;
     background:
-        radial-gradient(circle at top right, rgba(62, 178, 37, 0.08), transparent 16rem),
+        radial-gradient(circle at top right, color-mix(in srgb, var(--bh-brand) 6%, transparent), transparent 16rem),
         var(--bh-surface-card);
 }
 
@@ -114,7 +114,7 @@
     min-width: min(20rem, 100%);
 }
 
-.bh-blog-search > .bi{
+.bh-blog-search > .ti{
     position: absolute;
     left: var(--bh-space-3);
     color: var(--bh-text-muted);
@@ -260,7 +260,7 @@
 .bh-blog-meta-list strong,
 .bh-blog-detail-meta strong{
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-lg);
     font-weight: var(--bh-weight-semibold);
 }
@@ -313,7 +313,7 @@
 .bh-blog-article-card:focus-within{
     border-color: var(--bh-brand-strong);
     background-color: var(--bh-brand-strong);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
     color: var(--bh-text-inverse);
     transform: translateY(-2px);
 }
@@ -399,7 +399,7 @@
     padding: clamp(var(--bh-space-4), 4vw, var(--bh-space-7));
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-lg);
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
 }
 
 .bh-blog-detail-hero{
@@ -544,7 +544,7 @@
 .bh-blog-related-card:focus-visible{
     color: var(--bh-text-main);
     border-color: var(--bh-brand-strong);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
     transform: translateY(-2px);
 }
 

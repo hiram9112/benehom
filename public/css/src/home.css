@@ -28,7 +28,6 @@
 .bh-js .bh-reveal{
     opacity: 0;
     transform: translateY(22px);
-    will-change: opacity, transform;
 }
 
 .bh-js .bh-reveal.is-in{
@@ -53,7 +52,7 @@
     top: 0;
     z-index: 40;
     padding-block: var(--bh-space-2);
-    border-bottom: 1px solid rgba(22, 63, 127, 0.08);
+    border-bottom: 1px solid color-mix(in srgb, var(--bh-brand) 8%, transparent);
     background-color: rgba(253, 254, 253, 0.85);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
@@ -86,7 +85,7 @@
 }
 
 .bh-home-nav-links a{
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-semibold);
     text-decoration: none;
@@ -95,7 +94,7 @@
 .bh-home-nav-links a:hover{
     color: var(--bh-brand-strong);
     text-decoration: underline;
-    text-decoration-color: var(--bh-saving);
+    text-decoration-color: var(--bh-brand-strong);
     text-underline-offset: 0.4em;
 }
 
@@ -143,10 +142,10 @@
 }
 
 .bh-home-mobile-signup{
-    border-color: var(--bh-color-ivory);
-    background-color: var(--bh-color-ivory);
+    border-color: var(--bh-surface-card);
+    background-color: var(--bh-surface-card);
     color: var(--bh-brand-strong);
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
 }
 
 .bh-home-mobile-signup:hover,
@@ -158,8 +157,26 @@
 
 /* --- Hero --- */
 
+.bh-home-first-fold{
+    --bh-nav-height: 4.75rem;
+}
+
+@media (min-width: 992px){
+    .bh-home-first-fold{
+        min-height: calc(100svh - var(--bh-nav-height));
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+    }
+
+    .bh-home-first-fold > .bh-home-hero{
+        min-height: 0;
+        display: flex;
+        align-items: center;
+    }
+}
+
 .bh-home-hero{
-    padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(2rem, 5vw, 3.5rem);
+    padding-block: clamp(2rem, 4vw, 2.5rem) clamp(2rem, 5vw, 3.5rem);
 }
 
 .bh-home-hero-grid{
@@ -175,7 +192,7 @@
 
 .bh-home-hero h1{
     margin: 0 0 var(--bh-space-4);
-    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-size: clamp(2.4rem, 5vw, 4rem);
     line-height: 1.04;
     letter-spacing: -0.02em;
     text-wrap: balance;
@@ -184,7 +201,7 @@
 .bh-home-lead{
     max-width: 36rem;
     margin: 0 0 var(--bh-space-5);
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: clamp(1.05rem, 1.4vw, 1.2rem);
     line-height: 1.6;
     text-wrap: pretty;
@@ -218,8 +235,8 @@
     z-index: -1;
     border-radius: 44px;
     background:
-        radial-gradient(120% 120% at 80% 8%, rgba(62, 178, 37, 0.18), transparent 60%),
-        radial-gradient(120% 120% at 6% 92%, rgba(22, 63, 127, 0.10), transparent 55%);
+        radial-gradient(120% 120% at 80% 8%, color-mix(in srgb, var(--bh-brand) 8%, transparent), transparent 60%),
+        radial-gradient(120% 120% at 6% 92%, color-mix(in srgb, var(--bh-brand) 10%, transparent), transparent 55%);
 }
 
 /* --- Mockups del producto (CSS/SVG) --- */
@@ -227,10 +244,10 @@
 .bh-home-mock{
     min-width: 0;
     padding: clamp(1.25rem, 2.5vw, 1.75rem);
-    border: 1px solid rgba(22, 63, 127, 0.10);
+    border: 1px solid color-mix(in srgb, var(--bh-brand) 10%, transparent);
     border-radius: var(--bh-radius-lg);
     background-color: var(--bh-surface-card);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
 }
 
 .bh-home-mock-head{
@@ -246,7 +263,7 @@
 .bh-home-mock-head h4{
     margin: 0;
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: 1.2rem;
 }
 
@@ -284,7 +301,7 @@
 }
 
 .bh-home-mock-row-head span{
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-semibold);
     overflow-wrap: anywhere;
@@ -304,7 +321,7 @@
 .bh-home-mock-bar{
     height: 0.5rem;
     border-radius: var(--bh-radius-pill);
-    background-color: rgba(22, 63, 127, 0.08);
+    background-color: color-mix(in srgb, var(--bh-brand) 8%, transparent);
     overflow: hidden;
 }
 
@@ -317,9 +334,9 @@
 }
 
 .bh-home-mock-bar .is-income{ background-color: var(--bh-income); }
-.bh-home-mock-bar .is-essential{ background-color: var(--bh-expense); }
-.bh-home-mock-bar .is-flexible{ background-color: rgba(184, 62, 62, 0.5); }
-.bh-home-mock-bar .is-possible{ background-color: rgba(62, 178, 37, 0.35); }
+.bh-home-mock-bar .is-essential{ background-color: var(--bh-essential); }
+.bh-home-mock-bar .is-flexible{ background-color: var(--bh-flexible); }
+.bh-home-mock-bar .is-possible{ background-color: var(--bh-positive-soft); }
 .bh-home-mock-bar .is-real{ background-color: var(--bh-saving); }
 
 .bh-home-mock-total{
@@ -328,21 +345,29 @@
     margin-top: var(--bh-space-4);
     padding: var(--bh-space-4) clamp(var(--bh-space-3), 4vw, var(--bh-space-5));
     border-radius: var(--bh-radius-md);
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
 }
 
 .bh-home-mock-total span,
 .bh-home-mock-total small{
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-semibold);
 }
 
 .bh-home-mock-total strong{
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-display);
     font-size: clamp(1.8rem, 3vw, 2.3rem);
     line-height: 1.05;
+}
+
+.bh-home-mock-total.is-positive{
+    background-color: var(--bh-positive-soft);
+}
+
+.bh-home-mock-total.is-positive strong{
+    color: var(--bh-positive-ink);
 }
 
 /* Slip / proyeccion */
@@ -357,7 +382,7 @@
     bottom: -1.75rem;
     width: min(16rem, 72%);
     background-color: var(--bh-brand-strong);
-    box-shadow: var(--bh-shadow-raised);
+    box-shadow: var(--bh-shadow-modal);
 }
 
 .bh-home-mock-slip-tag{
@@ -383,7 +408,7 @@
 .bh-home-mock-slip-q{
     margin: 0 0 0.35rem;
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: 1.1rem;
     font-weight: var(--bh-weight-semibold);
     line-height: 1.2;
@@ -391,12 +416,12 @@
 
 .bh-home-mock-slip-a{
     margin: 0;
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     line-height: 1.45;
 }
 
-.bh-home-hero-art .bh-home-mock-slip .bh-home-mock-slip-tag{ color: #BBE8C2; }
+.bh-home-hero-art .bh-home-mock-slip .bh-home-mock-slip-tag{ color: var(--bh-positive-soft); }
 .bh-home-hero-art .bh-home-mock-slip .bh-home-mock-slip-q{ color: var(--bh-text-inverse); }
 .bh-home-hero-art .bh-home-mock-slip .bh-home-mock-slip-a{ color: rgba(253, 254, 253, 0.84); }
 
@@ -419,7 +444,7 @@
     width: 8rem;
     height: 8rem;
     border-radius: 50%;
-    background: conic-gradient(var(--bh-saving) calc(var(--p, 75) * 1%), rgba(22, 63, 127, 0.12) 0);
+    background: conic-gradient(var(--bh-saving) calc(var(--p, 75) * 1%), color-mix(in srgb, var(--bh-brand) 12%, transparent) 0);
     position: relative;
 }
 
@@ -439,7 +464,7 @@
 
 .bh-home-mock-ring strong{
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-display);
     font-size: 2rem;
     line-height: 1;
 }
@@ -481,18 +506,18 @@
     gap: 0.2rem;
     padding: var(--bh-space-4);
     border-radius: var(--bh-radius-md);
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
 }
 
 .bh-home-mock-sim-result span{
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-semibold);
 }
 
 .bh-home-mock-sim-result strong{
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: 1.3rem;
 }
 
@@ -506,16 +531,17 @@
 
 .bh-home-mock-chips span{
     padding: 0.3rem 0.7rem;
-    border: 1px solid rgba(22, 63, 127, 0.14);
+    border: 1px solid color-mix(in srgb, var(--bh-brand) 14%, transparent);
     border-radius: var(--bh-radius-pill);
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-semibold);
 }
 
-.bh-home-mock-chips span:first-child{
+.bh-home-mock-chips span:first-child,
+.bh-home-mock-chips span.is-active{
     border-color: transparent;
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
     color: var(--bh-brand-strong);
 }
 
@@ -537,7 +563,7 @@
 }
 
 .bh-home-mock-chartlet-label{
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-semibold);
 }
@@ -560,7 +586,7 @@
 
 .bh-home-trust{
     padding-block: clamp(1.25rem, 3vw, 1.75rem);
-    border-block: 1px solid rgba(22, 63, 127, 0.08);
+    border-block: 1px solid color-mix(in srgb, var(--bh-brand) 8%, transparent);
     background-color: var(--bh-surface-soft);
 }
 
@@ -579,7 +605,7 @@
     align-items: center;
     gap: 0.6rem;
     margin: 0;
-    color: rgba(22, 63, 127, 0.88);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     font-weight: var(--bh-weight-semibold);
 }
@@ -588,7 +614,7 @@
     flex: none;
     width: 1.3rem;
     height: 1.3rem;
-    color: var(--bh-income);
+    color: var(--bh-brand);
 }
 
 /* --- Encabezados de seccion --- */
@@ -609,7 +635,7 @@
 
 .bh-home-section-head p{
     margin: 0;
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     line-height: 1.6;
     text-wrap: pretty;
 }
@@ -636,7 +662,7 @@
     gap: var(--bh-space-3);
     align-content: start;
     padding: clamp(1.5rem, 3vw, 2rem);
-    border: 1px solid rgba(22, 63, 127, 0.10);
+    border: 1px solid color-mix(in srgb, var(--bh-brand) 10%, transparent);
     border-radius: var(--bh-radius-lg);
     background-color: var(--bh-surface-card);
 }
@@ -647,8 +673,8 @@
     width: 2.9rem;
     height: 2.9rem;
     border-radius: 14px;
-    background-color: var(--bh-color-sage-100);
-    color: var(--bh-income);
+    background-color: var(--bh-surface-soft);
+    color: var(--bh-brand);
 }
 
 .bh-home-benefit-icon svg{
@@ -663,7 +689,7 @@
 
 .bh-home-benefit p{
     margin: 0;
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     line-height: var(--bh-line-relaxed);
 }
 
@@ -672,8 +698,8 @@
 .bh-home-method{
     padding-block: clamp(3rem, 7vw, 5.5rem);
     background:
-        radial-gradient(circle at 85% 4%, rgba(62, 178, 37, 0.22), transparent 28rem),
-        radial-gradient(circle at -4% 104%, rgba(51, 166, 77, 0.14), transparent 24rem),
+        radial-gradient(circle at 85% 4%, rgba(253, 254, 253, 0.10), transparent 28rem),
+        radial-gradient(circle at -4% 104%, color-mix(in srgb, var(--bh-brand) 22%, transparent), transparent 24rem),
         var(--bh-brand-strong);
 }
 
@@ -702,10 +728,10 @@
     width: 2.5rem;
     height: 2.5rem;
     margin-bottom: var(--bh-space-4);
-    border: 1.5px solid rgba(62, 178, 37, 0.65);
+    border: 1.5px solid rgba(253, 254, 253, 0.34);
     border-radius: 50%;
-    color: var(--bh-saving);
-    font-family: var(--bh-font-heading);
+    color: var(--bh-text-inverse);
+    font-family: var(--bh-font-interface);
     font-size: 1.2rem;
     font-weight: var(--bh-weight-semibold);
     line-height: 1;
@@ -756,7 +782,7 @@
     align-items: center;
     padding: 0.3rem 0.8rem;
     border-radius: var(--bh-radius-pill);
-    background-color: var(--bh-color-sage-100);
+    background-color: var(--bh-surface-soft);
     color: var(--bh-brand-strong);
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-bold);
@@ -774,7 +800,7 @@
 .bh-home-feature-text > p{
     max-width: 60ch;
     margin: 0;
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     line-height: var(--bh-line-relaxed);
 }
 
@@ -790,7 +816,7 @@
     position: relative;
     margin: 0;
     padding-left: 1.8rem;
-    color: rgba(22, 63, 127, 0.86);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     line-height: 1.5;
 }
@@ -803,7 +829,7 @@
     width: 1.15rem;
     height: 1.15rem;
     border-radius: 50%;
-    background-color: var(--bh-saving-soft);
+    background-color: var(--bh-brand-soft);
 }
 
 .bh-home-feature-points li::after{
@@ -813,8 +839,8 @@
     top: 0.42rem;
     width: 0.4rem;
     height: 0.2rem;
-    border-left: 2px solid var(--bh-income);
-    border-bottom: 2px solid var(--bh-income);
+    border-left: 2px solid var(--bh-brand);
+    border-bottom: 2px solid var(--bh-brand);
     transform: rotate(-45deg);
 }
 
@@ -823,7 +849,7 @@
     padding: clamp(1rem, 3vw, 2rem);
     border-radius: clamp(20px, 3vw, 32px);
     background:
-        radial-gradient(120% 120% at 80% 0%, rgba(62, 178, 37, 0.10), transparent 60%),
+        radial-gradient(120% 120% at 80% 0%, color-mix(in srgb, var(--bh-brand) 6%, transparent), transparent 60%),
         var(--bh-surface-soft);
 }
 
@@ -845,7 +871,7 @@
     gap: var(--bh-space-2);
     align-content: start;
     padding: clamp(1.5rem, 3vw, 1.75rem);
-    border: 1px solid rgba(22, 63, 127, 0.10);
+    border: 1px solid color-mix(in srgb, var(--bh-brand) 10%, transparent);
     border-radius: var(--bh-radius-lg);
     background-color: var(--bh-surface-card);
     color: inherit;
@@ -864,7 +890,7 @@
 
 .bh-home-blog-card p{
     margin: 0;
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     line-height: var(--bh-line-relaxed);
 }
@@ -912,7 +938,7 @@
     width: 2.5rem;
     height: 3px;
     border-radius: var(--bh-radius-pill);
-    background-color: var(--bh-saving);
+    background-color: var(--bh-brand);
 }
 
 .bh-home-belief h2{
@@ -927,7 +953,7 @@
 .bh-home-belief p{
     max-width: 60ch;
     margin: 0;
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: clamp(1.05rem, 1.4vw, 1.2rem);
     line-height: 1.65;
     text-wrap: pretty;
@@ -963,7 +989,7 @@
 .bh-home-security-intro p{
     max-width: 40ch;
     margin: 0 0 var(--bh-space-3);
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     line-height: 1.6;
 }
 
@@ -987,7 +1013,7 @@
     gap: var(--bh-space-3);
     margin: 0;
     padding: var(--bh-space-5);
-    border: 1px solid rgba(22, 63, 127, 0.08);
+    border: 1px solid color-mix(in srgb, var(--bh-brand) 8%, transparent);
     border-radius: var(--bh-radius-lg);
     background-color: var(--bh-surface-card);
 }
@@ -995,7 +1021,7 @@
 .bh-home-security-list svg{
     width: 1.6rem;
     height: 1.6rem;
-    color: var(--bh-income);
+    color: var(--bh-brand);
 }
 
 .bh-home-security-list h3{
@@ -1005,7 +1031,7 @@
 
 .bh-home-security-list p{
     margin: 0;
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     font-size: var(--bh-text-sm);
     line-height: 1.5;
 }
@@ -1024,7 +1050,7 @@
 }
 
 .bh-home-faq-item{
-    border: 1px solid rgba(22, 63, 127, 0.12);
+    border: 1px solid color-mix(in srgb, var(--bh-brand) 12%, transparent);
     border-radius: var(--bh-radius-md);
     background-color: var(--bh-surface-card);
 }
@@ -1038,7 +1064,7 @@
     cursor: pointer;
     list-style: none;
     color: var(--bh-text-main);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: 1.1rem;
     font-weight: var(--bh-weight-semibold);
 }
@@ -1074,7 +1100,7 @@
 .bh-home-faq-item p{
     margin: 0;
     padding: 0 var(--bh-space-5) var(--bh-space-5);
-    color: rgba(22, 63, 127, 0.82);
+    color: var(--bh-brand);
     line-height: var(--bh-line-relaxed);
 }
 
@@ -1097,9 +1123,9 @@
     padding: clamp(2rem, 4.5vw, 3.5rem);
     border-radius: 28px;
     background:
-        radial-gradient(circle at 88% 12%, rgba(62, 178, 37, 0.25), transparent 18rem),
+        radial-gradient(circle at 88% 12%, rgba(253, 254, 253, 0.12), transparent 18rem),
         var(--bh-brand-strong);
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
 }
 
 .bh-home-band-inner h2{
@@ -1152,7 +1178,7 @@
 
 .bh-home-footer{
     padding-block: clamp(2.5rem, 5vw, 3.5rem);
-    border-top: 1px solid rgba(22, 63, 127, 0.10);
+    border-top: 1px solid color-mix(in srgb, var(--bh-brand) 10%, transparent);
     background-color: var(--bh-surface-card);
 }
 
@@ -1218,7 +1244,7 @@
     justify-content: space-between;
     gap: var(--bh-space-3);
     padding-top: var(--bh-space-5);
-    border-top: 1px solid rgba(22, 63, 127, 0.10);
+    border-top: 1px solid color-mix(in srgb, var(--bh-brand) 10%, transparent);
 }
 
 .bh-home-footer-bottom span{
@@ -1239,12 +1265,12 @@
     height: 3rem;
     border: 1px solid rgba(253, 254, 253, 0.4);
     border-radius: 50%;
-    background-color: rgba(22, 63, 127, 0.6);
+    background-color: color-mix(in srgb, var(--bh-brand) 60%, transparent);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     color: var(--bh-text-inverse);
     cursor: pointer;
-    box-shadow: var(--bh-shadow-card);
+    box-shadow: none;
     opacity: 0;
     visibility: hidden;
     transform: translateY(12px);
@@ -1271,7 +1297,7 @@
 }
 
 .bh-home-top:hover{
-    background-color: rgba(22, 63, 127, 0.85);
+    background-color: color-mix(in srgb, var(--bh-brand) 85%, transparent);
     transform: translateY(-2px);
 }
 
@@ -1298,6 +1324,11 @@
     .bh-home-hero-copy > *:nth-child(3){ animation-delay: 0.12s; }
     .bh-home-hero-copy > *:nth-child(4){ animation-delay: 0.18s; }
 
+    /* GSAP controla la entrada del hero: desactivar la animacion CSS */
+    .bh-js .bh-home-hero-copy > *{
+        animation: none;
+    }
+
     .bh-home-benefit,
     .bh-home-blog-card,
     .bh-home-security-list li,
@@ -1310,8 +1341,8 @@
 
     .bh-home-benefit:hover,
     .bh-home-blog-card:hover{
-        border-color: rgba(51, 166, 77, 0.4);
-        box-shadow: var(--bh-shadow-soft);
+        border-color: var(--bh-border-strong);
+        box-shadow: none;
         transform: translateY(-3px);
     }
 
@@ -1368,7 +1399,7 @@
 }
 
 .bh-home-hero-art .bh-home-mock-slip .bh-home-mock-slip-tag{
-    color: #BBE8C2;
+    color: var(--bh-positive-soft);
 }
 
 .bh-home-feature:nth-of-type(even) .bh-home-feature-art{
@@ -1529,5 +1560,11 @@
 
     .bh-home-footer-top{
         grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    }
+}
+
+@media (min-width: 1200px){
+    .bh-home-hero .bh-home-wrap{
+        width: min(100% - 3rem, 1220px);
     }
 }

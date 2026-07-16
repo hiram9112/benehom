@@ -39,9 +39,9 @@
   };
 
   var variantesFlash = {
-    success: { clase: "bh-flash-success", icono: "bi-check-circle", role: "status", autodismiss: true },
-    warning: { clase: "bh-flash-warning", icono: "bi-exclamation-triangle", role: "status", autodismiss: true },
-    error: { clase: "bh-flash-error", icono: "bi-exclamation-circle", role: "alert", autodismiss: false },
+    success: { clase: "bh-flash-success", icono: "ti-circle-check", role: "status", autodismiss: true },
+    warning: { clase: "bh-flash-warning", icono: "ti-alert-triangle", role: "status", autodismiss: true },
+    error: { clase: "bh-flash-error", icono: "ti-alert-circle", role: "alert", autodismiss: false },
   };
 
   window.mostrarFlash = function (texto, tipo, duracionMs) {
@@ -71,12 +71,12 @@
     }
 
     message.innerHTML =
-      '<i class="bi ' +
+      '<i class="ti ' +
       variante.icono +
       '" aria-hidden="true"></i>' +
       "<p></p>" +
       '<button type="button" class="bh-flash-close" data-flash-dismiss aria-label="Cerrar mensaje">' +
-      '<i class="bi bi-x-lg" aria-hidden="true"></i>' +
+      '<i class="ti ti-x" aria-hidden="true"></i>' +
       "</button>";
 
     message.querySelector("p").textContent = texto;

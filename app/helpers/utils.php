@@ -60,9 +60,39 @@ function ingresoCategorias(): array
     return $categorias;
 }
 
+function ingresoCategoriaLabelsLegacy(): array
+{
+    return [
+        'salario' => 'Salario o nómina',
+        'actividad_propia' => 'Actividad propia o autónomo',
+        'prestaciones_ayudas' => 'Prestaciones y ayudas públicas',
+        'alquileres' => 'Ingresos por alquiler',
+        'inversiones' => 'Inversiones, dividendos e intereses',
+        'ventas_segunda_mano' => 'Ventas de segunda mano',
+        'aportaciones_regalos' => 'Aportaciones o regalos familiares',
+    ];
+}
+
+function ingresoCategoriaLabels(): array
+{
+    $labels = [];
+
+    foreach (ingresoCategorias() as $grupo) {
+        foreach (($grupo['conceptos'] ?? []) as $valor => $label) {
+            $labels[$valor] = $label;
+        }
+    }
+
+    foreach (ingresoCategoriaLabelsLegacy() as $valor => $label) {
+        $labels[$valor] ??= $label;
+    }
+
+    return $labels;
+}
+
 function ingresoCategoriaPermitida(string $categoria): bool
 {
-    return isset(ingresoCategorias()[$categoria]);
+    return isset(ingresoCategoriaLabels()[$categoria]);
 }
 
 //Funcion para formatear las categorias
@@ -73,7 +103,7 @@ function formatearCategoria($texto){
         return $labels[$texto];
     }
 
-    $labelsIngresos = ingresoCategorias();
+    $labelsIngresos = ingresoCategoriaLabels();
 
     if (isset($labelsIngresos[$texto])) {
         return $labelsIngresos[$texto];
@@ -90,6 +120,26 @@ function formatearCategoria($texto){
 function formatearCantidadPHP($valor)
 {
     return number_format($valor, 2, ',', '');
+}
+
+function bh_format_amount($valor, int $decimals = 2): string
+{
+    $numero = is_numeric($valor) ? (float) $valor : 0.0;
+
+    return number_format($numero, $decimals, ',', '.');
+}
+
+function bh_format_money($valor, int $decimals = 2): string
+{
+    return bh_format_amount($valor, $decimals) . ' €';
+}
+
+function bh_format_money_delta($valor, int $decimals = 2): string
+{
+    $numero = is_numeric($valor) ? (float) $valor : 0.0;
+    $signo = $numero > 0 ? '+' : ($numero < 0 ? '-' : '');
+
+    return $signo . bh_format_money(abs($numero), $decimals);
 }
 
 function bh_url(string $ruta = ''): string
@@ -147,6 +197,7 @@ function bh_css_tags(): string
     $cssFiles = ($_ENV['APP_ENV'] ?? 'local') === 'production'
         ? ['css/app.min.css']
         : [
+            'css/src/vendor/lenis.css',
             'css/src/base.css',
             'css/src/layout.css',
             'css/src/components.css',
@@ -207,8 +258,8 @@ function bh_security_headers(): void
         "frame-ancestors 'none'",
         "object-src 'none'",
         "img-src 'self' data:",
-        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "font-src 'self' https://cdn.jsdelivr.net data:",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
         "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
         "connect-src 'self' https://cdn.jsdelivr.net",
     ];

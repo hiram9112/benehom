@@ -16,13 +16,13 @@
     display: grid;
     place-items: center;
     border-radius: var(--bh-radius-pill);
-    background: linear-gradient(135deg, var(--bh-brand) 0%, var(--bh-accent) 100%);
+    background: linear-gradient(135deg, var(--bh-brand) 0%, var(--bh-brand-deep) 100%);
     color: var(--bh-text-inverse);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: 2rem;
     font-weight: var(--bh-weight-semibold);
     line-height: 1;
-    box-shadow: var(--bh-shadow-soft);
+    box-shadow: none;
     user-select: none;
 }
 
@@ -57,37 +57,7 @@
 
 .bh-account-meta i{
     flex: 0 0 auto;
-    color: var(--bh-accent);
-}
-
-/* Requisitos de contraseña en vivo */
-.bh-password-requirements{
-    list-style: none;
-    margin: var(--bh-space-3) 0 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
-    gap: var(--bh-space-1) var(--bh-space-4);
-}
-
-.bh-password-requirements li{
-    display: flex;
-    align-items: center;
-    gap: var(--bh-space-2);
-    font-size: var(--bh-text-sm);
-    color: var(--bh-text-muted);
-    transition: color var(--bh-transition-fast);
-}
-
-.bh-password-requirements li i{
-    font-size: 0.9rem;
-    color: var(--bh-text-muted);
-    transition: color var(--bh-transition-fast);
-}
-
-.bh-password-requirements li.is-met,
-.bh-password-requirements li.is-met i{
-    color: var(--bh-success);
+    color: var(--bh-brand);
 }
 
 /* Mensaje de error en línea bajo un campo */
@@ -104,8 +74,8 @@
 
 /* Zona peligrosa */
 .bh-card-danger{
-    border-color: var(--bh-expense);
-    background-color: var(--bh-expense-soft);
+    border-color: var(--bh-negative);
+    background-color: var(--bh-negative-soft);
 }
 
 .bh-card-danger .bh-card-header{
@@ -117,12 +87,12 @@
     display: flex;
     align-items: center;
     gap: var(--bh-space-2);
-    color: var(--bh-expense);
+    color: var(--bh-negative);
 }
 
 .bh-account-danger-subtitle{
     margin: 0 0 var(--bh-space-2);
-    font-family: var(--bh-font-heading);
+    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-lg);
     color: var(--bh-text-main);
 }

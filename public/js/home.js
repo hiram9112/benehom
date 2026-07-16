@@ -130,7 +130,7 @@
                 }, '-=0.35');
             }
 
-            /* --- Mockup del hero: microsecuencia narrativa --- */
+            /* --- Mockup del hero: entrada coordinada --- */
             var mockLedger = heroArt.querySelector('.bh-home-mock-ledger');
             var mockSlip = heroArt.querySelector('.bh-home-mock-slip');
 
@@ -139,7 +139,7 @@
                 var mockSvg = mockLedger.querySelector('.bh-home-chart-svg');
                 var mockTotal = mockLedger.querySelector('.bh-home-mock-total');
 
-                gsap.set(mockLedger, { opacity: 0, y: 16, scale: 0.98 });
+                gsap.set(mockLedger, { opacity: 0, y: 14, scale: 0.97 });
 
                 heroTl.to(mockLedger, {
                     opacity: 1,
@@ -147,18 +147,18 @@
                     scale: 1,
                     duration: 0.5,
                     ease: 'power3.out'
-                }, '-=0.55');
+                }, '-=0.9');
 
                 heroTl.add('mockLedgerIn');
 
                 if (mockHead) {
-                    gsap.set(mockHead, { opacity: 0, y: 8 });
+                    gsap.set(mockHead, { opacity: 0, y: 6 });
                     heroTl.to(mockHead, {
                         opacity: 1,
                         y: 0,
-                        duration: 0.35,
+                        duration: 0.3,
                         ease: 'power3.out'
-                    }, '-=0.2');
+                    }, '-=0.3');
                 }
 
                 if (mockSvg) {
@@ -184,71 +184,60 @@
                         gsap.set(svgRects[bi], { scaleY: 0, transformOrigin: barOrigins[bi] || 'bottom center' });
                     }
 
-                    if (amountTexts.length) {
-                        gsap.set(amountTexts, { opacity: 0, y: 6 });
-                    }
-                    if (labelTexts.length) {
-                        gsap.set(labelTexts, { opacity: 0 });
+                    var allChartTexts = amountTexts.concat(labelTexts);
+                    if (allChartTexts.length) {
+                        gsap.set(allChartTexts, { opacity: 0, y: 4 });
                     }
                     if (connectorLines.length) {
                         gsap.set(connectorLines, { opacity: 0 });
                     }
 
-                    for (var ri = 0; ri < svgRects.length; ri++) {
-                        var barOffset = ri === 0 ? '-=0.05' : '-=0.12';
+                    heroTl.to(svgRects, {
+                        scaleY: 1,
+                        duration: 0.5,
+                        stagger: 0.045,
+                        ease: 'power2.out'
+                    }, '-=0.15');
 
-                        heroTl.to(svgRects[ri], {
-                            scaleY: 1,
-                            duration: 0.35,
+                    if (allChartTexts.length) {
+                        heroTl.to(allChartTexts, {
+                            opacity: 1,
+                            y: 0,
+                            duration: 0.3,
+                            stagger: 0.02,
                             ease: 'power2.out'
-                        }, barOffset);
+                        }, '-=0.25');
+                    }
 
-                        if (amountTexts[ri]) {
-                            heroTl.to(amountTexts[ri], {
-                                opacity: 1,
-                                y: 0,
-                                duration: 0.25,
-                                ease: 'power2.out'
-                            }, '-=0.2');
-                        }
-
-                        if (labelTexts[ri]) {
-                            heroTl.to(labelTexts[ri], {
-                                opacity: 1,
-                                duration: 0.2,
-                                ease: 'power2.out'
-                            }, '-=0.15');
-                        }
-
-                        if (connectorLines[ri]) {
-                            heroTl.to(connectorLines[ri], {
-                                opacity: 1,
-                                duration: 0.15,
-                                ease: 'power2.out'
-                            }, '-=0.1');
-                        }
+                    if (connectorLines.length) {
+                        heroTl.to(connectorLines, {
+                            opacity: 1,
+                            duration: 0.25,
+                            stagger: 0.02,
+                            ease: 'power2.out'
+                        }, '-=0.2');
                     }
                 }
 
                 if (mockTotal) {
-                    gsap.set(mockTotal, { opacity: 0, y: 10 });
+                    gsap.set(mockTotal, { opacity: 0, y: 8 });
                     heroTl.to(mockTotal, {
                         opacity: 1,
                         y: 0,
-                        duration: 0.4,
+                        duration: 0.35,
                         ease: 'power3.out'
-                    }, '-=0.1');
+                    }, '-=0.15');
                 }
             }
 
             if (mockSlip) {
-                gsap.set(mockSlip, { opacity: 0, y: 10 });
+                gsap.set(mockSlip, { opacity: 0, y: 8 });
                 heroTl.to(mockSlip, {
                     opacity: 1,
                     y: 0,
-                    duration: 0.4,
+                    duration: 0.35,
                     ease: 'power3.out'
-                }, '-=0.2');
+                }, '-=0.4');
             }
 
             if (trustStrip) {

@@ -531,7 +531,7 @@ bh_document_begin([
             <div class="bh-home-wrap">
                 <div class="bh-home-belief-inner">
                     <span class="bh-home-belief-rule" aria-hidden="true"></span>
-                    <h2 id="belief-title">Entender tu dinero no es un lujo. Es lo que te deja vivir tranquilo.</h2>
+                    <h2 id="belief-title">Entender tu dinero no es un lujo. Es lo que te permite vivir tranquilo.</h2>
                     <p>Casi nunca descuadra el mes una gran decisión, sino muchas pequeñas que nunca paramos a mirar. Cuando ves tus cuentas con calma, el «a ver si este mes ahorro» se convierte en saber cuánto te queda y por qué.</p>
                     <p class="bh-home-belief-close">Para eso está BeneHom: para que mirar tus cuentas sea sencillo, y decidir, cosa tuya.</p>
                 </div>

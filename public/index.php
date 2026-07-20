@@ -128,139 +128,99 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
 }
 
 
-//*************************************************SEGURIDAD GLOBAL (CSRF)
-
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_validate()) {
-        $route = isset($_GET['r']) ? trim((string) $_GET['r'], '/') : '';
-
-        if (bh_is_ajax_request($route)) {
-            http_response_code(403);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => false, 'msg' => 'Solicitud no válida. Recarga la página e inténtalo de nuevo.']);
-            exit;
-        }
-
-        bh_render_error_page(
-            403,
-            'Solicitud no válida',
-            'Por seguridad no hemos podido completar la acción. Recarga la página e inténtalo de nuevo.',
-            'Ir al inicio de sesión',
-            BASE_URL . 'index.php?r=auth/login'
-        );
-    }
-}
-
-
-
-
 //*************************************************ROUTING
  
 
 // Ruta solicitada
 $route = isset($_GET['r']) ? trim($_GET['r'], "/") : 'home/index';
-
-// Rutas públicas (únicas sin sesión)
-$rutasPublicas = [
-    'home/index',
-    'auth/login',
-    'registro/registrarUsuario',
-    'password/mostrarFormularioOlvido',
-    'password/procesarFormularioOlvido',
-    'password/reset',
-    'password/procesarReset',
-    'verificacion/verificar',
-    'verificacion/mostrarFormularioReenvio',
-    'verificacion/reenviar',
-    'blog/index',
-    'blog/detalle',
-    'seo/sitemap',
-    'legal/privacidad',
-    'legal/terminos',
-    'legal/aviso'
-];
-
+$routeDefinition = bh_route_definition($route);
+$responseType = bh_route_response_type($routeDefinition);
 $usuarioLogueado = isset($_SESSION['usuario_id']);
 
+if ($routeDefinition === null) {
+    if ($responseType === 'json') {
+        bh_json_error('NOT_FOUND', bh_router_error_message('NOT_FOUND'), 404);
+        exit;
+    }
+
+    bh_render_error_page(404, bh_router_error_title('NOT_FOUND'), bh_router_error_message('NOT_FOUND'));
+}
+
+if (!bh_route_allows_method($routeDefinition, $_SERVER['REQUEST_METHOD'] ?? 'GET')) {
+    if (!headers_sent()) {
+        header('Allow: ' . implode(', ', $routeDefinition['methods']));
+    }
+
+    if ($responseType === 'json') {
+        bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+        exit;
+    }
+
+    bh_render_error_page(405, bh_router_error_title('METHOD_NOT_ALLOWED'), bh_router_error_message('METHOD_NOT_ALLOWED'));
+}
+
+if (!$usuarioLogueado && !($routeDefinition['public'] ?? false)) {
+    if ($responseType === 'json') {
+        bh_json_error('UNAUTHENTICATED', bh_router_error_message('UNAUTHENTICATED'), 401);
+        exit;
+    }
+
+    $_SESSION['mensaje_error'] = bh_router_error_message('UNAUTHENTICATED');
+    header("Location: " . BASE_URL . "index.php?r=auth/login");
+    exit;
+}
+
+
+
+//*************************************************SEGURIDAD GLOBAL (CSRF)
+
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && bh_route_requires_global_csrf($routeDefinition) && !csrf_validate()) {
+    if ($responseType === 'json') {
+        bh_json_error('INVALID_CSRF', bh_router_error_message('INVALID_CSRF'), 403);
+        exit;
+    }
+
+    bh_render_error_page(
+        403,
+        bh_router_error_title('INVALID_CSRF'),
+        'Por seguridad no hemos podido completar la acción. Recarga la página e inténtalo de nuevo.',
+        'Ir al inicio de sesión',
+        BASE_URL . 'index.php?r=auth/login'
+    );
+}
 
 
 //*************************************************RESOLUCIÓN DE CONTROLADOR
 
 
-// Controlador y acción
-$routeParts = explode('/', $route, 2);
-
-if (count($routeParts) !== 2 || $routeParts[0] === '' || $routeParts[1] === '') {
-    bh_render_error_page(
-        404,
-        'Página no encontrada',
-        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
-        'Volver al inicio',
-        BASE_URL . 'index.php?r=home/index'
-    );
-}
-
-[$controllerName, $actionName] = $routeParts;
-
-$controllerClass = ucfirst($controllerName) . 'Controller';
+$controllerClass = $routeDefinition['controller'];
+$actionName = $routeDefinition['action'];
 $controllerFile  = APP_PATH . '/controllers/' . $controllerClass . '.php';
 
 // Comprobamos existencia del controlador
 if (!file_exists($controllerFile)) {
-    bh_render_error_page(
-        404,
-        'Página no encontrada',
-        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
-        'Volver al inicio',
-        BASE_URL . 'index.php?r=home/index'
-    );
+    if ($responseType === 'json') {
+        bh_json_error('NOT_FOUND', bh_router_error_message('NOT_FOUND'), 404);
+        exit;
+    }
+
+    bh_render_error_page(404, bh_router_error_title('NOT_FOUND'), bh_router_error_message('NOT_FOUND'));
 }
 
 require_once $controllerFile;
 
-// Comprobamos existencia de la clase
-if (!class_exists($controllerClass)) {
-    bh_render_error_page(
-        404,
-        'Página no encontrada',
-        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
-        'Volver al inicio',
-        BASE_URL . 'index.php?r=home/index'
-    );
-}
-
-$controller = new $controllerClass();
-
-// Comprobamos existencia del método
-if (!method_exists($controller, $actionName)) {
-    bh_render_error_page(
-        404,
-        'Página no encontrada',
-        'No hemos encontrado la página que buscas. Puede que el enlace haya cambiado o esté incompleto.',
-        'Volver al inicio',
-        BASE_URL . 'index.php?r=home/index'
-    );
-}
-
-
-
-
-// Si NO está logueado y la ruta NO es pública → login
-if (!$usuarioLogueado && !in_array($route, $rutasPublicas, true)) {
-    if (bh_is_ajax_request($route)) {
-        http_response_code(401);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'msg' => $sessionIdleMessage]);
+// Comprobamos clase y acción registrada invocable
+if (!class_exists($controllerClass) || !bh_controller_action_callable($controllerClass, $actionName)) {
+    if ($responseType === 'json') {
+        bh_json_error('NOT_FOUND', bh_router_error_message('NOT_FOUND'), 404);
         exit;
     }
 
-    $_SESSION['mensaje_error'] = 'Inicia sesión para acceder a esa sección.';
-    header("Location: " . BASE_URL . "index.php?r=auth/login");
-    exit;
-
+    bh_render_error_page(404, bh_router_error_title('NOT_FOUND'), bh_router_error_message('NOT_FOUND'));
 }
 
+$controller = new $controllerClass();
 
 //*************************************************DESPACHO A CONTROLADOR
 

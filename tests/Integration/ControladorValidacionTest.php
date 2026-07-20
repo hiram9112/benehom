@@ -19,7 +19,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
 
         $this->metodoOriginal = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $this->postBackup = $_POST;
-        $this->sessionBackup = $_SESSION;
+        $this->sessionBackup = is_array($_SESSION ?? null) ? $_SESSION : [];
 
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = [];

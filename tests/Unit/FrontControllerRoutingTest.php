@@ -77,7 +77,18 @@ final class FrontControllerRoutingTest extends TestCase
             'get' => ['r' => 'numa/status'],
             'accept' => 'application/json',
             'session' => ['usuario_id' => 123],
-            'env' => ['NUMA_ENABLED' => 'false'],
+            'env' => [
+                'NUMA_ENABLED' => 'false',
+                'NUMA_DAILY_LIMIT' => '5',
+                'NUMA_MONTHLY_LIMIT' => '20',
+                'NUMA_RESERVATION_TTL_SECONDS' => '120',
+                'DB_HOST' => $_ENV['DB_HOST'] ?? 'localhost',
+                'DB_PORT' => $_ENV['DB_PORT'] ?? '3307',
+                'DB_NAME' => $_ENV['DB_NAME'] ?? 'benehom_test',
+                'DB_USER' => $_ENV['DB_USER'] ?? 'benehom_test_user',
+                'DB_PASS' => $_ENV['DB_PASS'] ?? 'test_password_123',
+            ],
+            'ensure_schema' => true,
         ]);
 
         self::assertSame(200, $response['status']);
@@ -86,7 +97,17 @@ final class FrontControllerRoutingTest extends TestCase
 
         self::assertIsArray($decoded);
         self::assertTrue($decoded['ok']);
-        self::assertSame(['available' => false, 'usage' => null], $decoded['data']);
+        self::assertSame([
+            'available' => false,
+            'usage' => [
+                'daily_used' => 0,
+                'daily_limit' => 5,
+                'daily_remaining' => 5,
+                'monthly_used' => 0,
+                'monthly_limit' => 20,
+                'monthly_remaining' => 20,
+            ],
+        ], $decoded['data']);
     }
 
     public function testCsrfGlobalInvalidoDevuelveErrorJsonGeneralDesdeRouterReal(): void
@@ -168,6 +189,31 @@ $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'testing';
 $_ENV['APP_URL'] = $_ENV['APP_URL'] ?? 'http://localhost';
 putenv('APP_ENV=' . $_ENV['APP_ENV']);
 putenv('APP_URL=' . $_ENV['APP_URL']);
+
+if (!empty($config['ensure_schema'])) {
+    $dbConfig = require $basePath . '/config/database.php';
+    $db = new PDO(
+        "mysql:host={$dbConfig['host']};port={$dbConfig['port']};dbname={$dbConfig['dbname']};charset=utf8mb4",
+        $dbConfig['user'],
+        $dbConfig['password']
+    );
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $schema = file_get_contents($basePath . '/database/schema.sql');
+
+    foreach (array_filter(array_map('trim', explode(';', (string) $schema))) as $statement) {
+        if (!preg_match('/^CREATE TABLE\s+`?([a-zA-Z0-9_]+)`?/i', $statement, $matches)) {
+            continue;
+        }
+
+        $stmt = $db->query('SHOW TABLES LIKE ' . $db->quote($matches[1]));
+
+        if ($stmt !== false && $stmt->fetchColumn() !== false) {
+            continue;
+        }
+
+        $db->exec($statement);
+    }
+}
 
 $query = http_build_query($_GET);
 $requestUri = '/index.php' . ($query !== '' ? '?' . $query : '');

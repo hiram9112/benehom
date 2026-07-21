@@ -100,3 +100,32 @@ CREATE TABLE intentos_acceso (
   UNIQUE KEY intentos_acceso_accion_clave_unique (accion, clave_hash),
   KEY intentos_acceso_bloqueado_hasta_idx (bloqueado_hasta)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE numa_uso (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  fecha DATE NOT NULL,
+  cantidad_confirmada INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY numa_uso_usuario_fecha_unique (usuario_id, fecha),
+  KEY numa_uso_fecha_idx (fecha),
+  CONSTRAINT numa_uso_usuario_fk
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE numa_reservas (
+  id CHAR(36) PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  fecha DATE NOT NULL,
+  estado ENUM('pendiente','confirmada','revertida','expirada') NOT NULL DEFAULT 'pendiente',
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  KEY numa_reservas_usuario_fecha_estado_idx (usuario_id, fecha, estado),
+  KEY numa_reservas_expires_at_idx (expires_at),
+  CONSTRAINT numa_reservas_usuario_fk
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

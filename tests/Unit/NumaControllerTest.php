@@ -8,6 +8,45 @@ use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/controllers/NumaController.php';
 
+final class NumaUsoFake extends \NumaUso
+{
+    public bool $reverted = false;
+
+    public function __construct(
+        private readonly array $usage = [
+            'daily_used' => 0,
+            'daily_limit' => 5,
+            'daily_remaining' => 5,
+            'monthly_used' => 0,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 20,
+        ],
+        private readonly ?string $limitCode = null,
+    ) {
+    }
+
+    public function estado(int $usuarioId): array
+    {
+        return $this->usage;
+    }
+
+    public function reservar(int $usuarioId): string
+    {
+        if ($this->limitCode !== null) {
+            throw new \NumaUsoLimiteAlcanzado($this->limitCode);
+        }
+
+        return '00000000-0000-4000-8000-000000000000';
+    }
+
+    public function revertir(string $reservaId): bool
+    {
+        $this->reverted = true;
+
+        return true;
+    }
+}
+
 final class NumaControllerTest extends TestCase
 {
     private string $originalMethod = 'GET';
@@ -33,6 +72,9 @@ final class NumaControllerTest extends TestCase
         ];
         $_ENV['NUMA_ENABLED'] = 'false';
         $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '300';
+        $_ENV['NUMA_DAILY_LIMIT'] = '5';
+        $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
     }
 
     protected function tearDown(): void
@@ -46,14 +88,24 @@ final class NumaControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function testStatusDevuelveDisponibleYUsoNulo(): void
+    public function testStatusDevuelveDisponibleYUsoReal(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
         $response = $this->invoke('status');
 
         self::assertTrue($response['ok']);
-        self::assertSame(['available' => false, 'usage' => null], $response['data']);
+        self::assertSame([
+            'available' => false,
+            'usage' => [
+                'daily_used' => 0,
+                'daily_limit' => 5,
+                'daily_remaining' => 5,
+                'monthly_used' => 0,
+                'monthly_limit' => 20,
+                'monthly_remaining' => 20,
+            ],
+        ], $response['data']);
     }
 
     public function testChatConJsonValidoYCsrfPorCabeceraDevuelveNumaNoDisponible(): void
@@ -218,6 +270,38 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
     }
 
+    public function testChatActivoRechazaLimiteDiario(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            new NumaUsoFake(limitCode: 'NUMA_DAILY_LIMIT_REACHED')
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(429, $response['_status']);
+        self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
+    }
+
+    public function testChatActivoRechazaLimiteMensual(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            new NumaUsoFake(limitCode: 'NUMA_MONTHLY_LIMIT_REACHED')
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(429, $response['_status']);
+        self::assertSame('NUMA_MONTHLY_LIMIT_REACHED', $response['error']['code']);
+    }
+
     public function testChatRechazaDatosSoloMediantePost(): void
     {
         $this->configureJsonPost();
@@ -233,23 +317,37 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_INVALID_MESSAGE', $response['error']['code']);
     }
 
-    public function testStatusNoDevuelveContadoresInventados(): void
+    public function testStatusDevuelveContadoresDelRepositorio(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
+        $usage = [
+            'daily_used' => 2,
+            'daily_limit' => 5,
+            'daily_remaining' => 2,
+            'monthly_used' => 8,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 11,
+        ];
 
-        $response = $this->invoke('status');
+        $response = $this->invoke('status', '', new NumaUsoFake($usage));
 
         self::assertArrayHasKey('usage', $response['data']);
-        self::assertNull($response['data']['usage']);
+        self::assertSame($usage, $response['data']['usage']);
     }
 
-    private function invoke(string $method, string $rawBody = ''): array
+    private function invoke(string $method, string $rawBody = '', ?NumaUsoFake $numaUso = null): array
     {
         http_response_code(200);
+        $numaUso ??= new NumaUsoFake();
 
-        $controller = new class($rawBody) extends \NumaController {
-            public function __construct(private readonly string $body)
+        $controller = new class($rawBody, $numaUso) extends \NumaController {
+            public function __construct(private readonly string $body, private readonly NumaUsoFake $fakeNumaUso)
             {
+            }
+
+            protected function numaUso(): \NumaUso
+            {
+                return $this->fakeNumaUso;
             }
 
             protected function rawBody(): string

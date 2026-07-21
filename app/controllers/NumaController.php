@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once APP_PATH . '/models/NumaUso.php';
+
 class NumaController
 {
     private const DISALLOWED_CLIENT_KEYS = [
@@ -72,8 +74,22 @@ class NumaController
             return;
         }
 
-        if (!bh_env_bool('NUMA_ENABLED', false)) {
+        $available = bh_env_bool('NUMA_ENABLED', false);
+
+        if (!$available) {
             bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+            return;
+        }
+
+        try {
+            $numaUso = $this->numaUso();
+            $reservationId = $numaUso->reservar((int) $_SESSION['usuario_id']);
+            $numaUso->revertir($reservationId);
+        } catch (NumaUsoLimiteAlcanzado $e) {
+            bh_numa_error($e->limitCode(), 429);
+            return;
+        } catch (Throwable) {
+            bh_numa_error('NUMA_USAGE_ERROR', 503);
             return;
         }
 
@@ -92,10 +108,21 @@ class NumaController
             return;
         }
 
-        bh_json_success([
-            'available' => bh_env_bool('NUMA_ENABLED', false),
-            'usage' => null,
-        ]);
+        try {
+            $usage = $this->numaUso()->estado((int) $_SESSION['usuario_id']);
+
+            bh_json_success([
+                'available' => bh_env_bool('NUMA_ENABLED', false),
+                'usage' => $usage,
+            ]);
+        } catch (Throwable) {
+            bh_numa_error('NUMA_USAGE_ERROR', 503);
+        }
+    }
+
+    protected function numaUso(): NumaUso
+    {
+        return new NumaUso();
     }
 
     protected function rawBody(): string

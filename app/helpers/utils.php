@@ -489,6 +489,9 @@ function bh_numa_error_message(string $code): string
         'NUMA_INVALID_MESSAGE' => 'Escribe una consulta válida.',
         'NUMA_MESSAGE_TOO_LONG' => 'La consulta no puede superar 300 caracteres.',
         'NUMA_NOT_AVAILABLE' => 'Numa no está disponible en este momento.',
+        'NUMA_DAILY_LIMIT_REACHED' => 'Has alcanzado el límite diario de consultas de Numa.',
+        'NUMA_MONTHLY_LIMIT_REACHED' => 'Has alcanzado el límite mensual de consultas de Numa.',
+        'NUMA_USAGE_ERROR' => 'No hemos podido comprobar el consumo de Numa.',
         'NUMA_INTERNAL_ERROR' => 'No hemos podido procesar la consulta.',
     ][$code] ?? 'No hemos podido procesar la consulta.';
 }

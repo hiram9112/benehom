@@ -48,7 +48,10 @@ if (file_exists($envPath)) {
             continue;
         }
         [$key, $value] = array_map('trim', explode('=', $line, 2));
-        $_ENV[$key] = $value;
+
+        if (!array_key_exists($key, $_ENV)) {
+            $_ENV[$key] = $value;
+        }
     }
 }
 

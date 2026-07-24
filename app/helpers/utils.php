@@ -492,6 +492,13 @@ function bh_numa_error_message(string $code): string
         'NUMA_DAILY_LIMIT_REACHED' => 'Has alcanzado el límite diario de consultas de Numa.',
         'NUMA_MONTHLY_LIMIT_REACHED' => 'Has alcanzado el límite mensual de consultas de Numa.',
         'NUMA_USAGE_ERROR' => 'No hemos podido comprobar el consumo de Numa.',
+        'NUMA_PROVIDER_UNAVAILABLE' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_AUTH_ERROR' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_RATE_LIMITED' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_QUOTA_EXCEEDED' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_INVALID_RESPONSE' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_TIMEOUT' => 'Numa no está disponible en este momento.',
+        'NUMA_CONFIGURATION_ERROR' => 'Numa no está disponible en este momento.',
         'NUMA_INTERNAL_ERROR' => 'No hemos podido procesar la consulta.',
     ][$code] ?? 'No hemos podido procesar la consulta.';
 }

@@ -221,6 +221,36 @@ final class GeminiNumaProviderTest extends TestCase
         \NumaProviderFactory::fromEnvironment(fn (): array => ['status' => 200, 'body' => '{}']);
     }
 
+    public function testFactoryInyectaPromptBaseComoSystemInstruction(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+
+        $captured = [];
+        $provider = \NumaProviderFactory::fromEnvironment(function (string $url, array $headers, string $body, int $timeout) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => [
+                            'parts' => [['text' => 'Respuesta breve de Numa.']],
+                        ],
+                    ]],
+                ]),
+            ];
+        });
+
+        $provider->respond(new \NumaRequest('Pregunta', 'Instruccion no controlada'));
+
+        $systemInstruction = $captured['system_instruction']['parts'][0]['text'] ?? '';
+        self::assertStringContainsString('Eres Numa, la guia inteligente de BeneHom.', $systemInstruction);
+        self::assertStringContainsString('No actues como asistente generalista.', $systemInstruction);
+        self::assertStringNotContainsString('Instruccion no controlada', $systemInstruction);
+    }
+
     public function testRechazaClaveOModeloAusente(): void
     {
         $this->expectException(\NumaProviderException::class);

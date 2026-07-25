@@ -224,3 +224,50 @@ final class NumaProviderException extends RuntimeException
         return $this->providerError;
     }
 }
+
+final class NumaSystemInstructionProvider implements NumaProviderInterface
+{
+    public function __construct(
+        private readonly NumaProviderInterface $provider,
+        private readonly string $systemInstruction,
+    ) {
+        if (trim($systemInstruction) === '') {
+            throw new NumaProviderException(new NumaProviderError(
+                NumaProviderError::CONFIGURATION,
+                'NUMA_CONFIGURATION_ERROR'
+            ));
+        }
+    }
+
+    public static function fromBasePrompt(NumaProviderInterface $provider): self
+    {
+        $path = self::basePromptPath();
+        $contents = is_readable($path) ? file_get_contents($path) : false;
+
+        if (!is_string($contents) || trim($contents) === '') {
+            throw new NumaProviderException(new NumaProviderError(
+                NumaProviderError::CONFIGURATION,
+                'NUMA_CONFIGURATION_ERROR'
+            ));
+        }
+
+        return new self($provider, trim($contents));
+    }
+
+    public function respond(NumaRequest $request): NumaResponse
+    {
+        return $this->provider->respond(new NumaRequest(
+            $request->message(),
+            $this->systemInstruction,
+            $request->context(),
+            $request->availableTools()
+        ));
+    }
+
+    private static function basePromptPath(): string
+    {
+        $basePath = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__, 2);
+
+        return $basePath . '/resources/numa/prompts/base.md';
+    }
+}

@@ -378,6 +378,6 @@ final class NumaProviderFactory
             ));
         }
 
-        return GeminiNumaProvider::fromEnvironment($transport);
+        return NumaSystemInstructionProvider::fromBasePrompt(GeminiNumaProvider::fromEnvironment($transport));
     }
 }

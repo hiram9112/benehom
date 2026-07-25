@@ -228,6 +228,21 @@ final class GeminiNumaProviderTest extends TestCase
         $_ENV['NUMA_MODEL'] = 'model';
 
         $captured = [];
+        $consumption = new class implements \NumaProviderConsumptionInterface {
+            public int $calls = 0;
+
+            public int $tokenRegistrations = 0;
+
+            public function iniciarLlamada(): void
+            {
+                ++$this->calls;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+                ++$this->tokenRegistrations;
+            }
+        };
         $provider = \NumaProviderFactory::fromEnvironment(function (string $url, array $headers, string $body, int $timeout) use (&$captured): array {
             $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
 
@@ -241,7 +256,7 @@ final class GeminiNumaProviderTest extends TestCase
                     ]],
                 ]),
             ];
-        });
+        }, $consumption);
 
         $provider->respond(new \NumaRequest('Pregunta', 'Instruccion no controlada'));
 
@@ -249,6 +264,8 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertStringContainsString('Eres Numa, la guia inteligente de BeneHom.', $systemInstruction);
         self::assertStringContainsString('No actues como asistente generalista.', $systemInstruction);
         self::assertStringNotContainsString('Instruccion no controlada', $systemInstruction);
+        self::assertSame(1, $consumption->calls);
+        self::assertSame(1, $consumption->tokenRegistrations);
     }
 
     public function testRechazaClaveOModeloAusente(): void

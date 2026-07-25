@@ -129,3 +129,15 @@ CREATE TABLE numa_reservas (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE numa_uso_proveedor (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fecha DATE NOT NULL,
+  llamadas INT NOT NULL DEFAULT 0,
+  input_tokens INT NOT NULL DEFAULT 0,
+  output_tokens INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY numa_uso_proveedor_fecha_unique (fecha),
+  KEY numa_uso_proveedor_fecha_idx (fecha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

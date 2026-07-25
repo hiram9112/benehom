@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/NumaProvider.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
+require_once dirname(__DIR__) . '/models/NumaConsumoGlobal.php';
 
 final class GeminiNumaProvider implements NumaProviderInterface
 {
@@ -21,6 +22,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         private readonly int $maxTransientRetries = 1,
         ?callable $transport = null,
         private readonly string $baseUrl = self::API_BASE_URL,
+        private readonly ?NumaProviderConsumptionInterface $consumption = null,
     ) {
         if (trim($apiKey) === '' || trim($model) === '') {
             throw self::configurationError();
@@ -29,7 +31,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $this->transport = $transport ?? [$this, 'curlTransport'];
     }
 
-    public static function fromEnvironment(?callable $transport = null): self
+    public static function fromEnvironment(
+        ?callable $transport = null,
+        ?NumaProviderConsumptionInterface $consumption = null,
+    ): self
     {
         return new self(
             (string) bh_env_value('NUMA_API_KEY', ''),
@@ -37,7 +42,9 @@ final class GeminiNumaProvider implements NumaProviderInterface
             bh_env_int('NUMA_MAX_OUTPUT_TOKENS', self::OUTPUT_TOKEN_HARD_LIMIT),
             bh_env_int('NUMA_PROVIDER_TIMEOUT_SECONDS', 10),
             bh_env_int('NUMA_MAX_TRANSIENT_RETRIES', 1),
-            $transport
+            $transport,
+            self::API_BASE_URL,
+            $consumption
         );
     }
 
@@ -57,6 +64,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         do {
             ++$attempts;
+            $this->consumption?->iniciarLlamada();
 
             try {
                 $result = ($this->transport)(
@@ -94,7 +102,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
                 throw $exception;
             }
 
-            return $this->parseResponse($responseBody);
+            $response = $this->parseResponse($responseBody);
+            $this->consumption?->registrarTokens($response->tokenUsage());
+
+            return $response;
         } while ($attempts < $maxAttempts);
 
         throw self::unavailableError();
@@ -367,7 +378,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
 final class NumaProviderFactory
 {
-    public static function fromEnvironment(?callable $transport = null): NumaProviderInterface
+    public static function fromEnvironment(
+        ?callable $transport = null,
+        ?NumaProviderConsumptionInterface $consumption = null,
+    ): NumaProviderInterface
     {
         $provider = strtolower((string) bh_env_value('NUMA_PROVIDER', 'gemini'));
 
@@ -378,6 +392,9 @@ final class NumaProviderFactory
             ));
         }
 
-        return NumaSystemInstructionProvider::fromBasePrompt(GeminiNumaProvider::fromEnvironment($transport));
+        return NumaSystemInstructionProvider::fromBasePrompt(GeminiNumaProvider::fromEnvironment(
+            $transport,
+            $consumption ?? new NumaConsumoGlobal()
+        ));
     }
 }

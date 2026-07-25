@@ -7,6 +7,13 @@ interface NumaProviderInterface
     public function respond(NumaRequest $request): NumaResponse;
 }
 
+interface NumaProviderConsumptionInterface
+{
+    public function iniciarLlamada(): void;
+
+    public function registrarTokens(NumaTokenUsage $usage): void;
+}
+
 final class NumaRequest
 {
     /**

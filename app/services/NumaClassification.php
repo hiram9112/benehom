@@ -244,3 +244,190 @@ final class NumaClassification
         }
     }
 }
+
+final class NumaLocalScopeRejection
+{
+    public function __construct(
+        private readonly NumaClassification $classification,
+        private readonly string $message,
+    ) {
+        if ($classification->allowed()) {
+            throw new InvalidArgumentException('Un rechazo local de Numa no puede estar permitido.');
+        }
+
+        if (trim($message) === '') {
+            throw new InvalidArgumentException('Un rechazo local de Numa requiere respuesta.');
+        }
+    }
+
+    public function classification(): NumaClassification
+    {
+        return $this->classification;
+    }
+
+    public function message(): string
+    {
+        return $this->message;
+    }
+}
+
+final class NumaLocalScopeClassifier
+{
+    private const RESPONSE_OUT_OF_SCOPE = 'Puedo ayudarte con BeneHom, conceptos de economía familiar y el análisis de los datos que hayas registrado. No respondo preguntas generales ajenas a estas funciones.';
+    private const RESPONSE_FINANCIAL_RECOMMENDATION = 'Puedo ayudarte a comprender tus ingresos, gastos y hábitos registrados, pero no puedo recomendar inversiones, productos financieros ni decisiones de compra o venta.';
+    private const RESPONSE_QUICK_MONEY = 'No puedo ofrecer métodos para ganar dinero rápido ni prometer resultados financieros. Sí puedo ayudarte a analizar tu presupuesto y detectar tendencias en tus datos.';
+    private const RESPONSE_MANIPULATION = 'Esa solicitud queda fuera de las funciones disponibles en Numa.';
+    private const RESPONSE_THIRD_PARTY_DATA = 'Solo puedo analizar los datos de la cuenta con la que has iniciado sesión.';
+    private const RESPONSE_FORBIDDEN_ACTION = 'Numa solo consulta y explica información. No puede crear, modificar ni eliminar datos.';
+
+    /** @var array<string, array<int, string>> */
+    private const RULES = [
+        'manipulation' => [
+            '/\b(ignora|omite|saltate|salta|olvida|desobedece)\b.*\b(instrucciones|reglas|restricciones|prompt|sistema)\b/u',
+            '/\b(muestra|muestrame|revela|dime|ensen(a|ame)|imprime|filtra|dame)\b.*\b(prompt|instrucciones|mensaje de sistema|system prompt|configuracion interna)\b/u',
+            '/\b(actua|actuar|comportate|responde)\b.*\b(chatgpt|asistente general|sin restricciones|sin reglas|modo libre)\b/u',
+            '/\b(dame|muestra|muestrame|revela|dime|cual es|cuales son)\b.*\b(api key|apikey|clave api|secretos?|password|contrasena|token|configuracion)\b/u',
+        ],
+        'third_party_data' => [
+            '/\b(usuario id|user id)\b/u',
+            '/\b(usuario|user)\s*#?\s*\d+\b/u',
+            '/\b(otro usuario|otra cuenta|datos de terceros|cuenta de otra persona|gastos de otro)\b/u',
+        ],
+        'forbidden_action' => [
+            '/^\s*(crea|crear|agrega|agregar|anade|anadir|edita|editar|modifica|modificar|elimina|eliminar|borra|borrar|registra|registrar)\b.*\b(gasto|movimiento|ingreso|meta|dato|registro)\b/u',
+            '/\b(quiero que|puedes|podrias|haz|necesito que)\b.*\b(crees|crear|agregues|agregar|anadas|anadir|edites|editar|modifiques|modificar|elimines|eliminar|borres|borrar|registres|registrar)\b.*\b(gasto|movimiento|ingreso|meta|dato|registro)\b/u',
+        ],
+        'quick_money' => [
+            '/\b(ganar|conseguir|hacer|obtener)\b.*\b(dinero|plata|euros|ingresos)\b.*\b(rapido|rapida|facil|faciles|sin esfuerzo)\b/u',
+            '/\b(dinero|plata|euros|ingresos)\b.*\b(rapido|rapida|facil|faciles|sin esfuerzo)\b/u',
+        ],
+        'financial_recommendation' => [
+            '/\b(recomiendame|recomienda|aconsejame|aconseja|deberia|conviene|mejor)\b.*\b(accion(?:es)?|criptomonedas?|criptos?|bitcoin|ethereum|fondos?|etf|seguros?|productos? financieros?|activos?|bonos?)\b/u',
+            '/\b(comprar|compra|vender|vende|invertir)\b.*\b(accion(?:es)?|criptomonedas?|criptos?|bitcoin|ethereum|fondos?|etf|activos?|bonos?)\b/u',
+            '/\b(accion(?:es)?|criptomonedas?|criptos?|bitcoin|ethereum|fondos?|etf|seguros?|productos? financieros?|activos?|bonos?)\b.*\b(comprar|vender|recomiendas?|conviene|deberia|mejor)\b/u',
+        ],
+        'out_of_scope' => [
+            '/\b(asesoramiento|asesoria|consejo)\b.*\b(fiscal|legal|juridico|juridica)\b/u',
+            '/\b(mi|mis|me|debo|deberia|conviene)\b.*\b(hacienda|impuestos|irpf|iva|declaracion de la renta|demanda|contrato legal|abogado)\b/u',
+            '/\b(escribeme|escribe|genera|programa|haz|crea)\b.*\b(codigo|script|programa|funcion|php|javascript|python|sql)\b/u',
+            '/\b(receta|cocinar|cocina|capital de|presidente de|historia de|clima en)\b/u',
+        ],
+    ];
+
+    public function classify(string $message): ?NumaLocalScopeRejection
+    {
+        $normalized = self::normalize($message);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if ($this->matchesAny($normalized, self::RULES['manipulation'])) {
+            return $this->reject(
+                NumaClassificationIntent::INTENTO_MANIPULACION,
+                'local_manipulation',
+                self::RESPONSE_MANIPULATION
+            );
+        }
+
+        if ($this->matchesAny($normalized, self::RULES['third_party_data'])) {
+            return $this->reject(
+                NumaClassificationIntent::SOLICITUD_DATOS_TERCEROS,
+                'local_third_party_data',
+                self::RESPONSE_THIRD_PARTY_DATA
+            );
+        }
+
+        if ($this->matchesAny($normalized, self::RULES['forbidden_action'])) {
+            return $this->reject(
+                NumaClassificationIntent::ACCION_NO_PERMITIDA,
+                'local_forbidden_action',
+                self::RESPONSE_FORBIDDEN_ACTION
+            );
+        }
+
+        if ($this->matchesAny($normalized, self::RULES['quick_money'])) {
+            return $this->reject(
+                NumaClassificationIntent::RECOMENDACION_FINANCIERA,
+                'local_quick_money',
+                self::RESPONSE_QUICK_MONEY
+            );
+        }
+
+        if ($this->matchesAny($normalized, self::RULES['financial_recommendation'])) {
+            return $this->reject(
+                NumaClassificationIntent::RECOMENDACION_FINANCIERA,
+                'local_financial_recommendation',
+                self::RESPONSE_FINANCIAL_RECOMMENDATION
+            );
+        }
+
+        if ($this->matchesAny($normalized, self::RULES['out_of_scope'])) {
+            return $this->reject(
+                NumaClassificationIntent::FUERA_DE_AMBITO,
+                'local_out_of_scope',
+                self::RESPONSE_OUT_OF_SCOPE
+            );
+        }
+
+        return null;
+    }
+
+    private function reject(string $intent, string $reason, string $message): NumaLocalScopeRejection
+    {
+        return new NumaLocalScopeRejection(
+            new NumaClassification($intent, false, $reason),
+            $message
+        );
+    }
+
+    /**
+     * @param array<int, string> $patterns
+     */
+    private function matchesAny(string $normalized, array $patterns): bool
+    {
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $normalized) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function normalize(string $message): string
+    {
+        $message = function_exists('mb_strtolower') ? mb_strtolower($message, 'UTF-8') : strtolower($message);
+
+        $message = strtr($message, [
+            'á' => 'a',
+            'à' => 'a',
+            'ä' => 'a',
+            'â' => 'a',
+            'é' => 'e',
+            'è' => 'e',
+            'ë' => 'e',
+            'ê' => 'e',
+            'í' => 'i',
+            'ì' => 'i',
+            'ï' => 'i',
+            'î' => 'i',
+            'ó' => 'o',
+            'ò' => 'o',
+            'ö' => 'o',
+            'ô' => 'o',
+            'ú' => 'u',
+            'ù' => 'u',
+            'ü' => 'u',
+            'û' => 'u',
+            'ñ' => 'n',
+            '_' => ' ',
+            '-' => ' ',
+        ]);
+
+        $message = preg_replace('/[^a-z0-9#\s]/u', ' ', $message) ?? $message;
+        $message = preg_replace('/\s+/u', ' ', $message) ?? $message;
+
+        return trim($message);
+    }
+}

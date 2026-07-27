@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once APP_PATH . '/models/NumaUso.php';
+require_once APP_PATH . '/services/NumaClassification.php';
 
 class NumaController
 {
@@ -81,6 +82,15 @@ class NumaController
             return;
         }
 
+        $localRejection = $this->localScopeClassifier()->classify($message);
+
+        if ($localRejection !== null) {
+            bh_json_success([
+                'message' => $localRejection->message(),
+            ]);
+            return;
+        }
+
         try {
             $numaUso = $this->numaUso();
             $reservationId = $numaUso->reservar((int) $_SESSION['usuario_id']);
@@ -123,6 +133,11 @@ class NumaController
     protected function numaUso(): NumaUso
     {
         return new NumaUso();
+    }
+
+    protected function localScopeClassifier(): NumaLocalScopeClassifier
+    {
+        return new NumaLocalScopeClassifier();
     }
 
     protected function rawBody(): string

@@ -164,9 +164,9 @@ final class NumaFinancialToolRegistry
      * @param array<string, mixed> $arguments
      * @return array<string, mixed>
      */
-    public function execute(string $name, int $usuarioId, array $arguments): array
+    public function execute(string $name, int $authenticatedUserId, array $arguments): array
     {
-        return $this->executor->execute($this->get($name), $usuarioId, $arguments);
+        return $this->executor->execute($this->get($name), $authenticatedUserId, $arguments);
     }
 
     /**
@@ -304,20 +304,20 @@ final class NumaFinancialToolExecutor
      * @param array<string, mixed> $arguments
      * @return array<string, mixed>
      */
-    public function execute(NumaFinancialToolDefinition $definition, int $usuarioId, array $arguments): array
+    public function execute(NumaFinancialToolDefinition $definition, int $authenticatedUserId, array $arguments): array
     {
-        if ($usuarioId <= 0) {
+        if ($authenticatedUserId <= 0) {
             throw new InvalidArgumentException('Usuario de Numa no valido.');
         }
 
         $this->validateArguments($definition, $arguments);
 
         return match ($definition->implementation()) {
-            'executeResumenFinanciero' => $this->executeResumenFinanciero($usuarioId, $arguments),
-            'executeRankingCategorias' => $this->executeRankingCategorias($usuarioId, $arguments),
-            'executeEvolucionFinanciera' => $this->executeEvolucionFinanciera($usuarioId, $arguments),
-            'executeCompararPeriodos' => $this->executeCompararPeriodos($usuarioId, $arguments),
-            'executeEstadisticasMovimientos' => $this->executeEstadisticasMovimientos($usuarioId, $arguments),
+            'executeResumenFinanciero' => $this->executeResumenFinanciero($authenticatedUserId, $arguments),
+            'executeRankingCategorias' => $this->executeRankingCategorias($authenticatedUserId, $arguments),
+            'executeEvolucionFinanciera' => $this->executeEvolucionFinanciera($authenticatedUserId, $arguments),
+            'executeCompararPeriodos' => $this->executeCompararPeriodos($authenticatedUserId, $arguments),
+            'executeEstadisticasMovimientos' => $this->executeEstadisticasMovimientos($authenticatedUserId, $arguments),
             default => throw new InvalidArgumentException('Implementacion de tool financiera de Numa no registrada.'),
         };
     }

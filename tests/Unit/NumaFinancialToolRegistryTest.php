@@ -82,6 +82,16 @@ final class NumaFinancialToolRegistryTest extends TestCase
         ]);
     }
 
+    public function testRechazaUsuarioAutenticadoInternoInvalido(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new \NumaFinancialToolRegistry())->execute('obtener_resumen_financiero', 0, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ]);
+    }
+
     public function testRechazaEnumCategoriaFechaYLimiteInvalidos(): void
     {
         $this->assertInvalidArguments('obtener_evolucion_financiera', [

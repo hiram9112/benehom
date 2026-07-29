@@ -57,6 +57,71 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertArrayNotHasKey('id', $result['categorias'][0]);
     }
 
+    public function testTodasLasToolsFiltranPorUsuarioAutenticadoInterno(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-aislamiento@example.test');
+        $otroUsuario = $this->crearUsuario('numa-tools-aislamiento-otro@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $otroUsuarioId = (int) $otroUsuario['id'];
+
+        $this->insertIngreso($usuarioId, 'salario', 1000, '2026-07-02');
+        $this->insertGasto($usuarioId, 'esencial', 'alimentacion', 100, '2026-07-03');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 40, '2026-07-04');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 60, '2026-08-04');
+
+        $this->insertIngreso($otroUsuarioId, 'salario', 9000, '2026-07-02');
+        $this->insertGasto($otroUsuarioId, 'esencial', 'alimentacion', 9000, '2026-07-03');
+        $this->insertGasto($otroUsuarioId, 'flexible', 'ocio', 9000, '2026-07-04');
+        $this->insertGasto($otroUsuarioId, 'flexible', 'ocio', 9000, '2026-08-04');
+
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+
+        $resumen = $registry->execute('obtener_resumen_financiero', $usuarioId, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ]);
+        self::assertSame(1000.0, $resumen['ingresos']);
+        self::assertSame(140.0, $resumen['gastos']);
+
+        $ranking = $registry->execute('obtener_ranking_categorias', $usuarioId, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'gastos',
+            'limite' => 2,
+        ]);
+        self::assertSame(100.0, $ranking['categorias'][0]['total']);
+        self::assertSame(40.0, $ranking['categorias'][1]['total']);
+
+        $evolucion = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-08-31',
+            'metrica' => 'gastos',
+            'agrupacion' => 'mes',
+            'limite' => 2,
+        ]);
+        self::assertSame(140.0, $evolucion['evolucion'][0]['valor']);
+        self::assertSame(60.0, $evolucion['evolucion'][1]['valor']);
+
+        $comparacion = $registry->execute('comparar_periodos', $usuarioId, [
+            'fecha_inicio_a' => '2026-07-01',
+            'fecha_fin_a' => '2026-07-31',
+            'fecha_inicio_b' => '2026-08-01',
+            'fecha_fin_b' => '2026-08-31',
+            'metrica' => 'gastos',
+        ]);
+        self::assertSame(140.0, $comparacion['valor_a']);
+        self::assertSame(60.0, $comparacion['valor_b']);
+
+        $estadisticas = $registry->execute('obtener_estadisticas_movimientos', $usuarioId, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'gastos',
+        ]);
+        self::assertSame(2, $estadisticas['cantidad_movimientos']);
+        self::assertSame(140.0, $estadisticas['total']);
+        self::assertSame(70.0, $estadisticas['promedio']);
+    }
+
     private function insertIngreso(int $usuarioId, string $categoria, float $cantidad, string $fecha): void
     {
         $stmt = $this->db->prepare('INSERT INTO ingresos (usuario_id, categoria, cantidad, fecha) VALUES (:usuario_id, :categoria, :cantidad, :fecha)');

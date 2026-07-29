@@ -439,6 +439,260 @@ final class NumaKnowledgeIndexSummary
     }
 }
 
+final class NumaKnowledgeSearchResult
+{
+    public function __construct(
+        private readonly string $fragmentId,
+        private readonly string $document,
+        private readonly string $title,
+        private readonly string $section,
+        private readonly string $route,
+        private readonly string $content,
+        private readonly float $similarity,
+    ) {
+        foreach ([$fragmentId, $document, $title, $section, $route, $content] as $value) {
+            if (trim($value) === '') {
+                throw new InvalidArgumentException('Resultado de conocimiento de Numa incompleto.');
+            }
+        }
+
+        if ($route[0] !== '/') {
+            throw new InvalidArgumentException('Ruta de conocimiento de Numa invalida.');
+        }
+    }
+
+    public function fragmentId(): string
+    {
+        return $this->fragmentId;
+    }
+
+    public function document(): string
+    {
+        return $this->document;
+    }
+
+    public function title(): string
+    {
+        return $this->title;
+    }
+
+    public function section(): string
+    {
+        return $this->section;
+    }
+
+    public function route(): string
+    {
+        return $this->route;
+    }
+
+    public function content(): string
+    {
+        return $this->content;
+    }
+
+    public function similarity(): float
+    {
+        return $this->similarity;
+    }
+
+    /**
+     * @return array<string, string|float>
+     */
+    public function toArray(): array
+    {
+        return [
+            'fragment_id' => $this->fragmentId,
+            'document' => $this->document,
+            'title' => $this->title,
+            'section' => $this->section,
+            'route' => $this->route,
+            'content' => $this->content,
+            'similarity' => $this->similarity,
+        ];
+    }
+}
+
+final class NumaVectorSimilarity
+{
+    /**
+     * @param array<int, float|int> $left
+     * @param array<int, float|int> $right
+     */
+    public static function cosine(array $left, array $right): float
+    {
+        if ($left === [] || count($left) !== count($right)) {
+            throw new InvalidArgumentException('Los vectores de Numa deben tener las mismas dimensiones.');
+        }
+
+        $dotProduct = 0.0;
+        $leftMagnitude = 0.0;
+        $rightMagnitude = 0.0;
+
+        $leftValues = array_values($left);
+        $rightValues = array_values($right);
+
+        foreach ($leftValues as $index => $leftValue) {
+            $rightValue = $rightValues[$index];
+
+            if ((!is_float($leftValue) && !is_int($leftValue)) || (!is_float($rightValue) && !is_int($rightValue))) {
+                throw new InvalidArgumentException('Los vectores de Numa solo pueden contener numeros.');
+            }
+
+            $leftFloat = (float) $leftValue;
+            $rightFloat = (float) $rightValue;
+
+            $dotProduct += $leftFloat * $rightFloat;
+            $leftMagnitude += $leftFloat * $leftFloat;
+            $rightMagnitude += $rightFloat * $rightFloat;
+        }
+
+        if ($leftMagnitude <= 0.0 || $rightMagnitude <= 0.0) {
+            return 0.0;
+        }
+
+        return $dotProduct / (sqrt($leftMagnitude) * sqrt($rightMagnitude));
+    }
+}
+
+final class NumaKnowledgeSearcher
+{
+    public function __construct(
+        private readonly PDO $connection,
+        private readonly NumaEmbeddingProviderInterface $embeddingProvider,
+        private readonly int $dimensions = 768,
+        private readonly int $maxResults = 3,
+        private readonly float $minSimilarity = 0.65,
+    ) {
+        if ($dimensions <= 0 || $maxResults <= 0 || $minSimilarity < -1.0 || $minSimilarity > 1.0) {
+            throw new InvalidArgumentException('Configuracion de busqueda semantica de Numa invalida.');
+        }
+    }
+
+    /**
+     * @return array<int, NumaKnowledgeSearchResult>
+     */
+    public function search(string $knowledgeQuery): array
+    {
+        $knowledgeQuery = $this->normalizeKnowledgeQuery($knowledgeQuery);
+        $queryEmbedding = $this->embeddingProvider->embed($knowledgeQuery);
+        $this->validateEmbedding($queryEmbedding);
+
+        $resultsByHash = [];
+
+        foreach ($this->candidates() as $candidate) {
+            $embedding = $this->decodeEmbedding((string) $candidate['embedding']);
+            $similarity = NumaVectorSimilarity::cosine($queryEmbedding, $embedding);
+
+            if ($similarity < $this->minSimilarity) {
+                continue;
+            }
+
+            $hash = (string) $candidate['hash'];
+            $result = new NumaKnowledgeSearchResult(
+                (string) $candidate['fragmento_id'],
+                (string) $candidate['documento'],
+                (string) $candidate['titulo'],
+                (string) $candidate['seccion'],
+                (string) $candidate['ruta'],
+                (string) $candidate['contenido'],
+                $similarity
+            );
+
+            if (!isset($resultsByHash[$hash]) || $similarity > $resultsByHash[$hash]->similarity()) {
+                $resultsByHash[$hash] = $result;
+            }
+        }
+
+        $results = array_values($resultsByHash);
+        usort($results, static function (NumaKnowledgeSearchResult $left, NumaKnowledgeSearchResult $right): int {
+            $similarityOrder = $right->similarity() <=> $left->similarity();
+
+            if ($similarityOrder !== 0) {
+                return $similarityOrder;
+            }
+
+            return [$left->document(), $left->section(), $left->fragmentId()]
+                <=> [$right->document(), $right->section(), $right->fragmentId()];
+        });
+
+        return array_slice($results, 0, $this->maxResults);
+    }
+
+    private function normalizeKnowledgeQuery(string $knowledgeQuery): string
+    {
+        $knowledgeQuery = preg_replace('/\s+/u', ' ', $knowledgeQuery) ?? $knowledgeQuery;
+        $knowledgeQuery = trim($knowledgeQuery);
+
+        if ($knowledgeQuery === '') {
+            throw new InvalidArgumentException('La consulta documental de Numa no puede estar vacia.');
+        }
+
+        return $knowledgeQuery;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function candidates(): array
+    {
+        // La base inicial es pequena; si crece de forma significativa, esta carga en memoria debera revisarse.
+        $stmt = $this->connection->prepare(
+            'SELECT fragmento_id, documento, titulo, seccion, ruta, contenido, hash, embedding
+             FROM numa_conocimiento
+             WHERE dimensiones = :dimensiones'
+        );
+        $stmt->execute([':dimensiones' => $this->dimensions]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function decodeEmbedding(string $json): array
+    {
+        try {
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Embedding de conocimiento de Numa no legible.', 0, $exception);
+        }
+
+        if (!is_array($decoded)) {
+            throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
+        }
+
+        $embedding = [];
+        foreach ($decoded as $value) {
+            if (!is_float($value) && !is_int($value)) {
+                throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
+            }
+
+            $embedding[] = (float) $value;
+        }
+
+        $this->validateEmbedding($embedding);
+
+        return $embedding;
+    }
+
+    /**
+     * @param array<int, float|int> $embedding
+     */
+    private function validateEmbedding(array $embedding): void
+    {
+        if (count($embedding) !== $this->dimensions) {
+            throw new RuntimeException('Embedding de conocimiento de Numa con dimensiones invalidas.');
+        }
+
+        foreach ($embedding as $value) {
+            if (!is_float($value) && !is_int($value)) {
+                throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
+            }
+        }
+    }
+}
+
 final class NumaKnowledgeIndexer
 {
     public function __construct(

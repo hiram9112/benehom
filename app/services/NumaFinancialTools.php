@@ -414,7 +414,7 @@ final class NumaFinancialToolExecutor
             'gastos_flexibles' => $this->categoryTotalsGastos($usuarioId, $start, $end, 'flexible', $limit),
             default => throw new InvalidArgumentException('Metrica de ranking de Numa no permitida.'),
         };
-        $total = array_sum(array_column($rows, 'total'));
+        $total = $this->calculateMetric($usuarioId, $start, $end, $metric);
 
         return [
             'tool' => NumaFinancialToolRegistry::OBTENER_RANKING_CATEGORIAS,
@@ -441,14 +441,14 @@ final class NumaFinancialToolExecutor
     private function executeEvolucionFinanciera(int $usuarioId, array $arguments): array
     {
         [$start, $end] = $this->period($arguments);
-        $metric = $this->stringArg($arguments, 'metrica', 'ahorro_real');
         $grouping = $this->stringArg($arguments, 'agrupacion');
+        $metric = $this->stringArg($arguments, 'metrica', $grouping === 'tipo' ? 'gastos' : 'ahorro_real');
         $limit = $this->boundedLimit($arguments['limite'] ?? 12, 1, 24);
 
         $items = match ($grouping) {
             'mes' => $this->monthlyEvolution($usuarioId, $start, $end, $metric, $limit),
             'categoria' => $this->categoryEvolution($usuarioId, $start, $end, $metric, $limit),
-            'tipo' => $this->typeEvolution($usuarioId, $start, $end),
+            'tipo' => $this->typeEvolution($usuarioId, $start, $end, $metric),
             default => throw new InvalidArgumentException('Agrupacion de Numa no permitida.'),
         };
 
@@ -744,12 +744,24 @@ final class NumaFinancialToolExecutor
     /**
      * @return array<int, array{tipo:string, valor:float}>
      */
-    private function typeEvolution(int $usuarioId, string $start, string $end): array
+    private function typeEvolution(int $usuarioId, string $start, string $end, string $metric): array
     {
-        return [
-            ['tipo' => 'esencial', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'esencial'))],
-            ['tipo' => 'flexible', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'flexible'))],
-        ];
+        return match ($metric) {
+            'ingresos' => [
+                ['tipo' => 'ingresos', 'valor' => $this->money($this->sumIngresos($usuarioId, $start, $end))],
+            ],
+            'gastos' => [
+                ['tipo' => 'esencial', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'esencial'))],
+                ['tipo' => 'flexible', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'flexible'))],
+            ],
+            'gastos_esenciales' => [
+                ['tipo' => 'esencial', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'esencial'))],
+            ],
+            'gastos_flexibles' => [
+                ['tipo' => 'flexible', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'flexible'))],
+            ],
+            default => throw new InvalidArgumentException('La evolucion por tipo requiere una metrica de movimientos.'),
+        };
     }
 
     /**

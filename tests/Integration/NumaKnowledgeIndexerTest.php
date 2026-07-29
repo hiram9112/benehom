@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use DateTimeImmutable;
+use Tests\Support\FakeNumaEmbeddingProvider;
 
 require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
@@ -42,7 +43,7 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         $directory = $this->knowledgeDirectory([
             'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
         ]);
-        $provider = new FakeEmbeddingProvider(4);
+        $provider = new FakeNumaEmbeddingProvider(4);
         $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
 
         $summary = $indexer->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
@@ -69,7 +70,7 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         $directory = $this->knowledgeDirectory([
             'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
         ]);
-        $provider = new FakeEmbeddingProvider(4);
+        $provider = new FakeNumaEmbeddingProvider(4);
         $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
 
         $indexer->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
@@ -88,7 +89,7 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         $directory = $this->knowledgeDirectory([
             'guia.md' => "# Guia\n\n## Inicio\n\nContenido inicial.\n\n## Extra\n\nContenido obsoleto.",
         ]);
-        $provider = new FakeEmbeddingProvider(4);
+        $provider = new FakeNumaEmbeddingProvider(4);
         $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
 
         $indexer->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
@@ -169,23 +170,6 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         self::assertNotFalse($stmt);
 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-    }
-}
-
-final class FakeEmbeddingProvider implements \NumaEmbeddingProviderInterface
-{
-    public int $calls = 0;
-
-    public function __construct(private readonly int $dimensions)
-    {
-    }
-
-    public function embed(string $text): array
-    {
-        $this->calls++;
-        $seed = (crc32($text) % 1000) / 1000;
-
-        return array_fill(0, $this->dimensions, $seed);
     }
 }
 

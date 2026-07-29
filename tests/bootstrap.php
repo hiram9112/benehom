@@ -20,4 +20,5 @@ if (file_exists($autoloadPath)) {
 
 require_once APP_PATH . '/helpers/utils.php';
 require_once APP_PATH . '/services/CalculosFinancieros.php';
+require_once BASE_PATH . '/tests/Support/FakeNumaEmbeddingProvider.php';
 require_once BASE_PATH . '/tests/Integration/IntegrationTestCase.php';

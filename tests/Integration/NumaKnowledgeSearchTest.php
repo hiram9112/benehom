@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use InvalidArgumentException;
+use Tests\Support\FakeNumaEmbeddingProvider;
 
 require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
@@ -28,9 +29,9 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         $this->insertKnowledge('dashboard:resumen', 'dashboard.md', 'Dashboard', 'Resumen', 'Resumen mensual del dashboard.', [0.7, 0.714142842]);
         $this->insertKnowledge('cuenta:perfil', 'cuenta.md', 'Cuenta', 'Perfil', 'Gestion de cuenta.', [0.6, 0.8]);
 
-        $provider = new SemanticSearchEmbeddingProvider([
+        $provider = FakeNumaEmbeddingProvider::withVectors([
             'como anadir movimiento' => [1.0, 0.0],
-        ]);
+        ], 2);
         $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2, 3, 0.65);
 
         $results = $searcher->search("  como anadir\nmovimiento  ");
@@ -50,7 +51,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
 
         $searcher = new \NumaKnowledgeSearcher(
             $this->db,
-            new SemanticSearchEmbeddingProvider(['consulta sin resultado' => [1.0, 0.0]]),
+            FakeNumaEmbeddingProvider::withVectors(['consulta sin resultado' => [1.0, 0.0]], 2),
             2,
             3,
             0.65
@@ -63,7 +64,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
     {
         $searcher = new \NumaKnowledgeSearcher(
             $this->db,
-            new SemanticSearchEmbeddingProvider(['consulta' => [1.0, 0.0]]),
+            FakeNumaEmbeddingProvider::withVectors(['consulta' => [1.0, 0.0]], 2),
             2
         );
 
@@ -75,9 +76,9 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
     public function testSeparaConsultaDocumentalAntesDeCrearEmbedding(): void
     {
         $this->insertKnowledge('gastos:flexibles', 'gastos.md', 'Gastos', 'Gastos flexibles', 'Gastos flexibles de BeneHom.', [1.0, 0.0]);
-        $provider = new SemanticSearchEmbeddingProvider([
+        $provider = FakeNumaEmbeddingProvider::withVectors([
             'Qué son los gastos flexibles' => [1.0, 0.0],
-        ]);
+        ], 2);
         $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2, 3, 0.65);
 
         $searcher->search('Me llamo Laura Pérez. ¿Qué son los gastos flexibles y cuánto gasté 123,45 euros este mes? Mi correo es laura@example.com y mi usuario_id 42.');
@@ -87,7 +88,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
 
     public function testRechazaConsultaDocumentalConDatosPrivadosSinParteDocumental(): void
     {
-        $provider = new SemanticSearchEmbeddingProvider(['consulta' => [1.0, 0.0]]);
+        $provider = FakeNumaEmbeddingProvider::withVectors(['consulta' => [1.0, 0.0]], 2);
         $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2);
 
         $this->expectException(InvalidArgumentException::class);
@@ -101,7 +102,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
 
     public function testRechazaResultadosDeToolsAntesDeCrearEmbedding(): void
     {
-        $provider = new SemanticSearchEmbeddingProvider(['consulta' => [1.0, 0.0]]);
+        $provider = FakeNumaEmbeddingProvider::withVectors(['consulta' => [1.0, 0.0]], 2);
         $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2);
 
         $this->expectException(InvalidArgumentException::class);
@@ -142,28 +143,5 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
             ':dimensiones' => count($embedding),
             ':indexed_at' => '2026-07-29 12:00:00',
         ]);
-    }
-}
-
-final class SemanticSearchEmbeddingProvider implements \NumaEmbeddingProviderInterface
-{
-    /** @var array<int, string> */
-    public array $texts = [];
-
-    /**
-     * @param array<string, array<int, float>> $vectors
-     */
-    public function __construct(private readonly array $vectors)
-    {
-    }
-
-    /**
-     * @return array<int, float>
-     */
-    public function embed(string $text): array
-    {
-        $this->texts[] = $text;
-
-        return $this->vectors[$text] ?? [0.0, 0.0];
     }
 }

@@ -163,6 +163,27 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(70.0, $estadisticas['promedio']);
     }
 
+    public function testResultadoDeToolQuedaAcotadoParaProveedorSinDatosPrivados(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-json-limit@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db, 450));
+
+        $result = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
+            'fecha_inicio' => '2025-01-01',
+            'fecha_fin' => '2026-12-31',
+            'metrica' => 'gastos',
+            'agrupacion' => 'mes',
+            'limite' => 24,
+        ]);
+
+        $encoded = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        self::assertLessThanOrEqual(450, strlen($encoded));
+        self::assertLessThan(24, count($result['evolucion']));
+        self::assertNoPrivateKeys($result);
+    }
+
     private function insertIngreso(int $usuarioId, string $categoria, float $cantidad, string $fecha): void
     {
         $stmt = $this->db->prepare('INSERT INTO ingresos (usuario_id, categoria, cantidad, fecha) VALUES (:usuario_id, :categoria, :cantidad, :fecha)');
@@ -184,5 +205,17 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             ':cantidad' => $cantidad,
             ':fecha' => $fecha,
         ]);
+    }
+
+    /** @param array<mixed> $value */
+    private static function assertNoPrivateKeys(array $value): void
+    {
+        foreach ($value as $key => $item) {
+            self::assertNotContains($key, ['usuario_id', 'user_id', 'id', 'email', 'correo', 'nombre', 'nota', 'notas']);
+
+            if (is_array($item)) {
+                self::assertNoPrivateKeys($item);
+            }
+        }
     }
 }

@@ -296,8 +296,19 @@ final class NumaFinancialToolRegistry
 
 final class NumaFinancialToolExecutor
 {
-    public function __construct(private readonly ?PDO $connection = null)
-    {
+    private const MAX_PROVIDER_RESULT_JSON_CHARS = 1600;
+
+    private readonly int $maxProviderResultJsonChars;
+
+    public function __construct(
+        private readonly ?PDO $connection = null,
+        ?int $maxProviderResultJsonChars = null,
+    ) {
+        $this->maxProviderResultJsonChars = $maxProviderResultJsonChars ?? self::MAX_PROVIDER_RESULT_JSON_CHARS;
+
+        if ($this->maxProviderResultJsonChars <= 0) {
+            throw new InvalidArgumentException('El limite de resultado de tool de Numa no es valido.');
+        }
     }
 
     /**
@@ -312,7 +323,7 @@ final class NumaFinancialToolExecutor
 
         $this->validateArguments($definition, $arguments);
 
-        return match ($definition->implementation()) {
+        $result = match ($definition->implementation()) {
             'executeResumenFinanciero' => $this->executeResumenFinanciero($authenticatedUserId, $arguments),
             'executeRankingCategorias' => $this->executeRankingCategorias($authenticatedUserId, $arguments),
             'executeEvolucionFinanciera' => $this->executeEvolucionFinanciera($authenticatedUserId, $arguments),
@@ -320,6 +331,8 @@ final class NumaFinancialToolExecutor
             'executeEstadisticasMovimientos' => $this->executeEstadisticasMovimientos($authenticatedUserId, $arguments),
             default => throw new InvalidArgumentException('Implementacion de tool financiera de Numa no registrada.'),
         };
+
+        return $this->limitProviderResult($result);
     }
 
     /** @param array<string, mixed> $arguments */
@@ -651,9 +664,14 @@ final class NumaFinancialToolExecutor
                 GROUP BY categoria
                 HAVING total > 0
                 ORDER BY total DESC, categoria ASC
-                LIMIT " . $limit;
+                LIMIT :limite";
         $stmt = $this->db()->prepare($sql);
-        $this->bindAndExecute($stmt, [':usuario_id' => $usuarioId, ':inicio' => $start, ':fin' => $end]);
+        $this->bindAndExecute($stmt, [
+            ':usuario_id' => $usuarioId,
+            ':inicio' => $start,
+            ':fin' => $end,
+            ':limite' => $limit,
+        ]);
 
         return $this->fetchCategoryTotals($stmt);
     }
@@ -676,7 +694,8 @@ final class NumaFinancialToolExecutor
         $sql .= " GROUP BY categoria
                   HAVING total > 0
                   ORDER BY total DESC, categoria ASC
-                  LIMIT " . $limit;
+                  LIMIT :limite";
+        $params[':limite'] = $limit;
         $stmt = $this->db()->prepare($sql);
         $this->bindAndExecute($stmt, $params);
 
@@ -821,6 +840,43 @@ final class NumaFinancialToolExecutor
     private function money(float $value): float
     {
         return round($value, 2);
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     * @return array<string, mixed>
+     */
+    private function limitProviderResult(array $result): array
+    {
+        if ($this->providerJsonLength($result) <= $this->maxProviderResultJsonChars) {
+            return $result;
+        }
+
+        foreach (['categorias', 'evolucion'] as $itemsKey) {
+            if (!isset($result[$itemsKey]) || !is_array($result[$itemsKey]) || !array_is_list($result[$itemsKey])) {
+                continue;
+            }
+
+            while ($result[$itemsKey] !== [] && $this->providerJsonLength($result) > $this->maxProviderResultJsonChars) {
+                array_pop($result[$itemsKey]);
+            }
+
+            if (isset($result['limite']) && is_int($result['limite'])) {
+                $result['limite'] = min($result['limite'], count($result[$itemsKey]));
+            }
+
+            if ($this->providerJsonLength($result) <= $this->maxProviderResultJsonChars) {
+                return $result;
+            }
+        }
+
+        throw new RuntimeException('Resultado de tool financiera de Numa demasiado grande.');
+    }
+
+    /** @param array<string, mixed> $result */
+    private function providerJsonLength(array $result): int
+    {
+        return strlen(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     private function db(): PDO

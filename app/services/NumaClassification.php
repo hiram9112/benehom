@@ -275,6 +275,14 @@ final class NumaLocalScopeRejection
 
 final class NumaFixedScopeResponse
 {
+    /** @var array<int, string> */
+    private const QUICK_MONEY_REASONS = [
+        'local_quick_money',
+        'quick_money',
+        'provider_quick_money',
+        'ganancias_rapidas',
+    ];
+
     private const RESPONSE_OUT_OF_SCOPE = 'Puedo ayudarte con BeneHom, conceptos de economía familiar y el análisis de los datos que hayas registrado. No respondo preguntas generales ajenas a estas funciones.';
     private const RESPONSE_FINANCIAL_RECOMMENDATION = 'Puedo ayudarte a comprender tus ingresos, gastos y hábitos registrados, pero no puedo recomendar inversiones, productos financieros ni decisiones de compra o venta.';
     private const RESPONSE_QUICK_MONEY = 'No puedo ofrecer métodos para ganar dinero rápido ni prometer resultados financieros. Sí puedo ayudarte a analizar tu presupuesto y detectar tendencias en tus datos.';
@@ -284,7 +292,7 @@ final class NumaFixedScopeResponse
 
     public static function forIntent(string $intent, ?string $reason = null): string
     {
-        if ($intent === NumaClassificationIntent::RECOMENDACION_FINANCIERA && $reason === 'local_quick_money') {
+        if ($intent === NumaClassificationIntent::RECOMENDACION_FINANCIERA && in_array($reason, self::QUICK_MONEY_REASONS, true)) {
             return self::RESPONSE_QUICK_MONEY;
         }
 

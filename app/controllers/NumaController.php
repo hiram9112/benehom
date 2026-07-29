@@ -3,11 +3,16 @@
 declare(strict_types=1);
 
 require_once APP_PATH . '/models/NumaUso.php';
+require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/services/NumaClassification.php';
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
+require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
+require_once APP_PATH . '/services/NumaKnowledge.php';
 
 class NumaController
 {
+    private const NO_KNOWLEDGE_MESSAGE = 'No encuentro información suficiente sobre esa función dentro de BeneHom.';
+
     private const DISALLOWED_CLIENT_KEYS = [
         'usuario_id',
         'user_id',
@@ -145,6 +150,23 @@ class NumaController
             return;
         }
 
+        try {
+            $knowledgeResults = $this->knowledgeResults($classification, $message);
+        } catch (NumaProviderException $exception) {
+            bh_numa_error($exception->providerError()->safeCode(), 503);
+            return;
+        } catch (Throwable) {
+            bh_numa_error('NUMA_PROVIDER_INVALID_RESPONSE', 503);
+            return;
+        }
+
+        if ($knowledgeResults === []) {
+            bh_json_success([
+                'message' => self::NO_KNOWLEDGE_MESSAGE,
+            ]);
+            return;
+        }
+
         bh_numa_error('NUMA_NOT_AVAILABLE', 503);
     }
 
@@ -185,6 +207,27 @@ class NumaController
     protected function providerScopeClassifier(): NumaProviderScopeClassifier
     {
         return new NumaProviderScopeClassifier(NumaProviderFactory::fromEnvironment());
+    }
+
+    /**
+     * @return array<int, NumaKnowledgeSearchResult>
+     */
+    protected function knowledgeResults(NumaClassification $classification, string $message): array
+    {
+        $knowledgeQuery = $classification->knowledgeQuery() ?? $message;
+
+        return $this->knowledgeSearcher()->search($knowledgeQuery);
+    }
+
+    protected function knowledgeSearcher(): NumaKnowledgeSearcher
+    {
+        return new NumaKnowledgeSearcher(
+            Database::getConnection(),
+            NumaEmbeddingProviderFactory::fromEnvironment(),
+            bh_env_int('NUMA_EMBEDDING_DIMENSIONS', 768),
+            bh_env_int('NUMA_MAX_RAG_RESULTS', 3),
+            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.65')
+        );
     }
 
     protected function rawBody(): string

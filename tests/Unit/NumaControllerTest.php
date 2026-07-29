@@ -282,7 +282,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
     }
 
-    public function testChatActivoClasificaConProveedorYConsumeCuotaUsuario(): void
+    public function testChatActivoDevuelveMensajeSeguroCuandoRagNoTieneResultados(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
@@ -301,9 +301,9 @@ final class NumaControllerTest extends TestCase
             $provider
         );
 
-        self::assertFalse($response['ok']);
-        self::assertSame(503, $response['_status']);
-        self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
+        self::assertTrue($response['ok']);
+        self::assertSame(200, $response['_status']);
+        self::assertSame('No encuentro información suficiente sobre esa función dentro de BeneHom.', $response['data']['message']);
         self::assertSame(1, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertFalse($numaUso->reverted);
@@ -483,6 +483,7 @@ final class NumaControllerTest extends TestCase
         string $rawBody = '',
         ?NumaUsoFake $numaUso = null,
         ?\NumaProviderInterface $provider = null,
+        array $knowledgeResults = [],
     ): array
     {
         http_response_code(200);
@@ -493,11 +494,12 @@ final class NumaControllerTest extends TestCase
             'reason' => 'product_help',
         ]);
 
-        $controller = new class($rawBody, $numaUso, $provider) extends \NumaController {
+        $controller = new class($rawBody, $numaUso, $provider, $knowledgeResults) extends \NumaController {
             public function __construct(
                 private readonly string $body,
                 private readonly NumaUsoFake $fakeNumaUso,
                 private readonly \NumaProviderInterface $fakeProvider,
+                private readonly array $fakeKnowledgeResults,
             )
             {
             }
@@ -515,6 +517,11 @@ final class NumaControllerTest extends TestCase
             protected function providerScopeClassifier(): \NumaProviderScopeClassifier
             {
                 return new \NumaProviderScopeClassifier($this->fakeProvider);
+            }
+
+            protected function knowledgeResults(\NumaClassification $classification, string $message): array
+            {
+                return $this->fakeKnowledgeResults;
             }
         };
 

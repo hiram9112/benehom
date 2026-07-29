@@ -141,3 +141,20 @@ CREATE TABLE numa_uso_proveedor (
   UNIQUE KEY numa_uso_proveedor_fecha_unique (fecha),
   KEY numa_uso_proveedor_fecha_idx (fecha)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE numa_conocimiento (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fragmento_id VARCHAR(191) NOT NULL,
+  documento VARCHAR(120) NOT NULL,
+  titulo VARCHAR(160) NOT NULL,
+  seccion VARCHAR(220) NOT NULL,
+  ruta VARCHAR(255) NOT NULL,
+  contenido TEXT NOT NULL,
+  hash CHAR(64) NOT NULL,
+  embedding JSON NOT NULL,
+  dimensiones INT UNSIGNED NOT NULL,
+  indexed_at DATETIME NOT NULL,
+  UNIQUE KEY numa_conocimiento_fragmento_id_unique (fragmento_id),
+  KEY numa_conocimiento_documento_idx (documento),
+  KEY numa_conocimiento_hash_idx (hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/NumaProvider.php';
+
 final class NumaClassificationIntent
 {
     public const PRODUCTO = 'producto';
@@ -271,7 +273,7 @@ final class NumaLocalScopeRejection
     }
 }
 
-final class NumaLocalScopeClassifier
+final class NumaFixedScopeResponse
 {
     private const RESPONSE_OUT_OF_SCOPE = 'Puedo ayudarte con BeneHom, conceptos de economía familiar y el análisis de los datos que hayas registrado. No respondo preguntas generales ajenas a estas funciones.';
     private const RESPONSE_FINANCIAL_RECOMMENDATION = 'Puedo ayudarte a comprender tus ingresos, gastos y hábitos registrados, pero no puedo recomendar inversiones, productos financieros ni decisiones de compra o venta.';
@@ -280,6 +282,109 @@ final class NumaLocalScopeClassifier
     private const RESPONSE_THIRD_PARTY_DATA = 'Solo puedo analizar los datos de la cuenta con la que has iniciado sesión.';
     private const RESPONSE_FORBIDDEN_ACTION = 'Numa solo consulta y explica información. No puede crear, modificar ni eliminar datos.';
 
+    public static function forIntent(string $intent, ?string $reason = null): string
+    {
+        if ($intent === NumaClassificationIntent::RECOMENDACION_FINANCIERA && $reason === 'local_quick_money') {
+            return self::RESPONSE_QUICK_MONEY;
+        }
+
+        return match ($intent) {
+            NumaClassificationIntent::RECOMENDACION_FINANCIERA => self::RESPONSE_FINANCIAL_RECOMMENDATION,
+            NumaClassificationIntent::FUERA_DE_AMBITO => self::RESPONSE_OUT_OF_SCOPE,
+            NumaClassificationIntent::INTENTO_MANIPULACION => self::RESPONSE_MANIPULATION,
+            NumaClassificationIntent::SOLICITUD_DATOS_TERCEROS => self::RESPONSE_THIRD_PARTY_DATA,
+            NumaClassificationIntent::ACCION_NO_PERMITIDA => self::RESPONSE_FORBIDDEN_ACTION,
+            default => self::RESPONSE_OUT_OF_SCOPE,
+        };
+    }
+}
+
+final class NumaProviderScopeClassifier
+{
+    public function __construct(private readonly NumaProviderInterface $provider)
+    {
+    }
+
+    public function classify(string $message): NumaClassification
+    {
+        try {
+            $response = $this->provider->respond(new NumaRequest(
+                $message,
+                '',
+                $this->classificationContext(),
+                []
+            ));
+
+            if ($response->toolRequest() !== null) {
+                throw $this->invalidResponse();
+            }
+
+            $data = $response->structuredData() ?? $this->decodeStructuredMessage($response->message());
+
+            if ($data === null) {
+                throw $this->invalidResponse();
+            }
+
+            return NumaClassification::fromStructuredData($data);
+        } catch (NumaProviderException $exception) {
+            throw $exception;
+        } catch (NumaGlobalLimiteAlcanzado $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            throw $this->invalidResponse($exception);
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function classificationContext(): array
+    {
+        return [[
+            'type' => 'numa_scope_classification',
+            'task' => 'Clasifica solo el mensaje actual del usuario para decidir si entra en el ámbito de Numa.',
+            'output' => [
+                'format' => 'json_object',
+                'required_keys' => ['intent', 'allowed', 'reason'],
+                'optional_keys' => ['knowledge_query', 'data_intent'],
+                'allowed_intents' => NumaClassificationIntent::all(),
+                'allowed_data_intents' => NumaDataIntent::all(),
+            ],
+            'rules' => [
+                'Devuelve exclusivamente JSON válido, sin texto adicional.',
+                'No autorices tools, SQL, usuario_id ni acceso a datos concretos.',
+                'Marca allowed true solo para producto, educacion_financiera, datos_usuario o consulta_combinada.',
+                'Usa knowledge_query solo para una consulta documental breve sin datos privados.',
+                'Usa data_intent solo si encaja exactamente con una intención de datos permitida.',
+            ],
+        ]];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeStructuredMessage(string $message): ?array
+    {
+        try {
+            $decoded = json_decode($message, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
+
+        return is_array($decoded) && !array_is_list($decoded) ? $decoded : null;
+    }
+
+    private function invalidResponse(?Throwable $previous = null): NumaProviderException
+    {
+        return new NumaProviderException(new NumaProviderError(
+            NumaProviderError::INVALID_RESPONSE,
+            'NUMA_PROVIDER_INVALID_RESPONSE'
+        ), $previous);
+    }
+}
+
+final class NumaLocalScopeClassifier
+{
     /** @var array<string, array<int, string>> */
     private const RULES = [
         'manipulation' => [
@@ -326,7 +431,7 @@ final class NumaLocalScopeClassifier
             return $this->reject(
                 NumaClassificationIntent::INTENTO_MANIPULACION,
                 'local_manipulation',
-                self::RESPONSE_MANIPULATION
+                NumaFixedScopeResponse::forIntent(NumaClassificationIntent::INTENTO_MANIPULACION)
             );
         }
 
@@ -334,7 +439,7 @@ final class NumaLocalScopeClassifier
             return $this->reject(
                 NumaClassificationIntent::SOLICITUD_DATOS_TERCEROS,
                 'local_third_party_data',
-                self::RESPONSE_THIRD_PARTY_DATA
+                NumaFixedScopeResponse::forIntent(NumaClassificationIntent::SOLICITUD_DATOS_TERCEROS)
             );
         }
 
@@ -342,7 +447,7 @@ final class NumaLocalScopeClassifier
             return $this->reject(
                 NumaClassificationIntent::ACCION_NO_PERMITIDA,
                 'local_forbidden_action',
-                self::RESPONSE_FORBIDDEN_ACTION
+                NumaFixedScopeResponse::forIntent(NumaClassificationIntent::ACCION_NO_PERMITIDA)
             );
         }
 
@@ -350,7 +455,7 @@ final class NumaLocalScopeClassifier
             return $this->reject(
                 NumaClassificationIntent::RECOMENDACION_FINANCIERA,
                 'local_quick_money',
-                self::RESPONSE_QUICK_MONEY
+                NumaFixedScopeResponse::forIntent(NumaClassificationIntent::RECOMENDACION_FINANCIERA, 'local_quick_money')
             );
         }
 
@@ -358,7 +463,7 @@ final class NumaLocalScopeClassifier
             return $this->reject(
                 NumaClassificationIntent::RECOMENDACION_FINANCIERA,
                 'local_financial_recommendation',
-                self::RESPONSE_FINANCIAL_RECOMMENDATION
+                NumaFixedScopeResponse::forIntent(NumaClassificationIntent::RECOMENDACION_FINANCIERA)
             );
         }
 
@@ -366,7 +471,7 @@ final class NumaLocalScopeClassifier
             return $this->reject(
                 NumaClassificationIntent::FUERA_DE_AMBITO,
                 'local_out_of_scope',
-                self::RESPONSE_OUT_OF_SCOPE
+                NumaFixedScopeResponse::forIntent(NumaClassificationIntent::FUERA_DE_AMBITO)
             );
         }
 

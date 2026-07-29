@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
+require_once APP_PATH . '/services/NumaClassification.php';
 
 final class NumaConsumoGlobalGeminiTest extends TestCase
 {
@@ -71,6 +72,43 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         self::assertSame(1, $row['llamadas']);
         self::assertSame(120, $row['input_tokens']);
         self::assertSame(35, $row['output_tokens']);
+    }
+
+    public function testClasificacionConProveedorCuentaComoLlamadaGlobal(): void
+    {
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: fn (): array => [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => [
+                            'parts' => [[
+                                'text' => json_encode([
+                                    'intent' => 'producto',
+                                    'allowed' => true,
+                                    'reason' => 'product_help',
+                                ], JSON_THROW_ON_ERROR),
+                            ]],
+                        ],
+                    ]],
+                    'usageMetadata' => [
+                        'promptTokenCount' => 90,
+                        'candidatesTokenCount' => 20,
+                    ],
+                ], JSON_THROW_ON_ERROR),
+            ],
+            consumption: $this->consumo(),
+        );
+
+        $classification = (new \NumaProviderScopeClassifier($provider))->classify('¿Cómo añado un movimiento?');
+        $row = $this->row();
+
+        self::assertSame('producto', $classification->intent());
+        self::assertSame(1, $row['llamadas']);
+        self::assertSame(90, $row['input_tokens']);
+        self::assertSame(20, $row['output_tokens']);
     }
 
     public function testCadaReintentoRealCuentaComoOtraLlamada(): void

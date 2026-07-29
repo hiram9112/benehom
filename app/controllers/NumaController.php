@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once APP_PATH . '/models/NumaUso.php';
 require_once APP_PATH . '/services/NumaClassification.php';
+require_once APP_PATH . '/services/GeminiNumaProvider.php';
 
 class NumaController
 {
@@ -94,12 +95,53 @@ class NumaController
         try {
             $numaUso = $this->numaUso();
             $reservationId = $numaUso->reservar((int) $_SESSION['usuario_id']);
-            $numaUso->revertir($reservationId);
-        } catch (NumaUsoLimiteAlcanzado $e) {
-            bh_numa_error($e->limitCode(), 429);
+        } catch (NumaUsoLimiteAlcanzado $exception) {
+            bh_numa_error($exception->limitCode(), 429);
             return;
         } catch (Throwable) {
             bh_numa_error('NUMA_USAGE_ERROR', 503);
+            return;
+        }
+
+        $providerFailure = null;
+
+        try {
+            $classification = $this->providerScopeClassifier()->classify($message);
+        } catch (Throwable $exception) {
+            $providerFailure = $exception;
+        }
+
+        try {
+            $confirmed = $numaUso->confirmar($reservationId);
+        } catch (Throwable) {
+            bh_numa_error('NUMA_USAGE_ERROR', 503);
+            return;
+        }
+
+        if (!$confirmed) {
+            bh_numa_error('NUMA_USAGE_ERROR', 503);
+            return;
+        }
+
+        if ($providerFailure instanceof NumaGlobalLimiteAlcanzado) {
+            bh_numa_error('NUMA_GLOBAL_LIMIT_REACHED', 503);
+            return;
+        }
+
+        if ($providerFailure instanceof NumaProviderException) {
+            bh_numa_error($providerFailure->providerError()->safeCode(), 503);
+            return;
+        }
+
+        if ($providerFailure !== null) {
+            bh_numa_error('NUMA_PROVIDER_INVALID_RESPONSE', 503);
+            return;
+        }
+
+        if (!$classification->allowed()) {
+            bh_json_success([
+                'message' => NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason()),
+            ]);
             return;
         }
 
@@ -138,6 +180,11 @@ class NumaController
     protected function localScopeClassifier(): NumaLocalScopeClassifier
     {
         return new NumaLocalScopeClassifier();
+    }
+
+    protected function providerScopeClassifier(): NumaProviderScopeClassifier
+    {
+        return new NumaProviderScopeClassifier(NumaProviderFactory::fromEnvironment());
     }
 
     protected function rawBody(): string

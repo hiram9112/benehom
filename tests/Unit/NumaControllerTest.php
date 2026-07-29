@@ -7,9 +7,11 @@ namespace Tests\Unit;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/controllers/NumaController.php';
+require_once __DIR__ . '/FakeNumaProvider.php';
 
 final class NumaUsoFake extends \NumaUso
 {
+    public int $confirmations = 0;
     public bool $reverted = false;
     public int $reservations = 0;
 
@@ -40,6 +42,13 @@ final class NumaUsoFake extends \NumaUso
         }
 
         return '00000000-0000-4000-8000-000000000000';
+    }
+
+    public function confirmar(string $reservaId): bool
+    {
+        $this->confirmations++;
+
+        return true;
     }
 
     public function revertir(string $reservaId): bool
@@ -273,36 +282,85 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
     }
 
-    public function testChatActivoRechazaLimiteDiario(): void
+    public function testChatActivoClasificaConProveedorYConsumeCuotaUsuario(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'producto',
+            'allowed' => true,
+            'reason' => 'product_help',
+            'knowledge_query' => 'añadir movimiento',
+        ]);
+        $numaUso = new NumaUsoFake();
 
         $response = $this->invoke(
             'chat',
             '{"message":"¿Cómo añado un movimiento?"}',
-            new NumaUsoFake(limitCode: 'NUMA_DAILY_LIMIT_REACHED')
+            $numaUso,
+            $provider
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(1, $numaUso->confirmations);
+        self::assertFalse($numaUso->reverted);
+        self::assertCount(1, $provider->requests());
+        self::assertSame('¿Cómo añado un movimiento?', $provider->lastRequest()?->message());
+        self::assertSame([], $provider->lastRequest()?->availableTools());
+    }
+
+    public function testChatActivoDevuelveRechazoClasificadoPorProveedorYConsumeCuotaUsuario(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Puedes revisar esta consulta?"}',
+            $numaUso,
+            \FakeNumaProvider::structuredResponse([
+                'intent' => 'fuera_de_ambito',
+                'allowed' => false,
+                'reason' => 'general_knowledge',
+            ])
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame(200, $response['_status']);
+        self::assertSame('Puedo ayudarte con BeneHom, conceptos de economía familiar y el análisis de los datos que hayas registrado. No respondo preguntas generales ajenas a estas funciones.', $response['data']['message']);
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(1, $numaUso->confirmations);
+        self::assertFalse($numaUso->reverted);
+    }
+
+    public function testChatActivoRechazaLimiteIndividualAntesDeInvocarProveedor(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'producto',
+            'allowed' => true,
+            'reason' => 'product_help',
+        ]);
+        $numaUso = new NumaUsoFake(limitCode: 'NUMA_DAILY_LIMIT_REACHED');
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            $numaUso,
+            $provider
         );
 
         self::assertFalse($response['ok']);
         self::assertSame(429, $response['_status']);
         self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
-    }
-
-    public function testChatActivoRechazaLimiteMensual(): void
-    {
-        $_ENV['NUMA_ENABLED'] = 'true';
-        $this->configureJsonPost();
-
-        $response = $this->invoke(
-            'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
-            new NumaUsoFake(limitCode: 'NUMA_MONTHLY_LIMIT_REACHED')
-        );
-
-        self::assertFalse($response['ok']);
-        self::assertSame(429, $response['_status']);
-        self::assertSame('NUMA_MONTHLY_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(0, $numaUso->confirmations);
+        self::assertCount(0, $provider->requests());
     }
 
     public function testChatActivoAplicaRechazoLocalSinReservarConsumo(): void
@@ -322,6 +380,69 @@ final class NumaControllerTest extends TestCase
         self::assertSame('Esa solicitud queda fuera de las funciones disponibles en Numa.', $response['data']['message']);
         self::assertSame(0, $numaUso->reservations);
         self::assertFalse($numaUso->reverted);
+    }
+
+    public function testChatActivoTrataCategoriaInvalidaDelProveedorComoErrorSeguro(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Puedes revisar esta consulta?"}',
+            $numaUso,
+            \FakeNumaProvider::structuredResponse([
+                'intent' => 'generalista',
+                'allowed' => true,
+                'reason' => 'unknown',
+            ])
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(1, $numaUso->confirmations);
+    }
+
+    public function testChatActivoNoPermiteToolsSolicitadasPorClasificacion(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuánto gasté este mes?"}',
+            new NumaUsoFake(),
+            \FakeNumaProvider::toolRequest()
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+    }
+
+    public function testChatActivoDevuelveLimiteGlobalSeguroDuranteClasificacion(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            new NumaUsoFake(),
+            new class implements \NumaProviderInterface {
+                public function respond(\NumaRequest $request): \NumaResponse
+                {
+                    throw new \NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
+                }
+            }
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_GLOBAL_LIMIT_REACHED', $response['error']['code']);
     }
 
     public function testChatRechazaDatosSoloMediantePost(): void
@@ -357,13 +478,27 @@ final class NumaControllerTest extends TestCase
         self::assertSame($usage, $response['data']['usage']);
     }
 
-    private function invoke(string $method, string $rawBody = '', ?NumaUsoFake $numaUso = null): array
+    private function invoke(
+        string $method,
+        string $rawBody = '',
+        ?NumaUsoFake $numaUso = null,
+        ?\NumaProviderInterface $provider = null,
+    ): array
     {
         http_response_code(200);
         $numaUso ??= new NumaUsoFake();
+        $provider ??= \FakeNumaProvider::structuredResponse([
+            'intent' => 'producto',
+            'allowed' => true,
+            'reason' => 'product_help',
+        ]);
 
-        $controller = new class($rawBody, $numaUso) extends \NumaController {
-            public function __construct(private readonly string $body, private readonly NumaUsoFake $fakeNumaUso)
+        $controller = new class($rawBody, $numaUso, $provider) extends \NumaController {
+            public function __construct(
+                private readonly string $body,
+                private readonly NumaUsoFake $fakeNumaUso,
+                private readonly \NumaProviderInterface $fakeProvider,
+            )
             {
             }
 
@@ -375,6 +510,11 @@ final class NumaControllerTest extends TestCase
             protected function rawBody(): string
             {
                 return $this->body;
+            }
+
+            protected function providerScopeClassifier(): \NumaProviderScopeClassifier
+            {
+                return new \NumaProviderScopeClassifier($this->fakeProvider);
             }
         };
 

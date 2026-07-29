@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/services/NumaClassification.php';
+require_once __DIR__ . '/FakeNumaProvider.php';
 
 final class NumaClassificationTest extends TestCase
 {
@@ -239,5 +240,56 @@ final class NumaClassificationTest extends TestCase
             'seguros como categoria' => ['¿Cuánto gasté en seguros este mes?'],
             'pregunta de como anadir' => ['¿Cómo puedo crear una meta de ahorro en BeneHom?'],
         ];
+    }
+
+    public function testClasificadorConProveedorAceptaSalidaEstructuradaPermitida(): void
+    {
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'datos_usuario',
+            'allowed' => true,
+            'reason' => 'user_financial_analysis',
+            'data_intent' => 'ranking_categorias',
+        ]);
+
+        $classification = (new \NumaProviderScopeClassifier($provider))->classify('¿En qué categoría gasté más este mes?');
+
+        self::assertSame('datos_usuario', $classification->intent());
+        self::assertTrue($classification->allowed());
+        self::assertSame('ranking_categorias', $classification->dataIntent());
+        self::assertCount(1, $provider->requests());
+        self::assertSame([], $provider->lastRequest()?->availableTools());
+        self::assertSame('¿En qué categoría gasté más este mes?', $provider->lastRequest()?->message());
+    }
+
+    public function testClasificadorConProveedorAceptaJsonEnElTexto(): void
+    {
+        $provider = \FakeNumaProvider::validResponse('{"intent":"producto","allowed":true,"reason":"product_help","knowledge_query":"añadir movimiento"}');
+
+        $classification = (new \NumaProviderScopeClassifier($provider))->classify('¿Cómo añado un movimiento?');
+
+        self::assertSame('producto', $classification->intent());
+        self::assertSame('añadir movimiento', $classification->knowledgeQuery());
+    }
+
+    public function testClasificadorConProveedorRechazaCategoriaInvalidaConErrorSeguro(): void
+    {
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'generalista',
+            'allowed' => true,
+            'reason' => 'unknown',
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        (new \NumaProviderScopeClassifier($provider))->classify('¿Cuál es la capital de Alemania?');
+    }
+
+    public function testClasificadorConProveedorRechazaSolicitudDeTool(): void
+    {
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        (new \NumaProviderScopeClassifier(\FakeNumaProvider::toolRequest()))->classify('¿Cuánto gasté este mes?');
     }
 }

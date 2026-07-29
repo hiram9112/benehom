@@ -83,8 +83,18 @@ final class NumaFinancialToolDefinition
     }
 }
 
+final class NumaFinancialToolLimitExceeded extends RuntimeException
+{
+    public function __construct()
+    {
+        parent::__construct('No hemos podido procesar la consulta.');
+    }
+}
+
 final class NumaFinancialToolRegistry
 {
+    private const MAX_TOOL_CALLS = 2;
+
     public const OBTENER_RESUMEN_FINANCIERO = 'obtener_resumen_financiero';
     public const OBTENER_RANKING_CATEGORIAS = 'obtener_ranking_categorias';
     public const OBTENER_EVOLUCION_FINANCIERA = 'obtener_evolucion_financiera';
@@ -124,9 +134,20 @@ final class NumaFinancialToolRegistry
     /** @var array<string, NumaFinancialToolDefinition> */
     private readonly array $definitions;
 
+    private readonly int $maxToolCalls;
+
+    private int $executedToolCalls = 0;
+
     public function __construct(
         private readonly NumaFinancialToolExecutor $executor = new NumaFinancialToolExecutor(),
+        ?int $maxToolCalls = null,
     ) {
+        $this->maxToolCalls = $maxToolCalls ?? bh_env_int('NUMA_MAX_TOOL_CALLS', self::MAX_TOOL_CALLS);
+
+        if ($this->maxToolCalls <= 0) {
+            throw new InvalidArgumentException('El limite de llamadas a tools de Numa no es valido.');
+        }
+
         $this->definitions = self::buildDefinitions();
     }
 
@@ -166,7 +187,15 @@ final class NumaFinancialToolRegistry
      */
     public function execute(string $name, int $authenticatedUserId, array $arguments): array
     {
-        return $this->executor->execute($this->get($name), $authenticatedUserId, $arguments);
+        if ($this->executedToolCalls >= $this->maxToolCalls) {
+            throw new NumaFinancialToolLimitExceeded();
+        }
+
+        $definition = $this->get($name);
+        $result = $this->executor->execute($definition, $authenticatedUserId, $arguments);
+        $this->executedToolCalls++;
+
+        return $result;
     }
 
     /**
@@ -304,7 +333,8 @@ final class NumaFinancialToolExecutor
         private readonly ?PDO $connection = null,
         ?int $maxProviderResultJsonChars = null,
     ) {
-        $this->maxProviderResultJsonChars = $maxProviderResultJsonChars ?? self::MAX_PROVIDER_RESULT_JSON_CHARS;
+        $this->maxProviderResultJsonChars = $maxProviderResultJsonChars
+            ?? bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', self::MAX_PROVIDER_RESULT_JSON_CHARS);
 
         if ($this->maxProviderResultJsonChars <= 0) {
             throw new InvalidArgumentException('El limite de resultado de tool de Numa no es valido.');
@@ -870,7 +900,7 @@ final class NumaFinancialToolExecutor
             }
         }
 
-        throw new RuntimeException('Resultado de tool financiera de Numa demasiado grande.');
+        throw new NumaFinancialToolLimitExceeded();
     }
 
     /** @param array<string, mixed> $result */

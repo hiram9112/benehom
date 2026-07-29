@@ -111,7 +111,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto($otroUsuarioId, 'flexible', 'ocio', 9000, '2026-07-04');
         $this->insertGasto($otroUsuarioId, 'flexible', 'ocio', 9000, '2026-08-04');
 
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 5);
 
         $resumen = $registry->execute('obtener_resumen_financiero', $usuarioId, [
             'fecha_inicio' => '2026-07-01',
@@ -167,21 +167,48 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
     {
         $usuario = $this->crearUsuario('numa-tools-json-limit@example.test');
         $usuarioId = (int) $usuario['id'];
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db, 450));
+        $previousLimit = $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] ?? null;
+        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = '450';
 
-        $result = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
-            'fecha_inicio' => '2025-01-01',
-            'fecha_fin' => '2026-12-31',
-            'metrica' => 'gastos',
-            'agrupacion' => 'mes',
-            'limite' => 24,
-        ]);
+        try {
+            $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+
+            $result = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
+                'fecha_inicio' => '2025-01-01',
+                'fecha_fin' => '2026-12-31',
+                'metrica' => 'gastos',
+                'agrupacion' => 'mes',
+                'limite' => 24,
+            ]);
+        } finally {
+            if ($previousLimit === null) {
+                unset($_ENV['NUMA_MAX_TOOL_RESULT_CHARS']);
+            } else {
+                $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = $previousLimit;
+            }
+        }
 
         $encoded = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         self::assertLessThanOrEqual(450, strlen($encoded));
         self::assertLessThan(24, count($result['evolucion']));
         self::assertNoPrivateKeys($result);
+    }
+
+    public function testRegistroNoEjecutaMasDeDosToolsPorPregunta(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-max-calls@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 2);
+        $arguments = ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'];
+
+        self::assertSame('obtener_resumen_financiero', $registry->execute('obtener_resumen_financiero', $usuarioId, $arguments)['tool']);
+        self::assertSame('obtener_resumen_financiero', $registry->execute('obtener_resumen_financiero', $usuarioId, $arguments)['tool']);
+
+        $this->expectException(\NumaFinancialToolLimitExceeded::class);
+        $this->expectExceptionMessage('No hemos podido procesar la consulta.');
+
+        $registry->execute('ejecutar_sql', $usuarioId, ['sql' => 'SELECT * FROM gastos']);
     }
 
     private function insertIngreso(int $usuarioId, string $categoria, float $cantidad, string $fecha): void

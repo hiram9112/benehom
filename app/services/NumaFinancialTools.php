@@ -310,6 +310,8 @@ final class NumaFinancialToolExecutor
             throw new InvalidArgumentException('Usuario de Numa no valido.');
         }
 
+        $this->validateArguments($definition, $arguments);
+
         return match ($definition->implementation()) {
             'executeResumenFinanciero' => $this->executeResumenFinanciero($usuarioId, $arguments),
             'executeRankingCategorias' => $this->executeRankingCategorias($usuarioId, $arguments),
@@ -318,6 +320,57 @@ final class NumaFinancialToolExecutor
             'executeEstadisticasMovimientos' => $this->executeEstadisticasMovimientos($usuarioId, $arguments),
             default => throw new InvalidArgumentException('Implementacion de tool financiera de Numa no registrada.'),
         };
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private function validateArguments(NumaFinancialToolDefinition $definition, array $arguments): void
+    {
+        $schema = $definition->parameterSchema();
+        $properties = $schema['properties'] ?? [];
+
+        if (!is_array($properties)) {
+            throw new InvalidArgumentException('Esquema de parametros de Numa no valido.');
+        }
+
+        foreach ($arguments as $key => $_value) {
+            if (!is_string($key) || !array_key_exists($key, $properties)) {
+                throw new InvalidArgumentException('Parametro de Numa no permitido.');
+            }
+        }
+
+        foreach ($definition->requiredParameters() as $key) {
+            if (!array_key_exists($key, $arguments)) {
+                throw new InvalidArgumentException('Parametro obligatorio de Numa ausente.');
+            }
+        }
+
+        foreach ($properties as $key => $property) {
+            if (!array_key_exists($key, $arguments) || !is_array($property)) {
+                continue;
+            }
+
+            $type = $property['type'] ?? null;
+
+            if ($type === 'string') {
+                $value = ($property['format'] ?? null) === 'date'
+                    ? $this->dateArg($arguments, $key)
+                    : $this->stringArg($arguments, $key);
+
+                if (isset($property['enum']) && is_array($property['enum']) && !in_array($value, $property['enum'], true)) {
+                    throw new InvalidArgumentException('Valor de parametro de Numa no permitido.');
+                }
+
+                continue;
+            }
+
+            if ($type === 'integer') {
+                $this->boundedLimit(
+                    $arguments[$key],
+                    isset($property['minimum']) ? (int) $property['minimum'] : 1,
+                    isset($property['maximum']) ? (int) $property['maximum'] : PHP_INT_MAX
+                );
+            }
+        }
     }
 
     /**

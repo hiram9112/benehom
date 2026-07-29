@@ -66,4 +66,62 @@ final class NumaFinancialToolRegistryTest extends TestCase
 
         (new \NumaFinancialToolRegistry())->get('ejecutar_sql');
     }
+
+    public function testRechazaParametrosAdicionalesIncluidoUsuarioId(): void
+    {
+        $this->assertInvalidArguments('obtener_resumen_financiero', [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'usuario_id' => 99,
+        ]);
+
+        $this->assertInvalidArguments('obtener_ranking_categorias', [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'sql' => 'SELECT * FROM gastos',
+        ]);
+    }
+
+    public function testRechazaEnumCategoriaFechaYLimiteInvalidos(): void
+    {
+        $this->assertInvalidArguments('obtener_evolucion_financiera', [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'agrupacion' => 'semana',
+        ]);
+
+        $this->assertInvalidArguments('comparar_periodos', [
+            'fecha_inicio_a' => '2026-07-01',
+            'fecha_fin_a' => '2026-07-31',
+            'fecha_inicio_b' => '2026-06-01',
+            'fecha_fin_b' => '2026-06-30',
+            'metrica' => 'gastos',
+            'categoria' => 'categoria_inexistente',
+        ]);
+
+        $this->assertInvalidArguments('obtener_ranking_categorias', [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'limite' => 25,
+        ]);
+
+        $this->assertInvalidArguments('obtener_estadisticas_movimientos', [
+            'fecha_inicio' => '2026-02-30',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'gastos',
+        ]);
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private function assertInvalidArguments(string $tool, array $arguments): void
+    {
+        try {
+            (new \NumaFinancialToolRegistry())->execute($tool, 1, $arguments);
+        } catch (InvalidArgumentException) {
+            self::assertTrue(true);
+            return;
+        }
+
+        self::fail('La tool financiera de Numa acepto parametros no permitidos.');
+    }
 }

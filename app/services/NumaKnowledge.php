@@ -424,3 +424,275 @@ final class NumaKnowledgeFragmenter
         return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
     }
 }
+
+final class NumaKnowledgeIndexSummary
+{
+    public function __construct(
+        public readonly int $documents,
+        public readonly int $fragments,
+        public readonly int $created,
+        public readonly int $updated,
+        public readonly int $unchanged,
+        public readonly int $deleted,
+        public readonly int $embeddingsGenerated,
+    ) {
+    }
+}
+
+final class NumaKnowledgeIndexer
+{
+    public function __construct(
+        private readonly PDO $connection,
+        private readonly NumaEmbeddingProviderInterface $embeddingProvider,
+        private readonly NumaKnowledgeFragmenter $fragmenter = new NumaKnowledgeFragmenter(),
+        private readonly int $dimensions = 768,
+    ) {
+        if ($dimensions <= 0) {
+            throw new InvalidArgumentException('La dimension de embeddings de Numa es invalida.');
+        }
+    }
+
+    public function indexDirectory(string $directory, ?DateTimeImmutable $indexedAt = null): NumaKnowledgeIndexSummary
+    {
+        $indexedAt ??= new DateTimeImmutable('now');
+        $documents = $this->markdownDocuments($directory);
+        $fragments = $this->fragmenter->fragmentDirectory($directory, $indexedAt);
+
+        if ($fragments === []) {
+            throw new RuntimeException('No hay fragmentos de conocimiento de Numa para indexar.');
+        }
+
+        $this->ensureUniqueFragmentIds($fragments);
+
+        $existing = $this->existingFragments();
+        $records = [];
+        $created = 0;
+        $updated = 0;
+        $unchanged = 0;
+        $embeddingsGenerated = 0;
+
+        foreach ($fragments as $fragment) {
+            $current = $existing[$fragment->id()] ?? null;
+            $mustGenerateEmbedding = $current === null
+                || $current['hash'] !== $fragment->hash()
+                || $current['dimensiones'] !== $this->dimensions;
+
+            if (!$mustGenerateEmbedding) {
+                $unchanged++;
+                continue;
+            }
+
+            $embedding = $this->embeddingProvider->embed($fragment->content());
+            $this->validateEmbedding($embedding);
+
+            $records[] = [
+                'fragment' => $fragment,
+                'embedding' => $embedding,
+            ];
+            $embeddingsGenerated++;
+
+            if ($current === null) {
+                $created++;
+            } else {
+                $updated++;
+            }
+        }
+
+        $deleted = $this->obsoleteCount(array_map(
+            static fn (NumaKnowledgeFragment $fragment): string => $fragment->id(),
+            $fragments
+        ));
+
+        $this->persist($records, $fragments);
+
+        return new NumaKnowledgeIndexSummary(
+            count($documents),
+            count($fragments),
+            $created,
+            $updated,
+            $unchanged,
+            $deleted,
+            $embeddingsGenerated
+        );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function markdownDocuments(string $directory): array
+    {
+        if (!is_dir($directory) || !is_readable($directory)) {
+            throw new InvalidArgumentException('Directorio de conocimiento de Numa no legible.');
+        }
+
+        $paths = glob(rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*.md') ?: [];
+        sort($paths, SORT_STRING);
+
+        return $paths;
+    }
+
+    /**
+     * @param array<int, NumaKnowledgeFragment> $fragments
+     */
+    private function ensureUniqueFragmentIds(array $fragments): void
+    {
+        $seen = [];
+
+        foreach ($fragments as $fragment) {
+            if (isset($seen[$fragment->id()])) {
+                throw new RuntimeException('Identificador de fragmento de Numa duplicado.');
+            }
+
+            $seen[$fragment->id()] = true;
+        }
+    }
+
+    /**
+     * @return array<string, array{hash:string, dimensiones:int}>
+     */
+    private function existingFragments(): array
+    {
+        $stmt = $this->connection->query('SELECT fragmento_id, hash, dimensiones FROM numa_conocimiento');
+
+        if ($stmt === false) {
+            throw new RuntimeException('No se pudo leer el indice de conocimiento de Numa.');
+        }
+
+        $rows = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            if (!isset($row['fragmento_id'], $row['hash'], $row['dimensiones'])) {
+                continue;
+            }
+
+            $rows[(string) $row['fragmento_id']] = [
+                'hash' => (string) $row['hash'],
+                'dimensiones' => (int) $row['dimensiones'],
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param array<int, float> $embedding
+     */
+    private function validateEmbedding(array $embedding): void
+    {
+        if (count($embedding) !== $this->dimensions) {
+            throw new RuntimeException('Embedding de conocimiento de Numa con dimensiones invalidas.');
+        }
+
+        foreach ($embedding as $value) {
+            if (!is_float($value) && !is_int($value)) {
+                throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
+            }
+        }
+    }
+
+    /**
+     * @param array<int, string> $currentIds
+     */
+    private function obsoleteCount(array $currentIds): int
+    {
+        if ($currentIds === []) {
+            $stmt = $this->connection->query('SELECT COUNT(*) FROM numa_conocimiento');
+
+            return $stmt === false ? 0 : (int) $stmt->fetchColumn();
+        }
+
+        $placeholders = implode(',', array_fill(0, count($currentIds), '?'));
+        $stmt = $this->connection->prepare(
+            'SELECT COUNT(*) FROM numa_conocimiento WHERE fragmento_id NOT IN (' . $placeholders . ')'
+        );
+        $stmt->execute(array_values($currentIds));
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @param array<int, array{fragment:NumaKnowledgeFragment, embedding:array<int, float>}> $records
+     * @param array<int, NumaKnowledgeFragment> $fragments
+     */
+    private function persist(array $records, array $fragments): void
+    {
+        $started = !$this->connection->inTransaction();
+
+        if ($started) {
+            $this->connection->beginTransaction();
+        }
+
+        try {
+            foreach ($records as $record) {
+                $this->upsertFragment($record['fragment'], $record['embedding']);
+            }
+
+            $this->deleteObsolete(array_map(
+                static fn (NumaKnowledgeFragment $fragment): string => $fragment->id(),
+                $fragments
+            ));
+
+            if ($started) {
+                $this->connection->commit();
+            }
+        } catch (Throwable $exception) {
+            if ($started && $this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param array<int, float> $embedding
+     */
+    private function upsertFragment(NumaKnowledgeFragment $fragment, array $embedding): void
+    {
+        $stmt = $this->connection->prepare(
+            'INSERT INTO numa_conocimiento
+                (fragmento_id, documento, titulo, seccion, ruta, contenido, hash, embedding, dimensiones, indexed_at)
+             VALUES
+                (:fragmento_id, :documento, :titulo, :seccion, :ruta, :contenido, :hash, :embedding, :dimensiones, :indexed_at)
+             ON DUPLICATE KEY UPDATE
+                documento = VALUES(documento),
+                titulo = VALUES(titulo),
+                seccion = VALUES(seccion),
+                ruta = VALUES(ruta),
+                contenido = VALUES(contenido),
+                hash = VALUES(hash),
+                embedding = VALUES(embedding),
+                dimensiones = VALUES(dimensiones),
+                indexed_at = VALUES(indexed_at)'
+        );
+        $stmt->execute([
+            ':fragmento_id' => $fragment->id(),
+            ':documento' => $fragment->document(),
+            ':titulo' => $fragment->title(),
+            ':seccion' => $fragment->section(),
+            ':ruta' => $fragment->route(),
+            ':contenido' => $fragment->content(),
+            ':hash' => $fragment->hash(),
+            ':embedding' => json_encode(array_values($embedding), JSON_THROW_ON_ERROR),
+            ':dimensiones' => $this->dimensions,
+            ':indexed_at' => $fragment->indexedAt()->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
+     * @param array<int, string> $currentIds
+     */
+    private function deleteObsolete(array $currentIds): void
+    {
+        if ($currentIds === []) {
+            $this->connection->exec('DELETE FROM numa_conocimiento');
+
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($currentIds), '?'));
+        $stmt = $this->connection->prepare(
+            'DELETE FROM numa_conocimiento WHERE fragmento_id NOT IN (' . $placeholders . ')'
+        );
+        $stmt->execute(array_values($currentIds));
+    }
+}

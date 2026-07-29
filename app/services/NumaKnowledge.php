@@ -621,11 +621,104 @@ final class NumaKnowledgeSearcher
 
     private function normalizeKnowledgeQuery(string $knowledgeQuery): string
     {
+        $this->rejectStructuredPrivatePayload($knowledgeQuery);
+
+        $documentaryParts = $this->documentaryParts($knowledgeQuery);
+        if ($documentaryParts !== []) {
+            $knowledgeQuery = implode(' ', $documentaryParts);
+        } elseif ($this->containsPrivateData($knowledgeQuery)) {
+            throw new InvalidArgumentException('La consulta documental de Numa no puede incluir datos privados.');
+        }
+
+        $knowledgeQuery = $this->removePrivateData($knowledgeQuery);
         $knowledgeQuery = preg_replace('/\s+/u', ' ', $knowledgeQuery) ?? $knowledgeQuery;
-        $knowledgeQuery = trim($knowledgeQuery);
+        $knowledgeQuery = trim($knowledgeQuery, " \t\n\r\0\x0B¿?¡!.,;:");
 
         if ($knowledgeQuery === '') {
             throw new InvalidArgumentException('La consulta documental de Numa no puede estar vacia.');
+        }
+
+        return $knowledgeQuery;
+    }
+
+    private function rejectStructuredPrivatePayload(string $knowledgeQuery): void
+    {
+        if (preg_match('/[{\[]/u', $knowledgeQuery) !== 1) {
+            return;
+        }
+
+        if (preg_match('/"(?:tool|tools|resultado|result|ingresos|gastos|importe|usuario_id|user_id|periodo|categorias?)"\s*:/iu', $knowledgeQuery) === 1) {
+            throw new InvalidArgumentException('La consulta documental de Numa no puede incluir resultados de tools.');
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function documentaryParts(string $knowledgeQuery): array
+    {
+        $knowledgeQuery = preg_replace('/\s+/u', ' ', $knowledgeQuery) ?? $knowledgeQuery;
+        $segments = preg_split(
+            '/(?:[.?!;]+|\s+y\s+(?=(?:cu[aá]nt|cu[aá]l|en\s+qu[eé]|compara|comparar|expl[ií]came|explicame|qu[eé]\s+(?:es|son)|que\s+(?:es|son)|c[oó]mo|como|diferencia|significa|gast[eé]|gaste|ingres[eé]|ingrese|ahorr[eé]|ahorre|mis?\s+)))/iu',
+            $knowledgeQuery
+        ) ?: [];
+
+        $parts = [];
+        foreach ($segments as $segment) {
+            $segment = trim((string) $segment, " \t\n\r\0\x0B¿?¡!.,;:");
+
+            if ($segment === '') {
+                continue;
+            }
+
+            if (!$this->isDocumentarySegment($segment)) {
+                continue;
+            }
+
+            $parts[] = $this->removePrivateAnalysisTail($segment);
+        }
+
+        return array_values(array_filter($parts, static fn (string $part): bool => trim($part) !== ''));
+    }
+
+    private function isDocumentarySegment(string $segment): bool
+    {
+        return preg_match('/\b(?:qu[eé]\s+(?:es|son|significa)|que\s+(?:es|son|significa)|significa|diferencia|c[oó]mo\s+(?:funciona|anadir|añadir|agregar|crear|usar|editar|eliminar|registrar)|como\s+(?:funciona|anadir|agregar|crear|usar|editar|eliminar|registrar)|expl[ií]came|explicame|benehom|dashboard|movimientos?|gastos?\s+(?:esenciales?|flexibles?)|ahorro\s+(?:posible|real)|metas?|proyecciones?|cuenta)\b/iu', $segment) === 1;
+    }
+
+    private function containsPrivateData(string $knowledgeQuery): bool
+    {
+        return preg_match('/\b(?:usuario_id|user_id|usuario|user)\s*[:=#-]?\s*\d+\b/iu', $knowledgeQuery) === 1
+            || preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/iu', $knowledgeQuery) === 1
+            || preg_match('/\b\d+(?:[.,]\d+)?\s*(?:€|eur|euros?|d[oó]lares?|usd)\b/iu', $knowledgeQuery) === 1
+            || preg_match('/\b(?:cu[aá]nt[oa]s?|cu[aá]l(?:es)?|en\s+qu[eé]\s+categor[ií]a|promedio|total|ranking|compara)\b.*\b(?:gast[eé]|gaste|gastado|gastos?|ingres[eé]|ingrese|ingresos?|ahorr[eé]|ahorre|ahorro|movimientos?|categor[ií]a|mes|a[nñ]o|semana)\b/iu', $knowledgeQuery) === 1
+            || preg_match('/\b(?:mi|mis|nuestro|nuestra|nuestros|nuestras)\s+(?:gastos|ingresos|movimientos|datos|categor[ií]as|ahorros?)\b/iu', $knowledgeQuery) === 1;
+    }
+
+    private function removePrivateAnalysisTail(string $segment): string
+    {
+        $segment = preg_replace('/\s+(?:y|,|;)\s+(?:cu[aá]nt[oa]s?|cu[aá]l(?:es)?|en\s+qu[eé]|compara|comparar|dime\s+cu[aá]nto|gast[eé]|gaste|ingres[eé]|ingrese|ahorr[eé]|ahorre|pagu[eé]|pague|mis?\s+(?:gastos|ingresos|movimientos|datos|categor[ií]as)).*$/iu', '', $segment) ?? $segment;
+
+        return trim($segment, " \t\n\r\0\x0B¿?¡!.,;:");
+    }
+
+    private function removePrivateData(string $knowledgeQuery): string
+    {
+        $patterns = [
+            '/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/iu',
+            '/\b(?:usuario_id|user_id|usuario|user|id)\s*[:=#-]?\s*\d+\b/iu',
+            '/\b\d{4}-\d{2}-\d{2}\b/u',
+            '/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/u',
+            '/\b\d+(?:[.,]\d+)?\s*(?:€|eur|euros?|d[oó]lares?|usd)\b/iu',
+            '/\b(?:me llamo|mi nombre es|soy)\s+\p{Lu}[\p{L}\' -]{1,80}(?=$|[.,;?])/u',
+            '/\b(?:nombre|titular|persona)\s*[:=]?\s+\p{Lu}[\p{L}\' -]{1,80}(?=$|[.,;?])/u',
+            '/\b(?:mi|mis|m[ií]o|m[ií]a|m[ií]os|m[ií]as|nuestro|nuestra|nuestros|nuestras)\b/iu',
+            '/\b(?:este|esta|ese|esa|aquel|aquella|el)\s+(?:mes|a[nñ]o|semana|trimestre)\b/iu',
+            '/\bmes\s+anterior\b/iu',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $knowledgeQuery = preg_replace($pattern, ' ', $knowledgeQuery) ?? $knowledgeQuery;
         }
 
         return $knowledgeQuery;

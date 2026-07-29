@@ -72,6 +72,47 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         $searcher->search('   ');
     }
 
+    public function testSeparaConsultaDocumentalAntesDeCrearEmbedding(): void
+    {
+        $this->insertKnowledge('gastos:flexibles', 'gastos.md', 'Gastos', 'Gastos flexibles', 'Gastos flexibles de BeneHom.', [1.0, 0.0]);
+        $provider = new SemanticSearchEmbeddingProvider([
+            'Qué son los gastos flexibles' => [1.0, 0.0],
+        ]);
+        $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2, 3, 0.65);
+
+        $searcher->search('Me llamo Laura Pérez. ¿Qué son los gastos flexibles y cuánto gasté 123,45 euros este mes? Mi correo es laura@example.com y mi usuario_id 42.');
+
+        self::assertSame(['Qué son los gastos flexibles'], $provider->texts);
+    }
+
+    public function testRechazaConsultaDocumentalConDatosPrivadosSinParteDocumental(): void
+    {
+        $provider = new SemanticSearchEmbeddingProvider(['consulta' => [1.0, 0.0]]);
+        $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        try {
+            $searcher->search('¿Cuánto gasté en comida este mes? usuario_id 42');
+        } finally {
+            self::assertSame([], $provider->texts);
+        }
+    }
+
+    public function testRechazaResultadosDeToolsAntesDeCrearEmbedding(): void
+    {
+        $provider = new SemanticSearchEmbeddingProvider(['consulta' => [1.0, 0.0]]);
+        $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        try {
+            $searcher->search('{"tool":"obtener_resumen_financiero","ingresos":1200,"gastos":900}');
+        } finally {
+            self::assertSame([], $provider->texts);
+        }
+    }
+
     /**
      * @param array<int, float> $embedding
      */

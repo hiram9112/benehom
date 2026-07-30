@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/services/NumaFinancialTools.php';
@@ -67,21 +68,6 @@ final class NumaFinancialToolRegistryTest extends TestCase
         (new \NumaFinancialToolRegistry())->get('ejecutar_sql');
     }
 
-    public function testRechazaParametrosAdicionalesIncluidoUsuarioId(): void
-    {
-        $this->assertInvalidArguments('obtener_resumen_financiero', [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-07-31',
-            'usuario_id' => 99,
-        ]);
-
-        $this->assertInvalidArguments('obtener_ranking_categorias', [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-07-31',
-            'sql' => 'SELECT * FROM gastos',
-        ]);
-    }
-
     public function testRechazaUsuarioAutenticadoInternoInvalido(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -92,34 +78,71 @@ final class NumaFinancialToolRegistryTest extends TestCase
         ]);
     }
 
-    public function testRechazaEnumCategoriaFechaYLimiteInvalidos(): void
+    /** @param array<string, mixed> $arguments */
+    #[DataProvider('invalidArgumentCases')]
+    public function testValidadorRechazaReglasComunes(string $tool, array $arguments): void
     {
-        $this->assertInvalidArguments('obtener_evolucion_financiera', [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-07-31',
-            'agrupacion' => 'semana',
-        ]);
+        $this->assertInvalidArguments($tool, $arguments);
+    }
 
-        $this->assertInvalidArguments('comparar_periodos', [
-            'fecha_inicio_a' => '2026-07-01',
-            'fecha_fin_a' => '2026-07-31',
-            'fecha_inicio_b' => '2026-06-01',
-            'fecha_fin_b' => '2026-06-30',
-            'metrica' => 'gastos',
-            'categoria' => 'categoria_inexistente',
-        ]);
-
-        $this->assertInvalidArguments('obtener_ranking_categorias', [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-07-31',
-            'limite' => 25,
-        ]);
-
-        $this->assertInvalidArguments('obtener_estadisticas_movimientos', [
-            'fecha_inicio' => '2026-02-30',
-            'fecha_fin' => '2026-07-31',
-            'metrica' => 'gastos',
-        ]);
+    /**
+     * @return array<string, array{0:string, 1:array<string, mixed>}>
+     */
+    public static function invalidArgumentCases(): array
+    {
+        return [
+            'parametro adicional usuario_id' => ['obtener_resumen_financiero', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'usuario_id' => 99,
+            ]],
+            'parametro adicional sql' => ['obtener_ranking_categorias', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'sql' => 'SELECT * FROM gastos',
+            ]],
+            'fecha invalida' => ['obtener_estadisticas_movimientos', [
+                'fecha_inicio' => '2026-02-30',
+                'fecha_fin' => '2026-07-31',
+                'metrica' => 'gastos',
+            ]],
+            'periodo invertido' => ['obtener_resumen_financiero', [
+                'fecha_inicio' => '2026-07-31',
+                'fecha_fin' => '2026-07-01',
+            ]],
+            'intervalo excesivo' => ['obtener_resumen_financiero', [
+                'fecha_inicio' => '2024-01-01',
+                'fecha_fin' => '2026-12-31',
+            ]],
+            'enum de agrupacion invalido' => ['obtener_evolucion_financiera', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'agrupacion' => 'semana',
+            ]],
+            'enum de metrica invalido' => ['obtener_ranking_categorias', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'metrica' => 'saldo',
+            ]],
+            'categoria inexistente' => ['comparar_periodos', [
+                'fecha_inicio_a' => '2026-07-01',
+                'fecha_fin_a' => '2026-07-31',
+                'fecha_inicio_b' => '2026-06-01',
+                'fecha_fin_b' => '2026-06-30',
+                'metrica' => 'gastos',
+                'categoria' => 'categoria_inexistente',
+            ]],
+            'limite fuera de rango' => ['obtener_ranking_categorias', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'limite' => 25,
+            ]],
+            'limite no numerico' => ['obtener_ranking_categorias', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'limite' => 'dos',
+            ]],
+        ];
     }
 
     /** @param array<string, mixed> $arguments */

@@ -94,6 +94,7 @@ final class NumaFinancialToolLimitExceeded extends RuntimeException
 final class NumaFinancialToolRegistry
 {
     private const MAX_TOOL_CALLS = 2;
+    private const MAX_AGGREGATE_RESULT_JSON_CHARS = 1600;
 
     public const OBTENER_RESUMEN_FINANCIERO = 'obtener_resumen_financiero';
     public const OBTENER_RANKING_CATEGORIAS = 'obtener_ranking_categorias';
@@ -136,16 +137,28 @@ final class NumaFinancialToolRegistry
 
     private readonly int $maxToolCalls;
 
+    private readonly int $maxAggregateResultJsonChars;
+
     private int $executedToolCalls = 0;
+
+    /** @var array<int, array<string, mixed>> */
+    private array $executedToolResults = [];
 
     public function __construct(
         private readonly NumaFinancialToolExecutor $executor = new NumaFinancialToolExecutor(),
         ?int $maxToolCalls = null,
+        ?int $maxAggregateResultJsonChars = null,
     ) {
         $this->maxToolCalls = $maxToolCalls ?? bh_env_int('NUMA_MAX_TOOL_CALLS', self::MAX_TOOL_CALLS);
+        $this->maxAggregateResultJsonChars = $maxAggregateResultJsonChars
+            ?? bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', self::MAX_AGGREGATE_RESULT_JSON_CHARS);
 
         if ($this->maxToolCalls <= 0) {
             throw new InvalidArgumentException('El limite de llamadas a tools de Numa no es valido.');
+        }
+
+        if ($this->maxAggregateResultJsonChars <= 0) {
+            throw new InvalidArgumentException('El limite agregado de resultado de tools de Numa no es valido.');
         }
 
         $this->definitions = self::buildDefinitions();
@@ -193,9 +206,66 @@ final class NumaFinancialToolRegistry
 
         $definition = $this->get($name);
         $result = $this->executor->execute($definition, $authenticatedUserId, $arguments);
+        $result = $this->limitAggregateResult($result);
+
+        $this->executedToolResults[] = $result;
         $this->executedToolCalls++;
 
         return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    public function executeForAuthenticatedSession(string $name, array $arguments): array
+    {
+        $usuarioId = $_SESSION['usuario_id'] ?? null;
+
+        if (!is_int($usuarioId) && !(is_string($usuarioId) && ctype_digit($usuarioId))) {
+            throw new InvalidArgumentException('Usuario de Numa no valido.');
+        }
+
+        return $this->execute($name, (int) $usuarioId, $arguments);
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     * @return array<string, mixed>
+     */
+    private function limitAggregateResult(array $result): array
+    {
+        if ($this->aggregateJsonLength([...$this->executedToolResults, $result]) <= $this->maxAggregateResultJsonChars) {
+            return $result;
+        }
+
+        foreach (['categorias', 'evolucion'] as $itemsKey) {
+            if (!isset($result[$itemsKey]) || !is_array($result[$itemsKey]) || !array_is_list($result[$itemsKey])) {
+                continue;
+            }
+
+            while ($result[$itemsKey] !== []
+                && $this->aggregateJsonLength([...$this->executedToolResults, $result]) > $this->maxAggregateResultJsonChars
+            ) {
+                array_pop($result[$itemsKey]);
+            }
+
+            if (isset($result['limite']) && is_int($result['limite'])) {
+                $result['limite'] = min($result['limite'], count($result[$itemsKey]));
+            }
+
+            if ($this->aggregateJsonLength([...$this->executedToolResults, $result]) <= $this->maxAggregateResultJsonChars) {
+                return $result;
+            }
+        }
+
+        throw new NumaFinancialToolLimitExceeded();
+    }
+
+    /** @param array<int, array<string, mixed>> $results */
+    private function aggregateJsonLength(array $results): int
+    {
+        return strlen(json_encode($results, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     /**
@@ -325,19 +395,19 @@ final class NumaFinancialToolRegistry
 
 final class NumaFinancialToolExecutor
 {
-    private const MAX_PROVIDER_RESULT_JSON_CHARS = 1600;
+    private const MAX_TOOL_RANGE_DAYS = 731;
 
-    private readonly int $maxProviderResultJsonChars;
+    private readonly int $maxToolRangeDays;
 
     public function __construct(
         private readonly ?PDO $connection = null,
-        ?int $maxProviderResultJsonChars = null,
+        ?int $maxToolRangeDays = null,
     ) {
-        $this->maxProviderResultJsonChars = $maxProviderResultJsonChars
-            ?? bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', self::MAX_PROVIDER_RESULT_JSON_CHARS);
+        $this->maxToolRangeDays = $maxToolRangeDays
+            ?? bh_env_int('NUMA_MAX_TOOL_RANGE_DAYS', self::MAX_TOOL_RANGE_DAYS);
 
-        if ($this->maxProviderResultJsonChars <= 0) {
-            throw new InvalidArgumentException('El limite de resultado de tool de Numa no es valido.');
+        if ($this->maxToolRangeDays <= 0) {
+            throw new InvalidArgumentException('El limite de rango de fechas de tools de Numa no es valido.');
         }
     }
 
@@ -362,7 +432,7 @@ final class NumaFinancialToolExecutor
             default => throw new InvalidArgumentException('Implementacion de tool financiera de Numa no registrada.'),
         };
 
-        return $this->limitProviderResult($result);
+        return $result;
     }
 
     /** @param array<string, mixed> $arguments */
@@ -597,6 +667,13 @@ final class NumaFinancialToolExecutor
     {
         if ($start > $end) {
             throw new InvalidArgumentException('Periodo de Numa no valido.');
+        }
+
+        $startDate = new DateTimeImmutable($start);
+        $endDate = new DateTimeImmutable($end);
+
+        if ($startDate->diff($endDate)->days > $this->maxToolRangeDays) {
+            throw new InvalidArgumentException('Intervalo de fechas de Numa excesivo.');
         }
     }
 
@@ -870,43 +947,6 @@ final class NumaFinancialToolExecutor
     private function money(float $value): float
     {
         return round($value, 2);
-    }
-
-    /**
-     * @param array<string, mixed> $result
-     * @return array<string, mixed>
-     */
-    private function limitProviderResult(array $result): array
-    {
-        if ($this->providerJsonLength($result) <= $this->maxProviderResultJsonChars) {
-            return $result;
-        }
-
-        foreach (['categorias', 'evolucion'] as $itemsKey) {
-            if (!isset($result[$itemsKey]) || !is_array($result[$itemsKey]) || !array_is_list($result[$itemsKey])) {
-                continue;
-            }
-
-            while ($result[$itemsKey] !== [] && $this->providerJsonLength($result) > $this->maxProviderResultJsonChars) {
-                array_pop($result[$itemsKey]);
-            }
-
-            if (isset($result['limite']) && is_int($result['limite'])) {
-                $result['limite'] = min($result['limite'], count($result[$itemsKey]));
-            }
-
-            if ($this->providerJsonLength($result) <= $this->maxProviderResultJsonChars) {
-                return $result;
-            }
-        }
-
-        throw new NumaFinancialToolLimitExceeded();
-    }
-
-    /** @param array<string, mixed> $result */
-    private function providerJsonLength(array $result): int
-    {
-        return strlen(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     private function db(): PDO

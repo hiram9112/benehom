@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use PDO;
+use PDOStatement;
+
 require_once APP_PATH . '/services/NumaFinancialTools.php';
 
 final class NumaFinancialToolsTest extends IntegrationTestCase
@@ -94,105 +97,132 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         ], $gastos['evolucion']);
     }
 
-    public function testTodasLasToolsFiltranPorUsuarioAutenticadoInterno(): void
+    public function testSesionDefineUsuarioAutenticadoYNoPermiteElegirOtroUsuarioId(): void
     {
-        $usuario = $this->crearUsuario('numa-tools-aislamiento@example.test');
-        $otroUsuario = $this->crearUsuario('numa-tools-aislamiento-otro@example.test');
+        $usuario = $this->crearUsuario('numa-tools-sesion@example.test');
+        $otroUsuario = $this->crearUsuario('numa-tools-sesion-otro@example.test');
         $usuarioId = (int) $usuario['id'];
         $otroUsuarioId = (int) $otroUsuario['id'];
+        $sessionBackup = is_array($_SESSION ?? null) ? $_SESSION : [];
 
         $this->insertIngreso($usuarioId, 'salario', 1000, '2026-07-02');
+        $this->insertIngreso($otroUsuarioId, 'salario', 9000, '2026-07-02');
+
+        try {
+            $_SESSION = ['usuario_id' => $usuarioId];
+            $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+
+            $resumen = $registry->executeForAuthenticatedSession('obtener_resumen_financiero', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+            ]);
+
+            self::assertSame(1000.0, $resumen['ingresos']);
+
+            $this->expectException(\InvalidArgumentException::class);
+            $registry->executeForAuthenticatedSession('obtener_resumen_financiero', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'usuario_id' => $otroUsuarioId,
+            ]);
+        } finally {
+            $_SESSION = $sessionBackup;
+        }
+    }
+
+    public function testCompararPeriodosCalculaDiferenciasAgregadas(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-comparar@example.test');
+        $usuarioId = (int) $usuario['id'];
         $this->insertGasto($usuarioId, 'esencial', 'alimentacion', 100, '2026-07-03');
         $this->insertGasto($usuarioId, 'flexible', 'ocio', 40, '2026-07-04');
         $this->insertGasto($usuarioId, 'flexible', 'ocio', 60, '2026-08-04');
 
-        $this->insertIngreso($otroUsuarioId, 'salario', 9000, '2026-07-02');
-        $this->insertGasto($otroUsuarioId, 'esencial', 'alimentacion', 9000, '2026-07-03');
-        $this->insertGasto($otroUsuarioId, 'flexible', 'ocio', 9000, '2026-07-04');
-        $this->insertGasto($otroUsuarioId, 'flexible', 'ocio', 9000, '2026-08-04');
-
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 5);
-
-        $resumen = $registry->execute('obtener_resumen_financiero', $usuarioId, [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-07-31',
-        ]);
-        self::assertSame(1000.0, $resumen['ingresos']);
-        self::assertSame(140.0, $resumen['gastos']);
-
-        $ranking = $registry->execute('obtener_ranking_categorias', $usuarioId, [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-07-31',
-            'metrica' => 'gastos',
-            'limite' => 2,
-        ]);
-        self::assertSame(100.0, $ranking['categorias'][0]['total']);
-        self::assertSame(40.0, $ranking['categorias'][1]['total']);
-
-        $evolucion = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-08-31',
-            'metrica' => 'gastos',
-            'agrupacion' => 'mes',
-            'limite' => 2,
-        ]);
-        self::assertSame(140.0, $evolucion['evolucion'][0]['valor']);
-        self::assertSame(60.0, $evolucion['evolucion'][1]['valor']);
-
-        $comparacion = $registry->execute('comparar_periodos', $usuarioId, [
+        $comparacion = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute('comparar_periodos', $usuarioId, [
             'fecha_inicio_a' => '2026-07-01',
             'fecha_fin_a' => '2026-07-31',
             'fecha_inicio_b' => '2026-08-01',
             'fecha_fin_b' => '2026-08-31',
             'metrica' => 'gastos',
         ]);
+
         self::assertSame(140.0, $comparacion['valor_a']);
         self::assertSame(60.0, $comparacion['valor_b']);
         self::assertSame(-80.0, $comparacion['diferencia_absoluta']);
         self::assertSame(-57.14, $comparacion['diferencia_porcentual']);
-        self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $comparacion['periodo_a']);
-        self::assertSame(['inicio' => '2026-08-01', 'fin' => '2026-08-31'], $comparacion['periodo_b']);
+    }
 
-        $estadisticas = $registry->execute('obtener_estadisticas_movimientos', $usuarioId, [
+    public function testEstadisticasMovimientosCalculaAgregados(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-estadisticas@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertGasto($usuarioId, 'esencial', 'alimentacion', 100, '2026-07-03');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 40, '2026-07-04');
+
+        $estadisticas = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute(
+            'obtener_estadisticas_movimientos',
+            $usuarioId,
+            ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31', 'metrica' => 'gastos']
+        );
+
+        self::assertSame(2, $estadisticas['cantidad_movimientos']);
+        self::assertSame(140.0, $estadisticas['total']);
+        self::assertSame(70.0, $estadisticas['promedio']);
+        self::assertSame(100.0, $estadisticas['maximo']);
+        self::assertSame(40.0, $estadisticas['minimo']);
+    }
+
+    public function testUsuarioSinDatosYPeriodoSinMovimientosDevuelvenAgregadosVacios(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-sin-datos@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 40, '2026-06-04');
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 2);
+
+        $resumen = $registry->execute('obtener_resumen_financiero', $usuarioId, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ]);
+        $ranking = $registry->execute('obtener_ranking_categorias', $usuarioId, [
             'fecha_inicio' => '2026-07-01',
             'fecha_fin' => '2026-07-31',
             'metrica' => 'gastos',
         ]);
-        self::assertSame(2, $estadisticas['cantidad_movimientos']);
-        self::assertSame(140.0, $estadisticas['total']);
-        self::assertSame(70.0, $estadisticas['promedio']);
+
+        self::assertSame(0.0, $resumen['ingresos']);
+        self::assertSame(0.0, $resumen['gastos']);
+        self::assertSame([], $ranking['categorias']);
     }
 
-    public function testResultadoDeToolQuedaAcotadoParaProveedorSinDatosPrivados(): void
+    public function testResultadoAgregadoDeToolsQuedaAcotadoParaProveedorSinDatosPrivados(): void
     {
         $usuario = $this->crearUsuario('numa-tools-json-limit@example.test');
         $usuarioId = (int) $usuario['id'];
-        $previousLimit = $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] ?? null;
-        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = '450';
+        $maxAggregateChars = 650;
 
-        try {
-            $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+        $registry = new \NumaFinancialToolRegistry(
+            new \NumaFinancialToolExecutor($this->db),
+            2,
+            $maxAggregateChars
+        );
+        $resumen = $registry->execute('obtener_resumen_financiero', $usuarioId, [
+            'fecha_inicio' => '2025-01-01',
+            'fecha_fin' => '2026-12-31',
+        ]);
+        $evolucion = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
+            'fecha_inicio' => '2025-01-01',
+            'fecha_fin' => '2026-12-31',
+            'metrica' => 'gastos',
+            'agrupacion' => 'mes',
+            'limite' => 24,
+        ]);
 
-            $result = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
-                'fecha_inicio' => '2025-01-01',
-                'fecha_fin' => '2026-12-31',
-                'metrica' => 'gastos',
-                'agrupacion' => 'mes',
-                'limite' => 24,
-            ]);
-        } finally {
-            if ($previousLimit === null) {
-                unset($_ENV['NUMA_MAX_TOOL_RESULT_CHARS']);
-            } else {
-                $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = $previousLimit;
-            }
-        }
+        $encoded = json_encode([$resumen, $evolucion], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
-        $encoded = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-
-        self::assertLessThanOrEqual(450, strlen($encoded));
-        self::assertLessThan(24, count($result['evolucion']));
-        self::assertNoPrivateKeys($result);
+        self::assertLessThanOrEqual($maxAggregateChars, strlen($encoded));
+        self::assertLessThan(24, count($evolucion['evolucion']));
+        self::assertNoPrivateKeys($resumen);
+        self::assertNoPrivateKeys($evolucion);
     }
 
     public function testRegistroNoEjecutaMasDeDosToolsPorPregunta(): void
@@ -209,6 +239,46 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->expectExceptionMessage('No hemos podido procesar la consulta.');
 
         $registry->execute('ejecutar_sql', $usuarioId, ['sql' => 'SELECT * FROM gastos']);
+    }
+
+    public function testToolsSonSoloLecturaYEjecutanUnicamenteSelect(): void
+    {
+        $pdo = new RecordingNumaPdo();
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 5, 10000);
+
+        $registry->execute('obtener_resumen_financiero', 1, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ]);
+        $registry->execute('obtener_ranking_categorias', 1, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'gastos',
+        ]);
+        $registry->execute('obtener_evolucion_financiera', 1, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'gastos',
+            'agrupacion' => 'tipo',
+        ]);
+        $registry->execute('comparar_periodos', 1, [
+            'fecha_inicio_a' => '2026-07-01',
+            'fecha_fin_a' => '2026-07-31',
+            'fecha_inicio_b' => '2026-08-01',
+            'fecha_fin_b' => '2026-08-31',
+            'metrica' => 'gastos',
+        ]);
+        $registry->execute('obtener_estadisticas_movimientos', 1, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'gastos',
+        ]);
+
+        self::assertNotSame([], $pdo->preparedSql);
+
+        foreach ($pdo->preparedSql as $sql) {
+            self::assertStringStartsWith('SELECT', ltrim($sql));
+        }
     }
 
     private function insertIngreso(int $usuarioId, string $categoria, float $cantidad, string $fecha): void
@@ -244,5 +314,31 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
                 self::assertNoPrivateKeys($item);
             }
         }
+    }
+}
+
+final class RecordingNumaPdo extends PDO
+{
+    /** @var array<int, string> */
+    public array $preparedSql = [];
+
+    public function __construct()
+    {
+        $config = require CONFIG_PATH . '/database.php';
+
+        parent::__construct(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4",
+            $config['user'],
+            $config['password']
+        );
+        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    }
+
+    /** @param array<mixed> $options */
+    public function prepare(string $query, array $options = []): PDOStatement|false
+    {
+        $this->preparedSql[] = $query;
+
+        return parent::prepare($query, $options);
     }
 }

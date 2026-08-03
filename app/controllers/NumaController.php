@@ -7,12 +7,12 @@ require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/services/NumaClassification.php';
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
 require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
+require_once APP_PATH . '/services/NumaFinancialTools.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
+require_once APP_PATH . '/services/NumaService.php';
 
 class NumaController
 {
-    private const NO_KNOWLEDGE_MESSAGE = 'No encuentro información suficiente sobre esa función dentro de BeneHom.';
-
     private const DISALLOWED_CLIENT_KEYS = [
         'usuario_id',
         'user_id',
@@ -81,93 +81,16 @@ class NumaController
             return;
         }
 
-        $available = bh_env_bool('NUMA_ENABLED', false);
-
-        if (!$available) {
-            bh_numa_error('NUMA_NOT_AVAILABLE', 503);
-            return;
-        }
-
-        $localRejection = $this->localScopeClassifier()->classify($message);
-
-        if ($localRejection !== null) {
-            bh_json_success([
-                'message' => $localRejection->message(),
-            ]);
-            return;
-        }
-
         try {
-            $numaUso = $this->numaUso();
-            $reservationId = $numaUso->reservar((int) $_SESSION['usuario_id']);
-        } catch (NumaUsoLimiteAlcanzado $exception) {
-            bh_numa_error($exception->limitCode(), 429);
-            return;
-        } catch (Throwable) {
-            bh_numa_error('NUMA_USAGE_ERROR', 503);
-            return;
-        }
-
-        $providerFailure = null;
-
-        try {
-            $classification = $this->providerScopeClassifier()->classify($message);
-        } catch (Throwable $exception) {
-            $providerFailure = $exception;
-        }
-
-        try {
-            $confirmed = $numaUso->confirmar($reservationId);
-        } catch (Throwable) {
-            bh_numa_error('NUMA_USAGE_ERROR', 503);
-            return;
-        }
-
-        if (!$confirmed) {
-            bh_numa_error('NUMA_USAGE_ERROR', 503);
-            return;
-        }
-
-        if ($providerFailure instanceof NumaGlobalLimiteAlcanzado) {
-            bh_numa_error('NUMA_GLOBAL_LIMIT_REACHED', 503);
-            return;
-        }
-
-        if ($providerFailure instanceof NumaProviderException) {
-            bh_numa_error($providerFailure->providerError()->safeCode(), 503);
-            return;
-        }
-
-        if ($providerFailure !== null) {
-            bh_numa_error('NUMA_PROVIDER_INVALID_RESPONSE', 503);
-            return;
-        }
-
-        if (!$classification->allowed()) {
-            bh_json_success([
-                'message' => NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason()),
-            ]);
-            return;
-        }
-
-        try {
-            $knowledgeResults = $this->knowledgeResults($classification, $message);
+            $result = $this->numaService()->answer((int) $_SESSION['usuario_id'], $message);
+            bh_json_success($result->toArray());
+        } catch (NumaServiceException $exception) {
+            bh_numa_error($exception->safeCode(), $exception->statusCode());
         } catch (NumaProviderException $exception) {
             bh_numa_error($exception->providerError()->safeCode(), 503);
-            return;
         } catch (Throwable) {
-            bh_numa_error('NUMA_PROVIDER_INVALID_RESPONSE', 503);
-            return;
+            bh_numa_error('NUMA_INTERNAL_ERROR', 503);
         }
-
-        if ($knowledgeResults === []) {
-            bh_json_success([
-                'message' => self::NO_KNOWLEDGE_MESSAGE,
-            ]);
-            return;
-        }
-
-        bh_numa_error('NUMA_NOT_AVAILABLE', 503);
     }
 
     public function status(): void
@@ -206,7 +129,35 @@ class NumaController
 
     protected function providerScopeClassifier(): NumaProviderScopeClassifier
     {
-        return new NumaProviderScopeClassifier(NumaProviderFactory::fromEnvironment());
+        return new NumaProviderScopeClassifier($this->provider());
+    }
+
+    protected function provider(): NumaProviderInterface
+    {
+        return NumaProviderFactory::fromEnvironment();
+    }
+
+    protected function financialTools(): NumaFinancialToolRegistryInterface
+    {
+        return new NumaFinancialToolRegistry();
+    }
+
+    protected function globalAvailability(): NumaGlobalAvailabilityInterface
+    {
+        return new NumaGlobalAvailability();
+    }
+
+    protected function numaService(): NumaService
+    {
+        return new NumaService(
+            $this->numaUso(),
+            $this->localScopeClassifier(),
+            $this->providerScopeClassifier(),
+            $this->provider(),
+            fn (NumaClassification $classification, string $message): array => $this->knowledgeResults($classification, $message),
+            $this->financialTools(),
+            $this->globalAvailability()
+        );
     }
 
     /**

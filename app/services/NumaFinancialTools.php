@@ -91,7 +91,21 @@ final class NumaFinancialToolLimitExceeded extends RuntimeException
     }
 }
 
-final class NumaFinancialToolRegistry
+interface NumaFinancialToolRegistryInterface
+{
+    /** @return array<int, string> */
+    public function names(): array;
+
+    public function get(string $name): NumaFinancialToolDefinition;
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    public function execute(string $name, int $authenticatedUserId, array $arguments): array;
+}
+
+final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterface
 {
     private const MAX_TOOL_CALLS = 2;
     private const MAX_AGGREGATE_RESULT_JSON_CHARS = 1600;

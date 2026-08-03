@@ -25,6 +25,7 @@ final class NumaUsoFake extends \NumaUso
             'monthly_remaining' => 20,
         ],
         private readonly ?string $limitCode = null,
+        private readonly bool $confirmResult = true,
     ) {
     }
 
@@ -48,7 +49,7 @@ final class NumaUsoFake extends \NumaUso
     {
         $this->confirmations++;
 
-        return true;
+        return $this->confirmResult;
     }
 
     public function revertir(string $reservaId): bool
@@ -56,6 +57,105 @@ final class NumaUsoFake extends \NumaUso
         $this->reverted = true;
 
         return true;
+    }
+}
+
+final class NumaGlobalAvailabilityFake implements \NumaGlobalAvailabilityInterface
+{
+    public function __construct(private readonly bool $available = true)
+    {
+    }
+
+    public function assertAvailable(): void
+    {
+        if (!$this->available) {
+            throw new \NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
+        }
+    }
+}
+
+final class NumaFinancialToolRegistryFake implements \NumaFinancialToolRegistryInterface
+{
+    public int $executions = 0;
+
+    /** @var array<int, array{name:string,user_id:int,arguments:array<string,mixed>}> */
+    public array $calls = [];
+
+    public function names(): array
+    {
+        return [\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO];
+    }
+
+    public function get(string $name): \NumaFinancialToolDefinition
+    {
+        if ($name !== \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO) {
+            throw new \InvalidArgumentException('Tool no registrada en fake.');
+        }
+
+        return new \NumaFinancialToolDefinition(
+            $name,
+            'Devuelve resumen financiero agregado.',
+            ['type' => 'object', 'additionalProperties' => false, 'properties' => []],
+            [],
+            [],
+            ['max_items' => 1],
+            'fake'
+        );
+    }
+
+    public function execute(string $name, int $authenticatedUserId, array $arguments): array
+    {
+        $this->executions++;
+        $this->calls[] = [
+            'name' => $name,
+            'user_id' => $authenticatedUserId,
+            'arguments' => $arguments,
+        ];
+
+        if ($name !== \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO) {
+            throw new \InvalidArgumentException('Tool no permitida.');
+        }
+
+        return [
+            'tool' => $name,
+            'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+            'ingresos' => 1200.0,
+            'gastos' => 800.0,
+        ];
+    }
+}
+
+final class SequentialNumaProviderFake implements \NumaProviderInterface
+{
+    /** @var array<int, \NumaResponse> */
+    private array $responses;
+
+    /** @var array<int, \NumaRequest> */
+    private array $requests = [];
+
+    public function __construct(\NumaResponse ...$responses)
+    {
+        $this->responses = $responses;
+    }
+
+    public function respond(\NumaRequest $request): \NumaResponse
+    {
+        $this->requests[] = $request;
+
+        if ($this->responses === []) {
+            throw new \NumaProviderException(new \NumaProviderError(
+                \NumaProviderError::INVALID_RESPONSE,
+                'NUMA_PROVIDER_INVALID_RESPONSE'
+            ));
+        }
+
+        return array_shift($this->responses);
+    }
+
+    /** @return array<int, \NumaRequest> */
+    public function requests(): array
+    {
+        return $this->requests;
     }
 }
 
@@ -403,7 +503,38 @@ final class NumaControllerTest extends TestCase
         self::assertSame(503, $response['_status']);
         self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
         self::assertSame(1, $numaUso->reservations);
+        self::assertSame(0, $numaUso->confirmations);
+        self::assertTrue($numaUso->reverted);
+    }
+
+    public function testChatActivoRevierteSiConfirmacionDevuelveFalse(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake(confirmResult: false);
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'producto',
+                'allowed' => true,
+                'reason' => 'product_help',
+                'knowledge_query' => 'añadir movimiento',
+            ]),
+            new \NumaResponse('Respuesta utilizable de Numa.')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            $numaUso,
+            $provider,
+            [new \NumaKnowledgeSearchResult('movimientos-uso', 'movimientos.md', 'Movimientos', 'Añadir', '/movimientos', 'Puedes añadir movimientos desde la sección Movimientos.', 0.92)]
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_USAGE_ERROR', $response['error']['code']);
         self::assertSame(1, $numaUso->confirmations);
+        self::assertTrue($numaUso->reverted);
     }
 
     public function testChatActivoNoPermiteToolsSolicitadasPorClasificacion(): void
@@ -445,6 +576,105 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_GLOBAL_LIMIT_REACHED', $response['error']['code']);
     }
 
+    public function testChatActivoCompruebaLimiteGlobalAntesDeReservar(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'producto',
+            'allowed' => true,
+            'reason' => 'product_help',
+        ]);
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            $numaUso,
+            $provider,
+            [],
+            null,
+            new NumaGlobalAvailabilityFake(false)
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_GLOBAL_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame(0, $numaUso->reservations);
+        self::assertCount(0, $provider->requests());
+    }
+
+    public function testChatActivoGeneraRespuestaFinalConRagYFuentes(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'producto',
+                'allowed' => true,
+                'reason' => 'product_help',
+                'knowledge_query' => 'añadir movimiento',
+            ]),
+            new \NumaResponse('Para añadir un movimiento, usa la sección Movimientos.')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            new NumaUsoFake(),
+            $provider,
+            [new \NumaKnowledgeSearchResult('movimientos-uso', 'movimientos.md', 'Movimientos', 'Añadir', '/movimientos', 'Puedes añadir movimientos desde la sección Movimientos.', 0.92)]
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame('Para añadir un movimiento, usa la sección Movimientos.', $response['data']['message']);
+        self::assertSame([['title' => 'Movimientos', 'section' => 'Añadir', 'url' => '/movimientos']], $response['data']['sources']);
+        self::assertNull($response['data']['period']);
+        self::assertCount(2, $provider->requests());
+        self::assertSame([], $provider->requests()[1]->availableTools());
+    }
+
+    public function testChatActivoEjecutaToolPermitidaYAdjuntaPeriodo(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse(
+                'Necesito consultar datos agregados.',
+                null,
+                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                    'fecha_inicio' => '2026-07-01',
+                    'fecha_fin' => '2026-07-31',
+                ])
+            ),
+            new \NumaResponse('En julio ingresaste 1200 € y gastaste 800 €.')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuál es mi resumen financiero de julio?"}',
+            new NumaUsoFake(),
+            $provider,
+            [],
+            $tools
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame('En julio ingresaste 1200 € y gastaste 800 €.', $response['data']['message']);
+        self::assertSame(['start' => '2026-07-01', 'end' => '2026-07-31'], $response['data']['period']);
+        self::assertSame(1, $tools->executions);
+        self::assertSame(123, $tools->calls[0]['user_id']);
+        self::assertCount(3, $provider->requests());
+        self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $provider->requests()[1]->availableTools());
+    }
+
     public function testChatRechazaDatosSoloMediantePost(): void
     {
         $this->configureJsonPost();
@@ -484,6 +714,8 @@ final class NumaControllerTest extends TestCase
         ?NumaUsoFake $numaUso = null,
         ?\NumaProviderInterface $provider = null,
         array $knowledgeResults = [],
+        ?NumaFinancialToolRegistryFake $financialTools = null,
+        ?NumaGlobalAvailabilityFake $globalAvailability = null,
     ): array
     {
         http_response_code(200);
@@ -494,12 +726,17 @@ final class NumaControllerTest extends TestCase
             'reason' => 'product_help',
         ]);
 
-        $controller = new class($rawBody, $numaUso, $provider, $knowledgeResults) extends \NumaController {
+        $financialTools ??= new NumaFinancialToolRegistryFake();
+        $globalAvailability ??= new NumaGlobalAvailabilityFake();
+
+        $controller = new class($rawBody, $numaUso, $provider, $knowledgeResults, $financialTools, $globalAvailability) extends \NumaController {
             public function __construct(
                 private readonly string $body,
                 private readonly NumaUsoFake $fakeNumaUso,
                 private readonly \NumaProviderInterface $fakeProvider,
                 private readonly array $fakeKnowledgeResults,
+                private readonly NumaFinancialToolRegistryFake $fakeFinancialTools,
+                private readonly NumaGlobalAvailabilityFake $fakeGlobalAvailability,
             )
             {
             }
@@ -517,6 +754,21 @@ final class NumaControllerTest extends TestCase
             protected function providerScopeClassifier(): \NumaProviderScopeClassifier
             {
                 return new \NumaProviderScopeClassifier($this->fakeProvider);
+            }
+
+            protected function provider(): \NumaProviderInterface
+            {
+                return $this->fakeProvider;
+            }
+
+            protected function financialTools(): \NumaFinancialToolRegistryInterface
+            {
+                return $this->fakeFinancialTools;
+            }
+
+            protected function globalAvailability(): \NumaGlobalAvailabilityInterface
+            {
+                return $this->fakeGlobalAvailability;
             }
 
             protected function knowledgeResults(\NumaClassification $classification, string $message): array

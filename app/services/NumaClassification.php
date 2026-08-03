@@ -289,6 +289,7 @@ final class NumaFixedScopeResponse
     private const RESPONSE_MANIPULATION = 'Esa solicitud queda fuera de las funciones disponibles en Numa.';
     private const RESPONSE_THIRD_PARTY_DATA = 'Solo puedo analizar los datos de la cuenta con la que has iniciado sesión.';
     private const RESPONSE_FORBIDDEN_ACTION = 'Numa solo consulta y explica información. No puede crear, modificar ni eliminar datos.';
+    private const RESPONSE_CONTEXT_REQUIRED = 'Formula la pregunta completa en un solo mensaje para que pueda ayudarte sin usar turnos anteriores.';
 
     public static function forIntent(string $intent, ?string $reason = null): string
     {
@@ -304,6 +305,11 @@ final class NumaFixedScopeResponse
             NumaClassificationIntent::ACCION_NO_PERMITIDA => self::RESPONSE_FORBIDDEN_ACTION,
             default => self::RESPONSE_OUT_OF_SCOPE,
         };
+    }
+
+    public static function contextRequired(): string
+    {
+        return self::RESPONSE_CONTEXT_REQUIRED;
     }
 }
 
@@ -425,6 +431,11 @@ final class NumaLocalScopeClassifier
             '/\b(escribeme|escribe|genera|programa|haz|crea)\b.*\b(codigo|script|programa|funcion|php|javascript|python|sql)\b/u',
             '/\b(receta|cocinar|cocina|capital de|presidente de|historia de|clima en)\b/u',
         ],
+        'context_dependent' => [
+            '/^y?\s*(el\s+)?(mes|ano|periodo)\s+(pasado|anterior)$/u',
+            '/^y?\s*(eso|lo mismo|igual|tambien)$/u',
+            '/\b(como|segun|respecto a)\s+(lo anterior|antes|lo que te dije|la respuesta anterior)\b/u',
+        ],
     ];
 
     public function classify(string $message): ?NumaLocalScopeRejection
@@ -480,6 +491,14 @@ final class NumaLocalScopeClassifier
                 NumaClassificationIntent::FUERA_DE_AMBITO,
                 'local_out_of_scope',
                 NumaFixedScopeResponse::forIntent(NumaClassificationIntent::FUERA_DE_AMBITO)
+            );
+        }
+
+        if ($this->matchesAny($normalized, self::RULES['context_dependent'])) {
+            return $this->reject(
+                NumaClassificationIntent::FUERA_DE_AMBITO,
+                'local_context_dependent',
+                NumaFixedScopeResponse::contextRequired()
             );
         }
 

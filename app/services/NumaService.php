@@ -132,6 +132,17 @@ final class NumaReservationGuard
 final class NumaService
 {
     private const NO_KNOWLEDGE_MESSAGE = 'No encuentro información suficiente sobre esa función dentro de BeneHom.';
+    private const APPROX_CHARS_PER_TOKEN = 4;
+    private const CONTEXT_OVERHEAD_CHARS = 1200;
+
+    /** @var array<string, string> */
+    private const DATA_INTENT_TO_TOOL = [
+        NumaDataIntent::RESUMEN_FINANCIERO => NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+        NumaDataIntent::RANKING_CATEGORIAS => NumaFinancialToolRegistry::OBTENER_RANKING_CATEGORIAS,
+        NumaDataIntent::EVOLUCION_FINANCIERA => NumaFinancialToolRegistry::OBTENER_EVOLUCION_FINANCIERA,
+        NumaDataIntent::COMPARACION_PERIODOS => NumaFinancialToolRegistry::COMPARAR_PERIODOS,
+        NumaDataIntent::ESTADISTICAS_MOVIMIENTOS => NumaFinancialToolRegistry::OBTENER_ESTADISTICAS_MOVIMIENTOS,
+    ];
 
     public function __construct(
         private readonly NumaUso $usage,
@@ -234,7 +245,7 @@ final class NumaService
             return [];
         }
 
-        return ($this->knowledgeSearch)($classification, $message);
+        return array_slice(($this->knowledgeSearch)($classification, $message), 0, $this->maxRagResults());
     }
 
     /**
@@ -250,13 +261,13 @@ final class NumaService
         $availableTools = $this->availableToolNames($classification);
         $toolResults = [];
         $maxProviderCalls = max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 3));
-        $remainingFinalCalls = max(1, $maxProviderCalls - 1);
+        $remainingFinalCalls = max(0, $maxProviderCalls - 1);
 
         for ($call = 0; $call < $remainingFinalCalls; $call++) {
             $response = $this->provider->respond(new NumaRequest(
                 $message,
                 '',
-                $this->finalContext($classification, $knowledgeResults, $availableTools, $toolResults),
+                $this->finalContext($message, $classification, $knowledgeResults, $availableTools, $toolResults),
                 $availableTools
             ));
 
@@ -313,7 +324,22 @@ final class NumaService
      */
     private function availableToolNames(NumaClassification $classification): array
     {
-        return $this->needsTools($classification) ? $this->financialTools->names() : [];
+        if (!$this->needsTools($classification)) {
+            return [];
+        }
+
+        $dataIntent = $classification->dataIntent();
+        if ($dataIntent === null || !isset(self::DATA_INTENT_TO_TOOL[$dataIntent])) {
+            throw new InvalidArgumentException('La clasificacion de Numa no incluye una intencion de datos permitida.');
+        }
+
+        $toolName = self::DATA_INTENT_TO_TOOL[$dataIntent];
+
+        if (!in_array($toolName, $this->financialTools->names(), true)) {
+            throw new InvalidArgumentException('La tool de Numa autorizada no esta registrada.');
+        }
+
+        return [$toolName];
     }
 
     /**
@@ -323,11 +349,13 @@ final class NumaService
      * @return array<int, array<string, mixed>>
      */
     private function finalContext(
+        string $message,
         NumaClassification $classification,
         array $knowledgeResults,
         array $availableTools,
         array $toolResults,
     ): array {
+        $remainingBudget = $this->contextCharBudget($message);
         $context = [[
             'type' => 'numa_final_response',
             'classification' => $classification->toStructuredData(),
@@ -339,16 +367,16 @@ final class NumaService
             ],
         ]];
 
+        $remainingBudget -= $this->jsonLength($context[0]);
+
         if ($knowledgeResults !== []) {
+            $knowledgeItems = $this->knowledgeItemsForContext($knowledgeResults, $remainingBudget);
+
             $context[] = [
                 'type' => 'knowledge_fragments',
-                'items' => array_map(static fn (NumaKnowledgeSearchResult $result): array => [
-                    'title' => $result->title(),
-                    'section' => $result->section(),
-                    'url' => $result->route(),
-                    'content' => $result->content(),
-                ], $knowledgeResults),
+                'items' => $knowledgeItems,
             ];
+            $remainingBudget -= $this->jsonLength(end($context));
         }
 
         if ($availableTools !== []) {
@@ -356,16 +384,78 @@ final class NumaService
                 'type' => 'available_financial_tools',
                 'items' => $this->toolDefinitionsForContext($availableTools),
             ];
+            $remainingBudget -= $this->jsonLength(end($context));
         }
 
         if ($toolResults !== []) {
             $context[] = [
                 'type' => 'financial_tool_results',
-                'items' => $toolResults,
+                'items' => $this->toolResultsForContext($toolResults, $remainingBudget),
             ];
         }
 
         return $context;
+    }
+
+    /**
+     * @param array<int, NumaKnowledgeSearchResult> $knowledgeResults
+     * @return array<int, array{title:string,section:string,url:string,content:string}>
+     */
+    private function knowledgeItemsForContext(array $knowledgeResults, int $remainingBudget): array
+    {
+        $items = [];
+        $maxChunkChars = bh_env_int('NUMA_MAX_RAG_CHUNK_CHARS', 900);
+
+        foreach (array_slice($knowledgeResults, 0, $this->maxRagResults()) as $result) {
+            $item = [
+                'title' => $result->title(),
+                'section' => $result->section(),
+                'url' => $result->route(),
+                'content' => $this->limitText($result->content(), $maxChunkChars),
+            ];
+            $length = $this->jsonLength($item);
+
+            if ($length > max(0, $remainingBudget)) {
+                break;
+            }
+
+            $items[] = $item;
+            $remainingBudget -= $length;
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $toolResults
+     * @return array<int, array<string, mixed>>
+     */
+    private function toolResultsForContext(array $toolResults, int $remainingBudget): array
+    {
+        $maxChars = min(
+            bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', 1600),
+            max(0, $remainingBudget)
+        );
+
+        if ($maxChars <= 0) {
+            return [];
+        }
+
+        if ($this->jsonLength($toolResults) <= $maxChars) {
+            return $toolResults;
+        }
+
+        $limited = [];
+        foreach ($toolResults as $result) {
+            $candidate = [...$limited, $result];
+            if ($this->jsonLength($candidate) > $maxChars) {
+                break;
+            }
+
+            $limited[] = $result;
+        }
+
+        return $limited;
     }
 
     /**
@@ -401,7 +491,39 @@ final class NumaService
             'title' => $result->title(),
             'section' => $result->section(),
             'url' => $result->route(),
-        ], $knowledgeResults);
+        ], array_slice($knowledgeResults, 0, $this->maxRagResults()));
+    }
+
+    private function maxRagResults(): int
+    {
+        return max(1, min(3, bh_env_int('NUMA_MAX_RAG_RESULTS', 3)));
+    }
+
+    private function contextCharBudget(string $message): int
+    {
+        $maxInputTokens = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 2000));
+        $messageChars = function_exists('mb_strlen') ? mb_strlen($message, 'UTF-8') : strlen($message);
+
+        return max(0, ($maxInputTokens * self::APPROX_CHARS_PER_TOKEN) - $messageChars - self::CONTEXT_OVERHEAD_CHARS);
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function jsonLength($value): int
+    {
+        return strlen(json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    }
+
+    private function limitText(string $text, int $maxChars): string
+    {
+        $maxChars = max(1, $maxChars);
+
+        if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+            return mb_strlen($text, 'UTF-8') > $maxChars ? mb_substr($text, 0, $maxChars, 'UTF-8') : $text;
+        }
+
+        return strlen($text) > $maxChars ? substr($text, 0, $maxChars) : $text;
     }
 
     /**

@@ -26,6 +26,8 @@ class NumaController
         'tools',
     ];
 
+    private const ALLOWED_CLIENT_KEYS = ['message'];
+
     public function chat(): void
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
@@ -57,6 +59,13 @@ class NumaController
 
         foreach (self::DISALLOWED_CLIENT_KEYS as $key) {
             if (array_key_exists($key, $payload)) {
+                bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+                return;
+            }
+        }
+
+        foreach (array_keys($payload) as $key) {
+            if (!is_string($key) || !in_array($key, self::ALLOWED_CLIENT_KEYS, true)) {
                 bh_numa_error('NUMA_INVALID_MESSAGE', 400);
                 return;
             }

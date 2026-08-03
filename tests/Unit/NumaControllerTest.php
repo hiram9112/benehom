@@ -690,6 +690,157 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_INVALID_MESSAGE', $response['error']['code']);
     }
 
+    public function testChatRechazaHistorialEnPayload(): void
+    {
+        $this->configureJsonPost();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?","history":[{"role":"user","content":"mensaje anterior"}]}'
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(400, $response['_status']);
+        self::assertSame('NUMA_INVALID_MESSAGE', $response['error']['code']);
+    }
+
+    public function testChatActivoPidePreguntaCompletaCuandoDependeDeTurnoAnterior(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+        $provider = \FakeNumaProvider::validResponse('No deberia usarse.');
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Y el mes pasado?"}',
+            $numaUso,
+            $provider
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame(200, $response['_status']);
+        self::assertSame('Formula la pregunta completa en un solo mensaje para que pueda ayudarte sin usar turnos anteriores.', $response['data']['message']);
+        self::assertSame(0, $numaUso->reservations);
+        self::assertCount(0, $provider->requests());
+    }
+
+    public function testChatActivoLimitaRagATresFragmentosYRecortaContenido(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '20';
+        $this->configureJsonPost();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'producto',
+                'allowed' => true,
+                'reason' => 'product_help',
+                'knowledge_query' => 'movimientos',
+            ]),
+            new \NumaResponse('Respuesta fundamentada con fuentes.')
+        );
+        $knowledgeResults = [
+            new \NumaKnowledgeSearchResult('frag-1', 'doc.md', 'Uno', 'A', '/dashboard', 'Contenido largo del primer fragmento.', 0.99),
+            new \NumaKnowledgeSearchResult('frag-2', 'doc.md', 'Dos', 'B', '/dashboard', 'Contenido largo del segundo fragmento.', 0.98),
+            new \NumaKnowledgeSearchResult('frag-3', 'doc.md', 'Tres', 'C', '/dashboard', 'Contenido largo del tercer fragmento.', 0.97),
+            new \NumaKnowledgeSearchResult('frag-4', 'doc.md', 'Cuatro', 'D', '/dashboard', 'Contenido que no debe enviarse.', 0.96),
+        ];
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo uso movimientos?"}',
+            new NumaUsoFake(),
+            $provider,
+            $knowledgeResults
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertCount(3, $response['data']['sources']);
+        self::assertSame(['Uno', 'Dos', 'Tres'], array_column($response['data']['sources'], 'title'));
+
+        $context = $provider->requests()[1]->context();
+        $knowledgeContext = $context[1] ?? null;
+
+        self::assertIsArray($knowledgeContext);
+        self::assertSame('knowledge_fragments', $knowledgeContext['type']);
+        self::assertCount(3, $knowledgeContext['items']);
+        self::assertSame(['Uno', 'Dos', 'Tres'], array_column($knowledgeContext['items'], 'title'));
+
+        foreach ($knowledgeContext['items'] as $item) {
+            self::assertLessThanOrEqual(20, strlen($item['content']));
+        }
+    }
+
+    public function testChatActivoRechazaDatosSinIntencionDeDatos(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+        $provider = new SequentialNumaProviderFake(new \NumaResponse('clasificacion', [
+            'intent' => 'datos_usuario',
+            'allowed' => true,
+            'reason' => 'user_data',
+        ]));
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuánto gasté este mes?"}',
+            $numaUso,
+            $provider
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(0, $numaUso->confirmations);
+        self::assertTrue($numaUso->reverted);
+        self::assertCount(1, $provider->requests());
+    }
+
+    public function testChatActivoRespetaMaximoDeLlamadasAlProveedor(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '2';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse(
+                'Necesito consultar datos agregados.',
+                null,
+                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                    'fecha_inicio' => '2026-07-01',
+                    'fecha_fin' => '2026-07-31',
+                ])
+            ),
+            new \NumaResponse('Esta tercera llamada no debe ejecutarse.')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuál es mi resumen financiero de julio?"}',
+            $numaUso,
+            $provider,
+            [],
+            $tools
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertCount(2, $provider->requests());
+        self::assertSame(1, $tools->executions);
+        self::assertSame(0, $numaUso->confirmations);
+        self::assertTrue($numaUso->reverted);
+    }
+
     public function testStatusDevuelveContadoresDelRepositorio(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';

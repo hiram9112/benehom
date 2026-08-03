@@ -608,6 +608,15 @@ final class NumaControllerTest extends TestCase
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
+        $usage = [
+            'daily_used' => 1,
+            'daily_limit' => 5,
+            'daily_remaining' => 4,
+            'monthly_used' => 1,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 19,
+        ];
+        $numaUso = new NumaUsoFake($usage);
         $provider = new SequentialNumaProviderFake(
             new \NumaResponse('clasificacion', [
                 'intent' => 'producto',
@@ -621,7 +630,7 @@ final class NumaControllerTest extends TestCase
         $response = $this->invoke(
             'chat',
             '{"message":"¿Cómo añado un movimiento?"}',
-            new NumaUsoFake(),
+            $numaUso,
             $provider,
             [new \NumaKnowledgeSearchResult('movimientos-uso', 'movimientos.md', 'Movimientos', 'Añadir', '/movimientos', 'Puedes añadir movimientos desde la sección Movimientos.', 0.92)]
         );
@@ -630,6 +639,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame('Para añadir un movimiento, usa la sección Movimientos.', $response['data']['message']);
         self::assertSame([['title' => 'Movimientos', 'section' => 'Añadir', 'url' => '/movimientos']], $response['data']['sources']);
         self::assertNull($response['data']['period']);
+        self::assertSame($usage, $response['data']['usage']);
         self::assertCount(2, $provider->requests());
         self::assertSame([], $provider->requests()[1]->availableTools());
     }
@@ -673,6 +683,49 @@ final class NumaControllerTest extends TestCase
         self::assertSame(123, $tools->calls[0]['user_id']);
         self::assertCount(3, $provider->requests());
         self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $provider->requests()[1]->availableTools());
+    }
+
+    public function testChatActivoFallaAntesDeEnviarResultadoDeToolQueNoCabe(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '1';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse(
+                'Necesito consultar datos agregados.',
+                null,
+                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                    'fecha_inicio' => '2026-07-01',
+                    'fecha_fin' => '2026-07-31',
+                ])
+            ),
+            new \NumaResponse('Esta respuesta no debe solicitarse.')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuál es mi resumen financiero de julio?"}',
+            $numaUso,
+            $provider,
+            [],
+            $tools
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertSame(1, $tools->executions);
+        self::assertCount(2, $provider->requests());
+        self::assertSame(0, $numaUso->confirmations);
+        self::assertTrue($numaUso->reverted);
     }
 
     public function testChatRechazaDatosSoloMediantePost(): void
@@ -865,7 +918,7 @@ final class NumaControllerTest extends TestCase
         ?NumaUsoFake $numaUso = null,
         ?\NumaProviderInterface $provider = null,
         array $knowledgeResults = [],
-        ?NumaFinancialToolRegistryFake $financialTools = null,
+        ?\NumaFinancialToolRegistryInterface $financialTools = null,
         ?NumaGlobalAvailabilityFake $globalAvailability = null,
     ): array
     {
@@ -886,7 +939,7 @@ final class NumaControllerTest extends TestCase
                 private readonly NumaUsoFake $fakeNumaUso,
                 private readonly \NumaProviderInterface $fakeProvider,
                 private readonly array $fakeKnowledgeResults,
-                private readonly NumaFinancialToolRegistryFake $fakeFinancialTools,
+                private readonly \NumaFinancialToolRegistryInterface $fakeFinancialTools,
                 private readonly NumaGlobalAvailabilityFake $fakeGlobalAvailability,
             )
             {

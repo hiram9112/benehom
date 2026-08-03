@@ -388,9 +388,15 @@ final class NumaService
         }
 
         if ($toolResults !== []) {
+            $toolItems = $this->toolResultsForContext($toolResults, $remainingBudget);
+
+            if (count($toolItems) !== count($toolResults)) {
+                throw new NumaFinancialToolLimitExceeded();
+            }
+
             $context[] = [
                 'type' => 'financial_tool_results',
-                'items' => $this->toolResultsForContext($toolResults, $remainingBudget),
+                'items' => $toolItems,
             ];
         }
 

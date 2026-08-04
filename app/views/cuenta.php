@@ -17,6 +17,7 @@ bh_document_begin([
     <?php
     require_once APP_PATH . '/views/partials/app-navigation.php';
     require_once APP_PATH . '/views/partials/modals.php';
+    require_once APP_PATH . '/views/partials/numa-launcher.php';
     bh_mobile_nav();
     ?>
 
@@ -214,6 +215,7 @@ bh_document_begin([
     </div>
 
     <?php bh_mobile_menu(); ?>
+    <?php bh_numa_launcher(); ?>
 
     <!-- Modal de confirmación -->
     <?php

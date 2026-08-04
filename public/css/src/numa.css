@@ -1,0 +1,162 @@
+/* ========================================================================== 
+   Numa
+   ========================================================================== */
+
+.bh-numa-launcher{
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 1010;
+    display: grid;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    place-items: center;
+    border: var(--bh-border-width) solid var(--bh-brand-deep);
+    border-radius: 50%;
+    color: var(--bh-text-inverse);
+    background-color: var(--bh-brand);
+    box-shadow: var(--bh-shadow-pop);
+    overflow: visible;
+    cursor: pointer;
+    transition:
+        background-color var(--bh-transition-base),
+        border-color var(--bh-transition-base),
+        box-shadow var(--bh-transition-base),
+        transform var(--bh-transition-fast);
+}
+
+.bh-numa-launcher:not(:disabled, .is-unavailable):hover{
+    border-color: var(--bh-brand);
+    background-color: var(--bh-brand-deep);
+    transform: translateY(-2px);
+}
+
+.bh-numa-launcher:active{
+    transform: translateY(0);
+}
+
+.bh-numa-launcher:focus-visible{
+    outline: none;
+    box-shadow: var(--bh-focus-ring), var(--bh-shadow-pop);
+}
+
+.bh-numa-launcher::before,
+.bh-numa-launcher::after{
+    position: absolute;
+    right: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+        opacity var(--bh-transition-fast),
+        transform var(--bh-transition-fast);
+}
+
+.bh-numa-launcher::before{
+    content: '';
+    bottom: calc(100% + 0.4rem);
+    width: 0;
+    height: 0;
+    border: 0.35rem solid transparent;
+    border-top-color: var(--bh-neutral-ink);
+    transform: translate(-1rem, 0.25rem);
+}
+
+.bh-numa-launcher::after{
+    content: attr(data-tooltip);
+    bottom: calc(100% + 0.75rem);
+    width: max-content;
+    max-width: 12rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: var(--bh-radius-sm);
+    color: var(--bh-text-inverse);
+    background-color: var(--bh-neutral-ink);
+    box-shadow: var(--bh-shadow-pop);
+    font-family: var(--bh-font-interface);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-tight);
+    white-space: nowrap;
+    transform: translateY(0.25rem);
+}
+
+.bh-numa-launcher:hover::before,
+.bh-numa-launcher:hover::after,
+.bh-numa-launcher:focus-visible::before,
+.bh-numa-launcher:focus-visible::after{
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.bh-numa-launcher:hover::before,
+.bh-numa-launcher:focus-visible::before{
+    transform: translate(-1rem, 0);
+}
+
+.bh-numa-launcher-icon{
+    display: grid;
+    place-items: center;
+    color: var(--bh-text-inverse);
+    font-size: 1.55rem;
+    line-height: 1;
+}
+
+.bh-numa-launcher-icon i{
+    display: block;
+}
+
+.bh-numa-launcher-dot{
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--bh-surface-card);
+    border-radius: 50%;
+    background-color: var(--bh-border-strong);
+}
+
+.bh-numa-launcher.is-available .bh-numa-launcher-dot{
+    background-color: var(--bh-positive);
+}
+
+.bh-numa-launcher.is-unavailable{
+    border-color: var(--bh-neutral-ink);
+    background-color: var(--bh-neutral-ink);
+}
+
+.bh-numa-launcher.is-unavailable:hover{
+    transform: none;
+}
+
+.bh-numa-launcher:disabled,
+.bh-numa-launcher[aria-disabled="true"]{
+    border-color: var(--bh-neutral);
+    background-color: var(--bh-neutral);
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.72;
+    transform: none;
+}
+
+.bh-numa-launcher:disabled .bh-numa-launcher-dot,
+.bh-numa-launcher[aria-disabled="true"] .bh-numa-launcher-dot{
+    background-color: var(--bh-border-strong);
+}
+
+@media (min-width: 768px){
+    .bh-numa-launcher{
+        width: 56px;
+        height: 56px;
+        right: max(var(--bh-space-5), env(safe-area-inset-right));
+        bottom: max(var(--bh-space-5), env(safe-area-inset-bottom));
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .bh-numa-launcher,
+    .bh-numa-launcher::before,
+    .bh-numa-launcher::after{
+        transition: none;
+    }
+}

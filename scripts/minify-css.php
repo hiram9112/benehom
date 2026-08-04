@@ -21,6 +21,7 @@ $cssFiles = [
     'blog.css',
     'cuenta.css',
     'legal.css',
+    'numa.css',
     'responsive.css',
 ];
 

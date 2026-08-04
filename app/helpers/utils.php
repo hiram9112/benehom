@@ -208,6 +208,7 @@ function bh_css_tags(): string
             'css/src/blog.css',
             'css/src/cuenta.css',
             'css/src/legal.css',
+            'css/src/numa.css',
             'css/src/responsive.css',
         ];
 

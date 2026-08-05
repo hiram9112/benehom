@@ -40,6 +40,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('aria-label="Abrir Numa"', $html);
         self::assertStringContainsString('aria-expanded="false"', $html);
         self::assertStringContainsString('class="bh-numa-launcher is-available"', $html);
+        self::assertStringContainsString('data-numa-state="idle"', $html);
         self::assertStringContainsString('data-tooltip="Abrir Numa"', $html);
         self::assertStringContainsString('data-available="true"', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
@@ -59,6 +60,7 @@ final class NumaLauncherTest extends TestCase
         $html = $this->renderLauncher();
 
         self::assertStringContainsString('class="bh-numa-launcher is-unavailable"', $html);
+        self::assertStringContainsString('data-numa-state="unavailable"', $html);
         self::assertStringContainsString('data-available="false"', $html);
         self::assertStringNotContainsString('No disponible', $html);
         self::assertStringNotContainsString(' disabled', $html);
@@ -188,6 +190,46 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("baseImage.addEventListener('error', showStaticFallback", $javascript);
         self::assertStringContainsString('showStaticFallback();', $javascript);
         self::assertStringNotContainsString('addEventListener(\'click\'', $javascript);
+    }
+
+    public function testControlaTodosLosEstadosDesdeUnaApiUnica(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-character.js');
+
+        self::assertIsString($javascript);
+        foreach ([
+            'idle',
+            'hover',
+            'focus',
+            'open',
+            'thinking',
+            'answer',
+            'unavailable',
+            'limit-reached',
+        ] as $state) {
+            self::assertStringContainsString("'{$state}'", $javascript, $state);
+        }
+
+        self::assertStringContainsString('window.BHNumaCharacter = Object.freeze({', $javascript);
+        self::assertStringContainsString('setState(state, launcher)', $javascript);
+        self::assertStringContainsString('launcher.dataset.numaState = nextState', $javascript);
+        self::assertStringContainsString('const controllers = new WeakMap()', $javascript);
+    }
+
+    public function testControladorLimpiaActividadYRecuperaEstadosTransitorios(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-character.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString("const animationChannels = Object.freeze(['ambient', 'transition'])", $javascript);
+        self::assertStringContainsString('window.clearTimeout(timers[channel])', $javascript);
+        self::assertStringContainsString('animation.kill()', $javascript);
+        self::assertStringContainsString('gsap.killTweensOf(animationTargets)', $javascript);
+        self::assertStringContainsString("gsap.set(animationTargets, { clearProps: 'all' })", $javascript);
+        self::assertStringContainsString('clearActivity();', $javascript);
+        self::assertStringContainsString('thinking: 25000', $javascript);
+        self::assertStringContainsString('answer: 1200', $javascript);
+        self::assertStringContainsString('setState(stableState)', $javascript);
     }
 
     private function renderLauncher(): string

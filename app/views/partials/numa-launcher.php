@@ -11,6 +11,7 @@ function bh_numa_launcher(): void
         aria-label="Abrir Numa"
         aria-expanded="false"
         data-numa-launcher
+        data-numa-state="<?= $available ? 'idle' : 'unavailable' ?>"
         data-tooltip="Abrir Numa"
         data-available="<?= $available ? 'true' : 'false' ?>">
         <span class="bh-numa-launcher-character" aria-hidden="true">

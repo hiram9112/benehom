@@ -42,8 +42,11 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('class="bh-numa-launcher is-available"', $html);
         self::assertStringContainsString('data-tooltip="Abrir Numa"', $html);
         self::assertStringContainsString('data-available="true"', $html);
-        self::assertStringContainsString('ti ti-message-circle', $html);
-        self::assertStringContainsString('bh-numa-launcher-dot', $html);
+        self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
+        self::assertStringContainsString('/img/numa/numa-base-master.png?v=', $html);
+        self::assertStringContainsString('viewBox="0 0 1024 1024"', $html);
+        self::assertStringContainsString('class="numa-face"', $html);
+        self::assertStringNotContainsString('ti ti-message-circle', $html);
         self::assertStringNotContainsString('>Numa<', $html);
         self::assertStringNotContainsString('Disponible', $html);
         self::assertStringContainsString('aria-hidden="true"', $html);
@@ -84,19 +87,60 @@ final class NumaLauncherTest extends TestCase
 
         self::assertIsString($css);
         self::assertStringContainsString('position: fixed', $css);
-        self::assertStringContainsString('width: 52px', $css);
-        self::assertStringContainsString('height: 52px', $css);
-        self::assertStringContainsString('width: 56px', $css);
-        self::assertStringContainsString('height: 56px', $css);
+        self::assertStringContainsString('width: 88px', $css);
+        self::assertStringContainsString('height: 88px', $css);
+        self::assertStringContainsString('width: 96px', $css);
+        self::assertStringContainsString('height: 96px', $css);
         self::assertStringContainsString('right: max(16px, env(safe-area-inset-right))', $css);
         self::assertStringContainsString('bottom: max(16px, env(safe-area-inset-bottom))', $css);
+        self::assertStringContainsString('border: 0', $css);
+        self::assertStringContainsString('background: transparent', $css);
+        self::assertStringContainsString('overflow: visible', $css);
         self::assertStringContainsString('content: attr(data-tooltip)', $css);
         self::assertStringContainsString(':focus-visible', $css);
+        self::assertStringContainsString('outline: 3px solid var(--bh-focus-color)', $css);
         self::assertStringContainsString(':disabled', $css);
-        self::assertStringContainsString(':disabled .bh-numa-launcher-dot', $css);
+        self::assertStringNotContainsString('border-radius: 50%', $css);
+        self::assertStringNotContainsString('overflow: hidden', $css);
         self::assertStringContainsString('env(safe-area-inset-bottom)', $css);
         self::assertStringContainsString('@media (min-width: 768px)', $css);
         self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
+    }
+
+    public function testComponeElRostroEstaticoSobreLaImagenBase(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+
+        $html = $this->renderLauncher();
+
+        foreach ([
+            'numa-brow-left',
+            'numa-brow-right',
+            'numa-eye-left',
+            'numa-eye-right',
+            'numa-pupil-left',
+            'numa-pupil-right',
+            'numa-highlight-left',
+            'numa-highlight-right',
+            'numa-eyelid-left',
+            'numa-eyelid-right',
+            'numa-mouth',
+        ] as $faceLayer) {
+            self::assertStringContainsString('class="' . $faceLayer . '"', $html, $faceLayer);
+        }
+
+        self::assertStringContainsString('alt=""', $html);
+        self::assertStringContainsString('focusable="false"', $html);
+
+        $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
+
+        self::assertIsString($css);
+        self::assertStringContainsString('.bh-numa-launcher-base,', $css);
+        self::assertStringContainsString('.bh-numa-face{', $css);
+        self::assertStringContainsString('inset: 0', $css);
+        self::assertStringContainsString('width: 100%', $css);
+        self::assertStringContainsString('height: 100%', $css);
+        self::assertStringContainsString('pointer-events: none', $css);
     }
 
     private function renderLauncher(): string

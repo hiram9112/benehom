@@ -1,0 +1,74 @@
+<svg
+    class="bh-numa-face"
+    viewBox="0 0 1024 1024"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    focusable="false">
+    <defs>
+        <linearGradient id="numa-eye-white" x1="0" y1="0" x2="0.75" y2="1">
+            <stop offset="0" stop-color="#ffffff"/>
+            <stop offset="0.7" stop-color="#f8fbff"/>
+            <stop offset="1" stop-color="#cce9ff"/>
+        </linearGradient>
+        <linearGradient id="numa-iris-blue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#06175c"/>
+            <stop offset="0.66" stop-color="#062775"/>
+            <stop offset="1" stop-color="#16b9f2"/>
+        </linearGradient>
+        <linearGradient id="numa-face-cyan" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#45c9ff"/>
+            <stop offset="1" stop-color="#76efff"/>
+        </linearGradient>
+        <clipPath id="numa-eye-left-clip">
+            <ellipse cx="383" cy="393" rx="58" ry="60"/>
+        </clipPath>
+        <clipPath id="numa-eye-right-clip">
+            <ellipse cx="639" cy="393" rx="58" ry="60"/>
+        </clipPath>
+    </defs>
+
+    <g class="numa-face">
+        <g class="numa-brow-left" fill="none" stroke-linecap="round">
+            <path d="M341 299 C357 278 383 272 405 285" stroke="#071f5f" stroke-width="20"/>
+            <path d="M341 299 C357 278 383 272 405 285" stroke="url(#numa-face-cyan)" stroke-width="14"/>
+        </g>
+        <g class="numa-brow-right" fill="none" stroke-linecap="round">
+            <path d="M619 285 C641 272 667 278 683 299" stroke="#071f5f" stroke-width="20"/>
+            <path d="M619 285 C641 272 667 278 683 299" stroke="url(#numa-face-cyan)" stroke-width="14"/>
+        </g>
+
+        <g class="numa-eye-left">
+            <ellipse cx="383" cy="393" rx="58" ry="60" fill="#061d66"/>
+            <ellipse cx="383" cy="391" rx="54" ry="57" fill="url(#numa-eye-white)"/>
+            <ellipse cx="387" cy="397" rx="40" ry="47" fill="url(#numa-iris-blue)" stroke="#52d9ff" stroke-width="5"/>
+        </g>
+        <g class="numa-eye-right">
+            <ellipse cx="639" cy="393" rx="58" ry="60" fill="#061d66"/>
+            <ellipse cx="639" cy="391" rx="54" ry="57" fill="url(#numa-eye-white)"/>
+            <ellipse cx="643" cy="397" rx="40" ry="47" fill="url(#numa-iris-blue)" stroke="#52d9ff" stroke-width="5"/>
+        </g>
+
+        <ellipse class="numa-pupil-left" cx="387" cy="393" rx="29" ry="37" fill="#020a35"/>
+        <ellipse class="numa-pupil-right" cx="643" cy="393" rx="29" ry="37" fill="#020a35"/>
+        <circle class="numa-highlight-left" cx="404" cy="377" r="12" fill="#ffffff"/>
+        <circle class="numa-highlight-right" cx="660" cy="377" r="12" fill="#ffffff"/>
+
+        <path
+            class="numa-eyelid-left"
+            d="M325 393 A58 60 0 0 1 441 393 L441 333 L325 333 Z"
+            clip-path="url(#numa-eye-left-clip)"
+            fill="#123c82"
+            opacity="0"/>
+        <path
+            class="numa-eyelid-right"
+            d="M581 393 A58 60 0 0 1 697 393 L697 333 L581 333 Z"
+            clip-path="url(#numa-eye-right-clip)"
+            fill="#123c82"
+            opacity="0"/>
+
+        <g class="numa-mouth" fill="none" stroke-linecap="round">
+            <path d="M467 467 C490 498 534 498 557 467" stroke="#062567" stroke-width="22"/>
+            <path d="M467 467 C490 498 534 498 557 467" stroke="url(#numa-face-cyan)" stroke-width="14"/>
+        </g>
+    </g>
+</svg>

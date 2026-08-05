@@ -143,6 +143,53 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('pointer-events: none', $css);
     }
 
+    public function testUsaAssetsOptimizadosConFallbackEstatico(): void
+    {
+        $html = $this->renderLauncher();
+
+        self::assertStringContainsString('/img/numa/numa-static.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
+        self::assertStringContainsString('/img/numa/numa-base.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/numa-base-master.png?v=', $html);
+        self::assertStringContainsString('data-numa-static', $html);
+        self::assertStringContainsString('data-numa-hybrid hidden', $html);
+        self::assertStringContainsString('/js/vendor/gsap/gsap.min.js?v=', $html);
+        self::assertStringContainsString('/js/numa-character.js?v=', $html);
+    }
+
+    public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void
+    {
+        foreach (['numa-base', 'numa-static'] as $asset) {
+            $masterPath = BASE_PATH . '/public/img/numa/' . $asset . '-master.png';
+            $optimizedPath = BASE_PATH . '/public/img/numa/' . $asset . '.webp';
+            $masterSize = getimagesize($masterPath);
+            $optimizedSize = getimagesize($optimizedPath);
+
+            self::assertIsArray($masterSize, $masterPath);
+            self::assertIsArray($optimizedSize, $optimizedPath);
+            self::assertSame([1024, 1024], [$masterSize[0], $masterSize[1]], $masterPath);
+            self::assertSame([$masterSize[0], $masterSize[1]], [$optimizedSize[0], $optimizedSize[1]], $optimizedPath);
+            self::assertSame('image/webp', $optimizedSize['mime'], $optimizedPath);
+
+            $optimizedImage = imagecreatefromwebp($optimizedPath);
+            self::assertNotFalse($optimizedImage, $optimizedPath);
+            self::assertGreaterThan(0, (imagecolorat($optimizedImage, 0, 0) >> 24) & 0x7F, $optimizedPath);
+            imagedestroy($optimizedImage);
+        }
+    }
+
+    public function testInicializadorMantieneFallbackAnteFallosYMovimientoReducido(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-character.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString("window.matchMedia('(prefers-reduced-motion: reduce)')", $javascript);
+        self::assertStringContainsString("typeof window.gsap !== 'undefined'", $javascript);
+        self::assertStringContainsString("baseImage.addEventListener('error', showStaticFallback", $javascript);
+        self::assertStringContainsString('showStaticFallback();', $javascript);
+        self::assertStringNotContainsString('addEventListener(\'click\'', $javascript);
+    }
+
     private function renderLauncher(): string
     {
         ob_start();

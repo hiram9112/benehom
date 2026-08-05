@@ -81,6 +81,23 @@
     pointer-events: none;
 }
 
+.bh-numa-launcher-picture,
+.bh-numa-launcher-static,
+.bh-numa-launcher-hybrid{
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.bh-numa-launcher-hybrid[hidden],
+.bh-numa-launcher-static[hidden]{
+    display: none;
+}
+
+.bh-numa-launcher-picture > img,
 .bh-numa-launcher-base,
 .bh-numa-face{
     position: absolute;
@@ -91,6 +108,7 @@
     pointer-events: none;
 }
 
+.bh-numa-launcher-picture > img,
 .bh-numa-launcher-base{
     object-fit: contain;
 }

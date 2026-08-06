@@ -40,13 +40,14 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('aria-label="Abrir Numa"', $html);
         self::assertStringContainsString('aria-expanded="false"', $html);
         self::assertStringContainsString('class="bh-numa-launcher is-available"', $html);
-        self::assertStringContainsString('data-numa-state="idle"', $html);
+        self::assertStringNotContainsString('data-numa-state=', $html);
         self::assertStringContainsString('data-tooltip="Abrir Numa"', $html);
         self::assertStringContainsString('data-available="true"', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
-        self::assertStringContainsString('/img/numa/numa-base-master.png?v=', $html);
-        self::assertStringContainsString('viewBox="0 0 1024 1024"', $html);
-        self::assertStringContainsString('class="numa-face"', $html);
+        self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
+        self::assertStringNotContainsString('/img/numa/numa-base-master.png?v=', $html);
+        self::assertStringNotContainsString('numa-face.svg', $html);
+        self::assertStringNotContainsString('class="numa-face"', $html);
         self::assertStringNotContainsString('ti ti-message-circle', $html);
         self::assertStringNotContainsString('>Numa<', $html);
         self::assertStringNotContainsString('Disponible', $html);
@@ -60,7 +61,7 @@ final class NumaLauncherTest extends TestCase
         $html = $this->renderLauncher();
 
         self::assertStringContainsString('class="bh-numa-launcher is-unavailable"', $html);
-        self::assertStringContainsString('data-numa-state="unavailable"', $html);
+        self::assertStringNotContainsString('data-numa-state=', $html);
         self::assertStringContainsString('data-available="false"', $html);
         self::assertStringNotContainsString('No disponible', $html);
         self::assertStringNotContainsString(' disabled', $html);
@@ -109,13 +110,17 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
     }
 
-    public function testComponeElRostroEstaticoSobreLaImagenBase(): void
+    public function testRenderizaPersonajeEstaticoDecorativo(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
 
         $html = $this->renderLauncher();
 
         foreach ([
+            'numa-face.svg',
+            'data-numa-hybrid',
+            'bh-numa-launcher-hybrid',
+            'bh-numa-launcher-base',
             'numa-brow-left',
             'numa-brow-right',
             'numa-eye-left',
@@ -128,17 +133,17 @@ final class NumaLauncherTest extends TestCase
             'numa-eyelid-right',
             'numa-mouth',
         ] as $faceLayer) {
-            self::assertStringContainsString('class="' . $faceLayer . '"', $html, $faceLayer);
+            self::assertStringNotContainsString($faceLayer, $html, $faceLayer);
         }
 
         self::assertStringContainsString('alt=""', $html);
-        self::assertStringContainsString('focusable="false"', $html);
+        self::assertStringContainsString('aria-hidden="true"', $html);
 
         $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
 
         self::assertIsString($css);
-        self::assertStringContainsString('.bh-numa-launcher-base,', $css);
-        self::assertStringContainsString('.bh-numa-face{', $css);
+        self::assertStringNotContainsString('.bh-numa-launcher-base', $css);
+        self::assertStringNotContainsString('.bh-numa-face', $css);
         self::assertStringContainsString('inset: 0', $css);
         self::assertStringContainsString('width: 100%', $css);
         self::assertStringContainsString('height: 100%', $css);
@@ -151,17 +156,17 @@ final class NumaLauncherTest extends TestCase
 
         self::assertStringContainsString('/img/numa/numa-static.webp?v=', $html);
         self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
-        self::assertStringContainsString('/img/numa/numa-base.webp?v=', $html);
-        self::assertStringContainsString('/img/numa/numa-base-master.png?v=', $html);
+        self::assertStringNotContainsString('/img/numa/numa-base.webp?v=', $html);
+        self::assertStringNotContainsString('/img/numa/numa-base-master.png?v=', $html);
         self::assertStringContainsString('data-numa-static', $html);
-        self::assertStringContainsString('data-numa-hybrid hidden', $html);
+        self::assertStringNotContainsString('data-numa-hybrid', $html);
         self::assertStringContainsString('/js/vendor/gsap/gsap.min.js?v=', $html);
         self::assertStringContainsString('/js/numa-character.js?v=', $html);
     }
 
     public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void
     {
-        foreach (['numa-base', 'numa-static'] as $asset) {
+        foreach (['numa-static'] as $asset) {
             $masterPath = BASE_PATH . '/public/img/numa/' . $asset . '-master.png';
             $optimizedPath = BASE_PATH . '/public/img/numa/' . $asset . '.webp';
             $masterSize = getimagesize($masterPath);
@@ -180,56 +185,52 @@ final class NumaLauncherTest extends TestCase
         }
     }
 
-    public function testInicializadorMantieneFallbackAnteFallosYMovimientoReducido(): void
+    public function testInicializadorMantieneBaselineEstaticoSinControlarElChat(): void
     {
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-character.js');
 
         self::assertIsString($javascript);
-        self::assertStringContainsString("window.matchMedia('(prefers-reduced-motion: reduce)')", $javascript);
-        self::assertStringContainsString("typeof window.gsap !== 'undefined'", $javascript);
-        self::assertStringContainsString("baseImage.addEventListener('error', showStaticFallback", $javascript);
-        self::assertStringContainsString('showStaticFallback();', $javascript);
+        self::assertStringContainsString("document.querySelectorAll('[data-numa-launcher]')", $javascript);
+        self::assertStringContainsString('staticCharacter.hidden = false', $javascript);
         self::assertStringNotContainsString('addEventListener(\'click\'', $javascript);
+        self::assertStringNotContainsString('is-character-ready', $javascript);
     }
 
-    public function testControlaTodosLosEstadosDesdeUnaApiUnica(): void
+    public function testNoExponeLaApiVisualDescartadaNiEstadosDelChat(): void
     {
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-character.js');
 
         self::assertIsString($javascript);
         foreach ([
-            'idle',
-            'hover',
-            'focus',
-            'open',
             'thinking',
             'answer',
-            'unavailable',
             'limit-reached',
+            'requiredFaceLayers',
+            'data-numa-hybrid',
         ] as $state) {
-            self::assertStringContainsString("'{$state}'", $javascript, $state);
+            self::assertStringNotContainsString($state, $javascript, $state);
         }
 
-        self::assertStringContainsString('window.BHNumaCharacter = Object.freeze({', $javascript);
-        self::assertStringContainsString('setState(state, launcher)', $javascript);
-        self::assertStringContainsString('launcher.dataset.numaState = nextState', $javascript);
-        self::assertStringContainsString('const controllers = new WeakMap()', $javascript);
+        self::assertStringNotContainsString('window.BHNumaCharacter', $javascript);
+        self::assertStringNotContainsString('setState', $javascript);
+        self::assertStringNotContainsString('dataset.numaState', $javascript);
+        self::assertStringNotContainsString('const controllers = new WeakMap()', $javascript);
     }
 
-    public function testControladorLimpiaActividadYRecuperaEstadosTransitorios(): void
+    public function testNoConservaCanalesNiTimeoutsDelControladorVisualAnterior(): void
     {
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-character.js');
 
         self::assertIsString($javascript);
-        self::assertStringContainsString("const animationChannels = Object.freeze(['ambient', 'transition'])", $javascript);
-        self::assertStringContainsString('window.clearTimeout(timers[channel])', $javascript);
-        self::assertStringContainsString('animation.kill()', $javascript);
-        self::assertStringContainsString('gsap.killTweensOf(animationTargets)', $javascript);
-        self::assertStringContainsString("gsap.set(animationTargets, { clearProps: 'all' })", $javascript);
-        self::assertStringContainsString('clearActivity();', $javascript);
-        self::assertStringContainsString('thinking: 25000', $javascript);
-        self::assertStringContainsString('answer: 1200', $javascript);
-        self::assertStringContainsString('setState(stableState)', $javascript);
+        self::assertStringNotContainsString("const animationChannels = Object.freeze(['ambient', 'transition'])", $javascript);
+        self::assertStringNotContainsString('window.clearTimeout(timers[channel])', $javascript);
+        self::assertStringNotContainsString('animation.kill()', $javascript);
+        self::assertStringNotContainsString('gsap.killTweensOf(animationTargets)', $javascript);
+        self::assertStringNotContainsString("gsap.set(animationTargets, { clearProps: 'all' })", $javascript);
+        self::assertStringNotContainsString('clearActivity();', $javascript);
+        self::assertStringNotContainsString('thinking: 25000', $javascript);
+        self::assertStringNotContainsString('answer: 1200', $javascript);
+        self::assertStringNotContainsString('setState(stableState)', $javascript);
     }
 
     private function renderLauncher(): string

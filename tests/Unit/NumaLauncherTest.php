@@ -45,6 +45,13 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-available="true"', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
         self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
+        self::assertStringContainsString('/img/numa/runtime/numa-body.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/runtime/blink/numa-face-00.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/runtime/wave/numa-arm-00.webp?v=', $html);
+        self::assertStringContainsString('data-numa-animated', $html);
+        self::assertStringContainsString('data-numa-body-src=', $html);
+        self::assertStringContainsString('data-numa-face-frames=', $html);
+        self::assertStringContainsString('data-numa-arm-frames=', $html);
         self::assertStringNotContainsString('/img/numa/numa-base-master.png?v=', $html);
         self::assertStringNotContainsString('numa-face.svg', $html);
         self::assertStringNotContainsString('class="numa-face"', $html);
@@ -148,6 +155,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('width: 100%', $css);
         self::assertStringContainsString('height: 100%', $css);
         self::assertStringContainsString('pointer-events: none', $css);
+        self::assertStringContainsString('.bh-numa-launcher-animated', $css);
+        self::assertStringContainsString('.bh-numa-launcher-layer', $css);
     }
 
     public function testUsaAssetsOptimizadosConFallbackEstatico(): void
@@ -156,9 +165,16 @@ final class NumaLauncherTest extends TestCase
 
         self::assertStringContainsString('/img/numa/numa-static.webp?v=', $html);
         self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
+        self::assertStringContainsString('/img/numa/runtime/numa-body.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/runtime/blink/numa-face-01.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/runtime/blink/numa-face-02.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/runtime/wave/numa-arm-20.webp?v=', $html);
+        self::assertStringNotContainsString('/img/numa/runtime/numa-face-', $html);
+        self::assertStringNotContainsString('/img/numa/runtime/numa-arm-', $html);
         self::assertStringNotContainsString('/img/numa/numa-base.webp?v=', $html);
         self::assertStringNotContainsString('/img/numa/numa-base-master.png?v=', $html);
         self::assertStringContainsString('data-numa-static', $html);
+        self::assertStringContainsString('data-numa-animated', $html);
         self::assertStringNotContainsString('data-numa-hybrid', $html);
         self::assertStringContainsString('/js/vendor/gsap/gsap.min.js?v=', $html);
         self::assertStringContainsString('/js/numa-character.js?v=', $html);
@@ -183,17 +199,82 @@ final class NumaLauncherTest extends TestCase
             self::assertGreaterThan(0, (imagecolorat($optimizedImage, 0, 0) >> 24) & 0x7F, $optimizedPath);
             imagedestroy($optimizedImage);
         }
+
+        $runtimeAssets = array_merge(
+            ['numa-body.webp', 'blink/numa-face-00.webp', 'blink/numa-face-01.webp', 'blink/numa-face-02.webp'],
+            array_map(static fn (int $frame): string => sprintf('wave/numa-arm-%02d.webp', $frame), range(0, 20))
+        );
+
+        foreach ($runtimeAssets as $asset) {
+            $runtimePath = BASE_PATH . '/public/img/numa/runtime/' . $asset;
+            $runtimeSize = getimagesize($runtimePath);
+
+            self::assertIsArray($runtimeSize, $runtimePath);
+            self::assertSame([384, 384], [$runtimeSize[0], $runtimeSize[1]], $runtimePath);
+            self::assertSame('image/webp', $runtimeSize['mime'], $runtimePath);
+
+            $runtimeImage = imagecreatefromwebp($runtimePath);
+            self::assertNotFalse($runtimeImage, $runtimePath);
+            self::assertGreaterThan(0, (imagecolorat($runtimeImage, 0, 0) >> 24) & 0x7F, $runtimePath);
+            self::assertLessThan(90000, filesize($runtimePath), $runtimePath);
+            imagedestroy($runtimeImage);
+        }
     }
 
-    public function testInicializadorMantieneBaselineEstaticoSinControlarElChat(): void
+    public function testMaestrosDefinitivosDelPersonajeExisten(): void
+    {
+        $masters = array_merge(
+            [BASE_PATH . '/public/img/numa/masters/numa-body-master.png'],
+            array_map(static fn (int $frame): string => sprintf(BASE_PATH . '/public/img/numa/masters/blink/numa-blink-%02d-master.png', $frame), [0, 1, 2]),
+            array_map(static fn (int $frame): string => sprintf(BASE_PATH . '/public/img/numa/masters/wave/numa-wave-%02d-master.png', $frame), range(0, 20))
+        );
+
+        foreach ($masters as $masterPath) {
+            $masterSize = getimagesize($masterPath);
+
+            self::assertIsArray($masterSize, $masterPath);
+            self::assertSame([1024, 1024], [$masterSize[0], $masterSize[1]], $masterPath);
+            self::assertSame('image/png', $masterSize['mime'], $masterPath);
+
+            $masterImage = imagecreatefrompng($masterPath);
+            self::assertNotFalse($masterImage, $masterPath);
+            self::assertGreaterThan(0, (imagecolorat($masterImage, 0, 0) >> 24) & 0x7F, $masterPath);
+            imagedestroy($masterImage);
+        }
+    }
+
+    public function testInicializadorPrecargaYActivaComposicionSinControlarElChat(): void
     {
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-character.js');
 
         self::assertIsString($javascript);
         self::assertStringContainsString("document.querySelectorAll('[data-numa-launcher]')", $javascript);
         self::assertStringContainsString('staticCharacter.hidden = false', $javascript);
+        self::assertStringContainsString('Promise.all(requiredAssets.map(preloadImage))', $javascript);
+        self::assertStringContainsString('animatedCharacter.hidden = false', $javascript);
+        self::assertStringContainsString('staticCharacter.hidden = true', $javascript);
+        self::assertStringContainsString("'(prefers-reduced-motion: reduce)'", $javascript);
+        self::assertStringContainsString("launcher.addEventListener('pointerenter'", $javascript);
+        self::assertStringContainsString("launcher.addEventListener('focus'", $javascript);
+        self::assertStringContainsString('const AUTO_WAVE_MIN_DELAY = 10000', $javascript);
+        self::assertStringContainsString('const AUTO_WAVE_MAX_DELAY = 15000', $javascript);
+        self::assertStringContainsString('const WAVE_FRAME_DURATION = 0.022', $javascript);
+        self::assertStringContainsString('playAutomaticWave(3)', $javascript);
+        self::assertStringContainsString('appendFullWaveCycle(waveTimeline)', $javascript);
+        self::assertStringContainsString('if (interactionActive() || !playAutomaticWave(3))', $javascript);
+        self::assertStringContainsString('playArmTo(armFrames.length - 1, completeInteractionRaise)', $javascript);
+        self::assertStringContainsString('playArmTo(0, completeInteractionLower)', $javascript);
+        self::assertStringContainsString('if (!interactionActive()) {', $javascript);
+        self::assertStringContainsString('lowerArmAfterInteraction();', $javascript);
+        self::assertStringContainsString("launcher.matches(':focus-visible')", $javascript);
+        self::assertStringContainsString('waveTimeline = killTimeline(waveTimeline)', $javascript);
         self::assertStringNotContainsString('addEventListener(\'click\'', $javascript);
+        self::assertStringNotContainsString('playWave(1, true)', $javascript);
         self::assertStringNotContainsString('is-character-ready', $javascript);
+        self::assertStringNotContainsString('[highFrames[0], highFrames[1], highFrames[0], highFrames[1]]', $javascript);
+        self::assertStringNotContainsString('timeline.to({}, { duration: 0.1 })', $javascript);
+        self::assertStringNotContainsString('appendArmFrames(timeline, upFrames, 0.032)', $javascript);
+        self::assertStringNotContainsString('appendArmFrames(timeline, downFrames, 0.024)', $javascript);
     }
 
     public function testNoExponeLaApiVisualDescartadaNiEstadosDelChat(): void

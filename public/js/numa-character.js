@@ -2,8 +2,8 @@
     'use strict';
 
     const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-    const BLINK_MIN_DELAY = 5200;
-    const BLINK_MAX_DELAY = 9400;
+    const BLINK_MIN_DELAY = 2600;
+    const BLINK_MAX_DELAY = 4700;
     const AUTO_WAVE_MIN_DELAY = 10000;
     const AUTO_WAVE_MAX_DELAY = 15000;
     const WAVE_FRAME_DURATION = 0.022;

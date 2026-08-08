@@ -28,6 +28,7 @@ function bh_numa_launcher(): void
         data-numa-show-initial-tooltip="<?= $showInitialTooltip ? 'true' : 'false' ?>"
         data-numa-status-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=numa/status', ENT_QUOTES, 'UTF-8') ?>"
         data-numa-chat-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=numa/chat', ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-new-conversation-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=numa/conversation/new', ENT_QUOTES, 'UTF-8') ?>"
         data-numa-csrf="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
         <button
             type="button"
@@ -75,6 +76,11 @@ function bh_numa_launcher(): void
             aria-label="Chat con Numa"
             data-numa-panel
             hidden>
+            <button
+                type="button"
+                class="bh-numa-new-conversation"
+                data-numa-new-conversation
+                disabled>Nueva conversación</button>
             <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost bh-numa-panel-close" aria-label="Cerrar Numa" data-numa-close>
                 <i class="ti ti-x" aria-hidden="true"></i>
             </button>

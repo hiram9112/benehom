@@ -26,7 +26,7 @@ No. BeneHom puede mostrar simulaciones educativas sobre interes compuesto o esce
 
 ## Numa recuerda conversaciones anteriores
 
-No. Cada consulta a Numa es independiente. Para obtener una respuesta util, la pregunta debe incluir todo el contexto necesario en el mensaje actual.
+Numa conserva la conversacion actual mientras dure la sesion de BeneHom y puede usarla para comprender preguntas de seguimiento. La accion Nueva conversacion elimina ese historial, y al terminar la sesion no queda memoria conversacional persistente.
 
 ## Numa puede modificar mis datos
 

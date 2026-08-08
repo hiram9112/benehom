@@ -70,6 +70,7 @@
         const panelId = launcher ? launcher.getAttribute('aria-controls') : '';
         const panel = panelId ? document.getElementById(panelId) : widget.querySelector('[data-numa-panel]');
         const closeButton = panel ? panel.querySelector('[data-numa-close]') : null;
+        const newConversationButton = panel ? panel.querySelector('[data-numa-new-conversation]') : null;
         const form = panel ? panel.querySelector('[data-numa-form]') : null;
         const input = panel ? panel.querySelector('[data-numa-input]') : null;
         const submitButton = panel ? panel.querySelector('[data-numa-submit]') : null;
@@ -83,9 +84,10 @@
         const shouldShowInitialTooltip = widget.getAttribute('data-numa-show-initial-tooltip') === 'true';
         const statusUrl = widget.getAttribute('data-numa-status-url') || '';
         const chatUrl = widget.getAttribute('data-numa-chat-url') || '';
+        const newConversationUrl = widget.getAttribute('data-numa-new-conversation-url') || '';
         const csrfToken = widget.getAttribute('data-numa-csrf') || '';
 
-        if (!launcher || !tooltip || !panel || !closeButton || !form || !input || !submitButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
+        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !form || !input || !submitButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
             return;
         }
 
@@ -98,6 +100,7 @@
         let statusRequestId = 0;
         let activeRequest = false;
         let hasConversation = false;
+        let hasCanonicalConversation = false;
         let serviceReady = false;
         let currentUsage = null;
 
@@ -197,6 +200,7 @@
             suggestions.querySelectorAll('button').forEach((button) => {
                 button.disabled = !enabled;
             });
+            newConversationButton.disabled = activeRequest || !hasCanonicalConversation;
         };
 
         const setProcessing = (processing) => {
@@ -334,6 +338,39 @@
             });
         };
 
+        const renderConversation = (conversation) => {
+            messages.textContent = '';
+            hasConversation = false;
+            hasCanonicalConversation = false;
+
+            if (Array.isArray(conversation)) {
+                conversation.forEach((entry) => {
+                    if (!entry || typeof entry !== 'object') {
+                        return;
+                    }
+
+                    const role = entry.role === 'user' ? 'user' : entry.role === 'assistant' ? 'assistant' : '';
+                    const message = normaliseText(entry.message);
+                    if (role === '' || message === '') {
+                        return;
+                    }
+
+                    addMessage(role, message, {
+                        sources: entry.sources,
+                        period: entry.period,
+                    });
+                    hasCanonicalConversation = true;
+                });
+            }
+
+            if (!hasCanonicalConversation) {
+                hasConversation = false;
+                renderInitialState();
+            }
+
+            setInteractiveState();
+        };
+
         const statusMessageForUsage = (usageData) => {
             if (!usageData || typeof usageData !== 'object') {
                 return '';
@@ -359,6 +396,7 @@
             const available = Boolean(data && data.available === true);
             const usageData = data && typeof data.usage === 'object' ? data.usage : null;
 
+            renderConversation(data && Array.isArray(data.conversation) ? data.conversation : []);
             serviceReady = available;
             setUsage(usageData);
 
@@ -506,10 +544,14 @@
                         return;
                     }
 
-                    addMessage('assistant', payload.data.message, {
-                        sources: payload.data.sources,
-                        period: payload.data.period,
-                    });
+                    if (Array.isArray(payload.data.conversation)) {
+                        renderConversation(payload.data.conversation);
+                    } else {
+                        addMessage('assistant', payload.data.message, {
+                            sources: payload.data.sources,
+                            period: payload.data.period,
+                        });
+                    }
 
                     if (payload.data.usage && typeof payload.data.usage === 'object') {
                         setUsage(payload.data.usage);
@@ -530,6 +572,48 @@
                         addStateMessage(usageMessage, 'warning');
                     }
 
+                    setInteractiveState();
+
+                    if (canSend()) {
+                        input.focus();
+                    }
+                });
+        };
+
+        const startNewConversation = () => {
+            if (activeRequest || !hasCanonicalConversation || !newConversationUrl) {
+                return;
+            }
+
+            activeRequest = true;
+            newConversationButton.setAttribute('aria-busy', 'true');
+            announceStatus('Iniciando una nueva conversación.');
+            setInteractiveState();
+
+            fetch(newConversationUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
+            })
+                .then((response) => response.json().catch(() => null).then((payload) => ({ response, payload })))
+                .then(({ response, payload }) => {
+                    if (!response.ok || !payload || payload.ok !== true || !payload.data) {
+                        addStateMessage(safeErrorMessage(payload, response.status), 'error');
+                        return;
+                    }
+
+                    applyServiceStatus(payload);
+                    announceStatus('Nueva conversación iniciada.');
+                })
+                .catch(() => {
+                    addStateMessage('No he podido iniciar una nueva conversación.', 'error');
+                })
+                .finally(() => {
+                    activeRequest = false;
+                    newConversationButton.removeAttribute('aria-busy');
                     setInteractiveState();
 
                     if (canSend()) {
@@ -583,6 +667,7 @@
         });
 
         closeButton.addEventListener('click', () => closePanel(true));
+        newConversationButton.addEventListener('click', startNewConversation);
 
         launcher.addEventListener('pointerenter', () => {
             hovering = true;

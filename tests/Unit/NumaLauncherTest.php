@@ -53,6 +53,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-show-initial-tooltip="false"', $html);
         self::assertStringContainsString('data-numa-status-url="/index.php?r=numa/status"', $html);
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/chat"', $html);
+        self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/conversation/new"', $html);
         self::assertStringContainsString('data-numa-csrf="', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
         self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
@@ -230,6 +231,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('data-numa-panel-header', $html);
         self::assertStringContainsString('data-numa-panel', $html);
         self::assertStringContainsString('data-numa-close', $html);
+        self::assertStringContainsString('data-numa-new-conversation', $html);
+        self::assertStringContainsString('Nueva conversación', $html);
         self::assertStringContainsString('data-numa-initial', $html);
         self::assertStringContainsString('data-numa-suggestions', $html);
         self::assertStringContainsString('data-numa-messages', $html);
@@ -289,6 +292,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("widget.getAttribute('data-numa-show-initial-tooltip') === 'true'", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-status-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-chat-url')", $javascript);
+        self::assertStringContainsString("widget.getAttribute('data-numa-new-conversation-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-csrf')", $javascript);
         self::assertStringContainsString('let initialTooltipDismissed = !shouldShowInitialTooltip', $javascript);
         self::assertStringContainsString('let defaultTooltipSuppressed = false', $javascript);
@@ -309,6 +313,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("fetch(chatUrl", $javascript);
         self::assertStringContainsString("'X-CSRF-Token': csrfToken", $javascript);
         self::assertStringContainsString('JSON.stringify({ message })', $javascript);
+        self::assertStringContainsString('renderConversation(payload.data.conversation)', $javascript);
+        self::assertStringContainsString("newConversationButton.addEventListener('click', startNewConversation)", $javascript);
         self::assertStringContainsString("submitButton.classList.toggle('is-processing', processing)", $javascript);
         self::assertStringContainsString("form.setAttribute('aria-busy', processing ? 'true' : 'false')", $javascript);
         self::assertStringContainsString("addMessage('user', message)", $javascript);

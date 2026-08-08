@@ -417,4 +417,12 @@ return [
         'public' => false,
         'response' => 'json',
     ],
+    'numa/conversation/new' => [
+        'controller' => 'NumaController',
+        'action' => 'newConversation',
+        'methods' => ['POST'],
+        'public' => false,
+        'response' => 'json',
+        'csrf' => false,
+    ],
 ];

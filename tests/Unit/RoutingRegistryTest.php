@@ -157,6 +157,7 @@ final class RoutingRegistryTest extends TestCase
     {
         $chat = \bh_route_definition('numa/chat');
         $status = \bh_route_definition('numa/status');
+        $newConversation = \bh_route_definition('numa/conversation/new');
 
         self::assertSame('NumaController', $chat['controller']);
         self::assertSame('chat', $chat['action']);
@@ -169,6 +170,12 @@ final class RoutingRegistryTest extends TestCase
         self::assertSame(['GET'], $status['methods']);
         self::assertFalse($status['public']);
         self::assertSame('json', $status['response']);
+
+        self::assertSame('NumaController', $newConversation['controller']);
+        self::assertSame('newConversation', $newConversation['action']);
+        self::assertSame(['POST'], $newConversation['methods']);
+        self::assertFalse($newConversation['public']);
+        self::assertSame('json', $newConversation['response']);
     }
 
     public function testRutaNoRegistrada(): void

@@ -106,6 +106,37 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(['intent' => 'producto', 'allowed' => true], $response->structuredData());
     }
 
+    public function testEnviaHistorialControladoConRolesDeGemini(): void
+    {
+        $captured = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['text' => 'Respuesta actual.']]]]],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+
+        $provider->respond(new \NumaRequest(
+            '¿Y el anterior?',
+            'Prompt controlado',
+            [],
+            [],
+            [
+                ['role' => 'user', 'message' => 'Pregunta anterior'],
+                ['role' => 'assistant', 'message' => 'Respuesta anterior'],
+            ],
+        ));
+
+        self::assertSame(['user', 'model', 'user'], array_column($captured['contents'], 'role'));
+        self::assertSame('Pregunta anterior', $captured['contents'][0]['parts'][0]['text']);
+        self::assertSame('Respuesta anterior', $captured['contents'][1]['parts'][0]['text']);
+        self::assertStringContainsString('¿Y el anterior?', $captured['contents'][2]['parts'][0]['text']);
+    }
+
     public function testReintentaUnaVezUnFalloTransitorioSeguro(): void
     {
         $calls = 0;

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/helpers/utils.php';
+
 interface NumaProviderInterface
 {
     public function respond(NumaRequest $request): NumaResponse;
@@ -19,13 +21,24 @@ final class NumaRequest
     /**
      * @param array<int, array<string, mixed>> $context
      * @param array<int, string> $availableTools
+     * @param array<int, array{role:string,message:string}> $history
      */
     public function __construct(
         private readonly string $message,
         private readonly string $systemInstruction = '',
         private readonly array $context = [],
         private readonly array $availableTools = [],
+        private readonly array $history = [],
     ) {
+        foreach ($history as $entry) {
+            if (!is_array($entry)
+                || !in_array($entry['role'] ?? null, ['user', 'assistant'], true)
+                || !is_string($entry['message'] ?? null)
+                || trim($entry['message']) === ''
+            ) {
+                throw new InvalidArgumentException('Historial conversacional de Numa invalido.');
+            }
+        }
     }
 
     public function message(): string
@@ -52,6 +65,50 @@ final class NumaRequest
     public function availableTools(): array
     {
         return $this->availableTools;
+    }
+
+    /**
+     * @return array<int, array{role:string,message:string}>
+     */
+    public function history(): array
+    {
+        return $this->history;
+    }
+}
+
+final class NumaInputLimitExceeded extends RuntimeException
+{
+}
+
+final class NumaInputBudget
+{
+    private const APPROX_CHARS_PER_TOKEN = 4;
+    private const STRUCTURAL_OVERHEAD_CHARS = 300;
+
+    public static function assertFits(NumaRequest $request): void
+    {
+        $maxTokens = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000));
+        $maxChars = $maxTokens * self::APPROX_CHARS_PER_TOKEN;
+        $estimatedChars = self::STRUCTURAL_OVERHEAD_CHARS
+            + self::length($request->systemInstruction())
+            + self::length($request->message())
+            + self::jsonLength($request->context())
+            + self::jsonLength($request->availableTools())
+            + self::jsonLength($request->history());
+
+        if ($estimatedChars > $maxChars) {
+            throw new NumaInputLimitExceeded('NUMA_CONVERSATION_TOO_LONG');
+        }
+    }
+
+    private static function jsonLength(array $value): int
+    {
+        return self::length(json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    }
+
+    private static function length(string $value): int
+    {
+        return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
     }
 }
 
@@ -263,12 +320,16 @@ final class NumaSystemInstructionProvider implements NumaProviderInterface
 
     public function respond(NumaRequest $request): NumaResponse
     {
-        return $this->provider->respond(new NumaRequest(
+        $controlledRequest = new NumaRequest(
             $request->message(),
             $this->systemInstruction,
             $request->context(),
-            $request->availableTools()
-        ));
+            $request->availableTools(),
+            $request->history(),
+        );
+        NumaInputBudget::assertFits($controlledRequest);
+
+        return $this->provider->respond($controlledRequest);
     }
 
     private static function basePromptPath(): string

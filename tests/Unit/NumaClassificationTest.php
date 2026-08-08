@@ -287,6 +287,11 @@ final class NumaClassificationTest extends TestCase
         ];
     }
 
+    public function testClasificadorLocalPermiteReferenciaCuandoExisteContextoDeSesion(): void
+    {
+        self::assertNull((new \NumaLocalScopeClassifier())->classify('¿Y el mes pasado?', true));
+    }
+
     public function testClasificadorConProveedorAceptaSalidaEstructuradaPermitida(): void
     {
         $provider = \FakeNumaProvider::structuredResponse([

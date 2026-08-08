@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once APP_PATH . '/models/NumaUso.php';
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/services/NumaClassification.php';
+require_once APP_PATH . '/services/NumaConversation.php';
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
 require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaFinancialTools.php';
@@ -91,8 +92,23 @@ class NumaController
         }
 
         try {
-            $result = $this->numaService()->answer((int) $_SESSION['usuario_id'], $message);
-            bh_json_success($result->toArray());
+            $conversation = $this->conversation();
+            $result = $this->numaService()->answer(
+                (int) $_SESSION['usuario_id'],
+                $message,
+                $conversation->context(),
+            );
+            $data = $result->toArray();
+            $conversation->appendExchange(
+                $message,
+                (string) $data['message'],
+                is_array($data['sources'] ?? null) ? $data['sources'] : [],
+                is_array($data['period'] ?? null) ? $data['period'] : null,
+                $result->contextual(),
+            );
+            $data['conversation'] = $conversation->transcript();
+
+            bh_json_success($data);
         } catch (NumaServiceException $exception) {
             bh_numa_error($exception->safeCode(), $exception->statusCode());
         } catch (NumaProviderException $exception) {
@@ -120,6 +136,36 @@ class NumaController
             bh_json_success([
                 'available' => bh_env_bool('NUMA_ENABLED', false),
                 'usage' => $usage,
+                'conversation' => $this->conversation()->transcript(),
+            ]);
+        } catch (Throwable) {
+            bh_numa_error('NUMA_USAGE_ERROR', 503);
+        }
+    }
+
+    public function newConversation(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+            return;
+        }
+
+        if (empty($_SESSION['usuario_id'])) {
+            bh_json_error('UNAUTHENTICATED', bh_router_error_message('UNAUTHENTICATED'), 401);
+            return;
+        }
+
+        if (!csrf_validate()) {
+            bh_numa_error('NUMA_INVALID_CSRF', 403);
+            return;
+        }
+
+        try {
+            $this->conversation()->clear();
+            bh_json_success([
+                'available' => bh_env_bool('NUMA_ENABLED', false),
+                'usage' => $this->numaUso()->estado((int) $_SESSION['usuario_id']),
+                'conversation' => [],
             ]);
         } catch (Throwable) {
             bh_numa_error('NUMA_USAGE_ERROR', 503);
@@ -134,6 +180,11 @@ class NumaController
     protected function localScopeClassifier(): NumaLocalScopeClassifier
     {
         return new NumaLocalScopeClassifier();
+    }
+
+    protected function conversation(): NumaConversation
+    {
+        return new NumaConversation();
     }
 
     protected function providerScopeClassifier(): NumaProviderScopeClassifier

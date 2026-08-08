@@ -14,7 +14,7 @@ Numa no es un asistente generalista. No responde preguntas ajenas a BeneHom, no 
 
 ## Como usar las respuestas de Numa
 
-Cada consulta debe escribirse como una pregunta completa. Numa no utiliza memoria conversacional, por lo que no debe depender de mensajes anteriores como "y el mes pasado" o "haz lo mismo con esa categoria" si la pregunta actual no incluye todo el contexto necesario.
+Numa mantiene la conversacion mientras dure la sesion de BeneHom. Puede resolver referencias breves a respuestas anteriores, como "y el mes pasado" o "haz lo mismo con esa categoria". Iniciar una conversacion nueva elimina ese contexto sin reiniciar los limites de uso.
 
 Las respuestas de Numa deben entenderse como orientacion sobre BeneHom y educacion financiera domestica. Las decisiones reales siguen siendo responsabilidad del usuario.
 

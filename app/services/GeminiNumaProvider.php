@@ -116,13 +116,23 @@ final class GeminiNumaProvider implements NumaProviderInterface
      */
     private function buildPayload(NumaRequest $request): array
     {
-        $payload = [
-            'contents' => [[
-                'role' => 'user',
-                'parts' => [[
-                    'text' => $this->buildUserText($request),
-                ]],
+        $contents = [];
+        foreach ($request->history() as $entry) {
+            $contents[] = [
+                'role' => $entry['role'] === 'assistant' ? 'model' : 'user',
+                'parts' => [['text' => $entry['message']]],
+            ];
+        }
+
+        $contents[] = [
+            'role' => 'user',
+            'parts' => [[
+                'text' => $this->buildUserText($request),
             ]],
+        ];
+
+        $payload = [
+            'contents' => $contents,
             'generationConfig' => [
                 'maxOutputTokens' => min(max($this->maxOutputTokens, 1), self::OUTPUT_TOKEN_HARD_LIMIT),
                 'thinkingConfig' => [

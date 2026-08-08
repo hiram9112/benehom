@@ -107,6 +107,7 @@ final class FrontControllerRoutingTest extends TestCase
                 'monthly_limit' => 20,
                 'monthly_remaining' => 20,
             ],
+            'conversation' => [],
         ], $decoded['data']);
     }
 

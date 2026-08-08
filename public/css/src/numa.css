@@ -168,6 +168,39 @@
     z-index: 2;
 }
 
+.bh-numa-new-conversation{
+    position: absolute;
+    top: 0.72rem;
+    left: 1rem;
+    z-index: 2;
+    min-height: 36px;
+    padding: 0.38rem 0.62rem;
+    border: 1px solid var(--bh-border-color);
+    border-radius: var(--bh-radius-pill);
+    color: var(--bh-text-muted);
+    background: color-mix(in srgb, var(--bh-surface-card) 92%, transparent);
+    font-family: var(--bh-font-interface);
+    font-size: var(--bh-text-xs);
+    font-weight: var(--bh-weight-semibold);
+    cursor: pointer;
+}
+
+.bh-numa-new-conversation:hover:not(:disabled){
+    border-color: var(--bh-border-strong);
+    color: var(--bh-brand-deep);
+    background: var(--bh-brand-soft);
+}
+
+.bh-numa-new-conversation:focus-visible{
+    outline: none;
+    box-shadow: var(--bh-focus-ring);
+}
+
+.bh-numa-new-conversation:disabled{
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 .bh-numa-panel-body{
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto;

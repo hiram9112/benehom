@@ -701,6 +701,75 @@ final class NumaControllerTest extends TestCase
         self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $provider->requests()[1]->availableTools());
     }
 
+    public function testChatActivoConGeminiFunctionCallingDevuelveResultadoFinal(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $captured = [];
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$captured): array {
+            $captured[] = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return match (count($captured)) {
+                1 => [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [[
+                            'text' => '{"intent":"datos_usuario","allowed":true,"reason":"user_data","data_intent":"resumen_financiero"}',
+                        ]]]]],
+                    ], JSON_THROW_ON_ERROR),
+                ],
+                2 => [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [[
+                            'content' => [
+                                'role' => 'model',
+                                'parts' => [[
+                                    'functionCall' => [
+                                        'id' => 'gemini-call-1',
+                                        'name' => \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                                        'args' => [
+                                            'fecha_inicio' => '2026-07-01',
+                                            'fecha_fin' => '2026-07-31',
+                                        ],
+                                    ],
+                                    'thoughtSignature' => 'gemini-signature',
+                                ]],
+                            ],
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                ],
+                default => [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [['text' => 'En julio ingresaste 1200 € y gastaste 800 €.']]]]],
+                    ], JSON_THROW_ON_ERROR),
+                ],
+            };
+        });
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuál es mi resumen financiero de julio?"}',
+            new NumaUsoFake(),
+            $provider,
+            [],
+            $tools
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame('En julio ingresaste 1200 € y gastaste 800 €.', $response['data']['message']);
+        self::assertSame(['start' => '2026-07-01', 'end' => '2026-07-31'], $response['data']['period']);
+        self::assertSame(1, $tools->executions);
+        self::assertSame(123, $tools->calls[0]['user_id']);
+        self::assertSame(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $captured[1]['tools'][0]['functionDeclarations'][0]['name']);
+        self::assertSame('gemini-call-1', $captured[2]['contents'][1]['parts'][0]['functionCall']['id']);
+        self::assertSame('gemini-signature', $captured[2]['contents'][1]['parts'][0]['thoughtSignature']);
+        self::assertSame('gemini-call-1', $captured[2]['contents'][2]['parts'][0]['functionResponse']['id']);
+        self::assertSame(1200, $captured[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['ingresos']);
+    }
+
     public function testChatActivoRespondeLocalmenteCuandoLaSolicitudCompletaNoCabe(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

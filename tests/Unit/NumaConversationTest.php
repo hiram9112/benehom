@@ -40,6 +40,7 @@ final class NumaConversationTest extends TestCase
         );
 
         self::assertCount(4, $conversation->transcript());
+        self::assertSame(123, $_SESSION['numa_conversation']['usuario_id']);
         self::assertSame([
             ['role' => 'user', 'message' => '¿Cómo añado un movimiento?'],
             ['role' => 'assistant', 'message' => 'Usa el formulario de Movimientos.'],
@@ -61,6 +62,7 @@ final class NumaConversationTest extends TestCase
     public function testIgnoraEntradasDeSesionMalformadas(): void
     {
         $_SESSION['numa_conversation'] = [
+            'usuario_id' => 123,
             'entries' => [
                 ['role' => 'system', 'message' => 'No permitido', 'include_in_context' => true],
                 ['role' => 'user', 'message' => '', 'include_in_context' => true],
@@ -68,5 +70,40 @@ final class NumaConversationTest extends TestCase
         ];
 
         self::assertSame([], (new \NumaConversation())->transcript());
+    }
+
+    public function testEliminaTranscriptSinPropietario(): void
+    {
+        $_SESSION['numa_conversation'] = [
+            'entries' => [
+                ['role' => 'user', 'message' => 'Pregunta anterior', 'include_in_context' => true],
+            ],
+        ];
+
+        self::assertSame([], (new \NumaConversation())->transcript());
+        self::assertArrayNotHasKey('numa_conversation', $_SESSION);
+    }
+
+    public function testEliminaTranscriptDeOtroUsuario(): void
+    {
+        $_SESSION['numa_conversation'] = [
+            'usuario_id' => 999,
+            'entries' => [
+                ['role' => 'user', 'message' => 'Pregunta de otra cuenta', 'include_in_context' => true],
+            ],
+        ];
+
+        self::assertSame([], (new \NumaConversation())->context());
+        self::assertArrayNotHasKey('numa_conversation', $_SESSION);
+    }
+
+    public function testCambioDeCuentaEnLaMismaSesionEliminaTranscriptAnterior(): void
+    {
+        (new \NumaConversation())->appendExchange('Pregunta usuario 123', 'Respuesta usuario 123');
+
+        $_SESSION['usuario_id'] = 456;
+
+        self::assertSame([], (new \NumaConversation())->transcript());
+        self::assertArrayNotHasKey('numa_conversation', $_SESSION);
     }
 }

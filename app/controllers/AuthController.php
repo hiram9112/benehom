@@ -74,8 +74,14 @@ class AuthController {
 
                     IntentoAcceso::limpiar('login', $claveRateLimit);
 
+                    $previousUserId = $_SESSION['usuario_id'] ?? null;
+
                     // Regeneramos el ID de sesión para evitar session fixation
                     session_regenerate_id(true);
+
+                    if ($previousUserId !== null && (int) $previousUserId !== (int) $user['id']) {
+                        unset($_SESSION['numa_conversation']);
+                    }
 
                     //Guardamos el nombre del usuario y su id en la sesión
                     $_SESSION['usuario']=$user['usuario'];

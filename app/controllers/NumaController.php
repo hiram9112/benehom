@@ -91,13 +91,22 @@ class NumaController
             return;
         }
 
+        $authenticatedUserId = (int) $_SESSION['usuario_id'];
+
         try {
-            $conversation = $this->conversation();
+            $conversation = $this->conversation($authenticatedUserId);
             $result = $this->numaService()->answer(
-                (int) $_SESSION['usuario_id'],
+                $authenticatedUserId,
                 $message,
                 $conversation->context(),
             );
+
+            if (!$this->sessionStillOwnedBy($authenticatedUserId)) {
+                $conversation->clear();
+                bh_json_error('UNAUTHENTICATED', bh_router_error_message('UNAUTHENTICATED'), 401);
+                return;
+            }
+
             $data = $result->toArray();
             $conversation->appendExchange(
                 $message,
@@ -130,13 +139,15 @@ class NumaController
             return;
         }
 
+        $authenticatedUserId = (int) $_SESSION['usuario_id'];
+
         try {
-            $usage = $this->numaUso()->estado((int) $_SESSION['usuario_id']);
+            $usage = $this->numaUso()->estado($authenticatedUserId);
 
             bh_json_success([
                 'available' => bh_env_bool('NUMA_ENABLED', false),
                 'usage' => $usage,
-                'conversation' => $this->conversation()->transcript(),
+                'conversation' => $this->conversation($authenticatedUserId)->transcript(),
             ]);
         } catch (Throwable) {
             bh_numa_error('NUMA_USAGE_ERROR', 503);
@@ -155,16 +166,18 @@ class NumaController
             return;
         }
 
+        $authenticatedUserId = (int) $_SESSION['usuario_id'];
+
         if (!csrf_validate()) {
             bh_numa_error('NUMA_INVALID_CSRF', 403);
             return;
         }
 
         try {
-            $this->conversation()->clear();
+            $this->conversation($authenticatedUserId)->clear();
             bh_json_success([
                 'available' => bh_env_bool('NUMA_ENABLED', false),
-                'usage' => $this->numaUso()->estado((int) $_SESSION['usuario_id']),
+                'usage' => $this->numaUso()->estado($authenticatedUserId),
                 'conversation' => [],
             ]);
         } catch (Throwable) {
@@ -182,9 +195,17 @@ class NumaController
         return new NumaLocalScopeClassifier();
     }
 
-    protected function conversation(): NumaConversation
+    protected function conversation(?int $authenticatedUserId = null): NumaConversation
     {
-        return new NumaConversation();
+        return new NumaConversation($authenticatedUserId);
+    }
+
+    private function sessionStillOwnedBy(int $authenticatedUserId): bool
+    {
+        $currentUserId = $_SESSION['usuario_id'] ?? null;
+
+        return (is_int($currentUserId) || (is_string($currentUserId) && ctype_digit($currentUserId)))
+            && (int) $currentUserId === $authenticatedUserId;
     }
 
     protected function providerScopeClassifier(): NumaProviderScopeClassifier

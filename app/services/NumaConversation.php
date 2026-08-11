@@ -7,6 +7,13 @@ final class NumaConversation
     private const SESSION_KEY = 'numa_conversation';
     private const MAX_VISIBLE_ENTRIES = 100;
 
+    private ?int $authenticatedUserId;
+
+    public function __construct(?int $authenticatedUserId = null)
+    {
+        $this->authenticatedUserId = $authenticatedUserId;
+    }
+
     /**
      * @return array<int, array{role:string,message:string,period:array<string,string>|null}>
      */
@@ -53,6 +60,12 @@ final class NumaConversation
         ?array $period = null,
         bool $includeInContext = true,
     ): void {
+        $userId = $this->currentUserId();
+        if ($userId === null) {
+            $this->clear();
+            return;
+        }
+
         $entries = $this->entries();
         $entries[] = $this->entry('user', $userMessage, [], null, $includeInContext);
         $entries[] = $this->entry('assistant', $assistantMessage, $sources, $period, $includeInContext);
@@ -66,12 +79,18 @@ final class NumaConversation
             array_splice($entries, $displayOnlyPair, 2);
         }
 
-        $_SESSION[self::SESSION_KEY] = ['entries' => $entries];
+        $_SESSION[self::SESSION_KEY] = [
+            'usuario_id' => $userId,
+            'entries' => $entries,
+        ];
     }
 
     public function clear(): void
     {
-        unset($_SESSION[self::SESSION_KEY]);
+        $stored = $_SESSION[self::SESSION_KEY] ?? null;
+        if (!is_array($stored) || $this->storedUserId($stored) === $this->currentUserId()) {
+            unset($_SESSION[self::SESSION_KEY]);
+        }
     }
 
     /**
@@ -79,13 +98,24 @@ final class NumaConversation
      */
     private function entries(): array
     {
-        $stored = $_SESSION[self::SESSION_KEY]['entries'] ?? null;
-        if (!is_array($stored) || !array_is_list($stored)) {
+        $storedConversation = $_SESSION[self::SESSION_KEY] ?? null;
+        if (!is_array($storedConversation)) {
+            return [];
+        }
+
+        $userId = $this->currentUserId();
+        if ($userId === null || $this->storedUserId($storedConversation) !== $userId) {
+            unset($_SESSION[self::SESSION_KEY]);
+            return [];
+        }
+
+        $storedEntries = $storedConversation['entries'] ?? null;
+        if (!is_array($storedEntries) || !array_is_list($storedEntries)) {
             return [];
         }
 
         $entries = [];
-        foreach ($stored as $entry) {
+        foreach ($storedEntries as $entry) {
             $normalized = $this->normalizeEntry($entry);
             if ($normalized !== null) {
                 $entries[] = $normalized;
@@ -93,6 +123,21 @@ final class NumaConversation
         }
 
         return $entries;
+    }
+
+    private function currentUserId(): ?int
+    {
+        $userId = $this->authenticatedUserId ?? ($_SESSION['usuario_id'] ?? null);
+
+        return is_int($userId) || (is_string($userId) && ctype_digit($userId)) ? (int) $userId : null;
+    }
+
+    /** @param array<string, mixed> $stored */
+    private function storedUserId(array $stored): ?int
+    {
+        $userId = $stored['usuario_id'] ?? null;
+
+        return is_int($userId) || (is_string($userId) && ctype_digit($userId)) ? (int) $userId : null;
     }
 
     /**

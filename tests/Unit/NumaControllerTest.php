@@ -159,6 +159,31 @@ final class SequentialNumaProviderFake implements \NumaProviderInterface
     }
 }
 
+final class SessionChangingNumaProviderFake implements \NumaProviderInterface
+{
+    /** @var array<int, \NumaRequest> */
+    private array $requests = [];
+
+    public function respond(\NumaRequest $request): \NumaResponse
+    {
+        $this->requests[] = $request;
+        $_SESSION['usuario_id'] = 999;
+
+        return new \NumaResponse('clasificacion', [
+            'intent' => 'producto',
+            'allowed' => true,
+            'reason' => 'product_help',
+            'knowledge_query' => 'movimientos',
+        ]);
+    }
+
+    /** @return array<int, \NumaRequest> */
+    public function requests(): array
+    {
+        return $this->requests;
+    }
+}
+
 final class NumaControllerTest extends TestCase
 {
     private string $originalMethod = 'GET';
@@ -898,6 +923,59 @@ final class NumaControllerTest extends TestCase
         ], $provider->requests()[0]->history());
         self::assertSame($provider->requests()[0]->history(), $provider->requests()[1]->history());
         self::assertCount(4, $response['data']['conversation']);
+    }
+
+    public function testChatNoEnviaContextoDeOtroUsuario(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $_SESSION['numa_conversation'] = [
+            'usuario_id' => 999,
+            'entries' => [
+                ['role' => 'user', 'message' => 'Pregunta de otra cuenta', 'include_in_context' => true],
+                ['role' => 'assistant', 'message' => 'Respuesta de otra cuenta', 'include_in_context' => true],
+            ],
+        ];
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'producto',
+                'allowed' => true,
+                'reason' => 'product_help',
+                'knowledge_query' => 'movimientos',
+            ]),
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            new NumaUsoFake(),
+            $provider,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame([], $provider->requests()[0]->history());
+        self::assertSame(123, $_SESSION['numa_conversation']['usuario_id']);
+        self::assertCount(2, $response['data']['conversation']);
+        self::assertSame('¿Cómo añado un movimiento?', $response['data']['conversation'][0]['message']);
+    }
+
+    public function testChatNoAnexaRespuestaSiLaSesionCambiaDeUsuario(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $provider = new SessionChangingNumaProviderFake();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            new NumaUsoFake(),
+            $provider,
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(401, $response['_status']);
+        self::assertSame('UNAUTHENTICATED', $response['error']['code']);
+        self::assertArrayNotHasKey('numa_conversation', $_SESSION);
     }
 
     public function testRechazoLocalQuedaVisiblePeroNoEnContextoPosterior(): void

@@ -514,6 +514,7 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($response['ok']);
         self::assertSame(429, $response['_status']);
         self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame('Has alcanzado el límite diario de llamadas pagadas de Numa.', $response['error']['message']);
         self::assertSame(1, $numaUso->reservations);
         self::assertSame(0, $numaUso->confirmations);
         self::assertCount(0, $provider->requests());

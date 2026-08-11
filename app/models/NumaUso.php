@@ -37,8 +37,8 @@ class NumaUso
         $today = $this->today();
         [$monthStart, $nextMonthStart] = $this->monthRange($today);
 
-        $dailyUsed = $this->consultasConfirmadasDia($usuarioId, $today);
-        $monthlyUsed = $this->consultasConfirmadasMes($usuarioId, $monthStart, $nextMonthStart);
+        $dailyUsed = $this->llamadasPagadasConfirmadasDia($usuarioId, $today);
+        $monthlyUsed = $this->llamadasPagadasConfirmadasMes($usuarioId, $monthStart, $nextMonthStart);
         $dailyPending = $this->reservasPendientesActivasDia($usuarioId, $today);
         $monthlyPending = $this->reservasPendientesActivasMes($usuarioId, $monthStart, $nextMonthStart);
 
@@ -69,8 +69,8 @@ class NumaUso
             $this->ensureUsoDia($usuarioId, $today);
             $this->lockUsoDia($usuarioId, $today);
 
-            $dailyUsed = $this->consultasConfirmadasDia($usuarioId, $today);
-            $monthlyUsed = $this->consultasConfirmadasMes($usuarioId, $monthStart, $nextMonthStart);
+            $dailyUsed = $this->llamadasPagadasConfirmadasDia($usuarioId, $today);
+            $monthlyUsed = $this->llamadasPagadasConfirmadasMes($usuarioId, $monthStart, $nextMonthStart);
             $dailyPending = $this->reservasPendientesActivasDia($usuarioId, $today);
             $monthlyPending = $this->reservasPendientesActivasMes($usuarioId, $monthStart, $nextMonthStart);
 
@@ -236,7 +236,7 @@ class NumaUso
         }
     }
 
-    public function consultasConfirmadasDia(int $usuarioId, ?string $fecha = null): int
+    public function llamadasPagadasConfirmadasDia(int $usuarioId, ?string $fecha = null): int
     {
         $stmt = $this->db()->prepare(
             'SELECT COALESCE(SUM(cantidad_confirmada), 0)
@@ -248,7 +248,7 @@ class NumaUso
         return (int) $stmt->fetchColumn();
     }
 
-    public function consultasConfirmadasMes(int $usuarioId, ?string $monthStart = null, ?string $nextMonthStart = null): int
+    public function llamadasPagadasConfirmadasMes(int $usuarioId, ?string $monthStart = null, ?string $nextMonthStart = null): int
     {
         $today = $this->today();
         [$defaultStart, $defaultNext] = $this->monthRange($today);

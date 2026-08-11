@@ -349,11 +349,11 @@
             const messages = [];
 
             if (Number.isFinite(dailyRemaining) && dailyRemaining <= 0) {
-                messages.push('Has alcanzado el límite diario de consultas.');
+                messages.push('Has alcanzado el límite diario de llamadas pagadas.');
             }
 
             if (Number.isFinite(monthlyRemaining) && monthlyRemaining <= 0) {
-                messages.push('Has alcanzado el límite mensual de consultas.');
+                messages.push('Has alcanzado el límite mensual de llamadas pagadas.');
             }
 
             return messages.join(' ');
@@ -451,7 +451,7 @@
             }
 
             if (statusCode === 429) {
-                return 'Has alcanzado el límite de consultas de Numa.';
+                return 'Has alcanzado el límite de llamadas pagadas de Numa.';
             }
 
             return 'No he podido responder ahora. Inténtalo de nuevo en unos minutos.';

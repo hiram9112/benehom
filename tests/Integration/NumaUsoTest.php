@@ -55,7 +55,7 @@ final class NumaUsoTest extends TestCase
         self::assertSame(19, $estado['monthly_remaining']);
     }
 
-    public function testQuintaConsultaPermitidaYSextaRechazada(): void
+    public function testQuintaLlamadaPagadaPermitidaYSextaRechazada(): void
     {
         $usuarioId = $this->crearUsuario();
         $this->insertUso($usuarioId, '2026-07-21', 4);
@@ -72,7 +72,7 @@ final class NumaUsoTest extends TestCase
         $repo->reservar($usuarioId);
     }
 
-    public function testVigesimaConsultaMensualPermitidaYConsulta21Rechazada(): void
+    public function testVigesimaLlamadaPagadaMensualPermitidaYLlamada21Rechazada(): void
     {
         $usuarioId = $this->crearUsuario();
         $this->insertUso($usuarioId, '2026-07-01', 19);
@@ -100,6 +100,17 @@ final class NumaUsoTest extends TestCase
         self::assertSame(5, $estado['daily_remaining']);
         self::assertSame(5, $estado['monthly_used']);
         self::assertSame(15, $estado['monthly_remaining']);
+    }
+
+    public function testCantidadConfirmadaRepresentaLlamadasPagadasConfirmadas(): void
+    {
+        $usuarioId = $this->crearUsuario();
+        $this->insertUso($usuarioId, '2026-07-20', 2);
+        $this->insertUso($usuarioId, '2026-07-21', 3);
+        $repo = $this->repo('2026-07-21 10:00:00');
+
+        self::assertSame(3, $repo->llamadasPagadasConfirmadasDia($usuarioId, '2026-07-21'));
+        self::assertSame(5, $repo->llamadasPagadasConfirmadasMes($usuarioId, '2026-07-01', '2026-08-01'));
     }
 
     public function testDosUsuariosIndependientes(): void

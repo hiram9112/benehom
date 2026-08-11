@@ -44,7 +44,7 @@ final class NumaConversationTest extends TestCase
             ['role' => 'user', 'message' => '¿Cómo añado un movimiento?'],
             ['role' => 'assistant', 'message' => 'Usa el formulario de Movimientos.'],
         ], $conversation->context());
-        self::assertSame('Movimientos', $conversation->transcript()[1]['sources'][0]['title']);
+        self::assertArrayNotHasKey('sources', $conversation->transcript()[1]);
     }
 
     public function testNuevaConversacionEliminaTranscriptYContexto(): void

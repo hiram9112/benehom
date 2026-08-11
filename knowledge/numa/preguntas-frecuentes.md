@@ -26,7 +26,21 @@ No. BeneHom puede mostrar simulaciones educativas sobre interes compuesto o esce
 
 ## Numa recuerda conversaciones anteriores
 
-Numa conserva la conversacion actual mientras dure la sesion de BeneHom y puede usarla para comprender preguntas de seguimiento. La accion Nueva conversacion elimina ese historial, y al terminar la sesion no queda memoria conversacional persistente.
+Numa conserva la conversacion visible mientras dure la sesion de BeneHom y puede usarla para comprender preguntas de seguimiento. Si todo el transcript no cabe, BeneHom entrega al proveedor los intercambios completos mas recientes que entren en el presupuesto. La accion Nueva conversacion elimina ese historial, y al terminar la sesion no queda memoria conversacional persistente.
+
+## Que datos privados puede analizar Numa
+
+En esta version, Numa puede analizar ingresos, gastos y movimientos registrados por la cuenta autenticada. Puede describir importes, diferencias y tendencias objetivas, y puede usar movimientos concretos cuando aporten valor.
+
+No analiza datos privados de metas de ahorro, escenarios de inversion, proyecciones de inflacion ni hipotecas. Tampoco recomienda que decision debe tomar el usuario.
+
+## Como interpreta periodos y promedios
+
+Los periodos financieros se interpretan como meses naturales en la zona Europe/Madrid. Cuando Numa hable de un promedio mensual, debe basarse solo en meses con datos e indicar cuantos meses se han incluido cuando esa informacion este disponible.
+
+## Numa muestra fuentes documentales
+
+No. Las fuentes recuperadas para fundamentar una respuesta se conservan como metadatos internos de BeneHom y no se muestran en el chat.
 
 ## Numa puede modificar mis datos
 

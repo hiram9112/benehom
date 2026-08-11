@@ -78,10 +78,15 @@ final class NumaServiceResult
     {
         return [
             'message' => $this->message,
-            'sources' => $this->sources,
             'period' => $this->period,
             'usage' => $this->usage,
         ];
+    }
+
+    /** @return array<int, array{title:string,section:string,url:string}> */
+    public function sources(): array
+    {
+        return $this->sources;
     }
 
     public function contextual(): bool

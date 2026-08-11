@@ -8,7 +8,7 @@ final class NumaConversation
     private const MAX_VISIBLE_ENTRIES = 100;
 
     /**
-     * @return array<int, array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,period:array<string,string>|null}>
+     * @return array<int, array{role:string,message:string,period:array<string,string>|null}>
      */
     public function transcript(): array
     {
@@ -16,7 +16,6 @@ final class NumaConversation
             return [
                 'role' => $entry['role'],
                 'message' => $entry['message'],
-                'sources' => $entry['sources'],
                 'period' => $entry['period'],
             ];
         }, $this->entries());

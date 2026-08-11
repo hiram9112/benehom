@@ -251,36 +251,6 @@
             messages.scrollTop = messages.scrollHeight;
         };
 
-        const appendSources = (bubble, sources) => {
-            if (!Array.isArray(sources) || sources.length === 0) {
-                return;
-            }
-
-            const list = document.createElement('ul');
-            list.className = 'bh-numa-message-sources';
-
-            sources.slice(0, 3).forEach((source) => {
-                if (!source || typeof source !== 'object') {
-                    return;
-                }
-
-                const title = normaliseText(source.title);
-                const section = normaliseText(source.section);
-
-                if (title === '' && section === '') {
-                    return;
-                }
-
-                const item = document.createElement('li');
-                item.textContent = section !== '' ? `${title} · ${section}` : title;
-                list.appendChild(item);
-            });
-
-            if (list.childNodes.length > 0) {
-                bubble.appendChild(list);
-            }
-        };
-
         const appendPeriod = (bubble, period) => {
             if (!period || typeof period !== 'object' || !period.start || !period.end) {
                 return;
@@ -308,7 +278,6 @@
             bubble.appendChild(createTextNode('p', '', text));
 
             if (role === 'assistant' && metadata) {
-                appendSources(bubble, metadata.sources);
                 appendPeriod(bubble, metadata.period);
             }
 
@@ -356,7 +325,6 @@
                     }
 
                     addMessage(role, message, {
-                        sources: entry.sources,
                         period: entry.period,
                     });
                     hasCanonicalConversation = true;
@@ -548,7 +516,6 @@
                         renderConversation(payload.data.conversation);
                     } else {
                         addMessage('assistant', payload.data.message, {
-                            sources: payload.data.sources,
                             period: payload.data.period,
                         });
                     }

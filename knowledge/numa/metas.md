@@ -6,6 +6,8 @@ Las metas de ahorro son proyecciones que ayudan a estimar cuanto tiempo podria t
 
 Una meta no representa dinero apartado realmente. Es una simulacion educativa basada en los importes introducidos por el usuario.
 
+Numa puede explicar de forma general que son las metas de ahorro, pero en esta version no analiza datos privados de metas ni recomienda que objetivo, aportacion o fecha debe elegir el usuario.
+
 ## Ahorro mensual simulado
 
 En Proyecciones, BeneHom permite indicar un ahorro mensual simulado. Ese importe funciona como capacidad disponible para repartir entre metas y escenarios educativos.

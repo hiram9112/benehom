@@ -12,11 +12,21 @@ Numa es la guia inteligente de BeneHom. Su funcion es resolver dudas sobre el us
 
 Numa no es un asistente generalista. No responde preguntas ajenas a BeneHom, no ofrece asesoramiento financiero personalizado y no recomienda inversiones, productos financieros ni metodos para ganar dinero.
 
+En esta version, el analisis privado de Numa se limita a ingresos, gastos y movimientos. Puede describir cifras, diferencias y tendencias objetivas, pero no recomienda que decision debe tomar el usuario.
+
+Quedan fuera del analisis privado las metas de ahorro, los escenarios de inversion, las proyecciones de inflacion y las hipotecas. Numa puede explicar de forma general donde estan esas funciones si existe documentacion, pero no debe analizar sus datos privados.
+
 ## Como usar las respuestas de Numa
 
 Numa mantiene la conversacion mientras dure la sesion de BeneHom. Puede resolver referencias breves a respuestas anteriores, como "y el mes pasado" o "haz lo mismo con esa categoria". Iniciar una conversacion nueva elimina ese contexto sin reiniciar los limites de uso.
 
+Si todo el transcript no cabe en el presupuesto de contexto, BeneHom selecciona los intercambios completos mas recientes que entren. No existe memoria entre sesiones.
+
 Las respuestas de Numa deben entenderse como orientacion sobre BeneHom y educacion financiera domestica. Las decisiones reales siguen siendo responsabilidad del usuario.
+
+Las fuentes documentales recuperadas por RAG se mantienen como metadatos internos y no se muestran al usuario final.
+
+Numa esta prevista para zonas autenticadas de BeneHom. No debe aparecer ni funcionar en paginas publicas.
 
 ## Datos y privacidad
 

@@ -49,6 +49,13 @@ bh_document_begin([
                 funcionamiento de la aplicación. En ningún caso se ceden a terceros ni se
                 emplean con fines comerciales o publicitarios.
             </p>
+            <p>
+                Si Numa está activada, BeneHom puede tratar el mensaje validado, el contexto
+                conversacional de la sesión y los datos mínimos necesarios de ingresos, gastos
+                y movimientos para responder consultas dentro de la aplicación. Las respuestas
+                financieras se ofrecen como texto informativo y no como recomendaciones
+                personalizadas.
+            </p>
 
             <h2 class="mt-4 bh-legal-section-title">4. Base legal</h2>
             <p>
@@ -63,6 +70,12 @@ bh_document_begin([
                 eliminar su cuenta en cualquier momento desde su perfil, lo que implica la
                 supresión de los datos asociados.
             </p>
+            <p>
+                El transcript de Numa se conserva únicamente en la sesión PHP para mantener la
+                conversación visible mientras la persona usuaria sigue autenticada. No se guarda
+                en la base de datos, no se persiste en el navegador y no existe memoria de Numa
+                entre sesiones.
+            </p>
 
             <h2 class="mt-4 bh-legal-section-title">6. Destinatarios y prestadores de servicios</h2>
             <p>
@@ -70,6 +83,14 @@ bh_document_begin([
                 (Hostinger), que actúa como encargado del tratamiento. Para el envío de
                 correos (por ejemplo, la recuperación de contraseña) se utiliza un proveedor
                 de correo electrónico. No se realizan otras cesiones de datos.
+            </p>
+            <p>
+                Cuando se utilice Numa, las consultas pueden ser procesadas mediante Gemini API
+                de Google como proveedor técnico de inteligencia artificial, con la finalidad
+                exclusiva de generar la respuesta solicitada. BeneHom limita los datos enviados
+                al mensaje validado, el contexto conversacional elegible y los resultados
+                mínimos necesarios de las herramientas internas. No se envían identificadores
+                internos de usuario, correo de cuenta, SQL, tablas ni columnas.
             </p>
 
             <h2 class="mt-4 bh-legal-section-title">7. Tus derechos</h2>

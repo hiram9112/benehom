@@ -102,7 +102,7 @@ class NumaController
             $conversation->appendExchange(
                 $message,
                 (string) $data['message'],
-                is_array($data['sources'] ?? null) ? $data['sources'] : [],
+                $result->sources(),
                 is_array($data['period'] ?? null) ? $data['period'] : null,
                 $result->contextual(),
             );

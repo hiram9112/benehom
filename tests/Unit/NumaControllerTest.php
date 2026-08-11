@@ -653,9 +653,10 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame('Para añadir un movimiento, usa la sección Movimientos.', $response['data']['message']);
-        self::assertSame([['title' => 'Movimientos', 'section' => 'Añadir', 'url' => '/movimientos']], $response['data']['sources']);
+        self::assertArrayNotHasKey('sources', $response['data']);
         self::assertNull($response['data']['period']);
         self::assertSame($usage, $response['data']['usage']);
+        self::assertArrayNotHasKey('sources', $response['data']['conversation'][1]);
         self::assertCount(2, $provider->requests());
         self::assertSame([], $provider->requests()[1]->availableTools());
     }
@@ -987,8 +988,7 @@ final class NumaControllerTest extends TestCase
         );
 
         self::assertTrue($response['ok']);
-        self::assertCount(3, $response['data']['sources']);
-        self::assertSame(['Uno', 'Dos', 'Tres'], array_column($response['data']['sources'], 'title'));
+        self::assertArrayNotHasKey('sources', $response['data']);
 
         $context = $provider->requests()[1]->context();
         $knowledgeContext = $context[1] ?? null;

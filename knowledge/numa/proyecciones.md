@@ -6,6 +6,8 @@ Las proyecciones de BeneHom permiten explorar escenarios financieros con fines e
 
 Las proyecciones no modifican los movimientos reales del dashboard y no representan recomendaciones financieras.
 
+Numa puede explicar de forma general como funciona esta seccion, pero en esta version no analiza datos privados de metas, escenarios de inversion, proyecciones de inflacion ni calculadoras de hipoteca.
+
 ## Escenarios de inversion
 
 Los escenarios de inversion muestran como podria evolucionar un capital inicial y una aportacion mensual con una rentabilidad anual media estimada y una frecuencia de reinversion.

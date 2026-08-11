@@ -670,9 +670,11 @@ final class NumaProviderFactory
             ));
         }
 
-        return NumaSystemInstructionProvider::fromBasePrompt(GeminiNumaProvider::fromEnvironment(
-            $transport,
-            $consumption ?? new NumaConsumoGlobal()
+        return NumaSystemInstructionProvider::fromBasePrompt(new NumaProviderBoundary(
+            GeminiNumaProvider::fromEnvironment(
+                $transport,
+                $consumption ?? new NumaConsumoGlobal()
+            )
         ));
     }
 }

@@ -158,6 +158,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $usuarioId = (int) $usuario['id'];
         $this->insertGasto($usuarioId, 'esencial', 'alimentacion', 100, '2026-07-03');
         $this->insertGasto($usuarioId, 'flexible', 'ocio', 40, '2026-07-04');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 999, '2026-08-04');
 
         $estadisticas = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute(
             'obtener_estadisticas_movimientos',
@@ -170,6 +171,8 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(70.0, $estadisticas['promedio']);
         self::assertSame(100.0, $estadisticas['maximo']);
         self::assertSame(40.0, $estadisticas['minimo']);
+        self::assertArrayNotHasKey('movimientos', $estadisticas);
+        self::assertArrayNotHasKey('fecha', $estadisticas);
     }
 
     public function testUsuarioSinDatosYPeriodoSinMovimientosDevuelvenAgregadosVacios(): void

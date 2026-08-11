@@ -289,6 +289,227 @@ final class NumaProviderException extends RuntimeException
     }
 }
 
+final class NumaProviderBoundary implements NumaProviderInterface
+{
+    /** @var array<string, array<string, mixed>> */
+    private const FINANCIAL_RESULT_SCHEMAS = [
+        'obtener_resumen_financiero' => [
+            'tool' => true,
+            'periodo' => ['inicio' => true, 'fin' => true],
+            'ingresos' => true,
+            'gastos' => true,
+            'gastos_esenciales' => true,
+            'gastos_flexibles' => true,
+            'ahorro_posible' => true,
+            'ahorro_real' => true,
+        ],
+        'obtener_ranking_categorias' => [
+            'tool' => true,
+            'periodo' => ['inicio' => true, 'fin' => true],
+            'metrica' => true,
+            'limite' => true,
+            'categorias' => [[
+                'categoria' => true,
+                'label' => true,
+                'total' => true,
+                'porcentaje' => true,
+            ]],
+        ],
+        'obtener_evolucion_financiera' => [
+            'tool' => true,
+            'periodo' => ['inicio' => true, 'fin' => true],
+            'metrica' => true,
+            'agrupacion' => true,
+            'limite' => true,
+            'evolucion' => [[
+                'mes' => true,
+                'categoria' => true,
+                'label' => true,
+                'tipo' => true,
+                'valor' => true,
+            ]],
+        ],
+        'comparar_periodos' => [
+            'tool' => true,
+            'metrica' => true,
+            'categoria' => true,
+            'periodo_a' => ['inicio' => true, 'fin' => true],
+            'periodo_b' => ['inicio' => true, 'fin' => true],
+            'valor_a' => true,
+            'valor_b' => true,
+            'diferencia_absoluta' => true,
+            'diferencia_porcentual' => true,
+        ],
+        'obtener_estadisticas_movimientos' => [
+            'tool' => true,
+            'periodo' => ['inicio' => true, 'fin' => true],
+            'metrica' => true,
+            'categoria' => true,
+            'promedio' => true,
+            'maximo' => true,
+            'minimo' => true,
+            'total' => true,
+            'cantidad_movimientos' => true,
+        ],
+    ];
+
+    /** @var array<int, string> */
+    private const FORBIDDEN_KEYS = [
+        'usuario_id',
+        'user_id',
+        'id',
+        'ids',
+        'email',
+        'correo',
+        'mail',
+        'username',
+        'nombre_usuario',
+        'usuario_nombre',
+        'sql',
+        'tabla',
+        'tablas',
+        'table',
+        'tables',
+        'columna',
+        'columnas',
+        'column',
+        'columns',
+        'meta',
+        'metas',
+        'escenario',
+        'escenarios',
+        'inflacion',
+        'hipoteca',
+        'hipotecas',
+        'nota',
+        'notas',
+    ];
+
+    public function __construct(private readonly NumaProviderInterface $provider)
+    {
+    }
+
+    public function respond(NumaRequest $request): NumaResponse
+    {
+        $this->assertBoundary($request);
+
+        return $this->provider->respond($request);
+    }
+
+    private function assertBoundary(NumaRequest $request): void
+    {
+        $this->assertFinancialToolResults($request->context());
+        $this->rejectForbiddenKeys($request->context());
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $context
+     */
+    private function assertFinancialToolResults(array $context): void
+    {
+        foreach ($context as $contextItem) {
+            if (($contextItem['type'] ?? null) !== 'financial_tool_results') {
+                continue;
+            }
+
+            $items = $contextItem['items'] ?? null;
+            if (!is_array($items)) {
+                throw $this->boundaryViolation();
+            }
+
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    throw $this->boundaryViolation();
+                }
+
+                $toolName = $item['tool'] ?? null;
+                if (!is_string($toolName) || !isset(self::FINANCIAL_RESULT_SCHEMAS[$toolName])) {
+                    throw $this->boundaryViolation();
+                }
+
+                $this->assertAllowedShape($item, self::FINANCIAL_RESULT_SCHEMAS[$toolName]);
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $value
+     * @param array<string, mixed> $schema
+     */
+    private function assertAllowedShape(array $value, array $schema): void
+    {
+        foreach ($value as $key => $item) {
+            if (!is_string($key) || !array_key_exists($key, $schema)) {
+                throw $this->boundaryViolation();
+            }
+
+            $allowed = $schema[$key];
+            if ($allowed === true) {
+                if (is_array($item)) {
+                    throw $this->boundaryViolation();
+                }
+
+                continue;
+            }
+
+            if ($this->isListSchema($allowed)) {
+                if (!is_array($item) || !array_is_list($item)) {
+                    throw $this->boundaryViolation();
+                }
+
+                foreach ($item as $listItem) {
+                    if (!is_array($listItem)) {
+                        throw $this->boundaryViolation();
+                    }
+
+                    $this->assertAllowedShape($listItem, $allowed[0]);
+                }
+
+                continue;
+            }
+
+            if (!is_array($allowed) || !is_array($item) || array_is_list($item)) {
+                throw $this->boundaryViolation();
+            }
+
+            $this->assertAllowedShape($item, $allowed);
+        }
+    }
+
+    /** @param mixed $schema */
+    private function isListSchema($schema): bool
+    {
+        return is_array($schema)
+            && array_is_list($schema)
+            && count($schema) === 1
+            && is_array($schema[0]);
+    }
+
+    /**
+     * @param array<string, mixed>|array<int, mixed> $value
+     */
+    private function rejectForbiddenKeys(array $value): void
+    {
+        foreach ($value as $key => $item) {
+            if (is_string($key) && in_array(strtolower($key), self::FORBIDDEN_KEYS, true)) {
+                throw $this->boundaryViolation();
+            }
+
+            if (is_array($item)) {
+                $this->rejectForbiddenKeys($item);
+            }
+        }
+    }
+
+    private function boundaryViolation(): NumaProviderException
+    {
+        return new NumaProviderException(new NumaProviderError(
+            NumaProviderError::INVALID_RESPONSE,
+            'NUMA_PROVIDER_INVALID_RESPONSE'
+        ));
+    }
+}
+
 final class NumaSystemInstructionProvider implements NumaProviderInterface
 {
     public function __construct(

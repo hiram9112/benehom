@@ -467,6 +467,32 @@ final class GeminiNumaProviderTest extends TestCase
         new \GeminiNumaProvider('', 'model');
     }
 
+    public function testFactoryAplicaFronteraDeDatosAntesDelTransporte(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+
+        $calls = 0;
+        $provider = \NumaProviderFactory::fromEnvironment(function () use (&$calls): array {
+            $calls++;
+
+            return ['status' => 200, 'body' => '{}'];
+        });
+
+        try {
+            $provider->respond(new \NumaRequest(
+                'Pregunta',
+                '',
+                [['type' => 'financial_tool_results', 'items' => [['usuario_id' => 7]]]],
+            ));
+            self::fail('Se esperaba que la frontera de datos rechazara la solicitud.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+            self::assertSame(0, $calls);
+        }
+    }
+
     /**
      * @return array<int, string>
      */

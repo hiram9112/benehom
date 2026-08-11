@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/services/NumaProvider.php';
@@ -175,5 +176,189 @@ final class NumaProviderContractTest extends TestCase
             }
         }
 
+    }
+
+    public function testFronteraDejaPasarSoloMensajeContextoElegibleYResultadoMinimo(): void
+    {
+        $inner = new class implements \NumaProviderInterface {
+            public ?\NumaRequest $lastRequest = null;
+
+            public function respond(\NumaRequest $request): \NumaResponse
+            {
+                $this->lastRequest = $request;
+
+                return new \NumaResponse('Respuesta valida de Numa.');
+            }
+        };
+        $boundary = new \NumaProviderBoundary($inner);
+
+        $context = [
+            ['type' => 'numa_final_response', 'classification' => ['intent' => 'producto', 'allowed' => true, 'reason' => 'product_help']],
+            ['type' => 'knowledge_fragments', 'items' => [['title' => 'Movimientos', 'section' => 'Anadir', 'url' => '/dashboard', 'content' => 'Contenido publico.']]],
+            ['type' => 'available_financial_tools', 'items' => [[
+                'name' => 'obtener_evolucion_financiera',
+                'description' => 'Evolucion agregada.',
+                'schema' => ['type' => 'object', 'properties' => ['fecha_inicio' => ['type' => 'string'], 'fecha_fin' => ['type' => 'string'], 'agrupacion' => ['type' => 'string']]],
+                'required' => ['fecha_inicio', 'fecha_fin'],
+                'allowed_values' => ['metrica' => ['gastos'], 'agrupacion' => ['mes']],
+                'result_limit' => ['max_items' => 24],
+            ]]],
+            ['type' => 'financial_tool_results', 'items' => [[
+                'tool' => 'obtener_evolucion_financiera',
+                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+                'metrica' => 'gastos',
+                'agrupacion' => 'mes',
+                'limite' => 3,
+                'evolucion' => [
+                    ['mes' => '2026-07', 'valor' => 800.0],
+                    ['mes' => '2026-08', 'valor' => 900.0],
+                ],
+            ]]],
+        ];
+
+        $response = $boundary->respond(new \NumaRequest(
+            'Como anado un movimiento?',
+            '',
+            $context,
+            ['obtener_resumen_financiero'],
+            [['role' => 'user', 'message' => 'Pregunta anterior']],
+        ));
+
+        self::assertSame('Respuesta valida de Numa.', $response->message());
+        self::assertSame('Como anado un movimiento?', $inner->lastRequest?->message());
+        self::assertSame($context, $inner->lastRequest?->context());
+        self::assertSame(['obtener_resumen_financiero'], $inner->lastRequest?->availableTools());
+        self::assertSame([['role' => 'user', 'message' => 'Pregunta anterior']], $inner->lastRequest?->history());
+    }
+
+    #[DataProvider('resultadosFinancierosPermitidosProvider')]
+    public function testFronteraPermiteResultadosFinancierosConSoloCamposPermitidos(array $result): void
+    {
+        $inner = new class implements \NumaProviderInterface {
+            public ?\NumaRequest $lastRequest = null;
+
+            public function respond(\NumaRequest $request): \NumaResponse
+            {
+                $this->lastRequest = $request;
+
+                return new \NumaResponse('Respuesta valida de Numa.');
+            }
+        };
+        $boundary = new \NumaProviderBoundary($inner);
+        $context = [['type' => 'financial_tool_results', 'items' => [$result]]];
+
+        $boundary->respond(new \NumaRequest('Pregunta', '', $context));
+
+        self::assertSame($context, $inner->lastRequest?->context());
+    }
+
+    public static function resultadosFinancierosPermitidosProvider(): array
+    {
+        return [
+            'resumen' => [[
+                'tool' => 'obtener_resumen_financiero',
+                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+                'ingresos' => 1200.0,
+                'gastos' => 800.0,
+                'gastos_esenciales' => 500.0,
+                'gastos_flexibles' => 300.0,
+                'ahorro_posible' => 700.0,
+                'ahorro_real' => 400.0,
+            ]],
+            'ranking' => [[
+                'tool' => 'obtener_ranking_categorias',
+                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+                'metrica' => 'gastos',
+                'limite' => 2,
+                'categorias' => [['categoria' => 'alimentacion', 'label' => 'Alimentacion', 'total' => 100.0, 'porcentaje' => 50.0]],
+            ]],
+            'evolucion' => [[
+                'tool' => 'obtener_evolucion_financiera',
+                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+                'metrica' => 'gastos',
+                'agrupacion' => 'tipo',
+                'limite' => 2,
+                'evolucion' => [['tipo' => 'flexible', 'valor' => 300.0]],
+            ]],
+            'comparacion' => [[
+                'tool' => 'comparar_periodos',
+                'metrica' => 'gastos',
+                'categoria' => 'alimentacion',
+                'periodo_a' => ['inicio' => '2026-06-01', 'fin' => '2026-06-30'],
+                'periodo_b' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+                'valor_a' => 90.0,
+                'valor_b' => 100.0,
+                'diferencia_absoluta' => 10.0,
+                'diferencia_porcentual' => 11.11,
+            ]],
+            'estadisticas' => [[
+                'tool' => 'obtener_estadisticas_movimientos',
+                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+                'metrica' => 'gastos',
+                'categoria' => 'alimentacion',
+                'promedio' => 50.0,
+                'maximo' => 80.0,
+                'minimo' => 20.0,
+                'total' => 100.0,
+                'cantidad_movimientos' => 2,
+            ]],
+        ];
+    }
+
+    #[DataProvider('datosProhibidosProvider')]
+    public function testFronteraRechazaDatosProhibidosAntesDelProveedor(array $context): void
+    {
+        $inner = new class implements \NumaProviderInterface {
+            public int $calls = 0;
+
+            public function respond(\NumaRequest $request): \NumaResponse
+            {
+                $this->calls++;
+
+                return new \NumaResponse('No debe llamarse.');
+            }
+        };
+        $boundary = new \NumaProviderBoundary($inner);
+
+        try {
+            $boundary->respond(new \NumaRequest('Pregunta', '', $context));
+            self::fail('Se esperaba que la frontera rechazara el contexto.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+            self::assertSame(0, $inner->calls);
+        }
+    }
+
+    public static function datosProhibidosProvider(): array
+    {
+        return [
+            'usuario_id' => [[['type' => 'financial_tool_results', 'items' => [['usuario_id' => 7]]]]],
+            'user_id' => [[['type' => 'financial_tool_results', 'items' => [['user_id' => 7]]]]],
+            'id interno' => [[['type' => 'knowledge_fragments', 'items' => [['id' => 42, 'content' => 'x']]]]],
+            'ids internos' => [[['type' => 'financial_tool_results', 'items' => [['ids' => [1, 2]]]]]],
+            'correo de cuenta' => [[['type' => 'financial_tool_results', 'items' => [['correo' => 'cuenta@example.com']]]]],
+            'email de cuenta' => [[['type' => 'financial_tool_results', 'items' => [['email' => 'cuenta@example.com']]]]],
+            'nombre de usuario' => [[['type' => 'financial_tool_results', 'items' => [['username' => 'usuario1']]]]],
+            'sql' => [[['type' => 'financial_tool_results', 'items' => [['sql' => 'SELECT * FROM gastos']]]]],
+            'tabla' => [[['type' => 'financial_tool_results', 'items' => [['tabla' => 'gastos']]]]],
+            'tablas' => [[['type' => 'financial_tool_results', 'items' => [['tablas' => ['gastos']]]]]],
+            'columna' => [[['type' => 'financial_tool_results', 'items' => [['columna' => 'cantidad']]]]],
+            'columnas' => [[['type' => 'financial_tool_results', 'items' => [['columnas' => ['cantidad']]]]]],
+            'metas' => [[['type' => 'financial_tool_results', 'items' => [['metas' => ['ahorro' => 100]]]]]],
+            'escenario de inversion' => [[['type' => 'financial_tool_results', 'items' => [['escenario' => ['rentabilidad' => 5]]]]]],
+            'escenarios de inversion' => [[['type' => 'financial_tool_results', 'items' => [['escenarios' => ['alto' => 1]]]]]],
+            'inflacion' => [[['type' => 'financial_tool_results', 'items' => [['inflacion' => 3.0]]]]],
+            'hipoteca' => [[['type' => 'financial_tool_results', 'items' => [['hipoteca' => ['cuota' => 400]]]]]],
+            'hipotecas' => [[['type' => 'financial_tool_results', 'items' => [['hipotecas' => [['cuota' => 400]]]]]]],
+            'nota privada' => [[['type' => 'financial_tool_results', 'items' => [['nota' => 'Nota interna.']]]]],
+            'notas privadas' => [[['type' => 'financial_tool_results', 'items' => [['notas' => ['Nota interna.']]]]]],
+            'clave prohibida anidada' => [[['type' => 'financial_tool_results', 'items' => [['detalle' => ['usuario_id' => 7]]]]]],
+            'descripcion no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_resumen_financiero', 'descripcion' => 'Compra privada']]]]],
+            'dato anidado bajo clave permitida' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_resumen_financiero', 'ingresos' => ['descripcion' => 'Compra privada']]]]]],
+            'comercio no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_estadisticas_movimientos', 'comercio' => 'Tienda']]]]],
+            'referencia no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_ranking_categorias', 'referencia' => 'ABC-123']]]]],
+            'saldo no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'comparar_periodos', 'saldo' => 2000.0]]]]],
+            'fecha creacion no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_evolucion_financiera', 'fecha_creacion' => '2026-07-01']]]]],
+        ];
     }
 }

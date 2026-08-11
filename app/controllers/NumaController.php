@@ -31,6 +31,8 @@ class NumaController
 
     public function chat(): void
     {
+        bh_json_no_store_private();
+
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
             return;
@@ -91,6 +93,11 @@ class NumaController
             return;
         }
 
+        if (!bh_env_bool('NUMA_ENABLED', false)) {
+            bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+            return;
+        }
+
         $authenticatedUserId = (int) $_SESSION['usuario_id'];
 
         try {
@@ -129,6 +136,8 @@ class NumaController
 
     public function status(): void
     {
+        bh_json_no_store_private();
+
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
             bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
             return;
@@ -156,6 +165,8 @@ class NumaController
 
     public function newConversation(): void
     {
+        bh_json_no_store_private();
+
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
             return;
@@ -233,11 +244,11 @@ class NumaController
         return new NumaService(
             $this->numaUso(),
             $this->localScopeClassifier(),
-            $this->providerScopeClassifier(),
-            $this->provider(),
+            fn (): NumaProviderScopeClassifier => $this->providerScopeClassifier(),
+            fn (): NumaProviderInterface => $this->provider(),
             fn (NumaClassification $classification, string $message): array => $this->knowledgeResults($classification, $message),
-            $this->financialTools(),
-            $this->globalAvailability()
+            fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),
+            fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability()
         );
     }
 

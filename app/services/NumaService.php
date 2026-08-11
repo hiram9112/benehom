@@ -160,17 +160,49 @@ final class NumaService
     public function __construct(
         private readonly NumaUso $usage,
         private readonly NumaLocalScopeClassifier $localScopeClassifier,
-        private readonly NumaProviderScopeClassifier $providerScopeClassifier,
-        private readonly NumaProviderInterface $provider,
+        NumaProviderScopeClassifier|Closure $providerScopeClassifier,
+        NumaProviderInterface|Closure $provider,
         callable $knowledgeSearch,
-        private readonly NumaFinancialToolRegistryInterface $financialTools,
-        private readonly NumaGlobalAvailabilityInterface $globalAvailability,
+        NumaFinancialToolRegistryInterface|Closure $financialTools,
+        NumaGlobalAvailabilityInterface|Closure $globalAvailability,
     ) {
+        $this->providerScopeClassifierFactory = $providerScopeClassifier instanceof NumaProviderScopeClassifier
+            ? static fn (): NumaProviderScopeClassifier => $providerScopeClassifier
+            : $providerScopeClassifier;
+        $this->providerFactory = $provider instanceof NumaProviderInterface
+            ? static fn (): NumaProviderInterface => $provider
+            : $provider;
         $this->knowledgeSearch = Closure::fromCallable($knowledgeSearch);
+        $this->financialToolsFactory = $financialTools instanceof NumaFinancialToolRegistryInterface
+            ? static fn (): NumaFinancialToolRegistryInterface => $financialTools
+            : $financialTools;
+        $this->globalAvailabilityFactory = $globalAvailability instanceof NumaGlobalAvailabilityInterface
+            ? static fn (): NumaGlobalAvailabilityInterface => $globalAvailability
+            : $globalAvailability;
     }
+
+    /** @var Closure(): NumaProviderScopeClassifier */
+    private readonly Closure $providerScopeClassifierFactory;
+
+    /** @var Closure(): NumaProviderInterface */
+    private readonly Closure $providerFactory;
 
     /** @var Closure(NumaClassification, string): array<int, NumaKnowledgeSearchResult> */
     private readonly Closure $knowledgeSearch;
+
+    /** @var Closure(): NumaFinancialToolRegistryInterface */
+    private readonly Closure $financialToolsFactory;
+
+    /** @var Closure(): NumaGlobalAvailabilityInterface */
+    private readonly Closure $globalAvailabilityFactory;
+
+    private ?NumaProviderScopeClassifier $resolvedProviderScopeClassifier = null;
+
+    private ?NumaProviderInterface $resolvedProvider = null;
+
+    private ?NumaFinancialToolRegistryInterface $resolvedFinancialTools = null;
+
+    private ?NumaGlobalAvailabilityInterface $resolvedGlobalAvailability = null;
 
     /** @param array<int, array{role:string,message:string}> $history */
     public function answer(int $authenticatedUserId, string $message, array $history = []): NumaServiceResult
@@ -189,7 +221,7 @@ final class NumaService
         }
 
         try {
-            $this->globalAvailability->assertAvailable();
+            $this->globalAvailability()->assertAvailable();
         } catch (NumaGlobalLimiteAlcanzado $exception) {
             throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception);
         } catch (Throwable $exception) {
@@ -205,7 +237,7 @@ final class NumaService
         }
 
         try {
-            $classification = $this->providerScopeClassifier->classify($message, $history);
+            $classification = $this->providerScopeClassifier()->classify($message, $history);
 
             if (!$classification->allowed()) {
                 $fixedMessage = NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason());
@@ -271,6 +303,26 @@ final class NumaService
         return array_slice(($this->knowledgeSearch)($classification, $message), 0, $this->maxRagResults());
     }
 
+    private function providerScopeClassifier(): NumaProviderScopeClassifier
+    {
+        return $this->resolvedProviderScopeClassifier ??= ($this->providerScopeClassifierFactory)();
+    }
+
+    private function provider(): NumaProviderInterface
+    {
+        return $this->resolvedProvider ??= ($this->providerFactory)();
+    }
+
+    private function financialTools(): NumaFinancialToolRegistryInterface
+    {
+        return $this->resolvedFinancialTools ??= ($this->financialToolsFactory)();
+    }
+
+    private function globalAvailability(): NumaGlobalAvailabilityInterface
+    {
+        return $this->resolvedGlobalAvailability ??= ($this->globalAvailabilityFactory)();
+    }
+
     /**
      * @param array<int, NumaKnowledgeSearchResult> $knowledgeResults
      * @param array<int, array{role:string,message:string}> $history
@@ -289,7 +341,7 @@ final class NumaService
         $remainingFinalCalls = max(0, $maxProviderCalls - 1);
 
         for ($call = 0; $call < $remainingFinalCalls; $call++) {
-            $response = $this->provider->respond(new NumaRequest(
+            $response = $this->provider()->respond(new NumaRequest(
                 $message,
                 '',
                 $this->finalContext($message, $classification, $knowledgeResults, $availableTools, $toolResults, $history),
@@ -315,7 +367,7 @@ final class NumaService
                 throw new InvalidArgumentException('Tool de Numa no permitida para esta consulta.');
             }
 
-            $toolResults[] = $this->financialTools->execute(
+            $toolResults[] = $this->financialTools()->execute(
                 $toolRequest->name(),
                 $authenticatedUserId,
                 $toolRequest->arguments()
@@ -361,7 +413,7 @@ final class NumaService
 
         $toolName = self::DATA_INTENT_TO_TOOL[$dataIntent];
 
-        if (!in_array($toolName, $this->financialTools->names(), true)) {
+        if (!in_array($toolName, $this->financialTools()->names(), true)) {
             throw new InvalidArgumentException('La tool de Numa autorizada no esta registrada.');
         }
 
@@ -502,7 +554,7 @@ final class NumaService
         $definitions = [];
 
         foreach ($availableTools as $name) {
-            $definition = $this->financialTools->get($name);
+            $definition = $this->financialTools()->get($name);
             $definitions[] = [
                 'name' => $definition->name(),
                 'description' => $definition->description(),

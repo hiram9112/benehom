@@ -95,6 +95,7 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
     if (bh_session_idle_expired($lastActivity, $sessionIdleTimeout)) {
         $currentRoute = isset($_GET['r']) ? trim((string) $_GET['r'], '/') : 'home/index';
         $isAjaxTimeout = bh_is_ajax_request($currentRoute);
+        $isNumaTimeout = str_starts_with($currentRoute, 'numa/');
 
         $_SESSION = [];
 
@@ -114,9 +115,11 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
         session_destroy();
 
         if ($isAjaxTimeout) {
-            http_response_code(401);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => false, 'msg' => $sessionIdleMessage]);
+            if ($isNumaTimeout) {
+                bh_json_no_store_private();
+            }
+
+            bh_json_error('UNAUTHENTICATED', $sessionIdleMessage, 401);
             exit;
         }
 
@@ -136,6 +139,11 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
 
 // Ruta solicitada
 $route = isset($_GET['r']) ? trim($_GET['r'], "/") : 'home/index';
+
+if (str_starts_with($route, 'numa/')) {
+    bh_json_no_store_private();
+}
+
 $routeDefinition = bh_route_definition($route);
 $responseType = bh_route_response_type($routeDefinition);
 $usuarioLogueado = isset($_SESSION['usuario_id']);

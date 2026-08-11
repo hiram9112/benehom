@@ -111,6 +111,26 @@ final class FrontControllerRoutingTest extends TestCase
         ], $decoded['data']);
     }
 
+    public function testRutaNumaConSesionExpiradaDevuelveEnvelopeJsonGeneral(): void
+    {
+        $response = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'numa/status'],
+            'accept' => 'application/json',
+            'session' => [
+                'usuario_id' => 123,
+                'last_activity' => 1,
+            ],
+            'env' => [
+                'SESSION_IDLE_TIMEOUT' => '1',
+            ],
+        ]);
+
+        self::assertSame(401, $response['status']);
+        self::assertJsonError($response['body'], 'UNAUTHENTICATED');
+        self::assertStringNotContainsString('"msg"', $response['body']);
+    }
+
     public function testCsrfGlobalInvalidoDevuelveErrorJsonGeneralDesdeRouterReal(): void
     {
         $response = $this->runFrontController([

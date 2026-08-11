@@ -444,6 +444,13 @@ function bh_json_success(array $data = [], int $statusCode = 200): void
     echo json_encode(['ok' => true, 'data' => $data], JSON_UNESCAPED_UNICODE);
 }
 
+function bh_json_no_store_private(): void
+{
+    if (!headers_sent()) {
+        header('Cache-Control: no-store, private');
+    }
+}
+
 function bh_json_error(string $code, string $message, int $statusCode): void
 {
     http_response_code($statusCode);

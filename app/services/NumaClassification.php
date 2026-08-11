@@ -290,6 +290,7 @@ final class NumaFixedScopeResponse
     private const RESPONSE_THIRD_PARTY_DATA = 'Solo puedo analizar los datos de la cuenta con la que has iniciado sesión.';
     private const RESPONSE_FORBIDDEN_ACTION = 'Numa solo consulta y explica información. No puede crear, modificar ni eliminar datos.';
     private const RESPONSE_CONTEXT_REQUIRED = 'Formula la pregunta completa en un solo mensaje para que pueda ayudarte sin usar turnos anteriores.';
+    private const RESPONSE_SENSITIVE_DATA = 'Por seguridad, retira ese identificador sensible y reformula la consulta sin incluirlo.';
 
     public static function forIntent(string $intent, ?string $reason = null): string
     {
@@ -310,6 +311,11 @@ final class NumaFixedScopeResponse
     public static function contextRequired(): string
     {
         return self::RESPONSE_CONTEXT_REQUIRED;
+    }
+
+    public static function sensitiveData(): string
+    {
+        return self::RESPONSE_SENSITIVE_DATA;
     }
 }
 
@@ -451,6 +457,14 @@ final class NumaLocalScopeClassifier
             return null;
         }
 
+        if ($this->containsSensitiveIdentifier($message, $normalized)) {
+            return $this->reject(
+                NumaClassificationIntent::FUERA_DE_AMBITO,
+                'local_sensitive_data',
+                NumaFixedScopeResponse::sensitiveData()
+            );
+        }
+
         if ($this->matchesAny($normalized, self::RULES['manipulation'])) {
             return $this->reject(
                 NumaClassificationIntent::INTENTO_MANIPULACION,
@@ -530,6 +544,175 @@ final class NumaLocalScopeClassifier
         }
 
         return false;
+    }
+
+    private function containsSensitiveIdentifier(string $message, string $normalized): bool
+    {
+        return $this->containsEmail($message)
+            || $this->containsIban($message)
+            || $this->containsPaymentCard($message, $normalized)
+            || $this->containsSpanishIdentityDocument($message)
+            || $this->containsExplicitCredential($message)
+            || $this->containsUnequivocalPhone($message, $normalized);
+    }
+
+    private function containsEmail(string $message): bool
+    {
+        return preg_match('/(?<![A-Z0-9._%+\-])[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}(?![A-Z0-9_%+\-])/iu', $message) === 1;
+    }
+
+    private function containsIban(string $message): bool
+    {
+        $pattern = '/(?<![A-Z0-9])([A-Z]{2}\d{2}[A-Z0-9]{11,30}|[A-Z]{2}\s*\d{2}(?:[\s\-]+[A-Z0-9]{4}){3,7}(?:[\s\-]+[A-Z0-9]{1,4})?)(?![A-Z0-9])/iu';
+
+        if (preg_match_all($pattern, $message, $matches) !== false) {
+            foreach ($matches[1] as $candidate) {
+                $iban = strtoupper((string) preg_replace('/[\s\-]+/u', '', $candidate));
+
+                if (preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/', $iban) === 1 && $this->isValidIban($iban)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function containsPaymentCard(string $message, string $normalized): bool
+    {
+        $hasCardContext = preg_match('/\b(tarjeta|visa|mastercard|numero de tarjeta|num tarjeta|card)\b/u', $normalized) === 1;
+
+        if (preg_match_all('/(?<!\d)(\d(?:[\s\-]?\d){12,18})(?!\d)/u', $message, $matches) === false) {
+            return false;
+        }
+
+        foreach ($matches[1] as $candidate) {
+            $rawCandidate = (string) $candidate;
+            $digits = (string) preg_replace('/\D+/', '', $rawCandidate);
+
+            if (strlen($digits) < 13 || strlen($digits) > 19) {
+                continue;
+            }
+
+            if (preg_match('/^(\d)\1+$/', $digits) === 1 || preg_match('/^[2-6]/', $digits) !== 1) {
+                continue;
+            }
+
+            if (($hasCardContext || preg_match('/[\s\-]/u', $rawCandidate) === 1) && $this->passesLuhn($digits)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function containsSpanishIdentityDocument(string $message): bool
+    {
+        if (preg_match_all('/(?<![A-Z0-9])([XYZ]\s*[\-]?\s*\d(?:[\s\-]?\d){6}\s*[\-]?\s*[A-Z]|\d(?:[\s\-]?\d){7}\s*[\-]?\s*[A-Z])(?![A-Z0-9])/iu', $message, $matches) === false) {
+            return false;
+        }
+
+        foreach ($matches[1] as $candidate) {
+            $document = strtoupper((string) preg_replace('/[\s\-]+/u', '', $candidate));
+
+            if ($this->isValidSpanishIdentityDocument($document)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function containsExplicitCredential(string $message): bool
+    {
+        if (preg_match_all('/\b(?:mi\s+)?(?:contrasena|contraseña|password|api\s*key|apikey|clave\s+api|token|secret|secreto|credencial(?:es)?)\b\s*(es|son|:|=|-)\s*["\']?([^\s"\']{6,})/iu', $message, $matches, PREG_SET_ORDER) === false) {
+            return false;
+        }
+
+        foreach ($matches as $match) {
+            $separator = (string) $match[1];
+            $credential = trim((string) $match[2], " \t\n\r\0\x0B.,;)");
+
+            if (in_array($separator, [':', '=', '-'], true) && strlen($credential) >= 6) {
+                return true;
+            }
+
+            if (strlen($credential) >= 16 || (strlen($credential) >= 8 && preg_match('/[0-9_\-.\/+=$]/', $credential) === 1)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function containsUnequivocalPhone(string $message, string $normalized): bool
+    {
+        if (preg_match('/\b(telefono|movil|whatsapp|llamame|contacto|numero de telefono)\b/u', $normalized) !== 1) {
+            return false;
+        }
+
+        return preg_match('/(?<!\d)(?:\+34[\s.\-]?)?(?:[6789](?:[\s.\-]?\d){8})(?!\d)/u', $message) === 1;
+    }
+
+    private function isValidIban(string $iban): bool
+    {
+        $rearranged = substr($iban, 4) . substr($iban, 0, 4);
+        $checksum = 0;
+
+        for ($i = 0, $length = strlen($rearranged); $i < $length; $i++) {
+            $char = $rearranged[$i];
+            $value = ctype_alpha($char) ? (string) (ord($char) - 55) : $char;
+
+            for ($j = 0, $valueLength = strlen($value); $j < $valueLength; $j++) {
+                $checksum = ($checksum * 10 + (int) $value[$j]) % 97;
+            }
+        }
+
+        return $checksum === 1;
+    }
+
+    private function passesLuhn(string $digits): bool
+    {
+        $sum = 0;
+        $double = false;
+
+        for ($i = strlen($digits) - 1; $i >= 0; $i--) {
+            $digit = (int) $digits[$i];
+
+            if ($double) {
+                $digit *= 2;
+
+                if ($digit > 9) {
+                    $digit -= 9;
+                }
+            }
+
+            $sum += $digit;
+            $double = !$double;
+        }
+
+        return $sum % 10 === 0;
+    }
+
+    private function isValidSpanishIdentityDocument(string $document): bool
+    {
+        if (preg_match('/^\d{8}[A-Z]$/', $document) === 1) {
+            $number = (int) substr($document, 0, 8);
+            return $this->spanishIdentityLetter($number) === $document[8];
+        }
+
+        if (preg_match('/^[XYZ]\d{7}[A-Z]$/', $document) === 1) {
+            $prefix = ['X' => '0', 'Y' => '1', 'Z' => '2'][$document[0]];
+            $number = (int) ($prefix . substr($document, 1, 7));
+            return $this->spanishIdentityLetter($number) === $document[8];
+        }
+
+        return false;
+    }
+
+    private function spanishIdentityLetter(int $number): string
+    {
+        return 'TRWAGMYFPDXBNJZSQVHLCKE'[$number % 23];
     }
 
     private static function normalize(string $message): string

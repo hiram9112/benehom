@@ -523,6 +523,34 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($numaUso->reverted);
     }
 
+    public function testChatActivoRechazaDatoSensibleSinCuotaNiProveedor(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('no debe usarse')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"Mi IBAN es ES91 2100 0418 4502 0005 1332."}',
+            $numaUso,
+            $provider
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame(200, $response['_status']);
+        self::assertSame(
+            'Por seguridad, retira ese identificador sensible y reformula la consulta sin incluirlo.',
+            $response['data']['message']
+        );
+        self::assertSame(0, $numaUso->reservations);
+        self::assertSame(0, $numaUso->confirmations);
+        self::assertFalse($numaUso->reverted);
+        self::assertCount(0, $provider->requests());
+    }
+
     public function testChatActivoTrataCategoriaInvalidaDelProveedorComoErrorSeguro(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

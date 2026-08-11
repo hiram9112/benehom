@@ -95,48 +95,88 @@ final class NumaServiceResult
     }
 }
 
-final class NumaReservationGuard
+final class NumaPaidCallBudget implements NumaProviderConsumptionInterface
 {
+    private int $startedCalls = 0;
     private bool $closed = false;
 
     public function __construct(
         private readonly NumaUso $usage,
-        private readonly string $reservationId,
+        private readonly int $usuarioId,
+        private readonly int $maxCalls,
     ) {
+        if ($maxCalls < 1) {
+            throw new InvalidArgumentException('El presupuesto de Numa requiere al menos una llamada.');
+        }
     }
 
-    public function confirm(): void
+    public function iniciarLlamada(): void
     {
         if ($this->closed) {
-            return;
+            throw $this->usageError();
         }
 
+        if ($this->startedCalls >= $this->maxCalls) {
+            throw $this->usageError();
+        }
+
+        $reservationId = null;
+
         try {
-            $confirmed = $this->usage->confirmar($this->reservationId);
+            $reservationId = $this->usage->reservar($this->usuarioId);
+            $confirmed = $this->usage->confirmar($reservationId);
         } catch (Throwable $exception) {
-            throw new NumaServiceException('NUMA_USAGE_ERROR', 503, $exception);
+            if ($reservationId !== null) {
+                $this->revert($reservationId);
+            }
+
+            if ($exception instanceof NumaUsoLimiteAlcanzado) {
+                throw $this->limitError($exception);
+            }
+
+            throw $this->usageError($exception);
         }
 
         if (!$confirmed) {
-            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+            $this->revert($reservationId);
+            throw $this->usageError();
         }
 
+        ++$this->startedCalls;
+    }
+
+    public function registrarTokens(NumaTokenUsage $usage): void
+    {
+    }
+
+    public function revertRemaining(): void
+    {
         $this->closed = true;
     }
 
-    public function revert(): void
+    private function revert(string $reservationId): void
     {
-        if ($this->closed) {
-            return;
-        }
-
-        $this->closed = true;
-
         try {
-            $this->usage->revertir($this->reservationId);
+            $this->usage->revertir($reservationId);
         } catch (Throwable) {
             // El error principal no debe quedar oculto por un fallo al revertir.
         }
+    }
+
+    private function limitError(NumaUsoLimiteAlcanzado $exception): NumaProviderException
+    {
+        return new NumaProviderException(new NumaProviderError(
+            NumaProviderError::UNAVAILABLE,
+            $exception->limitCode()
+        ), $exception);
+    }
+
+    private function usageError(?Throwable $previous = null): NumaProviderException
+    {
+        return new NumaProviderException(new NumaProviderError(
+            NumaProviderError::UNAVAILABLE,
+            'NUMA_USAGE_ERROR'
+        ), $previous);
     }
 }
 
@@ -170,7 +210,7 @@ final class NumaService
             ? static fn (): NumaProviderScopeClassifier => $providerScopeClassifier
             : $providerScopeClassifier;
         $this->providerFactory = $provider instanceof NumaProviderInterface
-            ? static fn (): NumaProviderInterface => $provider
+            ? static fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $provider
             : $provider;
         $this->knowledgeSearch = Closure::fromCallable($knowledgeSearch);
         $this->financialToolsFactory = $financialTools instanceof NumaFinancialToolRegistryInterface
@@ -184,7 +224,7 @@ final class NumaService
     /** @var Closure(): NumaProviderScopeClassifier */
     private readonly Closure $providerScopeClassifierFactory;
 
-    /** @var Closure(): NumaProviderInterface */
+    /** @var Closure(?NumaProviderConsumptionInterface): NumaProviderInterface */
     private readonly Closure $providerFactory;
 
     /** @var Closure(NumaClassification, string): array<int, NumaKnowledgeSearchResult> */
@@ -199,6 +239,10 @@ final class NumaService
     private ?NumaProviderScopeClassifier $resolvedProviderScopeClassifier = null;
 
     private ?NumaProviderInterface $resolvedProvider = null;
+
+    private ?NumaProviderInterface $resolvedBudgetedProvider = null;
+
+    private ?NumaProviderConsumptionInterface $resolvedBudget = null;
 
     private ?NumaFinancialToolRegistryInterface $resolvedFinancialTools = null;
 
@@ -229,27 +273,27 @@ final class NumaService
         }
 
         try {
-            $reservation = new NumaReservationGuard($this->usage, $this->usage->reservar($authenticatedUserId));
-        } catch (NumaUsoLimiteAlcanzado $exception) {
-            throw new NumaServiceException($exception->limitCode(), 429, $exception);
+            $budget = new NumaPaidCallBudget(
+                $this->usage,
+                $authenticatedUserId,
+                $this->maxProviderCalls()
+            );
         } catch (Throwable $exception) {
             throw new NumaServiceException('NUMA_USAGE_ERROR', 503, $exception);
         }
 
         try {
-            $classification = $this->providerScopeClassifier()->classify($message, $history);
+            $provider = $this->provider($budget);
+            $classification = (new NumaProviderScopeClassifier($provider))->classify($message, $history);
 
             if (!$classification->allowed()) {
                 $fixedMessage = NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason());
-                $reservation->confirm();
 
                 return $this->result($authenticatedUserId, $fixedMessage, contextual: false);
             }
 
             $knowledgeResults = $this->knowledgeResults($classification, $message);
             if ($this->needsKnowledge($classification) && $knowledgeResults === []) {
-                $reservation->confirm();
-
                 return $this->result($authenticatedUserId, self::NO_KNOWLEDGE_MESSAGE);
             }
 
@@ -259,9 +303,8 @@ final class NumaService
                 $classification,
                 $knowledgeResults,
                 $history,
+                $provider,
             );
-
-            $reservation->confirm();
 
             return $this->result(
                 $authenticatedUserId,
@@ -270,24 +313,23 @@ final class NumaService
                 $this->periodFromToolResults($toolResults)
             );
         } catch (NumaServiceException $exception) {
-            $reservation->revert();
             throw $exception;
         } catch (NumaInputLimitExceeded) {
-            $reservation->revert();
-
             return $this->result($authenticatedUserId, self::CONVERSATION_LIMIT_MESSAGE, contextual: false);
         } catch (NumaGlobalLimiteAlcanzado $exception) {
-            $reservation->revert();
             throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception);
         } catch (NumaProviderException $exception) {
-            $reservation->revert();
-            throw new NumaServiceException($exception->providerError()->safeCode(), 503, $exception);
+            throw new NumaServiceException(
+                $exception->providerError()->safeCode(),
+                $this->providerStatusCode($exception->providerError()),
+                $exception
+            );
         } catch (NumaFinancialToolLimitExceeded|InvalidArgumentException $exception) {
-            $reservation->revert();
             throw new NumaServiceException('NUMA_PROVIDER_INVALID_RESPONSE', 503, $exception);
         } catch (Throwable $exception) {
-            $reservation->revert();
             throw new NumaServiceException('NUMA_PROVIDER_INVALID_RESPONSE', 503, $exception);
+        } finally {
+            $budget->revertRemaining();
         }
     }
 
@@ -308,9 +350,20 @@ final class NumaService
         return $this->resolvedProviderScopeClassifier ??= ($this->providerScopeClassifierFactory)();
     }
 
-    private function provider(): NumaProviderInterface
+    private function provider(?NumaProviderConsumptionInterface $budget = null): NumaProviderInterface
     {
-        return $this->resolvedProvider ??= ($this->providerFactory)();
+        if ($budget === null) {
+            return $this->resolvedProvider ??= ($this->providerFactory)(null);
+        }
+
+        if ($this->resolvedBudgetedProvider !== null && $this->resolvedBudget === $budget) {
+            return $this->resolvedBudgetedProvider;
+        }
+
+        $this->resolvedBudget = $budget;
+        $this->resolvedBudgetedProvider = ($this->providerFactory)($budget);
+
+        return $this->resolvedBudgetedProvider;
     }
 
     private function financialTools(): NumaFinancialToolRegistryInterface
@@ -334,14 +387,14 @@ final class NumaService
         NumaClassification $classification,
         array $knowledgeResults,
         array $history,
+        NumaProviderInterface $provider,
     ): array {
         $availableTools = $this->availableToolNames($classification);
         $toolResults = [];
-        $maxProviderCalls = max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 3));
-        $remainingFinalCalls = max(0, $maxProviderCalls - 1);
+        $remainingFinalCalls = max(0, $this->maxProviderCalls() - 1);
 
         for ($call = 0; $call < $remainingFinalCalls; $call++) {
-            $response = $this->provider()->respond(new NumaRequest(
+            $response = $provider->respond(new NumaRequest(
                 $message,
                 '',
                 $this->finalContext($message, $classification, $knowledgeResults, $availableTools, $toolResults, $history),
@@ -584,6 +637,19 @@ final class NumaService
     private function maxRagResults(): int
     {
         return max(1, min(3, bh_env_int('NUMA_MAX_RAG_RESULTS', 3)));
+    }
+
+    private function maxProviderCalls(): int
+    {
+        return max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 3));
+    }
+
+    private function providerStatusCode(NumaProviderError $error): int
+    {
+        return in_array($error->safeCode(), [
+            'NUMA_DAILY_LIMIT_REACHED',
+            'NUMA_MONTHLY_LIMIT_REACHED',
+        ], true) ? 429 : 503;
     }
 
     /** @param array<int, array{role:string,message:string}> $history */

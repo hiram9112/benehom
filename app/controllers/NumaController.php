@@ -224,9 +224,15 @@ class NumaController
         return new NumaProviderScopeClassifier($this->provider());
     }
 
-    protected function provider(): NumaProviderInterface
+    protected function provider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface
     {
-        return NumaProviderFactory::fromEnvironment();
+        if ($consumption === null) {
+            return NumaProviderFactory::fromEnvironment();
+        }
+
+        return NumaProviderFactory::fromEnvironment(
+            consumption: new NumaProviderConsumptionChain(new NumaConsumoGlobal(), $consumption)
+        );
     }
 
     protected function financialTools(): NumaFinancialToolRegistryInterface
@@ -245,7 +251,7 @@ class NumaController
             $this->numaUso(),
             $this->localScopeClassifier(),
             fn (): NumaProviderScopeClassifier => $this->providerScopeClassifier(),
-            fn (): NumaProviderInterface => $this->provider(),
+            fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $this->provider($consumption),
             fn (NumaClassification $classification, string $message): array => $this->knowledgeResults($classification, $message),
             fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),
             fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability()

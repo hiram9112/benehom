@@ -16,6 +16,35 @@ interface NumaProviderConsumptionInterface
     public function registrarTokens(NumaTokenUsage $usage): void;
 }
 
+final class NumaProviderConsumptionChain implements NumaProviderConsumptionInterface
+{
+    /** @var list<NumaProviderConsumptionInterface> */
+    private readonly array $consumers;
+
+    public function __construct(NumaProviderConsumptionInterface ...$consumers)
+    {
+        if ($consumers === []) {
+            throw new InvalidArgumentException('La cadena de consumo de Numa requiere al menos un consumidor.');
+        }
+
+        $this->consumers = $consumers;
+    }
+
+    public function iniciarLlamada(): void
+    {
+        foreach ($this->consumers as $consumer) {
+            $consumer->iniciarLlamada();
+        }
+    }
+
+    public function registrarTokens(NumaTokenUsage $usage): void
+    {
+        foreach ($this->consumers as $consumer) {
+            $consumer->registrarTokens($usage);
+        }
+    }
+}
+
 final class NumaRequest
 {
     /**

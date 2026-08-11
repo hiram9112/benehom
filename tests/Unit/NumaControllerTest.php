@@ -13,6 +13,7 @@ final class NumaUsoFake extends \NumaUso
 {
     public int $confirmations = 0;
     public bool $reverted = false;
+    public int $reversions = 0;
     public int $reservations = 0;
 
     public function __construct(
@@ -26,6 +27,7 @@ final class NumaUsoFake extends \NumaUso
         ],
         private readonly ?string $limitCode = null,
         private readonly bool $confirmResult = true,
+        private readonly ?int $limitAfterReservations = null,
     ) {
     }
 
@@ -38,11 +40,13 @@ final class NumaUsoFake extends \NumaUso
     {
         $this->reservations++;
 
-        if ($this->limitCode !== null) {
+        if ($this->limitCode !== null
+            && ($this->limitAfterReservations === null || $this->reservations > $this->limitAfterReservations)
+        ) {
             throw new \NumaUsoLimiteAlcanzado($this->limitCode);
         }
 
-        return '00000000-0000-4000-8000-000000000000';
+        return sprintf('00000000-0000-4000-8000-%012d', $this->reservations);
     }
 
     public function confirmar(string $reservaId): bool
@@ -55,6 +59,7 @@ final class NumaUsoFake extends \NumaUso
     public function revertir(string $reservaId): bool
     {
         $this->reverted = true;
+        $this->reversions++;
 
         return true;
     }
@@ -181,6 +186,24 @@ final class SessionChangingNumaProviderFake implements \NumaProviderInterface
     public function requests(): array
     {
         return $this->requests;
+    }
+}
+
+final class MeteredNumaProviderFake implements \NumaProviderInterface
+{
+    public function __construct(
+        private readonly \NumaProviderInterface $provider,
+        private readonly \NumaProviderConsumptionInterface $consumption,
+    ) {
+    }
+
+    public function respond(\NumaRequest $request): \NumaResponse
+    {
+        $this->consumption->iniciarLlamada();
+        $response = $this->provider->respond($request);
+        $this->consumption->registrarTokens($response->tokenUsage());
+
+        return $response;
     }
 }
 
@@ -463,6 +486,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame(1, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertFalse($numaUso->reverted);
+        self::assertSame(0, $numaUso->reversions);
         self::assertCount(1, $provider->requests());
         self::assertSame('¿Cómo añado un movimiento?', $provider->lastRequest()?->message());
         self::assertSame([], $provider->lastRequest()?->availableTools());
@@ -471,8 +495,9 @@ final class NumaControllerTest extends TestCase
     public function testChatActivoDevuelveRechazoClasificadoPorProveedorYConsumeCuotaUsuario(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '3';
         $this->configureJsonPost();
-        $numaUso = new NumaUsoFake();
+        $numaUso = new NumaUsoFake(limitCode: 'NUMA_DAILY_LIMIT_REACHED', limitAfterReservations: 1);
 
         $response = $this->invoke(
             'chat',
@@ -491,6 +516,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame(1, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertFalse($numaUso->reverted);
+        self::assertSame(0, $numaUso->reversions);
     }
 
     public function testChatActivoRechazaLimiteIndividualAntesDeInvocarProveedor(): void
@@ -609,8 +635,9 @@ final class NumaControllerTest extends TestCase
         self::assertSame(503, $response['_status']);
         self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
         self::assertSame(1, $numaUso->reservations);
-        self::assertSame(0, $numaUso->confirmations);
-        self::assertTrue($numaUso->reverted);
+        self::assertSame(1, $numaUso->confirmations);
+        self::assertFalse($numaUso->reverted);
+        self::assertSame(0, $numaUso->reversions);
     }
 
     public function testChatActivoRevierteSiConfirmacionDevuelveFalse(): void
@@ -639,8 +666,10 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($response['ok']);
         self::assertSame(503, $response['_status']);
         self::assertSame('NUMA_USAGE_ERROR', $response['error']['code']);
+        self::assertSame(1, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertTrue($numaUso->reverted);
+        self::assertSame(1, $numaUso->reversions);
     }
 
     public function testChatActivoNoPermiteToolsSolicitadasPorClasificacion(): void
@@ -749,12 +778,16 @@ final class NumaControllerTest extends TestCase
         self::assertArrayNotHasKey('sources', $response['data']['conversation'][1]);
         self::assertCount(2, $provider->requests());
         self::assertSame([], $provider->requests()[1]->availableTools());
+        self::assertSame(2, $numaUso->reservations);
+        self::assertSame(2, $numaUso->confirmations);
+        self::assertSame(0, $numaUso->reversions);
     }
 
     public function testChatActivoEjecutaToolPermitidaYAdjuntaPeriodo(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
         $tools = new NumaFinancialToolRegistryFake();
         $provider = new SequentialNumaProviderFake(
             new \NumaResponse('clasificacion', [
@@ -777,7 +810,7 @@ final class NumaControllerTest extends TestCase
         $response = $this->invoke(
             'chat',
             '{"message":"¿Cuál es mi resumen financiero de julio?"}',
-            new NumaUsoFake(),
+            $numaUso,
             $provider,
             [],
             $tools
@@ -790,6 +823,9 @@ final class NumaControllerTest extends TestCase
         self::assertSame(123, $tools->calls[0]['user_id']);
         self::assertCount(3, $provider->requests());
         self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $provider->requests()[1]->availableTools());
+        self::assertSame(3, $numaUso->reservations);
+        self::assertSame(3, $numaUso->confirmations);
+        self::assertFalse($numaUso->reverted);
     }
 
     public function testChatActivoConGeminiFunctionCallingDevuelveResultadoFinal(): void
@@ -1168,8 +1204,9 @@ final class NumaControllerTest extends TestCase
         self::assertSame(503, $response['_status']);
         self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
         self::assertSame(1, $numaUso->reservations);
-        self::assertSame(0, $numaUso->confirmations);
-        self::assertTrue($numaUso->reverted);
+        self::assertSame(1, $numaUso->confirmations);
+        self::assertFalse($numaUso->reverted);
+        self::assertSame(0, $numaUso->reversions);
         self::assertCount(1, $provider->requests());
     }
 
@@ -1212,8 +1249,9 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
         self::assertCount(2, $provider->requests());
         self::assertSame(1, $tools->executions);
-        self::assertSame(0, $numaUso->confirmations);
-        self::assertTrue($numaUso->reverted);
+        self::assertSame(2, $numaUso->reservations);
+        self::assertSame(2, $numaUso->confirmations);
+        self::assertFalse($numaUso->reverted);
     }
 
     public function testStatusDevuelveContadoresDelRepositorio(): void
@@ -1291,13 +1329,17 @@ final class NumaControllerTest extends TestCase
                 return new \NumaProviderScopeClassifier($this->fakeProvider);
             }
 
-            protected function provider(): \NumaProviderInterface
+            protected function provider(?\NumaProviderConsumptionInterface $consumption = null): \NumaProviderInterface
             {
                 if ($this->providerFailsOnResolve) {
                     throw new \NumaProviderException(new \NumaProviderError(
                         \NumaProviderError::CONFIGURATION,
                         'NUMA_CONFIGURATION_ERROR'
                     ));
+                }
+
+                if ($consumption !== null) {
+                    return new MeteredNumaProviderFake($this->fakeProvider, $consumption);
                 }
 
                 return $this->fakeProvider;

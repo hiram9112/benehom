@@ -143,6 +143,79 @@ final class NumaUsoTest extends TestCase
         $repoB->reservar($usuarioId);
     }
 
+    public function testReservaBloqueaRangoMensualDeUsoNoSoloElDia(): void
+    {
+        $usuarioId = $this->crearUsuario();
+        $this->insertUso($usuarioId, '2026-07-01', 0);
+        $locker = $this->newConnection();
+        $contender = $this->newConnection();
+
+        $locker->beginTransaction();
+
+        try {
+            $stmt = $locker->prepare(
+                'SELECT id FROM numa_uso WHERE usuario_id = :usuario_id AND fecha = :fecha FOR UPDATE'
+            );
+            $stmt->execute([':usuario_id' => $usuarioId, ':fecha' => '2026-07-01']);
+
+            self::assertNotFalse($stmt->fetchColumn());
+
+            $contender->exec('SET SESSION innodb_lock_wait_timeout = 1');
+            $repo = new \NumaUso($contender, new DateTimeImmutable('2026-07-31 23:59:59'));
+
+            try {
+                $repo->reservar($usuarioId);
+                self::fail('La reserva no esperó el bloqueo mensual existente.');
+            } catch (\PDOException $e) {
+                self::assertSame(1205, $e->errorInfo[1] ?? null);
+            }
+        } finally {
+            if ($locker->inTransaction()) {
+                $locker->rollBack();
+            }
+        }
+
+        self::assertSame(0, $this->reservasDelUsuario($usuarioId));
+    }
+
+    public function testReservasConcurrentesConMesVacioNoSuperanElLimite(): void
+    {
+        $_ENV['NUMA_DAILY_LIMIT'] = '5';
+        $_ENV['NUMA_MONTHLY_LIMIT'] = '1';
+        $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '2678400';
+        $usuarioId = $this->crearUsuario();
+        $dir = sys_get_temp_dir() . '/benehom-numa-uso-' . bin2hex(random_bytes(8));
+
+        self::assertTrue(mkdir($dir, 0700));
+        self::assertSame(0, $this->reservasDelUsuario($usuarioId));
+
+        $processA = $this->startConcurrentReservationProcess($usuarioId, $dir, 'a', '2026-07-21 10:00:00');
+        $processB = $this->startConcurrentReservationProcess($usuarioId, $dir, 'b', '2026-07-22 10:00:00');
+
+        try {
+            $this->waitForReadyFiles([$processA['ready_file'], $processB['ready_file']]);
+            file_put_contents($dir . '/start', '1');
+
+            $resultA = $this->collectConcurrentReservationProcess($processA);
+            $resultB = $this->collectConcurrentReservationProcess($processB);
+        } finally {
+            foreach (glob($dir . '/*') ?: [] as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+
+            rmdir($dir);
+        }
+
+        $statuses = [$resultA['status'], $resultB['status']];
+        sort($statuses);
+
+        self::assertSame(['limit', 'reserved'], $statuses);
+        self::assertSame(1, $this->reservasDelUsuario($usuarioId));
+        self::assertSame(0, $this->repo('2026-07-21 10:00:00')->estado($usuarioId)['monthly_remaining']);
+    }
+
     public function testConfirmacionExactamenteUnaVez(): void
     {
         $usuarioId = $this->crearUsuario();
@@ -256,6 +329,165 @@ final class NumaUsoTest extends TestCase
              ON DUPLICATE KEY UPDATE cantidad_confirmada = VALUES(cantidad_confirmada)'
         );
         $stmt->execute([':usuario_id' => $usuarioId, ':fecha' => $fecha, ':cantidad' => $cantidad]);
+    }
+
+    private function reservasDelUsuario(int $usuarioId): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM numa_reservas WHERE usuario_id = :usuario_id');
+        $stmt->execute([':usuario_id' => $usuarioId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return array{process:resource,pipes:array<int,resource>,ready_file:string}
+     */
+    private function startConcurrentReservationProcess(int $usuarioId, string $dir, string $label, string $now): array
+    {
+        $config = require CONFIG_PATH . '/database.php';
+        $readyFile = $dir . '/ready-' . $label;
+        $payload = json_encode([
+            'base_path' => BASE_PATH,
+            'db' => $config,
+            'usuario_id' => $usuarioId,
+            'now' => $now,
+            'daily_limit' => '5',
+            'monthly_limit' => '1',
+            'reservation_ttl' => '2678400',
+            'ready_file' => $readyFile,
+            'start_file' => $dir . '/start',
+        ]);
+
+        self::assertIsString($payload);
+
+        $code = <<<'PHP'
+$payload = json_decode($argv[1] ?? '', true);
+
+if (!is_array($payload)) {
+    fwrite(STDERR, "Payload inválido\n");
+    exit(2);
+}
+
+define('BASE_PATH', (string) $payload['base_path']);
+define('APP_PATH', BASE_PATH . '/app');
+define('CONFIG_PATH', BASE_PATH . '/config');
+
+require APP_PATH . '/helpers/utils.php';
+require APP_PATH . '/models/Database.php';
+require APP_PATH . '/models/NumaUso.php';
+
+$_ENV['NUMA_DAILY_LIMIT'] = (string) $payload['daily_limit'];
+$_ENV['NUMA_MONTHLY_LIMIT'] = (string) $payload['monthly_limit'];
+$_ENV['NUMA_RESERVATION_TTL_SECONDS'] = (string) $payload['reservation_ttl'];
+
+$db = $payload['db'];
+
+if (!is_array($db)) {
+    fwrite(STDERR, "Configuración de base de datos inválida\n");
+    exit(2);
+}
+
+$pdo = new PDO(
+    "mysql:host={$db['host']};port={$db['port']};dbname={$db['dbname']};charset=utf8mb4",
+    (string) $db['user'],
+    (string) $db['password'],
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+file_put_contents((string) $payload['ready_file'], '1');
+$deadline = microtime(true) + 10;
+
+while (!is_file((string) $payload['start_file'])) {
+    if (microtime(true) > $deadline) {
+        fwrite(STDERR, "Timeout esperando inicio\n");
+        exit(2);
+    }
+
+    usleep(1000);
+}
+
+$repo = new NumaUso($pdo, new DateTimeImmutable((string) $payload['now']));
+
+try {
+    $repo->reservar((int) $payload['usuario_id']);
+    echo json_encode(['status' => 'reserved']);
+    exit(0);
+} catch (NumaUsoLimiteAlcanzado $e) {
+    echo json_encode(['status' => 'limit', 'code' => $e->limitCode()]);
+    exit(0);
+} catch (Throwable $e) {
+    fwrite(STDERR, $e::class . ': ' . $e->getMessage() . "\n");
+    exit(1);
+}
+PHP;
+
+        $process = proc_open(
+            [PHP_BINARY, '-d', 'variables_order=EGPCS', '-r', $code, $payload],
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+            BASE_PATH
+        );
+
+        self::assertIsResource($process);
+        fclose($pipes[0]);
+
+        return [
+            'process' => $process,
+            'pipes' => $pipes,
+            'ready_file' => $readyFile,
+        ];
+    }
+
+    /**
+     * @param list<string> $files
+     */
+    private function waitForReadyFiles(array $files): void
+    {
+        $deadline = microtime(true) + 10;
+
+        do {
+            $ready = true;
+
+            foreach ($files as $file) {
+                if (!is_file($file)) {
+                    $ready = false;
+                    break;
+                }
+            }
+
+            if ($ready) {
+                return;
+            }
+
+            usleep(10000);
+        } while (microtime(true) <= $deadline);
+
+        self::fail('Los procesos concurrentes no llegaron a la barrera de inicio.');
+    }
+
+    /**
+     * @param array{process:resource,pipes:array<int,resource>,ready_file:string} $process
+     * @return array{status:string,code?:string}
+     */
+    private function collectConcurrentReservationProcess(array $process): array
+    {
+        $stdout = stream_get_contents($process['pipes'][1]);
+        $stderr = stream_get_contents($process['pipes'][2]);
+        fclose($process['pipes'][1]);
+        fclose($process['pipes'][2]);
+        $exitCode = proc_close($process['process']);
+
+        self::assertSame(0, $exitCode, 'Proceso concurrente fallido: ' . (string) $stderr);
+        $decoded = json_decode((string) $stdout, true);
+
+        self::assertIsArray($decoded, 'Salida concurrente inválida: ' . (string) $stdout);
+        self::assertIsString($decoded['status'] ?? null);
+
+        return $decoded;
     }
 
     /**

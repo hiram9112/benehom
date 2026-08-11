@@ -55,59 +55,97 @@ class NumaUso
     public function reservar(int $usuarioId): string
     {
         $db = $this->db();
-        $started = !$db->inTransaction();
+        $deadlockRetries = 0;
 
-        if ($started) {
-            $db->beginTransaction();
-        }
-
-        try {
-            $this->expirarReservasVencidas(false);
-
-            $today = $this->today();
-            [$monthStart, $nextMonthStart] = $this->monthRange($today);
-            $this->ensureUsoDia($usuarioId, $today);
-            $this->lockUsoDia($usuarioId, $today);
-
-            $dailyUsed = $this->llamadasPagadasConfirmadasDia($usuarioId, $today);
-            $monthlyUsed = $this->llamadasPagadasConfirmadasMes($usuarioId, $monthStart, $nextMonthStart);
-            $dailyPending = $this->reservasPendientesActivasDia($usuarioId, $today);
-            $monthlyPending = $this->reservasPendientesActivasMes($usuarioId, $monthStart, $nextMonthStart);
-
-            if (($dailyUsed + $dailyPending) >= $this->dailyLimit()) {
-                throw new NumaUsoLimiteAlcanzado('NUMA_DAILY_LIMIT_REACHED');
-            }
-
-            if (($monthlyUsed + $monthlyPending) >= $this->monthlyLimit()) {
-                throw new NumaUsoLimiteAlcanzado('NUMA_MONTHLY_LIMIT_REACHED');
-            }
-
-            $reservationId = $this->uuidV4();
-            $expiresAt = $this->now()->modify('+' . $this->reservationTtl() . ' seconds')->format('Y-m-d H:i:s');
-
-            $stmt = $db->prepare(
-                'INSERT INTO numa_reservas (id, usuario_id, fecha, estado, expires_at)
-                 VALUES (:id, :usuario_id, :fecha, :estado, :expires_at)'
-            );
-            $stmt->execute([
-                ':id' => $reservationId,
-                ':usuario_id' => $usuarioId,
-                ':fecha' => $today,
-                ':estado' => 'pendiente',
-                ':expires_at' => $expiresAt,
-            ]);
+        while (true) {
+            $started = !$db->inTransaction();
 
             if ($started) {
-                $db->commit();
+                $db->beginTransaction();
             }
 
-            return $reservationId;
-        } catch (Throwable $e) {
-            if ($started && $db->inTransaction()) {
-                $db->rollBack();
-            }
+            try {
+                $this->expirarReservasVencidas(false);
 
-            throw $e;
+                $today = $this->today();
+                [$monthStart, $nextMonthStart] = $this->monthRange($today);
+                $this->ensureUsoDia($usuarioId, $monthStart);
+
+                if ($today !== $monthStart) {
+                    $this->ensureUsoDia($usuarioId, $today);
+                }
+
+                $usageRows = $this->lockUsoMes($usuarioId, $monthStart, $nextMonthStart);
+                $reservationRows = $this->lockReservasMes($usuarioId, $monthStart, $nextMonthStart);
+                $now = $this->now()->format('Y-m-d H:i:s');
+
+                $dailyUsed = 0;
+                $monthlyUsed = 0;
+
+                foreach ($usageRows as $row) {
+                    $confirmed = (int) $row['cantidad_confirmada'];
+                    $monthlyUsed += $confirmed;
+
+                    if ((string) $row['fecha'] === $today) {
+                        $dailyUsed += $confirmed;
+                    }
+                }
+
+                $dailyPending = 0;
+                $monthlyPending = 0;
+
+                foreach ($reservationRows as $row) {
+                    if ((string) $row['estado'] !== 'pendiente' || (string) $row['expires_at'] <= $now) {
+                        continue;
+                    }
+
+                    $monthlyPending++;
+
+                    if ((string) $row['fecha'] === $today) {
+                        $dailyPending++;
+                    }
+                }
+
+                if (($dailyUsed + $dailyPending) >= $this->dailyLimit()) {
+                    throw new NumaUsoLimiteAlcanzado('NUMA_DAILY_LIMIT_REACHED');
+                }
+
+                if (($monthlyUsed + $monthlyPending) >= $this->monthlyLimit()) {
+                    throw new NumaUsoLimiteAlcanzado('NUMA_MONTHLY_LIMIT_REACHED');
+                }
+
+                $reservationId = $this->uuidV4();
+                $expiresAt = $this->now()->modify('+' . $this->reservationTtl() . ' seconds')->format('Y-m-d H:i:s');
+
+                $stmt = $db->prepare(
+                    'INSERT INTO numa_reservas (id, usuario_id, fecha, estado, expires_at)
+                     VALUES (:id, :usuario_id, :fecha, :estado, :expires_at)'
+                );
+                $stmt->execute([
+                    ':id' => $reservationId,
+                    ':usuario_id' => $usuarioId,
+                    ':fecha' => $today,
+                    ':estado' => 'pendiente',
+                    ':expires_at' => $expiresAt,
+                ]);
+
+                if ($started) {
+                    $db->commit();
+                }
+
+                return $reservationId;
+            } catch (Throwable $e) {
+                if ($started && $db->inTransaction()) {
+                    $db->rollBack();
+                }
+
+                if ($started && $deadlockRetries === 0 && $this->isDeadlock($e)) {
+                    $deadlockRetries++;
+                    continue;
+                }
+
+                throw $e;
+            }
         }
     }
 
@@ -350,6 +388,48 @@ class NumaUso
     }
 
     /**
+     * @return list<array{fecha:string,cantidad_confirmada:int|string}>
+     */
+    private function lockUsoMes(int $usuarioId, string $monthStart, string $nextMonthStart): array
+    {
+        $stmt = $this->db()->prepare(
+            'SELECT fecha, cantidad_confirmada
+             FROM numa_uso
+             WHERE usuario_id = :usuario_id AND fecha >= :month_start AND fecha < :next_month_start
+             ORDER BY fecha
+             FOR UPDATE'
+        );
+        $stmt->execute([
+            ':usuario_id' => $usuarioId,
+            ':month_start' => $monthStart,
+            ':next_month_start' => $nextMonthStart,
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @return list<array{fecha:string,estado:string,expires_at:string}>
+     */
+    private function lockReservasMes(int $usuarioId, string $monthStart, string $nextMonthStart): array
+    {
+        $stmt = $this->db()->prepare(
+            'SELECT fecha, estado, expires_at
+             FROM numa_reservas
+             WHERE usuario_id = :usuario_id AND fecha >= :month_start AND fecha < :next_month_start
+             ORDER BY fecha, id
+             FOR UPDATE'
+        );
+        $stmt->execute([
+            ':usuario_id' => $usuarioId,
+            ':month_start' => $monthStart,
+            ':next_month_start' => $nextMonthStart,
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * @return array{id:string,usuario_id:int,fecha:string,estado:string,expires_at:string}|null
      */
     private function lockReserva(string $reservaId): ?array
@@ -361,6 +441,11 @@ class NumaUso
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($row) ? $row : null;
+    }
+
+    private function isDeadlock(Throwable $e): bool
+    {
+        return $e instanceof PDOException && (int) ($e->errorInfo[1] ?? 0) === 1213;
     }
 
     private function marcarReserva(string $reservaId, string $estado): void

@@ -123,7 +123,7 @@ CREATE TABLE numa_reservas (
   expires_at DATETIME NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  KEY numa_reservas_usuario_fecha_estado_idx (usuario_id, fecha, estado),
+  KEY numa_reservas_usuario_fecha_estado_expires_idx (usuario_id, fecha, estado, expires_at),
   KEY numa_reservas_expires_at_idx (expires_at),
   CONSTRAINT numa_reservas_usuario_fk
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)

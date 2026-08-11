@@ -95,7 +95,7 @@ final class NumaServiceResult
     }
 }
 
-final class NumaPaidCallBudget implements NumaProviderConsumptionInterface
+final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterface
 {
     private int $startedCalls = 0;
     private bool $closed = false;
@@ -112,6 +112,18 @@ final class NumaPaidCallBudget implements NumaProviderConsumptionInterface
 
     public function iniciarLlamada(): void
     {
+        $reservationId = $this->prepararLlamada();
+
+        try {
+            $this->confirmarLlamada($reservationId);
+        } catch (Throwable $exception) {
+            $this->cancelarLlamada($reservationId);
+            throw $exception;
+        }
+    }
+
+    public function prepararLlamada(): string
+    {
         if ($this->closed) {
             throw $this->usageError();
         }
@@ -120,29 +132,46 @@ final class NumaPaidCallBudget implements NumaProviderConsumptionInterface
             throw $this->usageError();
         }
 
-        $reservationId = null;
-
         try {
-            $reservationId = $this->usage->reservar($this->usuarioId);
-            $confirmed = $this->usage->confirmar($reservationId);
+            return $this->usage->reservar($this->usuarioId);
         } catch (Throwable $exception) {
-            if ($reservationId !== null) {
-                $this->revert($reservationId);
-            }
-
             if ($exception instanceof NumaUsoLimiteAlcanzado) {
                 throw $this->limitError($exception);
             }
 
             throw $this->usageError($exception);
         }
+    }
+
+    public function confirmarLlamada(mixed $reservation): void
+    {
+        if (!is_string($reservation) || $reservation === '') {
+            throw $this->usageError();
+        }
+
+        try {
+            $confirmed = $this->usage->confirmar($reservation);
+        } catch (Throwable $exception) {
+            throw $this->usageError($exception);
+        }
 
         if (!$confirmed) {
-            $this->revert($reservationId);
             throw $this->usageError();
         }
 
         ++$this->startedCalls;
+    }
+
+    public function cancelarLlamada(mixed $reservation): void
+    {
+        if (is_string($reservation) && $reservation !== '') {
+            $this->revert($reservation);
+        }
+    }
+
+    public function conexionTransaccional(): PDO
+    {
+        return $this->usage->conexionTransaccional();
     }
 
     public function registrarTokens(NumaTokenUsage $usage): void
@@ -227,7 +256,7 @@ final class NumaService
     /** @var Closure(?NumaProviderConsumptionInterface): NumaProviderInterface */
     private readonly Closure $providerFactory;
 
-    /** @var Closure(NumaClassification, string): array<int, NumaKnowledgeSearchResult> */
+    /** @var Closure(NumaClassification, string, ?NumaProviderConsumptionInterface): array<int, NumaKnowledgeSearchResult> */
     private readonly Closure $knowledgeSearch;
 
     /** @var Closure(): NumaFinancialToolRegistryInterface */
@@ -292,7 +321,7 @@ final class NumaService
                 return $this->result($authenticatedUserId, $fixedMessage, contextual: false);
             }
 
-            $knowledgeResults = $this->knowledgeResults($classification, $message);
+            $knowledgeResults = $this->knowledgeResults($classification, $message, $budget);
             if ($this->needsKnowledge($classification) && $knowledgeResults === []) {
                 return $this->result($authenticatedUserId, self::NO_KNOWLEDGE_MESSAGE);
             }
@@ -336,13 +365,17 @@ final class NumaService
     /**
      * @return array<int, NumaKnowledgeSearchResult>
      */
-    private function knowledgeResults(NumaClassification $classification, string $message): array
+    private function knowledgeResults(
+        NumaClassification $classification,
+        string $message,
+        ?NumaProviderConsumptionInterface $budget = null,
+    ): array
     {
         if (!$this->needsKnowledge($classification)) {
             return [];
         }
 
-        return array_slice(($this->knowledgeSearch)($classification, $message), 0, $this->maxRagResults());
+        return array_slice(($this->knowledgeSearch)($classification, $message, $budget), 0, $this->maxRagResults());
     }
 
     private function providerScopeClassifier(): NumaProviderScopeClassifier

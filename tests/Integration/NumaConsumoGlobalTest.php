@@ -10,7 +10,18 @@ use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
-require_once APP_PATH . '/services/NumaProvider.php';
+require_once APP_PATH . '/services/GeminiNumaProvider.php';
+require_once APP_PATH . '/services/NumaService.php';
+
+final class NumaUsoFallaDespuesDeConfirmar extends \NumaUso
+{
+    public function confirmar(string $reservaId): bool
+    {
+        parent::confirmar($reservaId);
+
+        throw new \RuntimeException('Fallo de confirmacion simulado.');
+    }
+}
 
 final class NumaConsumoGlobalTest extends TestCase
 {
@@ -21,6 +32,9 @@ final class NumaConsumoGlobalTest extends TestCase
 
     /** @var array<string, string|null> */
     private array $envBackup = [];
+
+    /** @var list<int> */
+    private array $userIds = [];
 
     protected function setUp(): void
     {
@@ -38,10 +52,20 @@ final class NumaConsumoGlobalTest extends TestCase
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
         $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
         $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_DAILY_LIMIT'] = '5';
+        $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
     }
 
     protected function tearDown(): void
     {
+        if ($this->userIds !== []) {
+            $ids = implode(',', array_map('intval', $this->userIds));
+            $this->db->exec("DELETE FROM numa_reservas WHERE usuario_id IN ($ids)");
+            $this->db->exec("DELETE FROM numa_uso WHERE usuario_id IN ($ids)");
+            $this->db->exec("DELETE FROM usuarios WHERE id IN ($ids)");
+        }
+
         $this->limpiarFilasDePrueba();
 
         foreach ($this->managedEnvKeys() as $key) {
@@ -216,9 +240,80 @@ final class NumaConsumoGlobalTest extends TestCase
         }
     }
 
+    public function testConfirmacionConjuntaRevierteUsuarioYGlobalSiFallaAntesDelProveedor(): void
+    {
+        $now = new DateTimeImmutable('2026-07-25 10:00:00');
+        $usuarioId = $this->crearUsuario();
+        $usage = new NumaUsoFallaDespuesDeConfirmar($this->db, $now);
+        $global = new \NumaConsumoGlobal($this->db, $now);
+        $budget = new \NumaPaidCallBudget($usage, $usuarioId, 3);
+        $transportCalls = 0;
+        $provider = new \GeminiNumaProvider(
+            'server-key',
+            'gemini-model',
+            transport: static function () use (&$transportCalls): array {
+                $transportCalls++;
+
+                return ['status' => 200, 'body' => '{}'];
+            },
+            consumption: new \NumaProviderConsumptionChain($budget, $global),
+        );
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta de prueba'));
+            self::fail('Se esperaba el fallo simulado de confirmacion.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_USAGE_ERROR', $exception->providerError()->safeCode());
+        }
+
+        self::assertSame(0, $transportCalls);
+        self::assertSame(0, $usage->llamadasPagadasConfirmadasDia($usuarioId, '2026-07-25'));
+        self::assertSame(0, $global->llamadasDia('2026-07-25'));
+        self::assertSame(0, $this->reservasPendientes($usuarioId));
+        self::assertSame(['revertida'], $this->estadosReservas($usuarioId));
+    }
+
     private function repo(string $now): \NumaConsumoGlobal
     {
         return new \NumaConsumoGlobal($this->db, new DateTimeImmutable($now));
+    }
+
+    private function crearUsuario(): int
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO usuarios (usuario, email, password) VALUES (:usuario, :email, :password)'
+        );
+        $stmt->execute([
+            ':usuario' => 'Usuario Numa',
+            ':email' => 'numa-atomic-' . bin2hex(random_bytes(8)) . '@example.test',
+            ':password' => password_hash('Password-test-123', PASSWORD_DEFAULT),
+        ]);
+
+        $usuarioId = (int) $this->db->lastInsertId();
+        $this->userIds[] = $usuarioId;
+
+        return $usuarioId;
+    }
+
+    private function reservasPendientes(int $usuarioId): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM numa_reservas WHERE usuario_id = :usuario_id AND estado = 'pendiente'"
+        );
+        $stmt->execute([':usuario_id' => $usuarioId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** @return list<string> */
+    private function estadosReservas(int $usuarioId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT estado FROM numa_reservas WHERE usuario_id = :usuario_id ORDER BY created_at, id'
+        );
+        $stmt->execute([':usuario_id' => $usuarioId]);
+
+        return array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
     /**
@@ -314,6 +409,9 @@ final class NumaConsumoGlobalTest extends TestCase
             'NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT',
             'NUMA_GLOBAL_DAILY_TOKEN_LIMIT',
             'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
+            'NUMA_DAILY_LIMIT',
+            'NUMA_MONTHLY_LIMIT',
+            'NUMA_RESERVATION_TTL_SECONDS',
         ];
     }
 }

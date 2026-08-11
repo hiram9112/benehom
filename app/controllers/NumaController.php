@@ -231,7 +231,7 @@ class NumaController
         }
 
         return NumaProviderFactory::fromEnvironment(
-            consumption: new NumaProviderConsumptionChain(new NumaConsumoGlobal(), $consumption)
+            consumption: new NumaProviderConsumptionChain($consumption, new NumaConsumoGlobal())
         );
     }
 
@@ -252,7 +252,7 @@ class NumaController
             $this->localScopeClassifier(),
             fn (): NumaProviderScopeClassifier => $this->providerScopeClassifier(),
             fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $this->provider($consumption),
-            fn (NumaClassification $classification, string $message): array => $this->knowledgeResults($classification, $message),
+            fn (NumaClassification $classification, string $message, ?NumaProviderConsumptionInterface $consumption = null): array => $this->knowledgeResults($classification, $message, $consumption),
             fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),
             fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability()
         );
@@ -261,18 +261,31 @@ class NumaController
     /**
      * @return array<int, NumaKnowledgeSearchResult>
      */
-    protected function knowledgeResults(NumaClassification $classification, string $message): array
+    protected function knowledgeResults(
+        NumaClassification $classification,
+        string $message,
+        ?NumaProviderConsumptionInterface $consumption = null,
+    ): array
     {
         $knowledgeQuery = $classification->knowledgeQuery() ?? $message;
 
-        return $this->knowledgeSearcher()->search($knowledgeQuery);
+        return $this->knowledgeSearcher($consumption)->search($knowledgeQuery);
     }
 
-    protected function knowledgeSearcher(): NumaKnowledgeSearcher
+    protected function knowledgeSearcher(?NumaProviderConsumptionInterface $consumption = null): NumaKnowledgeSearcher
     {
+        $embeddingProvider = NumaEmbeddingProviderFactory::fromEnvironment();
+
+        if ($consumption !== null) {
+            $embeddingProvider = new NumaMeteredEmbeddingProvider(
+                $embeddingProvider,
+                new NumaProviderConsumptionChain($consumption, new NumaConsumoGlobal())
+            );
+        }
+
         return new NumaKnowledgeSearcher(
             Database::getConnection(),
-            NumaEmbeddingProviderFactory::fromEnvironment(),
+            $embeddingProvider,
             bh_env_int('NUMA_EMBEDDING_DIMENSIONS', 768),
             bh_env_int('NUMA_MAX_RAG_RESULTS', 3),
             (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.65')

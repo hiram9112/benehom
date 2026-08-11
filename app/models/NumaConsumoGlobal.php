@@ -10,7 +10,7 @@ final class NumaGlobalLimiteAlcanzado extends RuntimeException
 {
 }
 
-final class NumaConsumoGlobal implements NumaProviderConsumptionInterface
+final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterface
 {
     public function __construct(
         private readonly ?PDO $connection = null,
@@ -50,6 +50,32 @@ final class NumaConsumoGlobal implements NumaProviderConsumptionInterface
      */
     public function iniciarLlamada(): void
     {
+        $this->incrementarLlamadaSiCabe();
+    }
+
+    public function prepararLlamada(): null
+    {
+        $this->assertLlamadaDisponible();
+
+        return null;
+    }
+
+    public function confirmarLlamada(mixed $reservation): void
+    {
+        $this->incrementarLlamadaSiCabe();
+    }
+
+    public function cancelarLlamada(mixed $reservation): void
+    {
+    }
+
+    public function conexionTransaccional(): PDO
+    {
+        return $this->db();
+    }
+
+    private function assertLlamadaDisponible(): void
+    {
         $db = $this->db();
         $started = !$db->inTransaction();
 
@@ -79,6 +105,31 @@ final class NumaConsumoGlobal implements NumaProviderConsumptionInterface
 
                 throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
             }
+
+            if ($started) {
+                $db->commit();
+            }
+        } catch (Throwable $e) {
+            if ($started && $db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
+    private function incrementarLlamadaSiCabe(): void
+    {
+        $db = $this->db();
+        $started = !$db->inTransaction();
+
+        if ($started) {
+            $db->beginTransaction();
+        }
+
+        try {
+            $today = $this->today();
+            $this->assertLlamadaDisponible();
 
             $stmt = $db->prepare(
                 'UPDATE numa_uso_proveedor SET llamadas = llamadas + 1 WHERE fecha = :fecha'

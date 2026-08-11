@@ -168,6 +168,67 @@ final class GeminiEmbeddingProviderTest extends TestCase
         \NumaEmbeddingProviderFactory::fromEnvironment(fn (): array => ['status' => 200, 'body' => '{}']);
     }
 
+    public function testEmbeddingMedidoConsumeUnaUnidadAntesDeLaLlamadaReal(): void
+    {
+        $provider = new class implements \NumaEmbeddingProviderInterface {
+            public int $calls = 0;
+
+            public function embed(string $text): array
+            {
+                $this->calls++;
+
+                return [0.1, 0.2];
+            }
+        };
+        $consumption = new class implements \NumaProviderConsumptionInterface {
+            public int $calls = 0;
+
+            public function iniciarLlamada(): void
+            {
+                $this->calls++;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+        };
+
+        $embedding = (new \NumaMeteredEmbeddingProvider($provider, $consumption))->embed('Texto publico de BeneHom');
+
+        self::assertSame([0.1, 0.2], $embedding);
+        self::assertSame(1, $consumption->calls);
+        self::assertSame(1, $provider->calls);
+    }
+
+    public function testEmbeddingMedidoNoConsumeSiElTextoEsInvalido(): void
+    {
+        $provider = new class implements \NumaEmbeddingProviderInterface {
+            public function embed(string $text): array
+            {
+                throw new \RuntimeException('No debe invocarse.');
+            }
+        };
+        $consumption = new class implements \NumaProviderConsumptionInterface {
+            public int $calls = 0;
+
+            public function iniciarLlamada(): void
+            {
+                $this->calls++;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+        };
+
+        try {
+            (new \NumaMeteredEmbeddingProvider($provider, $consumption))->embed('   ');
+            self::fail('Se esperaba una excepcion por texto vacio.');
+        } catch (\InvalidArgumentException) {
+            self::assertSame(0, $consumption->calls);
+        }
+    }
+
     /**
      * @return array<int, string>
      */

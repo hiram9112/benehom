@@ -16,6 +16,17 @@ interface NumaProviderConsumptionInterface
     public function registrarTokens(NumaTokenUsage $usage): void;
 }
 
+interface NumaProviderDeferredConsumptionInterface extends NumaProviderConsumptionInterface
+{
+    public function prepararLlamada(): mixed;
+
+    public function confirmarLlamada(mixed $reservation): void;
+
+    public function cancelarLlamada(mixed $reservation): void;
+
+    public function conexionTransaccional(): PDO;
+}
+
 final class NumaProviderConsumptionChain implements NumaProviderConsumptionInterface
 {
     /** @var list<NumaProviderConsumptionInterface> */
@@ -27,13 +38,69 @@ final class NumaProviderConsumptionChain implements NumaProviderConsumptionInter
             throw new InvalidArgumentException('La cadena de consumo de Numa requiere al menos un consumidor.');
         }
 
+        foreach ($consumers as $consumer) {
+            if (!$consumer instanceof NumaProviderDeferredConsumptionInterface) {
+                throw new InvalidArgumentException('La cadena de consumo de Numa requiere consumidores diferidos.');
+            }
+        }
+
         $this->consumers = $consumers;
     }
 
     public function iniciarLlamada(): void
     {
-        foreach ($this->consumers as $consumer) {
-            $consumer->iniciarLlamada();
+        /** @var list<array{consumer:NumaProviderDeferredConsumptionInterface,reservation:mixed}> $prepared */
+        $prepared = [];
+        $connection = null;
+        $transactionStarted = false;
+
+        try {
+            foreach ($this->consumers as $consumer) {
+                /** @var NumaProviderDeferredConsumptionInterface $consumer */
+                $consumerConnection = $consumer->conexionTransaccional();
+
+                if ($connection !== null && $connection !== $consumerConnection) {
+                    throw new RuntimeException('Los consumos de Numa deben compartir una conexion transaccional.');
+                }
+
+                if ($consumerConnection->inTransaction()) {
+                    throw new RuntimeException('No se pudo iniciar la transaccion de consumo de Numa.');
+                }
+
+                $connection = $consumerConnection;
+                $prepared[] = [
+                    'consumer' => $consumer,
+                    'reservation' => $consumer->prepararLlamada(),
+                ];
+            }
+
+            if ($connection === null) {
+                throw new RuntimeException('No se pudo iniciar la transaccion de consumo de Numa.');
+            }
+
+            $connection->beginTransaction();
+            $transactionStarted = true;
+
+            foreach (array_reverse($prepared) as $entry) {
+                $entry['consumer']->confirmarLlamada($entry['reservation']);
+            }
+
+            $connection->commit();
+            $transactionStarted = false;
+        } catch (Throwable $exception) {
+            if ($transactionStarted && $connection !== null && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
+
+            foreach (array_reverse($prepared) as $entry) {
+                try {
+                    $entry['consumer']->cancelarLlamada($entry['reservation']);
+                } catch (Throwable) {
+                    // El fallo principal decide la respuesta; cancelar es solo limpieza defensiva.
+                }
+            }
+
+            throw $exception;
         }
     }
 

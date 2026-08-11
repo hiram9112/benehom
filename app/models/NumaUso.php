@@ -274,6 +274,11 @@ class NumaUso
         }
     }
 
+    public function conexionTransaccional(): PDO
+    {
+        return $this->db();
+    }
+
     public function llamadasPagadasConfirmadasDia(int $usuarioId, ?string $fecha = null): int
     {
         $stmt = $this->db()->prepare(

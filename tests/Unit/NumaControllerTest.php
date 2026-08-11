@@ -28,11 +28,28 @@ final class NumaUsoFake extends \NumaUso
         private readonly ?string $limitCode = null,
         private readonly bool $confirmResult = true,
         private readonly ?int $limitAfterReservations = null,
+        private readonly bool $countConfirmationsInEstado = false,
     ) {
     }
 
     public function estado(int $usuarioId): array
     {
+        if ($this->countConfirmationsInEstado) {
+            $dailyLimit = (int) $this->usage['daily_limit'];
+            $monthlyLimit = (int) $this->usage['monthly_limit'];
+            $dailyUsed = (int) $this->usage['daily_used'] + $this->confirmations;
+            $monthlyUsed = (int) $this->usage['monthly_used'] + $this->confirmations;
+
+            return [
+                'daily_used' => $dailyUsed,
+                'daily_limit' => $dailyLimit,
+                'daily_remaining' => max(0, $dailyLimit - $dailyUsed),
+                'monthly_used' => $monthlyUsed,
+                'monthly_limit' => $monthlyLimit,
+                'monthly_remaining' => max(0, $monthlyLimit - $monthlyUsed),
+            ];
+        }
+
         return $this->usage;
     }
 
@@ -774,7 +791,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame('Para añadir un movimiento, usa la sección Movimientos.', $response['data']['message']);
         self::assertArrayNotHasKey('sources', $response['data']);
         self::assertNull($response['data']['period']);
-        self::assertSame($usage, $response['data']['usage']);
+        self::assertSame($usage + ['interaction_used' => 2], $response['data']['usage']);
         self::assertArrayNotHasKey('sources', $response['data']['conversation'][1]);
         self::assertCount(2, $provider->requests());
         self::assertSame([], $provider->requests()[1]->availableTools());
@@ -811,10 +828,43 @@ final class NumaControllerTest extends TestCase
         );
 
         self::assertTrue($response['ok']);
+        self::assertSame(3, $response['data']['usage']['interaction_used']);
         self::assertCount(2, $provider->requests());
         self::assertSame(3, $numaUso->reservations);
         self::assertSame(3, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
+    }
+
+    public function testChatActivoErrorProveedorTrasConsumirUnidadDevuelveUsoActualizado(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake(countConfirmationsInEstado: true);
+        $provider = new SequentialNumaProviderFake();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            $numaUso,
+            $provider,
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertSame([
+            'daily_used' => 1,
+            'daily_limit' => 5,
+            'daily_remaining' => 4,
+            'monthly_used' => 1,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 19,
+            'interaction_used' => 1,
+        ], $response['data']['usage']);
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(1, $numaUso->confirmations);
+        self::assertSame(0, $numaUso->reversions);
+        self::assertCount(1, $provider->requests());
     }
 
     public function testChatActivoDetieneElFlujoSiNoHayCuotaParaElEmbeddingNecesario(): void
@@ -822,7 +872,11 @@ final class NumaControllerTest extends TestCase
         $_ENV['NUMA_ENABLED'] = 'true';
         $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '3';
         $this->configureJsonPost();
-        $numaUso = new NumaUsoFake(limitCode: 'NUMA_DAILY_LIMIT_REACHED', limitAfterReservations: 1);
+        $numaUso = new NumaUsoFake(
+            limitCode: 'NUMA_DAILY_LIMIT_REACHED',
+            limitAfterReservations: 1,
+            countConfirmationsInEstado: true,
+        );
         $provider = new SequentialNumaProviderFake(new \NumaResponse('clasificacion', [
             'intent' => 'producto',
             'allowed' => true,
@@ -849,6 +903,15 @@ final class NumaControllerTest extends TestCase
         self::assertSame(2, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
+        self::assertSame([
+            'daily_used' => 1,
+            'daily_limit' => 5,
+            'daily_remaining' => 4,
+            'monthly_used' => 1,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 19,
+            'interaction_used' => 1,
+        ], $response['data']['usage']);
     }
 
     public function testChatActivoEjecutaToolPermitidaYAdjuntaPeriodo(): void

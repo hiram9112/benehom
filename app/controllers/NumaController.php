@@ -126,7 +126,11 @@ class NumaController
 
             bh_json_success($data);
         } catch (NumaServiceException $exception) {
-            bh_numa_error($exception->safeCode(), $exception->statusCode());
+            bh_numa_error(
+                $exception->safeCode(),
+                $exception->statusCode(),
+                $exception->errorData() !== [] ? $exception->errorData() : null
+            );
         } catch (NumaProviderException $exception) {
             bh_numa_error($exception->providerError()->safeCode(), 503);
         } catch (Throwable) {

@@ -451,7 +451,7 @@ function bh_json_no_store_private(): void
     }
 }
 
-function bh_json_error(string $code, string $message, int $statusCode): void
+function bh_json_error(string $code, string $message, int $statusCode, ?array $data = null): void
 {
     http_response_code($statusCode);
 
@@ -459,13 +459,19 @@ function bh_json_error(string $code, string $message, int $statusCode): void
         header('Content-Type: application/json; charset=utf-8');
     }
 
-    echo json_encode([
+    $payload = [
         'ok' => false,
         'error' => [
             'code' => $code,
             'message' => $message,
         ],
-    ], JSON_UNESCAPED_UNICODE);
+    ];
+
+    if ($data !== null) {
+        $payload['data'] = $data;
+    }
+
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
 }
 
 function bh_router_error_message(string $code): string
@@ -512,9 +518,9 @@ function bh_numa_error_message(string $code): string
     ][$code] ?? 'No hemos podido procesar la consulta.';
 }
 
-function bh_numa_error(string $code, int $statusCode): void
+function bh_numa_error(string $code, int $statusCode, ?array $data = null): void
 {
-    bh_json_error($code, bh_numa_error_message($code), $statusCode);
+    bh_json_error($code, bh_numa_error_message($code), $statusCode, $data);
 }
 
 

@@ -10,19 +10,19 @@ Sirve para saber cuanto margen tendria el hogar si solo afrontara sus gastos nec
 
 El ahorro real es el resultado final del mes despues de restar gastos esenciales y gastos flexibles a los ingresos.
 
-Si el ahorro real es positivo, el hogar termino el mes con dinero disponible. Si es negativo, gasto mas de lo que ingreso y tuvo que cubrir la diferencia con ahorros previos u otra fuente.
+Si el ahorro real es positivo, el hogar termino el mes con dinero disponible. Si es negativo, los gastos registrados superaron a los ingresos registrados en ese mes. BeneHom no determina con que recurso se cubrio esa diferencia.
 
 ## Diferencia entre ahorro posible y ahorro real
 
 La diferencia entre ahorro posible y ahorro real la explican los gastos flexibles. Un ahorro posible alto con ahorro real bajo indica que existe margen teorico, pero los habitos de consumo reducen el resultado final.
 
-Esta diferencia ayuda a detectar si el problema principal esta en ingresos bajos, gastos esenciales altos o gastos flexibles elevados.
+Esta diferencia permite revisar como se distribuyeron los gastos registrados entre esenciales y flexibles. Por si sola no identifica la causa de un resultado concreto ni recomienda una decision.
 
 ## Evolucion del ahorro
 
 BeneHom muestra la evolucion del ahorro posible y del ahorro real durante varios meses. Ver ambos datos juntos ayuda a entender si la economia domestica mejora, se mantiene o pierde estabilidad.
 
-Cuando el ahorro real es negativo de forma repetida, el nivel de gasto puede no ser sostenible a largo plazo.
+Una secuencia de meses con ahorro real negativo muestra que, en esos meses, los gastos registrados superaron a los ingresos registrados. Conviene revisar los datos de cada periodo antes de sacar conclusiones.
 
 ## Ahorro y decisiones
 

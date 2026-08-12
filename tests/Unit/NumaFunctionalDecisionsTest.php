@@ -38,6 +38,15 @@ final class NumaFunctionalDecisionsTest extends TestCase
         self::assertStringContainsString('No. Las fuentes recuperadas', $faq);
     }
 
+    public function testBaseDeConocimientoNoAtribuyeElDeficitAMovimientosNoRegistrados(): void
+    {
+        $ahorro = $this->read(BASE_PATH . '/knowledge/numa/ahorro.md');
+
+        self::assertStringContainsString('BeneHom no determina con que recurso se cubrio esa diferencia.', $ahorro);
+        self::assertStringContainsString('Por si sola no identifica la causa de un resultado concreto', $ahorro);
+        self::assertStringNotContainsString('tuvo que cubrir la diferencia con ahorros previos u otra fuente', $ahorro);
+    }
+
     public function testPrivacidadDocumentaGeminiYRetencionDeNuma(): void
     {
         $privacy = $this->read(APP_PATH . '/views/legal/privacidad.php');

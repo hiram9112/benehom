@@ -560,11 +560,23 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             while ($result[$itemsKey] !== []
                 && $this->aggregateJsonLength([...$this->executedToolResults, $result]) > $this->maxAggregateResultJsonChars
             ) {
-                array_pop($result[$itemsKey]);
+                $this->discardLeastRelevantItem($result[$itemsKey], $itemsKey);
             }
 
             if (isset($result['limite']) && is_int($result['limite'])) {
                 $result['limite'] = min($result['limite'], count($result[$itemsKey]));
+            }
+
+            $result['resultado_acotado'] = true;
+
+            while ($result[$itemsKey] !== []
+                && $this->aggregateJsonLength([...$this->executedToolResults, $result]) > $this->maxAggregateResultJsonChars
+            ) {
+                $this->discardLeastRelevantItem($result[$itemsKey], $itemsKey);
+
+                if (isset($result['limite']) && is_int($result['limite'])) {
+                    $result['limite'] = min($result['limite'], count($result[$itemsKey]));
+                }
             }
 
             if ($this->aggregateJsonLength([...$this->executedToolResults, $result]) <= $this->maxAggregateResultJsonChars) {
@@ -573,6 +585,19 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
         }
 
         throw new NumaFinancialToolLimitExceeded();
+    }
+
+    /** @param array<int, mixed> $items */
+    private function discardLeastRelevantItem(array &$items, string $itemsKey): void
+    {
+        // La evolución se presenta cronológicamente: al acotarla se conserva lo más reciente.
+        if ($itemsKey === 'evolucion' && isset($items[0]['mes'])) {
+            array_shift($items);
+
+            return;
+        }
+
+        array_pop($items);
     }
 
     /** @param array<int, array<string, mixed>> $results */
@@ -1044,26 +1069,46 @@ final class NumaFinancialToolExecutor
         $categoryFilters = $this->movementCategoryFilters($group, $category);
         $this->assertMovementFiltersAreCompatible($movementType, $expenseType, $categoryFilters);
 
-        $selects = [];
         $params = [];
-        if ($movementType !== 'gasto') {
-            $selects[] = $this->movementSelect(
-                'ingresos', 'ingreso', null, $categoryFilters['ingresos'], $usuarioId, $start, $end, $params, 'ingreso'
-            );
-        }
-        if ($movementType !== 'ingreso') {
-            $selects[] = $this->movementSelect(
-                'gastos', 'gasto', $expenseType, $categoryFilters['gastos'], $usuarioId, $start, $end, $params, 'gasto'
-            );
-        }
+        $selects = $this->movementSelects(
+            $movementType,
+            $expenseType,
+            $categoryFilters,
+            $usuarioId,
+            $start,
+            $end,
+            $params,
+            'detalle'
+        );
 
         $orderColumn = $order === 'cantidad' ? 'cantidad' : 'fecha';
         $sql = 'SELECT fecha, cantidad, tipo_movimiento, tipo_gasto, categoria FROM (' . implode(' UNION ALL ', $selects) . ') AS movimientos'
             . " ORDER BY {$orderColumn} {$direction}, fecha DESC, categoria ASC, tipo_movimiento ASC LIMIT :limite";
-        $params[':limite'] = $limit;
+        $params[':limite'] = $limit + 1;
         $stmt = $this->db()->prepare($sql);
         $this->bindAndExecute($stmt, $params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $hasMoreMovements = count($rows) > $limit;
+        $rows = array_slice($rows, 0, $limit);
+
+        $summaryParams = [];
+        $summarySelects = $this->movementSelects(
+            $movementType,
+            $expenseType,
+            $categoryFilters,
+            $usuarioId,
+            $start,
+            $end,
+            $summaryParams,
+            'resumen'
+        );
+        $summaryStmt = $this->db()->prepare(
+            'SELECT COUNT(*) AS cantidad_total, COALESCE(SUM(cantidad), 0) AS importe_total FROM ('
+            . implode(' UNION ALL ', $summarySelects)
+            . ') AS movimientos'
+        );
+        $this->bindAndExecute($summaryStmt, $summaryParams);
+        $summary = $summaryStmt->fetch(PDO::FETCH_ASSOC) ?: ['cantidad_total' => 0, 'importe_total' => '0'];
 
         return [
             'tool' => NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS,
@@ -1075,6 +1120,9 @@ final class NumaFinancialToolExecutor
             'orden' => $order,
             'direccion' => strtolower($direction),
             'limite' => $limit,
+            'cantidad_total' => (int) $summary['cantidad_total'],
+            'importe_total' => $this->money($this->cents($summary['importe_total'])),
+            'seleccion_acotada' => $hasMoreMovements,
             'movimientos' => array_map(function (array $row): array {
                 $movementCategory = (string) $row['categoria'];
 
@@ -1088,6 +1136,36 @@ final class NumaFinancialToolExecutor
                 ];
             }, $rows),
         ];
+    }
+
+    /**
+     * @param array{ingresos:array<int, string>|null,gastos:array<int, string>|null} $categoryFilters
+     * @param array<string, int|string> $params
+     * @return array<int, string>
+     */
+    private function movementSelects(
+        ?string $movementType,
+        ?string $expenseType,
+        array $categoryFilters,
+        int $usuarioId,
+        string $start,
+        string $end,
+        array &$params,
+        string $prefix,
+    ): array {
+        $selects = [];
+        if ($movementType !== 'gasto') {
+            $selects[] = $this->movementSelect(
+                'ingresos', 'ingreso', null, $categoryFilters['ingresos'], $usuarioId, $start, $end, $params, $prefix . '_ingreso'
+            );
+        }
+        if ($movementType !== 'ingreso') {
+            $selects[] = $this->movementSelect(
+                'gastos', 'gasto', $expenseType, $categoryFilters['gastos'], $usuarioId, $start, $end, $params, $prefix . '_gasto'
+            );
+        }
+
+        return $selects;
     }
 
     /**

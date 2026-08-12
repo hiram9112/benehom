@@ -237,6 +237,7 @@ final class NumaService
         NumaDataIntent::EVOLUCION_FINANCIERA => NumaFinancialToolRegistry::OBTENER_EVOLUCION_FINANCIERA,
         NumaDataIntent::COMPARACION_PERIODOS => NumaFinancialToolRegistry::COMPARAR_PERIODOS,
         NumaDataIntent::ESTADISTICAS_MOVIMIENTOS => NumaFinancialToolRegistry::OBTENER_ESTADISTICAS_MOVIMIENTOS,
+        NumaDataIntent::MOVIMIENTOS => NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS,
     ];
 
     public function __construct(
@@ -496,7 +497,7 @@ final class NumaService
                     ));
                 }
 
-                return [$finalMessage, $toolResults];
+                return [$this->withBoundedMovementSelectionNotice($finalMessage, $toolResults), $toolResults];
             }
 
             if (!in_array($toolRequest->name(), $availableTools, true)) {
@@ -514,6 +515,20 @@ final class NumaService
             NumaProviderError::INVALID_RESPONSE,
             'NUMA_PROVIDER_INVALID_RESPONSE'
         ));
+    }
+
+    /** @param array<int, array<string, mixed>> $toolResults */
+    private function withBoundedMovementSelectionNotice(string $message, array $toolResults): string
+    {
+        foreach ($toolResults as $result) {
+            if (($result['tool'] ?? null) === NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS
+                && ($result['seleccion_acotada'] ?? false) === true
+            ) {
+                return $message . "\n\nEl listado completo puede consultarse en BeneHom.";
+            }
+        }
+
+        return $message;
     }
 
     private function needsKnowledge(NumaClassification $classification): bool
@@ -584,6 +599,7 @@ final class NumaService
                 'No inventes datos si falta informacion.',
                 'Devuelve una respuesta breve en español para el usuario final.',
                 'La fecha actual y los periodos los controla BeneHom. Para periodos relativos usa solo los valores simbólicos permitidos por la tool; no calcules fechas por tu cuenta.',
+                'Si obtener_movimientos indica seleccion_acotada o resultado_acotado, aclara que el listado completo puede consultarse en BeneHom.',
             ],
         ]];
 

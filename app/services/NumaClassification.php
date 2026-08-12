@@ -63,6 +63,7 @@ final class NumaDataIntent
     public const EVOLUCION_FINANCIERA = 'evolucion_financiera';
     public const COMPARACION_PERIODOS = 'comparacion_periodos';
     public const ESTADISTICAS_MOVIMIENTOS = 'estadisticas_movimientos';
+    public const MOVIMIENTOS = 'movimientos';
 
     /** @var array<int, string> */
     private const ALL = [
@@ -71,6 +72,7 @@ final class NumaDataIntent
         self::EVOLUCION_FINANCIERA,
         self::COMPARACION_PERIODOS,
         self::ESTADISTICAS_MOVIMIENTOS,
+        self::MOVIMIENTOS,
     ];
 
     /**

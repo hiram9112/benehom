@@ -405,6 +405,9 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'fecha_fin' => '2026-07-31',
         ]);
         self::assertSame(10, $result['limite']);
+        self::assertSame(0, $result['cantidad_total']);
+        self::assertSame('0.00', $result['importe_total']);
+        self::assertFalse($result['seleccion_acotada']);
 
         $this->expectException(\InvalidArgumentException::class);
         $registry->execute('obtener_movimientos', (int) $usuario['id'], [
@@ -472,6 +475,40 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertLessThan(24, count($evolucion['evolucion']));
         self::assertNoPrivateKeys($resumen);
         self::assertNoPrivateKeys($evolucion);
+    }
+
+    public function testListadoExtensoDevuelveResumenYSeleccionOrdenadaSinSalirDelFiltro(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-listado-acotado@example.test');
+        $otroUsuario = $this->crearUsuario('numa-tools-listado-acotado-otro@example.test');
+        $usuarioId = (int) $usuario['id'];
+
+        for ($day = 1; $day <= 12; $day++) {
+            $this->insertGasto($usuarioId, 'flexible', 'regalos', $day, sprintf('2026-07-%02d', $day));
+        }
+        $this->insertGasto((int) $otroUsuario['id'], 'flexible', 'regalos', 999, '2026-07-31');
+        $this->insertGasto($usuarioId, 'flexible', 'regalos', 999, '2026-08-01');
+
+        $result = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 2, 10000))->execute(
+            'obtener_movimientos',
+            $usuarioId,
+            [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'tipo_movimiento' => 'gasto',
+                'categoria' => 'regalos',
+                'orden' => 'cantidad',
+                'direccion' => 'desc',
+            ]
+        );
+
+        self::assertSame(12, $result['cantidad_total']);
+        self::assertSame('78.00', $result['importe_total']);
+        self::assertTrue($result['seleccion_acotada']);
+        self::assertCount(10, $result['movimientos']);
+        self::assertSame('12.00', $result['movimientos'][0]['cantidad']);
+        self::assertSame('3.00', $result['movimientos'][9]['cantidad']);
+        self::assertSame(['2026-07-12', '2026-07-11', '2026-07-10'], array_slice(array_column($result['movimientos'], 'fecha'), 0, 3));
     }
 
     public function testRegistroNoEjecutaMasDeDosToolsPorPregunta(): void

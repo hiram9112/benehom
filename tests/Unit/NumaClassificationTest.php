@@ -69,6 +69,23 @@ final class NumaClassificationTest extends TestCase
         ], $classification->toStructuredData());
     }
 
+    public function testAceptaIntencionEstructuradaParaConsultarMovimientos(): void
+    {
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'datos_usuario',
+            'allowed' => true,
+            'reason' => 'user_movements',
+            'data_intent' => 'movimientos',
+        ]);
+
+        $classification = (new \NumaProviderScopeClassifier($provider))->classify('Muéstrame mis últimos movimientos.');
+
+        self::assertSame('datos_usuario', $classification->intent());
+        self::assertTrue($classification->allowed());
+        self::assertSame(\NumaDataIntent::MOVIMIENTOS, $classification->dataIntent());
+        self::assertContains(\NumaDataIntent::MOVIMIENTOS, $provider->lastRequest()?->context()[0]['output']['allowed_data_intents'] ?? []);
+    }
+
     public function testRechazaCategoriaDesconocida(): void
     {
         $this->expectException(InvalidArgumentException::class);

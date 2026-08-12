@@ -418,6 +418,7 @@ final class NumaProviderBoundary implements NumaProviderInterface
             'periodo' => ['inicio' => true, 'fin' => true],
             'metrica' => true,
             'limite' => true,
+            'resultado_acotado' => true,
             'categorias' => [[
                 'categoria' => true,
                 'label' => true,
@@ -431,6 +432,7 @@ final class NumaProviderBoundary implements NumaProviderInterface
             'metrica' => true,
             'agrupacion' => true,
             'limite' => true,
+            'resultado_acotado' => true,
             'periodo_solicitado' => ['inicio' => true, 'fin' => true],
             'mes_mayor_valor' => ['mes' => true, 'valor' => true],
             'evolucion' => [[
@@ -475,6 +477,10 @@ final class NumaProviderBoundary implements NumaProviderInterface
             'orden' => true,
             'direccion' => true,
             'limite' => true,
+            'cantidad_total' => true,
+            'importe_total' => true,
+            'seleccion_acotada' => true,
+            'resultado_acotado' => true,
             'movimientos' => [[
                 'fecha' => true,
                 'cantidad' => true,

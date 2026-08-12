@@ -29,7 +29,7 @@ final class NumaConversation
     }
 
     /**
-     * @return array<int, array{role:string,message:string}>
+     * @return array<int, array{role:string,message:string,period?:array<string,string>}>
      */
     public function context(): array
     {
@@ -40,10 +40,16 @@ final class NumaConversation
                 continue;
             }
 
-            $context[] = [
+            $contextEntry = [
                 'role' => $entry['role'],
                 'message' => $entry['message'],
             ];
+
+            if ($entry['period'] !== null) {
+                $contextEntry['period'] = $entry['period'];
+            }
+
+            $context[] = $contextEntry;
         }
 
         return $context;

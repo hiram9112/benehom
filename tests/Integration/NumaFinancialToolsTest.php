@@ -35,6 +35,30 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(1050.0, $result['ahorro_real']);
     }
 
+    public function testResuelvePeriodosRelativosYNormalizaRangosAMesesCompletos(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-periodos@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertIngreso($usuarioId, 'salario', 1000, '2026-07-01');
+        $this->insertIngreso($usuarioId, 'salario', 200, '2026-08-31');
+        $executor = new \NumaFinancialToolExecutor(
+            $this->db,
+            periodResolver: new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-15', new \DateTimeZone('Europe/Madrid'))),
+        );
+        $registry = new \NumaFinancialToolRegistry($executor);
+
+        $relative = $registry->execute('obtener_resumen_financiero', $usuarioId, ['periodo' => 'julio']);
+        $explicit = $registry->execute('obtener_resumen_financiero', $usuarioId, [
+            'fecha_inicio' => '2026-07-18',
+            'fecha_fin' => '2026-08-02',
+        ]);
+
+        self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $relative['periodo']);
+        self::assertSame(1000.0, $relative['ingresos']);
+        self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-08-31'], $explicit['periodo']);
+        self::assertSame(1200.0, $explicit['ingresos']);
+    }
+
     public function testRankingCategoriasDevuelveTotalesAcotadosSinDatosPrivados(): void
     {
         $usuario = $this->crearUsuario('numa-tools-ranking@example.test');

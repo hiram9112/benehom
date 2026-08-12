@@ -5,6 +5,139 @@ declare(strict_types=1);
 require_once __DIR__ . '/../models/Database.php';
 require_once __DIR__ . '/../helpers/utils.php';
 
+final class NumaPeriodResolver
+{
+    public const CURRENT_MONTH = 'mes_actual';
+    public const PREVIOUS_MONTH = 'mes_anterior';
+    public const CURRENT_YEAR = 'anio_actual';
+    public const PREVIOUS_YEAR = 'anio_anterior';
+
+    /** @var array<int, string> */
+    private const RELATIVE_PERIODS = [
+        self::CURRENT_MONTH,
+        self::PREVIOUS_MONTH,
+        self::CURRENT_YEAR,
+        self::PREVIOUS_YEAR,
+    ];
+
+    /** @var array<string, int> */
+    private const NAMED_MONTHS = [
+        'enero' => 1,
+        'febrero' => 2,
+        'marzo' => 3,
+        'abril' => 4,
+        'mayo' => 5,
+        'junio' => 6,
+        'julio' => 7,
+        'agosto' => 8,
+        'septiembre' => 9,
+        'octubre' => 10,
+        'noviembre' => 11,
+        'diciembre' => 12,
+    ];
+
+    private readonly DateTimeZone $timezone;
+
+    public function __construct(private readonly ?DateTimeImmutable $now = null)
+    {
+        $this->timezone = new DateTimeZone('Europe/Madrid');
+    }
+
+    /** @return array<int, string> */
+    public static function relativePeriods(): array
+    {
+        return [...self::RELATIVE_PERIODS, ...array_keys(self::NAMED_MONTHS)];
+    }
+
+    public function currentDate(): string
+    {
+        return $this->now()->format('Y-m-d');
+    }
+
+    /** @return array{inicio:string,fin:string} */
+    public function resolve(string $period): array
+    {
+        $now = $this->now();
+
+        return match ($period) {
+            self::CURRENT_MONTH => $this->month($now),
+            self::PREVIOUS_MONTH => $this->month($now->modify('first day of last month')),
+            self::CURRENT_YEAR => $this->year($now),
+            self::PREVIOUS_YEAR => $this->year($now->modify('first day of January last year')),
+            default => isset(self::NAMED_MONTHS[$period])
+                ? $this->month($now->setDate((int) $now->format('Y'), self::NAMED_MONTHS[$period], 1))
+                : throw new InvalidArgumentException('Periodo relativo de Numa no permitido.'),
+        };
+    }
+
+    /**
+     * @param array{start:string,end:string}|null $referencePeriod
+     * @return array{inicio:string,fin:string}
+     */
+    public function resolveForFollowUp(string $period, ?array $referencePeriod = null): array
+    {
+        if ($referencePeriod === null || !in_array($period, [self::PREVIOUS_MONTH, self::PREVIOUS_YEAR], true)) {
+            return $this->resolve($period);
+        }
+
+        $referenceStart = $this->date($referencePeriod['start']);
+
+        return $period === self::PREVIOUS_MONTH
+            ? $this->month($referenceStart->modify('first day of last month'))
+            : $this->year($referenceStart->modify('first day of January last year'));
+    }
+
+    /** @return array{inicio:string,fin:string} */
+    public function normalize(string $start, string $end): array
+    {
+        $startDate = $this->date($start);
+        $endDate = $this->date($end);
+
+        if ($startDate > $endDate) {
+            throw new InvalidArgumentException('Periodo de Numa no valido.');
+        }
+
+        return [
+            'inicio' => $startDate->modify('first day of this month')->format('Y-m-d'),
+            'fin' => $endDate->modify('last day of this month')->format('Y-m-d'),
+        ];
+    }
+
+    private function now(): DateTimeImmutable
+    {
+        return ($this->now ?? new DateTimeImmutable('now', $this->timezone))->setTimezone($this->timezone);
+    }
+
+    /** @return array{inicio:string,fin:string} */
+    private function month(DateTimeImmutable $date): array
+    {
+        return [
+            'inicio' => $date->modify('first day of this month')->format('Y-m-d'),
+            'fin' => $date->modify('last day of this month')->format('Y-m-d'),
+        ];
+    }
+
+    /** @return array{inicio:string,fin:string} */
+    private function year(DateTimeImmutable $date): array
+    {
+        return [
+            'inicio' => $date->setDate((int) $date->format('Y'), 1, 1)->format('Y-m-d'),
+            'fin' => $date->setDate((int) $date->format('Y'), 12, 31)->format('Y-m-d'),
+        ];
+    }
+
+    private function date(string $value): DateTimeImmutable
+    {
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value, $this->timezone);
+
+        if (!$date || $date->format('Y-m-d') !== $value) {
+            throw new InvalidArgumentException('Fecha de Numa no valida.');
+        }
+
+        return $date;
+    }
+}
+
 final class NumaFinancialToolDefinition
 {
     /**
@@ -298,7 +431,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
                 self::OBTENER_RESUMEN_FINANCIERO,
                 'Devuelve totales agregados de ingresos, gastos, ahorro posible y ahorro real de un periodo.',
                 self::dateRangeSchema(),
-                ['fecha_inicio', 'fecha_fin'],
+                [],
                 [],
                 ['max_items' => 1],
                 'executeResumenFinanciero'
@@ -306,13 +439,11 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             self::OBTENER_RANKING_CATEGORIAS => new NumaFinancialToolDefinition(
                 self::OBTENER_RANKING_CATEGORIAS,
                 'Devuelve un ranking agregado por categoria para una metrica financiera permitida.',
-                self::schema([
-                    'fecha_inicio' => ['type' => 'string', 'format' => 'date'],
-                    'fecha_fin' => ['type' => 'string', 'format' => 'date'],
+                self::periodSchema([
                     'metrica' => ['type' => 'string', 'enum' => ['ingresos', 'gastos', 'gastos_esenciales', 'gastos_flexibles']],
                     'limite' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 10],
                 ]),
-                ['fecha_inicio', 'fecha_fin'],
+                [],
                 [
                     'metrica' => ['ingresos', 'gastos', 'gastos_esenciales', 'gastos_flexibles'],
                 ],
@@ -322,14 +453,12 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             self::OBTENER_EVOLUCION_FINANCIERA => new NumaFinancialToolDefinition(
                 self::OBTENER_EVOLUCION_FINANCIERA,
                 'Devuelve una evolucion agregada por mes, categoria o tipo permitido.',
-                self::schema([
-                    'fecha_inicio' => ['type' => 'string', 'format' => 'date'],
-                    'fecha_fin' => ['type' => 'string', 'format' => 'date'],
+                self::periodSchema([
                     'metrica' => ['type' => 'string', 'enum' => self::FINANCIAL_METRICS],
                     'agrupacion' => ['type' => 'string', 'enum' => self::GROUPINGS],
                     'limite' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 24],
                 ]),
-                ['fecha_inicio', 'fecha_fin', 'agrupacion'],
+                ['agrupacion'],
                 [
                     'metrica' => self::FINANCIAL_METRICS,
                     'agrupacion' => self::GROUPINGS,
@@ -343,12 +472,14 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
                 self::schema([
                     'fecha_inicio_a' => ['type' => 'string', 'format' => 'date'],
                     'fecha_fin_a' => ['type' => 'string', 'format' => 'date'],
+                    'periodo_a' => ['type' => 'string', 'enum' => NumaPeriodResolver::relativePeriods()],
                     'fecha_inicio_b' => ['type' => 'string', 'format' => 'date'],
                     'fecha_fin_b' => ['type' => 'string', 'format' => 'date'],
+                    'periodo_b' => ['type' => 'string', 'enum' => NumaPeriodResolver::relativePeriods()],
                     'metrica' => ['type' => 'string', 'enum' => self::FINANCIAL_METRICS],
                     'categoria' => ['type' => 'string', 'enum' => $categories],
                 ]),
-                ['fecha_inicio_a', 'fecha_fin_a', 'fecha_inicio_b', 'fecha_fin_b', 'metrica'],
+                ['metrica'],
                 [
                     'metrica' => self::FINANCIAL_METRICS,
                     'categoria' => $categories,
@@ -359,13 +490,11 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             self::OBTENER_ESTADISTICAS_MOVIMIENTOS => new NumaFinancialToolDefinition(
                 self::OBTENER_ESTADISTICAS_MOVIMIENTOS,
                 'Devuelve promedio, maximo, minimo, total y cantidad de movimientos agregados de un periodo.',
-                self::schema([
-                    'fecha_inicio' => ['type' => 'string', 'format' => 'date'],
-                    'fecha_fin' => ['type' => 'string', 'format' => 'date'],
+                self::periodSchema([
                     'metrica' => ['type' => 'string', 'enum' => self::MOVEMENT_METRICS],
                     'categoria' => ['type' => 'string', 'enum' => $categories],
                 ]),
-                ['fecha_inicio', 'fecha_fin', 'metrica'],
+                ['metrica'],
                 [
                     'metrica' => self::MOVEMENT_METRICS,
                     'categoria' => $categories,
@@ -387,9 +516,20 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
      */
     private static function dateRangeSchema(): array
     {
+        return self::periodSchema();
+    }
+
+    /**
+     * @param array<string, mixed> $properties
+     * @return array<string, mixed>
+     */
+    private static function periodSchema(array $properties = []): array
+    {
         return self::schema([
             'fecha_inicio' => ['type' => 'string', 'format' => 'date'],
             'fecha_fin' => ['type' => 'string', 'format' => 'date'],
+            'periodo' => ['type' => 'string', 'enum' => NumaPeriodResolver::relativePeriods()],
+            ...$properties,
         ]);
     }
 
@@ -416,6 +556,7 @@ final class NumaFinancialToolExecutor
     public function __construct(
         private readonly ?PDO $connection = null,
         ?int $maxToolRangeDays = null,
+        private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
     ) {
         $this->maxToolRangeDays = $maxToolRangeDays
             ?? bh_env_int('NUMA_MAX_TOOL_RANGE_DAYS', self::MAX_TOOL_RANGE_DAYS);
@@ -498,6 +639,8 @@ final class NumaFinancialToolExecutor
                 );
             }
         }
+
+        $this->assertPeriodArguments($definition->implementation(), $arguments);
     }
 
     /**
@@ -595,13 +738,8 @@ final class NumaFinancialToolExecutor
      */
     private function executeCompararPeriodos(int $usuarioId, array $arguments): array
     {
-        $startA = $this->dateArg($arguments, 'fecha_inicio_a');
-        $endA = $this->dateArg($arguments, 'fecha_fin_a');
-        $startB = $this->dateArg($arguments, 'fecha_inicio_b');
-        $endB = $this->dateArg($arguments, 'fecha_fin_b');
-
-        $this->assertPeriodOrder($startA, $endA);
-        $this->assertPeriodOrder($startB, $endB);
+        [$startA, $endA] = $this->comparisonPeriod($arguments, 'a');
+        [$startB, $endB] = $this->comparisonPeriod($arguments, 'b');
 
         $metric = $this->stringArg($arguments, 'metrica');
         $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
@@ -652,11 +790,59 @@ final class NumaFinancialToolExecutor
      */
     private function period(array $arguments): array
     {
+        if (isset($arguments['periodo'])) {
+            $period = $this->periodResolver->resolve($this->stringArg($arguments, 'periodo'));
+
+            return [$period['inicio'], $period['fin']];
+        }
+
         $start = $this->dateArg($arguments, 'fecha_inicio');
         $end = $this->dateArg($arguments, 'fecha_fin');
-        $this->assertPeriodOrder($start, $end);
+        $period = $this->periodResolver->normalize($start, $end);
+        $this->assertPeriodOrder($period['inicio'], $period['fin']);
 
-        return [$start, $end];
+        return [$period['inicio'], $period['fin']];
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private function comparisonPeriod(array $arguments, string $suffix): array
+    {
+        $relativeKey = 'periodo_' . $suffix;
+        if (isset($arguments[$relativeKey])) {
+            $period = $this->periodResolver->resolve($this->stringArg($arguments, $relativeKey));
+
+            return [$period['inicio'], $period['fin']];
+        }
+
+        $period = $this->periodResolver->normalize(
+            $this->dateArg($arguments, 'fecha_inicio_' . $suffix),
+            $this->dateArg($arguments, 'fecha_fin_' . $suffix),
+        );
+        $this->assertPeriodOrder($period['inicio'], $period['fin']);
+
+        return [$period['inicio'], $period['fin']];
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private function assertPeriodArguments(string $implementation, array $arguments): void
+    {
+        if ($implementation === 'executeCompararPeriodos') {
+            foreach (['a', 'b'] as $suffix) {
+                $hasRelative = isset($arguments['periodo_' . $suffix]);
+                $hasExplicit = isset($arguments['fecha_inicio_' . $suffix], $arguments['fecha_fin_' . $suffix]);
+                if ($hasRelative === $hasExplicit) {
+                    throw new InvalidArgumentException('Periodo de Numa incompleto.');
+                }
+            }
+
+            return;
+        }
+
+        $hasRelative = isset($arguments['periodo']);
+        $hasExplicit = isset($arguments['fecha_inicio'], $arguments['fecha_fin']);
+        if ($hasRelative === $hasExplicit) {
+            throw new InvalidArgumentException('Periodo de Numa incompleto.');
+        }
     }
 
     /** @param array<string, mixed> $arguments */

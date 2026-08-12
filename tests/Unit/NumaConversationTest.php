@@ -59,6 +59,25 @@ final class NumaConversationTest extends TestCase
         self::assertSame([], $conversation->context());
     }
 
+    public function testConservaElPeriodoEstructuradoParaSeguimientos(): void
+    {
+        $conversation = new \NumaConversation();
+        $conversation->appendExchange(
+            '¿Cuánto gasté en julio?',
+            'Gastaste 100 euros.',
+            period: ['start' => '2026-07-01', 'end' => '2026-07-31'],
+        );
+
+        self::assertSame([
+            ['role' => 'user', 'message' => '¿Cuánto gasté en julio?'],
+            [
+                'role' => 'assistant',
+                'message' => 'Gastaste 100 euros.',
+                'period' => ['start' => '2026-07-01', 'end' => '2026-07-31'],
+            ],
+        ], $conversation->context());
+    }
+
     public function testIgnoraEntradasDeSesionMalformadas(): void
     {
         $_SESSION['numa_conversation'] = [

@@ -959,6 +959,79 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($numaUso->reverted);
     }
 
+    public function testChatResuelveJulioConLaFechaControladaPorElBackend(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(
+                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                ['periodo' => 'julio'],
+            )),
+            new \NumaResponse('En julio gastaste 800 euros.')
+        );
+
+        $this->invokeWithPeriodResolver(
+            'chat',
+            '{"message":"¿Cuánto gasté en julio?"}',
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
+            $provider,
+            $tools,
+        );
+
+        self::assertSame([
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ], $tools->calls[0]['arguments']);
+        self::assertSame('2026-08-12', $provider->requests()[1]->context()[0]['server_date']);
+    }
+
+    public function testSeguimientoResuelveMesAnteriorDesdeElPeriodoEstructuradoDeSesion(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        (new \NumaConversation())->appendExchange(
+            '¿Cuánto gasté en julio?',
+            'En julio gastaste 800 euros.',
+            period: ['start' => '2026-07-01', 'end' => '2026-07-31'],
+        );
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(
+                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                ['periodo' => 'mes_anterior'],
+            )),
+            new \NumaResponse('En junio gastaste 700 euros.')
+        );
+
+        $this->invokeWithPeriodResolver(
+            'chat',
+            '{"message":"¿y el mes anterior?"}',
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
+            $provider,
+            $tools,
+        );
+
+        self::assertSame([
+            'fecha_inicio' => '2026-06-01',
+            'fecha_fin' => '2026-06-30',
+        ], $tools->calls[0]['arguments']);
+        self::assertSame(['start' => '2026-07-01', 'end' => '2026-07-31'], $provider->requests()[0]->history()[1]['period']);
+    }
+
     public function testChatActivoConGeminiFunctionCallingDevuelveResultadoFinal(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
@@ -1515,6 +1588,60 @@ final class NumaControllerTest extends TestCase
         $decoded['_status'] = http_response_code();
 
         return $decoded;
+    }
+
+    private function invokeWithPeriodResolver(
+        string $method,
+        string $rawBody,
+        \NumaPeriodResolver $periodResolver,
+        \NumaProviderInterface $provider,
+        \NumaFinancialToolRegistryInterface $financialTools,
+    ): array {
+        $controller = new class($rawBody, $periodResolver, $provider, $financialTools) extends \NumaController {
+            public function __construct(
+                private readonly string $body,
+                private readonly \NumaPeriodResolver $fakePeriodResolver,
+                private readonly \NumaProviderInterface $fakeProvider,
+                private readonly \NumaFinancialToolRegistryInterface $fakeFinancialTools,
+            ) {
+            }
+
+            protected function rawBody(): string
+            {
+                return $this->body;
+            }
+
+            protected function numaUso(): \NumaUso
+            {
+                return new NumaUsoFake();
+            }
+
+            protected function provider(?\NumaProviderConsumptionInterface $consumption = null): \NumaProviderInterface
+            {
+                return $consumption === null ? $this->fakeProvider : new MeteredNumaProviderFake($this->fakeProvider, $consumption);
+            }
+
+            protected function financialTools(): \NumaFinancialToolRegistryInterface
+            {
+                return $this->fakeFinancialTools;
+            }
+
+            protected function globalAvailability(): \NumaGlobalAvailabilityInterface
+            {
+                return new NumaGlobalAvailabilityFake();
+            }
+
+            protected function periodResolver(): \NumaPeriodResolver
+            {
+                return $this->fakePeriodResolver;
+            }
+        };
+
+        ob_start();
+        $controller->{$method}();
+        ob_end_clean();
+
+        return [];
     }
 
     private function configureJsonPost(?string $csrfToken = 'csrf-token'): void

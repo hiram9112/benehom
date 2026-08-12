@@ -124,9 +124,17 @@ final class GeminiNumaProvider implements NumaProviderInterface
     {
         $contents = [];
         foreach ($request->history() as $entry) {
+            $text = $entry['message'];
+            if (isset($entry['period']['start'], $entry['period']['end'])
+                && is_string($entry['period']['start'])
+                && is_string($entry['period']['end'])
+            ) {
+                $text .= "\n[Periodo resuelto por BeneHom: {$entry['period']['start']} a {$entry['period']['end']}]";
+            }
+
             $contents[] = [
                 'role' => $entry['role'] === 'assistant' ? 'model' : 'user',
-                'parts' => [['text' => $entry['message']]],
+                'parts' => [['text' => $text]],
             ];
         }
 

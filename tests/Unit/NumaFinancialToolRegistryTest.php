@@ -35,7 +35,10 @@ final class NumaFinancialToolRegistryTest extends TestCase
             self::assertNotSame('', $definition->description());
             self::assertSame('object', $definition->parameterSchema()['type']);
             self::assertFalse($definition->parameterSchema()['additionalProperties']);
-            self::assertNotEmpty($definition->requiredParameters());
+            self::assertTrue(
+                in_array('metrica', $definition->requiredParameters(), true)
+                || array_key_exists('periodo', $definition->parameterSchema()['properties'])
+            );
             self::assertNotEmpty($definition->resultLimit());
             self::assertNotSame('', $definition->implementation());
         }

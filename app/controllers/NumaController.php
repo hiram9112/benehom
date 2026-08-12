@@ -244,6 +244,11 @@ class NumaController
         return new NumaFinancialToolRegistry();
     }
 
+    protected function periodResolver(): NumaPeriodResolver
+    {
+        return new NumaPeriodResolver();
+    }
+
     protected function globalAvailability(): NumaGlobalAvailabilityInterface
     {
         return new NumaGlobalAvailability();
@@ -258,7 +263,8 @@ class NumaController
             fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $this->provider($consumption),
             fn (NumaClassification $classification, string $message, ?NumaProviderConsumptionInterface $consumption = null): array => $this->knowledgeResults($classification, $message, $consumption),
             fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),
-            fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability()
+            fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability(),
+            $this->periodResolver(),
         );
     }
 

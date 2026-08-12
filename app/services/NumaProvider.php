@@ -117,7 +117,7 @@ final class NumaRequest
     /**
      * @param array<int, array<string, mixed>> $context
      * @param array<int, string> $availableTools
-     * @param array<int, array{role:string,message:string}> $history
+     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
      */
     public function __construct(
         private readonly string $message,
@@ -164,7 +164,7 @@ final class NumaRequest
     }
 
     /**
-     * @return array<int, array{role:string,message:string}>
+     * @return array<int, array{role:string,message:string,period?:array<string,string>}>
      */
     public function history(): array
     {

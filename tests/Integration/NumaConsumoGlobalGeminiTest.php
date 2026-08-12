@@ -38,6 +38,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
         $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
         $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '220';
     }
 
     protected function tearDown(): void
@@ -133,8 +135,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         self::assertSame(2, $transportCalls);
         self::assertSame(2, $row['llamadas']);
-        self::assertSame(120, $row['input_tokens']);
-        self::assertSame(35, $row['output_tokens']);
+        self::assertSame(5120, $row['input_tokens']);
+        self::assertSame(255, $row['output_tokens']);
     }
 
     public function testElLimiteBloqueaElReintentoAntesDeLaSegundaLlamadaReal(): void
@@ -164,8 +166,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         self::assertSame(1, $transportCalls);
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(0, $row['input_tokens']);
-        self::assertSame(0, $row['output_tokens']);
+        self::assertSame(5000, $row['input_tokens']);
+        self::assertSame(220, $row['output_tokens']);
     }
 
     public function testMantieneElConteoCuandoLaLlamadaRealFalla(): void
@@ -188,11 +190,11 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         $row = $this->row();
 
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(0, $row['input_tokens']);
-        self::assertSame(0, $row['output_tokens']);
+        self::assertSame(5000, $row['input_tokens']);
+        self::assertSame(220, $row['output_tokens']);
     }
 
-    public function testNoInventaTokensCuandoElProveedorNoLosInforma(): void
+    public function testMantieneReservaConservadoraCuandoElProveedorNoInformaTokens(): void
     {
         $consumo = $this->consumo();
         $provider = new \GeminiNumaProvider(
@@ -206,7 +208,25 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         $row = $this->row();
 
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(0, $row['input_tokens']);
+        self::assertSame(5000, $row['input_tokens']);
+        self::assertSame(220, $row['output_tokens']);
+    }
+
+    public function testUsaTotalTokenCountComoUsoFacturableCuandoExiste(): void
+    {
+        $consumo = $this->consumo();
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: fn (): array => $this->validResponse(120, 35, 200),
+            consumption: $consumo,
+        );
+
+        $provider->respond(new \NumaRequest('Pregunta'));
+        $row = $this->row();
+
+        self::assertSame(1, $row['llamadas']);
+        self::assertSame(200, $row['input_tokens']);
         self::assertSame(0, $row['output_tokens']);
     }
 
@@ -221,7 +241,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
     /**
      * @return array{status:int,body:string}
      */
-    private function validResponse(?int $inputTokens = null, ?int $outputTokens = null): array
+    private function validResponse(?int $inputTokens = null, ?int $outputTokens = null, ?int $totalTokens = null): array
     {
         $body = [
             'candidates' => [[
@@ -236,6 +256,11 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
                 'promptTokenCount' => $inputTokens,
                 'candidatesTokenCount' => $outputTokens,
             ];
+        }
+
+        if ($totalTokens !== null) {
+            $body['usageMetadata'] ??= [];
+            $body['usageMetadata']['totalTokenCount'] = $totalTokens;
         }
 
         return [
@@ -302,6 +327,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
             'NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT',
             'NUMA_GLOBAL_DAILY_TOKEN_LIMIT',
             'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
+            'NUMA_MAX_INPUT_TOKENS',
+            'NUMA_MAX_OUTPUT_TOKENS',
         ];
     }
 }

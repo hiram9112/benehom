@@ -563,6 +563,15 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         $inputTokens = $usage['promptTokenCount'] ?? null;
         $outputTokens = $usage['candidatesTokenCount'] ?? null;
+        $totalTokens = $usage['totalTokenCount'] ?? null;
+
+        if (is_int($totalTokens)) {
+            return new NumaTokenUsage(
+                is_int($inputTokens) ? $inputTokens : null,
+                is_int($outputTokens) ? $outputTokens : null,
+                $totalTokens
+            );
+        }
 
         if (!is_int($inputTokens) || !is_int($outputTokens)) {
             return NumaTokenUsage::unknown();
@@ -673,7 +682,7 @@ final class NumaProviderFactory
         return NumaSystemInstructionProvider::fromBasePrompt(new NumaProviderBoundary(
             GeminiNumaProvider::fromEnvironment(
                 $transport,
-                $consumption ?? new NumaConsumoGlobal()
+                $consumption ?? NumaConsumoGlobal::forLlm()
             )
         ));
     }

@@ -9,6 +9,8 @@ use Tests\Support\FakeNumaEmbeddingProvider;
 
 require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
+require_once APP_PATH . '/models/NumaConsumoGlobal.php';
+require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
 
 final class NumaKnowledgeIndexerTest extends IntegrationTestCase
 {
@@ -126,6 +128,64 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         }
     }
 
+    public function testIndexacionMedidaReconciliaPromptTokenCountDelEmbedding(): void
+    {
+        $envBackup = [];
+        foreach ($this->globalEnvKeys() as $key) {
+            $envBackup[$key] = $_ENV[$key] ?? null;
+        }
+
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
+        $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '900';
+
+        try {
+            $directory = $this->knowledgeDirectory([
+                'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+            ]);
+            $transportCalls = 0;
+            $provider = new \GeminiEmbeddingProvider('key', 'model', 4, transport: static function () use (&$transportCalls): array {
+                ++$transportCalls;
+
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'embedding' => [
+                            'values' => [0.1, 0.2, 0.3, 0.4],
+                        ],
+                        'usageMetadata' => [
+                            'promptTokenCount' => 29,
+                        ],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            });
+            $meteredProvider = new \NumaMeteredEmbeddingProvider(
+                $provider,
+                \NumaConsumoGlobal::forEmbedding($this->db, new DateTimeImmutable('2026-07-29 12:00:00'))
+            );
+            $indexer = $this->indexer($meteredProvider, ['guia.md' => '/dashboard']);
+
+            $summary = $indexer->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+            $row = $this->globalUsageRow('2026-07-29');
+
+            self::assertSame(1, $summary->embeddingsGenerated);
+            self::assertSame(1, $transportCalls);
+            self::assertSame(1, $row['llamadas']);
+            self::assertSame(29, $row['input_tokens']);
+            self::assertSame(0, $row['output_tokens']);
+        } finally {
+            foreach ($envBackup as $key => $value) {
+                if ($value === null) {
+                    unset($_ENV[$key]);
+                } else {
+                    $_ENV[$key] = $value;
+                }
+            }
+        }
+    }
+
     /**
      * @param array<string, string> $routeMap
      */
@@ -158,6 +218,38 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
     private function writeDocument(string $directory, string $name, string $contents): void
     {
         self::assertNotFalse(file_put_contents($directory . '/' . $name, $contents));
+    }
+
+    /**
+     * @return array{llamadas:int,input_tokens:int,output_tokens:int}
+     */
+    private function globalUsageRow(string $fecha): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT llamadas, input_tokens, output_tokens FROM numa_uso_proveedor WHERE fecha = :fecha'
+        );
+        $stmt->execute([':fecha' => $fecha]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        self::assertIsArray($row);
+
+        return [
+            'llamadas' => (int) $row['llamadas'],
+            'input_tokens' => (int) $row['input_tokens'],
+            'output_tokens' => (int) $row['output_tokens'],
+        ];
+    }
+
+    /** @return array<int, string> */
+    private function globalEnvKeys(): array
+    {
+        return [
+            'NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT',
+            'NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT',
+            'NUMA_GLOBAL_DAILY_TOKEN_LIMIT',
+            'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
+            'NUMA_MAX_RAG_CHUNK_CHARS',
+        ];
     }
 
     /**

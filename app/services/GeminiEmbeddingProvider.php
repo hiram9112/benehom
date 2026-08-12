@@ -6,7 +6,7 @@ require_once __DIR__ . '/NumaProvider.php';
 require_once __DIR__ . '/NumaEmbeddingProvider.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
 
-final class GeminiEmbeddingProvider implements NumaEmbeddingProviderInterface
+final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
     private const DEFAULT_DIMENSIONS = 768;
@@ -14,6 +14,8 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderInterface
 
     /** @var callable */
     private $transport;
+
+    private ?NumaTokenUsage $lastTokenUsage = null;
 
     public function __construct(
         private readonly string $apiKey,
@@ -46,6 +48,8 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderInterface
      */
     public function embed(string $text): array
     {
+        $this->lastTokenUsage = null;
+
         if (trim($text) === '') {
             throw new InvalidArgumentException('El texto para embeddings de Numa no puede estar vacio.');
         }
@@ -88,6 +92,11 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderInterface
         }
 
         return $this->parseEmbedding($responseBody);
+    }
+
+    public function tokenUsage(): NumaTokenUsage
+    {
+        return $this->lastTokenUsage ?? NumaTokenUsage::unknown();
     }
 
     /**
@@ -165,7 +174,24 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderInterface
             throw self::invalidResponseError();
         }
 
+        $this->lastTokenUsage = $this->extractTokenUsage($decoded);
+
         return $values;
+    }
+
+    /**
+     * @param array<string, mixed> $decoded
+     */
+    private function extractTokenUsage(array $decoded): NumaTokenUsage
+    {
+        $usage = $decoded['usageMetadata'] ?? null;
+        $promptTokenCount = is_array($usage) ? ($usage['promptTokenCount'] ?? null) : null;
+
+        if (!is_int($promptTokenCount) || $promptTokenCount < 0) {
+            return NumaTokenUsage::unknown();
+        }
+
+        return new NumaTokenUsage($promptTokenCount, 0);
     }
 
     /**

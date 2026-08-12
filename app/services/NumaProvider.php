@@ -250,6 +250,7 @@ final class NumaTokenUsage
     public function __construct(
         private readonly ?int $inputTokens,
         private readonly ?int $outputTokens,
+        private readonly ?int $billableTokens = null,
     ) {
         if ($inputTokens !== null && $inputTokens < 0) {
             throw new InvalidArgumentException('El uso de tokens de entrada no puede ser negativo.');
@@ -257,6 +258,10 @@ final class NumaTokenUsage
 
         if ($outputTokens !== null && $outputTokens < 0) {
             throw new InvalidArgumentException('El uso de tokens de salida no puede ser negativo.');
+        }
+
+        if ($billableTokens !== null && $billableTokens < 0) {
+            throw new InvalidArgumentException('El uso facturable de tokens no puede ser negativo.');
         }
     }
 
@@ -277,6 +282,10 @@ final class NumaTokenUsage
 
     public function totalTokens(): ?int
     {
+        if ($this->billableTokens !== null) {
+            return $this->billableTokens;
+        }
+
         if (!$this->hasReliableTokens()) {
             return null;
         }
@@ -284,9 +293,14 @@ final class NumaTokenUsage
         return $this->inputTokens + $this->outputTokens;
     }
 
+    public function billableTokens(): ?int
+    {
+        return $this->billableTokens;
+    }
+
     public function hasReliableTokens(): bool
     {
-        return $this->inputTokens !== null && $this->outputTokens !== null;
+        return $this->billableTokens !== null || ($this->inputTokens !== null && $this->outputTokens !== null);
     }
 }
 

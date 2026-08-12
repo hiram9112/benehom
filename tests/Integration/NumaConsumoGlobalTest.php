@@ -10,6 +10,8 @@ use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
+require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
+require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
 require_once APP_PATH . '/services/NumaService.php';
 
@@ -52,6 +54,9 @@ final class NumaConsumoGlobalTest extends TestCase
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
         $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
         $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '220';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '900';
         $_ENV['NUMA_DAILY_LIMIT'] = '5';
         $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
@@ -93,7 +98,7 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(2, $estado['monthly_calls']);
         self::assertSame(100, $estado['daily_calls_limit']);
         self::assertSame(1000, $estado['monthly_calls_limit']);
-        self::assertSame(0, $estado['daily_tokens']);
+        self::assertSame(10440, $estado['daily_tokens']);
         self::assertSame(50000, $estado['daily_tokens_limit']);
     }
 
@@ -182,7 +187,7 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(155, $repo->tokensDia('2026-07-25'));
     }
 
-    public function testRegistrarTokensFiablesSoloAnadeLosValoresInformados(): void
+    public function testUsoParcialMantieneLaReservaConservadora(): void
     {
         $repo = $this->repo('2026-07-25 10:00:00');
         $repo->iniciarLlamada();
@@ -191,8 +196,93 @@ final class NumaConsumoGlobalTest extends TestCase
 
         $row = $this->row('2026-07-25');
 
-        self::assertSame(0, $row['input_tokens']);
-        self::assertSame(50, $row['output_tokens']);
+        self::assertSame(5000, $row['input_tokens']);
+        self::assertSame(220, $row['output_tokens']);
+    }
+
+    public function testEmbeddingReservaLlamadaGlobalYTokensConservadoresDeEntrada(): void
+    {
+        $transportCalls = 0;
+        $reservedBeforeTransport = null;
+        $provider = new \GeminiEmbeddingProvider('key', 'model', 2, transport: function () use (&$transportCalls, &$reservedBeforeTransport): array {
+            ++$transportCalls;
+            $reservedBeforeTransport = $this->row('2026-07-25');
+
+            return $this->validEmbeddingResponse();
+        });
+        $consumo = \NumaConsumoGlobal::forEmbedding($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+
+        $embedding = (new \NumaMeteredEmbeddingProvider($provider, $consumo))->embed('Consulta documental de BeneHom');
+        $row = $this->row('2026-07-25');
+
+        self::assertSame([0.1, 0.2], $embedding);
+        self::assertSame(1, $transportCalls);
+        self::assertIsArray($reservedBeforeTransport);
+        self::assertSame(2048, $reservedBeforeTransport['input_tokens']);
+        self::assertSame(0, $reservedBeforeTransport['output_tokens']);
+        self::assertSame(1, $row['llamadas']);
+        self::assertSame(2048, $row['input_tokens']);
+        self::assertSame(0, $row['output_tokens']);
+    }
+
+    public function testEmbeddingExitosoReemplazaLaReservaPorPromptTokenCount(): void
+    {
+        $provider = new \GeminiEmbeddingProvider(
+            'key',
+            'model',
+            2,
+            transport: fn (): array => $this->validEmbeddingResponse(41)
+        );
+        $consumo = \NumaConsumoGlobal::forEmbedding($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+
+        (new \NumaMeteredEmbeddingProvider($provider, $consumo))->embed('Consulta documental de BeneHom');
+        $row = $this->row('2026-07-25');
+
+        self::assertSame(1, $row['llamadas']);
+        self::assertSame(41, $row['input_tokens']);
+        self::assertSame(0, $row['output_tokens']);
+    }
+
+    public function testEmbeddingFallidoMantieneLaReservaConservadora(): void
+    {
+        $provider = new \GeminiEmbeddingProvider('key', 'model', 2, transport: static function (): array {
+            throw new \RuntimeException('Fallo de transporte simulado.');
+        });
+        $consumo = \NumaConsumoGlobal::forEmbedding($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+
+        try {
+            (new \NumaMeteredEmbeddingProvider($provider, $consumo))->embed('Consulta documental de BeneHom');
+            self::fail('Se esperaba una excepcion del proveedor.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_UNAVAILABLE', $exception->getMessage());
+        }
+
+        $row = $this->row('2026-07-25');
+
+        self::assertSame(1, $row['llamadas']);
+        self::assertSame(2048, $row['input_tokens']);
+        self::assertSame(0, $row['output_tokens']);
+    }
+
+    public function testEmbeddingReservaElMaximoDelModeloSinDependerDeLimitesEnCaracteresNiSalida(): void
+    {
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '1200';
+        $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '1600';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1';
+        $provider = new class implements \NumaEmbeddingProviderInterface {
+            public function embed(string $text): array
+            {
+                return [0.1, 0.2];
+            }
+        };
+        $consumo = \NumaConsumoGlobal::forEmbedding($this->db, new DateTimeImmutable('2026-07-24 10:00:00'));
+
+        (new \NumaMeteredEmbeddingProvider($provider, $consumo))->embed('Consulta documental de BeneHom');
+        $row = $this->row('2026-07-24');
+
+        self::assertSame(1, $row['llamadas']);
+        self::assertSame(2048, $row['input_tokens']);
+        self::assertSame(0, $row['output_tokens']);
     }
 
     public function testRegistrarTokensDesconocidosNoCreaNiModificaFilas(): void
@@ -222,6 +312,65 @@ final class NumaConsumoGlobalTest extends TestCase
         $this->expectExceptionMessage('NUMA_GLOBAL_LIMIT_REACHED');
 
         $repoB->iniciarLlamada();
+    }
+
+    public function testLlamadasConcurrentesSolapadasConConexionesSeparadasNoSuperanElLimiteMensual(): void
+    {
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
+        $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $dir = sys_get_temp_dir() . '/benehom-numa-global-' . bin2hex(random_bytes(8));
+        $locker = $this->newConnection();
+
+        $this->insertRow('2026-07-01', 0, 0, 0);
+        $this->insertRow('2026-07-21', 0, 0, 0);
+        $this->insertRow('2026-07-22', 0, 0, 0);
+        self::assertTrue(mkdir($dir, 0700));
+
+        $locker->beginTransaction();
+
+        try {
+            $stmt = $locker->prepare('SELECT fecha FROM numa_uso_proveedor WHERE fecha = :fecha FOR UPDATE');
+            $stmt->execute([':fecha' => '2026-07-01']);
+            self::assertSame('2026-07-01', $stmt->fetchColumn());
+
+            $processA = $this->startConcurrentGlobalCallProcess($dir, 'a', '2026-07-21 10:00:00');
+            $processB = $this->startConcurrentGlobalCallProcess($dir, 'b', '2026-07-22 10:00:00');
+
+            $this->waitForFiles([$processA['ready_file'], $processB['ready_file']]);
+            file_put_contents($dir . '/start', '1');
+            $this->waitForFiles([$processA['attempt_file'], $processB['attempt_file']]);
+            usleep(200000);
+
+            self::assertTrue($this->processIsRunning($processA));
+            self::assertTrue($this->processIsRunning($processB));
+
+            $locker->commit();
+
+            $resultA = $this->collectConcurrentGlobalCallProcess($processA);
+            $resultB = $this->collectConcurrentGlobalCallProcess($processB);
+        } finally {
+            if ($locker->inTransaction()) {
+                $locker->rollBack();
+            }
+
+            foreach (glob($dir . '/*') ?: [] as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+
+            if (is_dir($dir)) {
+                rmdir($dir);
+            }
+        }
+
+        $statuses = [$resultA['status'], $resultB['status']];
+        sort($statuses);
+
+        self::assertSame(['limit', 'started'], $statuses);
+        self::assertSame(1, $this->llamadasMes('2026-07-01', '2026-08-01'));
     }
 
     public function testElErrorDeLimiteNoRevelaProveedorNiSecretos(): void
@@ -356,6 +505,208 @@ final class NumaConsumoGlobalTest extends TestCase
         $this->fechasCreadas[] = $fecha;
     }
 
+    /**
+     * @return array{process:resource,pipes:array<int,resource>,ready_file:string,attempt_file:string}
+     */
+    private function startConcurrentGlobalCallProcess(string $dir, string $label, string $now): array
+    {
+        $config = require CONFIG_PATH . '/database.php';
+        $readyFile = $dir . '/ready-' . $label;
+        $attemptFile = $dir . '/attempt-' . $label;
+        $payload = json_encode([
+            'base_path' => BASE_PATH,
+            'db' => $config,
+            'now' => $now,
+            'daily_call_limit' => '100',
+            'monthly_call_limit' => '1',
+            'daily_token_limit' => '50000',
+            'monthly_token_limit' => '300000',
+            'max_input_tokens' => '5000',
+            'max_output_tokens' => '220',
+            'ready_file' => $readyFile,
+            'attempt_file' => $attemptFile,
+            'start_file' => $dir . '/start',
+        ]);
+
+        self::assertIsString($payload);
+
+        $code = <<<'PHP'
+$payload = json_decode($argv[1] ?? '', true);
+
+if (!is_array($payload)) {
+    fwrite(STDERR, "Payload invalido\n");
+    exit(2);
+}
+
+define('BASE_PATH', (string) $payload['base_path']);
+define('APP_PATH', BASE_PATH . '/app');
+define('CONFIG_PATH', BASE_PATH . '/config');
+
+require APP_PATH . '/models/NumaConsumoGlobal.php';
+
+$_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = (string) $payload['daily_call_limit'];
+$_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = (string) $payload['monthly_call_limit'];
+$_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = (string) $payload['daily_token_limit'];
+$_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = (string) $payload['monthly_token_limit'];
+$_ENV['NUMA_MAX_INPUT_TOKENS'] = (string) $payload['max_input_tokens'];
+$_ENV['NUMA_MAX_OUTPUT_TOKENS'] = (string) $payload['max_output_tokens'];
+
+$db = $payload['db'];
+
+if (!is_array($db)) {
+    fwrite(STDERR, "Configuracion de base de datos invalida\n");
+    exit(2);
+}
+
+$pdo = new PDO(
+    "mysql:host={$db['host']};port={$db['port']};dbname={$db['dbname']};charset=utf8mb4",
+    (string) $db['user'],
+    (string) $db['password'],
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+file_put_contents((string) $payload['ready_file'], '1');
+$deadline = microtime(true) + 10;
+
+while (!is_file((string) $payload['start_file'])) {
+    if (microtime(true) > $deadline) {
+        fwrite(STDERR, "Timeout esperando inicio\n");
+        exit(2);
+    }
+
+    usleep(1000);
+}
+
+file_put_contents((string) $payload['attempt_file'], '1');
+$repo = new NumaConsumoGlobal($pdo, new DateTimeImmutable((string) $payload['now']));
+
+try {
+    $repo->iniciarLlamada();
+    echo json_encode(['status' => 'started']);
+    exit(0);
+} catch (NumaGlobalLimiteAlcanzado $e) {
+    echo json_encode(['status' => 'limit', 'code' => $e->getMessage()]);
+    exit(0);
+} catch (Throwable $e) {
+    fwrite(STDERR, $e::class . ': ' . $e->getMessage() . "\n");
+    exit(1);
+}
+PHP;
+
+        $process = proc_open(
+            [PHP_BINARY, '-d', 'variables_order=EGPCS', '-r', $code, $payload],
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+            BASE_PATH
+        );
+
+        self::assertIsResource($process);
+        fclose($pipes[0]);
+
+        return [
+            'process' => $process,
+            'pipes' => $pipes,
+            'ready_file' => $readyFile,
+            'attempt_file' => $attemptFile,
+        ];
+    }
+
+    /**
+     * @param list<string> $files
+     */
+    private function waitForFiles(array $files): void
+    {
+        $deadline = microtime(true) + 10;
+
+        do {
+            $ready = true;
+
+            foreach ($files as $file) {
+                if (!is_file($file)) {
+                    $ready = false;
+                    break;
+                }
+            }
+
+            if ($ready) {
+                return;
+            }
+
+            usleep(10000);
+        } while (microtime(true) <= $deadline);
+
+        self::fail('Los procesos concurrentes no llegaron a la barrera de inicio.');
+    }
+
+    /** @param array{process:resource,pipes:array<int,resource>,ready_file:string,attempt_file:string} $process */
+    private function processIsRunning(array $process): bool
+    {
+        $status = proc_get_status($process['process']);
+
+        return is_array($status) && ($status['running'] ?? false) === true;
+    }
+
+    /**
+     * @param array{process:resource,pipes:array<int,resource>,ready_file:string,attempt_file:string} $process
+     * @return array{status:string,code?:string}
+     */
+    private function collectConcurrentGlobalCallProcess(array $process): array
+    {
+        $stdout = stream_get_contents($process['pipes'][1]);
+        $stderr = stream_get_contents($process['pipes'][2]);
+        fclose($process['pipes'][1]);
+        fclose($process['pipes'][2]);
+        $exitCode = proc_close($process['process']);
+
+        self::assertSame(0, $exitCode, 'Proceso concurrente fallido: ' . (string) $stderr);
+        $decoded = json_decode((string) $stdout, true);
+
+        self::assertIsArray($decoded, 'Salida concurrente invalida: ' . (string) $stdout);
+        self::assertIsString($decoded['status'] ?? null);
+
+        return $decoded;
+    }
+
+    private function llamadasMes(string $monthStart, string $nextMonthStart): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COALESCE(SUM(llamadas), 0)
+             FROM numa_uso_proveedor
+             WHERE fecha >= :month_start AND fecha < :next_month_start'
+        );
+        $stmt->execute([
+            ':month_start' => $monthStart,
+            ':next_month_start' => $nextMonthStart,
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** @return array{status:int,body:string} */
+    private function validEmbeddingResponse(?int $promptTokenCount = null): array
+    {
+        $body = [
+            'embedding' => [
+                'values' => [0.1, 0.2],
+            ],
+        ];
+
+        if ($promptTokenCount !== null) {
+            $body['usageMetadata'] = [
+                'promptTokenCount' => $promptTokenCount,
+            ];
+        }
+
+        return [
+            'status' => 200,
+            'body' => json_encode($body, JSON_THROW_ON_ERROR),
+        ];
+    }
+
     private function newConnection(): PDO
     {
         $config = require CONFIG_PATH . '/database.php';
@@ -409,6 +760,10 @@ final class NumaConsumoGlobalTest extends TestCase
             'NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT',
             'NUMA_GLOBAL_DAILY_TOKEN_LIMIT',
             'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
+            'NUMA_MAX_INPUT_TOKENS',
+            'NUMA_MAX_OUTPUT_TOKENS',
+            'NUMA_MAX_MESSAGE_LENGTH',
+            'NUMA_MAX_RAG_CHUNK_CHARS',
             'NUMA_DAILY_LIMIT',
             'NUMA_MONTHLY_LIMIT',
             'NUMA_RESERVATION_TTL_SECONDS',

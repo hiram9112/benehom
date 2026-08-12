@@ -12,6 +12,11 @@ interface NumaEmbeddingProviderInterface
     public function embed(string $text): array;
 }
 
+interface NumaEmbeddingProviderUsageInterface extends NumaEmbeddingProviderInterface
+{
+    public function tokenUsage(): NumaTokenUsage;
+}
+
 final class NumaMeteredEmbeddingProvider implements NumaEmbeddingProviderInterface
 {
     public function __construct(
@@ -27,7 +32,12 @@ final class NumaMeteredEmbeddingProvider implements NumaEmbeddingProviderInterfa
         }
 
         $this->consumption->iniciarLlamada();
+        $embedding = $this->provider->embed($text);
+        $usage = $this->provider instanceof NumaEmbeddingProviderUsageInterface
+            ? $this->provider->tokenUsage()
+            : NumaTokenUsage::unknown();
+        $this->consumption->registrarTokens($usage);
 
-        return $this->provider->embed($text);
+        return $embedding;
     }
 }

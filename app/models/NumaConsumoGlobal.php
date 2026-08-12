@@ -12,10 +12,31 @@ final class NumaGlobalLimiteAlcanzado extends RuntimeException
 
 final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterface
 {
+    private const CALL_TYPE_LLM = 'llm';
+    private const CALL_TYPE_EMBEDDING = 'embedding';
+    private const EMBEDDING_MAX_INPUT_TOKENS = 2048;
+
+    /** @var list<array{fecha:string,input:int,output:int}> */
+    private array $pendingTokenReservations = [];
+
     public function __construct(
         private readonly ?PDO $connection = null,
         private readonly ?DateTimeImmutable $now = null,
+        private readonly string $callType = self::CALL_TYPE_LLM,
     ) {
+        if (!in_array($callType, [self::CALL_TYPE_LLM, self::CALL_TYPE_EMBEDDING], true)) {
+            throw new InvalidArgumentException('Tipo de llamada global de Numa no soportado.');
+        }
+    }
+
+    public static function forLlm(?PDO $connection = null, ?DateTimeImmutable $now = null): self
+    {
+        return new self($connection, $now, self::CALL_TYPE_LLM);
+    }
+
+    public static function forEmbedding(?PDO $connection = null, ?DateTimeImmutable $now = null): self
+    {
+        return new self($connection, $now, self::CALL_TYPE_EMBEDDING);
     }
 
     /**
@@ -50,23 +71,43 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
      */
     public function iniciarLlamada(): void
     {
-        $this->incrementarLlamadaSiCabe();
+        $reservation = $this->prepararLlamada();
+        $this->confirmarLlamada($reservation);
     }
 
-    public function prepararLlamada(): null
+    /** @return array{input:int,output:int} */
+    public function prepararLlamada(): array
     {
-        $this->assertLlamadaDisponible();
-
-        return null;
+        return $this->estimatedTokens();
     }
 
     public function confirmarLlamada(mixed $reservation): void
     {
-        $this->incrementarLlamadaSiCabe();
+        if (!is_array($reservation)
+            || !isset($reservation['input'], $reservation['output'])
+            || !is_int($reservation['input'])
+            || !is_int($reservation['output'])
+            || $reservation['input'] < 0
+            || $reservation['output'] < 0
+        ) {
+            throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
+        }
+
+        $this->incrementarLlamadaSiCabe($reservation['input'], $reservation['output']);
     }
 
     public function cancelarLlamada(mixed $reservation): void
     {
+        if (!is_array($reservation) || $this->pendingTokenReservations === []) {
+            return;
+        }
+
+        $last = $this->pendingTokenReservations[array_key_last($this->pendingTokenReservations)];
+        if (($last['input'] ?? null) === ($reservation['input'] ?? null)
+            && ($last['output'] ?? null) === ($reservation['output'] ?? null)
+        ) {
+            array_pop($this->pendingTokenReservations);
+        }
     }
 
     public function conexionTransaccional(): PDO
@@ -74,7 +115,7 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
         return $this->db();
     }
 
-    private function assertLlamadaDisponible(): void
+    private function incrementarLlamadaSiCabe(int $reservedInputTokens, int $reservedOutputTokens): void
     {
         $db = $this->db();
         $started = !$db->inTransaction();
@@ -86,17 +127,22 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
         try {
             $today = $this->today();
             [$monthStart, $nextMonthStart] = $this->monthRange($today);
-            $this->ensureRow($today);
-            $this->lockRow($today);
+            $this->ensureRow($monthStart);
+            $this->lockMonthRange($monthStart, $nextMonthStart);
+
+            if ($today !== $monthStart) {
+                $this->ensureRow($today);
+            }
 
             [$dailyCalls, $dailyTokens] = $this->rowTotals($today);
             $monthlyCalls = $this->llamadasMes($monthStart, $nextMonthStart);
             $monthlyTokens = $this->tokensMes($monthStart, $nextMonthStart);
+            $reservedTokens = $reservedInputTokens + $reservedOutputTokens;
 
-            $limiteAlcanzado = $dailyCalls >= $this->dailyCallLimit()
-                || $monthlyCalls >= $this->monthlyCallLimit()
-                || $dailyTokens >= $this->dailyTokenLimit()
-                || $monthlyTokens >= $this->monthlyTokenLimit();
+            $limiteAlcanzado = $dailyCalls + 1 > $this->dailyCallLimit()
+                || $monthlyCalls + 1 > $this->monthlyCallLimit()
+                || $dailyTokens + $reservedTokens > $this->dailyTokenLimit()
+                || $monthlyTokens + $reservedTokens > $this->monthlyTokenLimit();
 
             if ($limiteAlcanzado) {
                 if ($started) {
@@ -106,35 +152,24 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
                 throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
             }
 
-            if ($started) {
-                $db->commit();
-            }
-        } catch (Throwable $e) {
-            if ($started && $db->inTransaction()) {
-                $db->rollBack();
-            }
-
-            throw $e;
-        }
-    }
-
-    private function incrementarLlamadaSiCabe(): void
-    {
-        $db = $this->db();
-        $started = !$db->inTransaction();
-
-        if ($started) {
-            $db->beginTransaction();
-        }
-
-        try {
-            $today = $this->today();
-            $this->assertLlamadaDisponible();
-
             $stmt = $db->prepare(
-                'UPDATE numa_uso_proveedor SET llamadas = llamadas + 1 WHERE fecha = :fecha'
+                'UPDATE numa_uso_proveedor
+                 SET llamadas = llamadas + 1,
+                     input_tokens = input_tokens + :input,
+                     output_tokens = output_tokens + :output
+                 WHERE fecha = :fecha'
             );
-            $stmt->execute([':fecha' => $today]);
+            $stmt->execute([
+                ':input' => $reservedInputTokens,
+                ':output' => $reservedOutputTokens,
+                ':fecha' => $today,
+            ]);
+
+            $this->pendingTokenReservations[] = [
+                'fecha' => $today,
+                'input' => $reservedInputTokens,
+                'output' => $reservedOutputTokens,
+            ];
 
             if ($started) {
                 $db->commit();
@@ -149,32 +184,33 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
     }
 
     /**
-     * Registra los tokens fiables informados por el proveedor tras una llamada.
-     * Si el proveedor no reporta tokens fiables no se estima ni se actualiza
-     * el contador. El conteo de la llamada se mantiene aunque la llamada haya
-     * fallado, ya que iniciarLlamada() lo incremento previamente.
+     * Reemplaza la reserva conservadora de tokens por el uso fiable informado.
+     * Si no hay uso fiable o la llamada fallo antes de informar usage, se
+     * mantiene la reserva conservadora registrada antes del transporte externo.
      */
     public function registrarTokens(NumaTokenUsage $usage): void
     {
-        $input = $usage->inputTokens();
-        $output = $usage->outputTokens();
-
-        if ($input === null && $output === null) {
+        if (!$usage->hasReliableTokens()) {
             return;
         }
 
-        $today = $this->today();
+        $reservation = array_pop($this->pendingTokenReservations);
+        $today = $reservation['fecha'] ?? $this->today();
+        $reservedInput = $reservation['input'] ?? 0;
+        $reservedOutput = $reservation['output'] ?? 0;
+        [$actualInput, $actualOutput] = $this->actualTokens($usage, $reservedInput, $reservedOutput);
+
         $this->ensureRow($today);
 
         $stmt = $this->db()->prepare(
             'UPDATE numa_uso_proveedor
-             SET input_tokens = input_tokens + :input,
-                 output_tokens = output_tokens + :output
+             SET input_tokens = input_tokens + :input_delta,
+                 output_tokens = output_tokens + :output_delta
              WHERE fecha = :fecha'
         );
         $stmt->execute([
-            ':input' => $input ?? 0,
-            ':output' => $output ?? 0,
+            ':input_delta' => $actualInput - $reservedInput,
+            ':output_delta' => $actualOutput - $reservedOutput,
             ':fecha' => $today,
         ]);
     }
@@ -274,13 +310,20 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
         $stmt->execute([':fecha' => $fecha]);
     }
 
-    private function lockRow(string $fecha): void
+    private function lockMonthRange(string $monthStart, string $nextMonthStart): void
     {
         $stmt = $this->db()->prepare(
-            'SELECT fecha FROM numa_uso_proveedor WHERE fecha = :fecha FOR UPDATE'
+            'SELECT fecha
+             FROM numa_uso_proveedor
+             WHERE fecha >= :month_start AND fecha < :next_month_start
+             ORDER BY fecha
+             FOR UPDATE'
         );
-        $stmt->execute([':fecha' => $fecha]);
-        $stmt->fetchColumn();
+        $stmt->execute([
+            ':month_start' => $monthStart,
+            ':next_month_start' => $nextMonthStart,
+        ]);
+        $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
     /**
@@ -324,5 +367,51 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
     private function now(): DateTimeImmutable
     {
         return $this->now ?? new DateTimeImmutable('now');
+    }
+
+    /** @return array{input:int,output:int} */
+    private function estimatedTokens(): array
+    {
+        if ($this->callType === self::CALL_TYPE_EMBEDDING) {
+            return [
+                'input' => max(1, $this->embeddingInputTokenEstimate()),
+                'output' => 0,
+            ];
+        }
+
+        return [
+            'input' => $this->maxInputTokens(),
+            'output' => $this->maxOutputTokens(),
+        ];
+    }
+
+    /** @return array{0:int,1:int} */
+    private function actualTokens(NumaTokenUsage $usage, int $reservedInput, int $reservedOutput): array
+    {
+        $billableTokens = $usage->billableTokens();
+
+        if ($billableTokens !== null) {
+            return [$billableTokens, 0];
+        }
+
+        return [
+            $usage->inputTokens() ?? $reservedInput,
+            $usage->outputTokens() ?? $reservedOutput,
+        ];
+    }
+
+    private function maxInputTokens(): int
+    {
+        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000));
+    }
+
+    private function maxOutputTokens(): int
+    {
+        return max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 220));
+    }
+
+    private function embeddingInputTokenEstimate(): int
+    {
+        return self::EMBEDDING_MAX_INPUT_TOKENS;
     }
 }

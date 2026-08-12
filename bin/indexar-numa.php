@@ -28,15 +28,20 @@ if (is_file($envPath) && is_readable($envPath)) {
 
 require_once APP_PATH . '/helpers/utils.php';
 require_once APP_PATH . '/models/Database.php';
+require_once APP_PATH . '/models/NumaConsumoGlobal.php';
 require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
 require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
 
 try {
     $dimensions = bh_env_int('NUMA_EMBEDDING_DIMENSIONS', 768);
+    $embeddingProvider = new NumaMeteredEmbeddingProvider(
+        NumaEmbeddingProviderFactory::fromEnvironment(),
+        NumaConsumoGlobal::forEmbedding(Database::getConnection())
+    );
     $indexer = new NumaKnowledgeIndexer(
         Database::getConnection(),
-        NumaEmbeddingProviderFactory::fromEnvironment(),
+        $embeddingProvider,
         new NumaKnowledgeFragmenter(maxContentChars: bh_env_int('NUMA_MAX_RAG_CHUNK_CHARS', 900)),
         $dimensions
     );

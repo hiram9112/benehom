@@ -78,6 +78,17 @@ final class NumaProviderContractTest extends TestCase
         self::assertFalse($usage->hasReliableTokens());
     }
 
+    public function testUsoDeTokensPermiteTotalFacturable(): void
+    {
+        $usage = new \NumaTokenUsage(120, 35, 200);
+
+        self::assertSame(120, $usage->inputTokens());
+        self::assertSame(35, $usage->outputTokens());
+        self::assertSame(200, $usage->billableTokens());
+        self::assertSame(200, $usage->totalTokens());
+        self::assertTrue($usage->hasReliableTokens());
+    }
+
     public function testUsoDeTokensRechazaValoresNegativos(): void
     {
         $this->expectException(InvalidArgumentException::class);

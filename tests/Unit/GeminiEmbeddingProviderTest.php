@@ -53,6 +53,9 @@ final class GeminiEmbeddingProviderTest extends TestCase
                     'embedding' => [
                         'values' => $vector,
                     ],
+                    'usageMetadata' => [
+                        'promptTokenCount' => 37,
+                    ],
                 ]),
             ];
         };
@@ -68,6 +71,9 @@ final class GeminiEmbeddingProviderTest extends TestCase
         self::assertSame('Como se anade un movimiento en BeneHom', $captured['body']['content']['parts'][0]['text']);
         self::assertCount(768, $embedding);
         self::assertSame(0.125, $embedding[0]);
+        self::assertSame(37, $provider->tokenUsage()->inputTokens());
+        self::assertSame(0, $provider->tokenUsage()->outputTokens());
+        self::assertTrue($provider->tokenUsage()->hasReliableTokens());
     }
 
     public function testAceptaRespuestaConListaDeEmbeddingsDocumentada(): void
@@ -170,7 +176,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
 
     public function testEmbeddingMedidoConsumeUnaUnidadAntesDeLaLlamadaReal(): void
     {
-        $provider = new class implements \NumaEmbeddingProviderInterface {
+        $provider = new class implements \NumaEmbeddingProviderUsageInterface {
             public int $calls = 0;
 
             public function embed(string $text): array
@@ -179,9 +185,16 @@ final class GeminiEmbeddingProviderTest extends TestCase
 
                 return [0.1, 0.2];
             }
+
+            public function tokenUsage(): \NumaTokenUsage
+            {
+                return new \NumaTokenUsage(23, 0);
+            }
         };
         $consumption = new class implements \NumaProviderConsumptionInterface {
             public int $calls = 0;
+
+            public ?\NumaTokenUsage $usage = null;
 
             public function iniciarLlamada(): void
             {
@@ -190,6 +203,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
 
             public function registrarTokens(\NumaTokenUsage $usage): void
             {
+                $this->usage = $usage;
             }
         };
 
@@ -198,6 +212,8 @@ final class GeminiEmbeddingProviderTest extends TestCase
         self::assertSame([0.1, 0.2], $embedding);
         self::assertSame(1, $consumption->calls);
         self::assertSame(1, $provider->calls);
+        self::assertSame(23, $consumption->usage?->inputTokens());
+        self::assertSame(0, $consumption->usage?->outputTokens());
     }
 
     public function testEmbeddingMedidoNoConsumeSiElTextoEsInvalido(): void

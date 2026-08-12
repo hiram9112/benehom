@@ -235,7 +235,7 @@ class NumaController
         }
 
         return NumaProviderFactory::fromEnvironment(
-            consumption: new NumaProviderConsumptionChain($consumption, new NumaConsumoGlobal())
+            consumption: new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forLlm())
         );
     }
 
@@ -283,7 +283,7 @@ class NumaController
         if ($consumption !== null) {
             $embeddingProvider = new NumaMeteredEmbeddingProvider(
                 $embeddingProvider,
-                new NumaProviderConsumptionChain($consumption, new NumaConsumoGlobal())
+                new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forEmbedding())
             );
         }
 

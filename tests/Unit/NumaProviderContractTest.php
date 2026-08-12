@@ -370,6 +370,7 @@ final class NumaProviderContractTest extends TestCase
             'referencia no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_ranking_categorias', 'referencia' => 'ABC-123']]]]],
             'saldo no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'comparar_periodos', 'saldo' => 2000.0]]]]],
             'fecha creacion no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_evolucion_financiera', 'fecha_creacion' => '2026-07-01']]]]],
+            'periodo solicitado no permitido para resumen' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_resumen_financiero', 'periodo_solicitado' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31']]]]]],
         ];
     }
 }

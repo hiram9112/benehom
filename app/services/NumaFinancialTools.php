@@ -866,9 +866,9 @@ final class NumaFinancialToolExecutor
     private function executeResumenFinanciero(int $usuarioId, array $arguments): array
     {
         [$start, $end] = $this->period($arguments);
-        $ingresos = $this->sumIngresos($usuarioId, $start, $end);
-        $gastosEsenciales = $this->sumGastos($usuarioId, $start, $end, 'esencial');
-        $gastosFlexibles = $this->sumGastos($usuarioId, $start, $end, 'flexible');
+        $ingresos = $this->sumIngresosCents($usuarioId, $start, $end);
+        $gastosEsenciales = $this->sumGastosCents($usuarioId, $start, $end, 'esencial');
+        $gastosFlexibles = $this->sumGastosCents($usuarioId, $start, $end, 'flexible');
         $gastos = $gastosEsenciales + $gastosFlexibles;
 
         return [
@@ -900,7 +900,7 @@ final class NumaFinancialToolExecutor
             'gastos_flexibles' => $this->categoryTotalsGastos($usuarioId, $start, $end, 'flexible', $limit),
             default => throw new InvalidArgumentException('Metrica de ranking de Numa no permitida.'),
         };
-        $total = $this->calculateMetric($usuarioId, $start, $end, $metric);
+        $total = $this->calculateMetricCents($usuarioId, $start, $end, $metric);
 
         return [
             'tool' => NumaFinancialToolRegistry::OBTENER_RANKING_CATEGORIAS,
@@ -908,13 +908,13 @@ final class NumaFinancialToolExecutor
             'metrica' => $metric,
             'limite' => $limit,
             'categorias' => array_map(function (array $row) use ($total): array {
-                $amount = (float) $row['total'];
+                $amount = $row['total_cents'];
 
                 return [
                     'categoria' => (string) $row['categoria'],
                     'label' => formatearCategoria((string) $row['categoria']),
                     'total' => $this->money($amount),
-                    'porcentaje' => $total > 0 ? round(($amount / $total) * 100, 2) : null,
+                    'porcentaje' => $this->percentage($amount, $total),
                 ];
             }, $rows),
         ];
@@ -938,14 +938,28 @@ final class NumaFinancialToolExecutor
             default => throw new InvalidArgumentException('Agrupacion de Numa no permitida.'),
         };
 
-        return [
+        $period = ['inicio' => $start, 'fin' => $end];
+        $result = [
             'tool' => NumaFinancialToolRegistry::OBTENER_EVOLUCION_FINANCIERA,
-            'periodo' => ['inicio' => $start, 'fin' => $end],
+            'periodo' => $period,
             'metrica' => $metric,
             'agrupacion' => $grouping,
             'limite' => $limit,
             'evolucion' => $items,
         ];
+
+        if ($grouping === 'mes') {
+            $effectivePeriod = $this->monthlyEvolutionPeriod($items);
+            if ($effectivePeriod !== null && $effectivePeriod !== $period) {
+                $result['periodo_solicitado'] = $period;
+                $result['periodo'] = $effectivePeriod;
+            }
+
+            $largestMonth = $this->largestMonth($items);
+            $result['mes_mayor_valor'] = $largestMonth;
+        }
+
+        return $result;
     }
 
     /**
@@ -960,8 +974,8 @@ final class NumaFinancialToolExecutor
         $metric = $this->stringArg($arguments, 'metrica');
         $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
         $this->assertCategoryCompatibleWithMetric($metric, $category);
-        $valueA = $this->calculateMetric($usuarioId, $startA, $endA, $metric, $category);
-        $valueB = $this->calculateMetric($usuarioId, $startB, $endB, $metric, $category);
+        $valueA = $this->calculateMetricCents($usuarioId, $startA, $endA, $metric, $category);
+        $valueB = $this->calculateMetricCents($usuarioId, $startB, $endB, $metric, $category);
         $difference = $valueB - $valueA;
 
         return [
@@ -973,7 +987,7 @@ final class NumaFinancialToolExecutor
             'valor_a' => $this->money($valueA),
             'valor_b' => $this->money($valueB),
             'diferencia_absoluta' => $this->money($difference),
-            'diferencia_porcentual' => $valueA != 0.0 ? round(($difference / abs($valueA)) * 100, 2) : null,
+            'diferencia_porcentual' => $valueA !== 0 ? $this->percentage($difference, abs($valueA)) : null,
         ];
     }
 
@@ -999,6 +1013,8 @@ final class NumaFinancialToolExecutor
             'minimo' => $this->money($stats['min']),
             'total' => $this->money($stats['total']),
             'cantidad_movimientos' => $stats['count'],
+            'promedio_mensual' => $this->money($stats['monthly_average']),
+            'meses_con_datos' => $stats['months_with_data'],
         ];
     }
 
@@ -1064,7 +1080,7 @@ final class NumaFinancialToolExecutor
 
                 return [
                     'fecha' => (string) $row['fecha'],
-                    'cantidad' => $this->money((float) $row['cantidad']),
+                    'cantidad' => $this->money($this->cents($row['cantidad'])),
                     'tipo_movimiento' => (string) $row['tipo_movimiento'],
                     'tipo_gasto' => $row['tipo_gasto'] === null ? null : (string) $row['tipo_gasto'],
                     'categoria' => $movementCategory,
@@ -1327,20 +1343,20 @@ final class NumaFinancialToolExecutor
         return $limit;
     }
 
-    private function calculateMetric(int $usuarioId, string $start, string $end, string $metric, ?string $category = null): float
+    private function calculateMetricCents(int $usuarioId, string $start, string $end, string $metric, ?string $category = null): int
     {
         return match ($metric) {
-            'ingresos' => $this->sumIngresos($usuarioId, $start, $end, $category),
-            'gastos' => $this->sumGastos($usuarioId, $start, $end, null, $category),
-            'gastos_esenciales' => $this->sumGastos($usuarioId, $start, $end, 'esencial', $category),
-            'gastos_flexibles' => $this->sumGastos($usuarioId, $start, $end, 'flexible', $category),
-            'ahorro_posible' => $this->sumIngresos($usuarioId, $start, $end) - $this->sumGastos($usuarioId, $start, $end, 'esencial'),
-            'ahorro_real' => $this->sumIngresos($usuarioId, $start, $end) - $this->sumGastos($usuarioId, $start, $end),
+            'ingresos' => $this->sumIngresosCents($usuarioId, $start, $end, $category),
+            'gastos' => $this->sumGastosCents($usuarioId, $start, $end, null, $category),
+            'gastos_esenciales' => $this->sumGastosCents($usuarioId, $start, $end, 'esencial', $category),
+            'gastos_flexibles' => $this->sumGastosCents($usuarioId, $start, $end, 'flexible', $category),
+            'ahorro_posible' => $this->sumIngresosCents($usuarioId, $start, $end) - $this->sumGastosCents($usuarioId, $start, $end, 'esencial'),
+            'ahorro_real' => $this->sumIngresosCents($usuarioId, $start, $end) - $this->sumGastosCents($usuarioId, $start, $end),
             default => throw new InvalidArgumentException('Metrica financiera de Numa no permitida.'),
         };
     }
 
-    private function sumIngresos(int $usuarioId, string $start, string $end, ?string $category = null): float
+    private function sumIngresosCents(int $usuarioId, string $start, string $end, ?string $category = null): int
     {
         $sql = 'SELECT SUM(cantidad) AS total FROM ingresos WHERE usuario_id = :usuario_id AND DATE(fecha) BETWEEN :inicio AND :fin';
         $params = [':usuario_id' => $usuarioId, ':inicio' => $start, ':fin' => $end];
@@ -1350,10 +1366,10 @@ final class NumaFinancialToolExecutor
             $params[':categoria'] = $category;
         }
 
-        return $this->sum($sql, $params);
+        return $this->sumCents($sql, $params);
     }
 
-    private function sumGastos(int $usuarioId, string $start, string $end, ?string $type = null, ?string $category = null): float
+    private function sumGastosCents(int $usuarioId, string $start, string $end, ?string $type = null, ?string $category = null): int
     {
         $sql = 'SELECT SUM(cantidad) AS total FROM gastos WHERE usuario_id = :usuario_id AND DATE(fecha) BETWEEN :inicio AND :fin';
         $params = [':usuario_id' => $usuarioId, ':inicio' => $start, ':fin' => $end];
@@ -1368,24 +1384,22 @@ final class NumaFinancialToolExecutor
             $params[':categoria'] = $category;
         }
 
-        return $this->sum($sql, $params);
+        return $this->sumCents($sql, $params);
     }
 
     /**
      * @param array<string, int|string> $params
      */
-    private function sum(string $sql, array $params): float
+    private function sumCents(string $sql, array $params): int
     {
         $stmt = $this->db()->prepare($sql);
         $this->bindAndExecute($stmt, $params);
         $value = $stmt->fetchColumn();
 
-        return $value === false || $value === null ? 0.0 : (float) $value;
+        return $value === false || $value === null ? 0 : $this->cents($value);
     }
 
-    /**
-     * @return array<int, array{categoria:string, total:float}>
-     */
+    /** @return array<int, array{categoria:string, total_cents:int}> */
     private function categoryTotalsIngresos(int $usuarioId, string $start, string $end, int $limit): array
     {
         $sql = "SELECT categoria, SUM(cantidad) AS total
@@ -1406,9 +1420,7 @@ final class NumaFinancialToolExecutor
         return $this->fetchCategoryTotals($stmt);
     }
 
-    /**
-     * @return array<int, array{categoria:string, total:float}>
-     */
+    /** @return array<int, array{categoria:string, total_cents:int}> */
     private function categoryTotalsGastos(int $usuarioId, string $start, string $end, ?string $type, int $limit): array
     {
         $sql = "SELECT categoria, SUM(cantidad) AS total
@@ -1432,16 +1444,14 @@ final class NumaFinancialToolExecutor
         return $this->fetchCategoryTotals($stmt);
     }
 
-    /**
-     * @return array<int, array{categoria:string, total:float}>
-     */
+    /** @return array<int, array{categoria:string, total_cents:int}> */
     private function fetchCategoryTotals(PDOStatement $stmt): array
     {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(static fn (array $row): array => [
             'categoria' => (string) $row['categoria'],
-            'total' => (float) $row['total'],
+            'total_cents' => self::cents($row['total']),
         ], $rows ?: []);
     }
 
@@ -1450,18 +1460,24 @@ final class NumaFinancialToolExecutor
      */
     private function monthlyEvolution(int $usuarioId, string $start, string $end, string $metric, int $limit): array
     {
-        $items = [];
         $cursor = new DateTimeImmutable(substr($start, 0, 7) . '-01');
         $last = new DateTimeImmutable(substr($end, 0, 7) . '-01');
+        $months = [];
 
-        while ($cursor <= $last && count($items) < $limit) {
-            $monthStart = max($start, $cursor->format('Y-m-01'));
-            $monthEnd = min($end, $cursor->format('Y-m-t'));
-            $items[] = [
-                'mes' => $cursor->format('Y-m'),
-                'valor' => $this->money($this->calculateMetric($usuarioId, $monthStart, $monthEnd, $metric)),
-            ];
+        while ($cursor <= $last) {
+            $months[] = $cursor->format('Y-m');
             $cursor = $cursor->modify('+1 month');
+        }
+
+        $months = array_slice($months, -$limit);
+        $items = [];
+        foreach ($months as $month) {
+            $monthStart = max($start, $month . '-01');
+            $monthEnd = min($end, (new DateTimeImmutable($month . '-01'))->format('Y-m-t'));
+            $items[] = [
+                'mes' => $month,
+                'valor' => $this->money($this->calculateMetricCents($usuarioId, $monthStart, $monthEnd, $metric)),
+            ];
         }
 
         return $items;
@@ -1485,7 +1501,7 @@ final class NumaFinancialToolExecutor
             return [
                 'categoria' => $row['categoria'],
                 'label' => formatearCategoria($row['categoria']),
-                'valor' => $this->money($row['total']),
+                'valor' => $this->money($row['total_cents']),
             ];
         }, $rows);
     }
@@ -1497,24 +1513,24 @@ final class NumaFinancialToolExecutor
     {
         return match ($metric) {
             'ingresos' => [
-                ['tipo' => 'ingresos', 'valor' => $this->money($this->sumIngresos($usuarioId, $start, $end))],
+                ['tipo' => 'ingresos', 'valor' => $this->money($this->sumIngresosCents($usuarioId, $start, $end))],
             ],
             'gastos' => [
-                ['tipo' => 'esencial', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'esencial'))],
-                ['tipo' => 'flexible', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'flexible'))],
+                ['tipo' => 'esencial', 'valor' => $this->money($this->sumGastosCents($usuarioId, $start, $end, 'esencial'))],
+                ['tipo' => 'flexible', 'valor' => $this->money($this->sumGastosCents($usuarioId, $start, $end, 'flexible'))],
             ],
             'gastos_esenciales' => [
-                ['tipo' => 'esencial', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'esencial'))],
+                ['tipo' => 'esencial', 'valor' => $this->money($this->sumGastosCents($usuarioId, $start, $end, 'esencial'))],
             ],
             'gastos_flexibles' => [
-                ['tipo' => 'flexible', 'valor' => $this->money($this->sumGastos($usuarioId, $start, $end, 'flexible'))],
+                ['tipo' => 'flexible', 'valor' => $this->money($this->sumGastosCents($usuarioId, $start, $end, 'flexible'))],
             ],
             default => throw new InvalidArgumentException('La evolucion por tipo requiere una metrica de movimientos.'),
         };
     }
 
     /**
-     * @return array{average:float, max:float, min:float, total:float, count:int}
+     * @return array{average:?int, max:?int, min:?int, total:int, count:int, monthly_average:?int, months_with_data:int}
      */
     private function movementStats(int $usuarioId, string $start, string $end, string $metric, ?string $category): array
     {
@@ -1526,8 +1542,7 @@ final class NumaFinancialToolExecutor
             default => throw new InvalidArgumentException('Metrica de movimientos de Numa no permitida.'),
         };
 
-        $sql = "SELECT AVG(cantidad) AS promedio, MAX(cantidad) AS maximo, MIN(cantidad) AS minimo,
-                       SUM(cantidad) AS total, COUNT(*) AS cantidad
+        $sql = "SELECT cantidad, DATE_FORMAT(fecha, '%Y-%m') AS mes
                 FROM {$table}
                 WHERE usuario_id = :usuario_id AND DATE(fecha) BETWEEN :inicio AND :fin";
         $params = [':usuario_id' => $usuarioId, ':inicio' => $start, ':fin' => $end];
@@ -1544,14 +1559,30 @@ final class NumaFinancialToolExecutor
 
         $stmt = $this->db()->prepare($sql);
         $this->bindAndExecute($stmt, $params);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $amounts = [];
+        $monthlyTotals = [];
+        foreach ($rows as $row) {
+            $amount = $this->cents($row['cantidad']);
+            $amounts[] = $amount;
+            $month = (string) $row['mes'];
+            $monthlyTotals[$month] = ($monthlyTotals[$month] ?? 0) + $amount;
+        }
+
+        $count = count($amounts);
+        $total = array_sum($amounts);
+        $monthsWithData = count($monthlyTotals);
 
         return [
-            'average' => (float) ($row['promedio'] ?? 0),
-            'max' => (float) ($row['maximo'] ?? 0),
-            'min' => (float) ($row['minimo'] ?? 0),
-            'total' => (float) ($row['total'] ?? 0),
-            'count' => (int) ($row['cantidad'] ?? 0),
+            'average' => $count === 0 ? null : intdiv($total + intdiv($count, 2), $count),
+            'max' => $count === 0 ? null : max($amounts),
+            'min' => $count === 0 ? null : min($amounts),
+            'total' => $total,
+            'count' => $count,
+            'monthly_average' => $monthsWithData === 0
+                ? null
+                : intdiv($total + intdiv($monthsWithData, 2), $monthsWithData),
+            'months_with_data' => $monthsWithData,
         ];
     }
 
@@ -1567,9 +1598,73 @@ final class NumaFinancialToolExecutor
         $stmt->execute();
     }
 
-    private function money(float $value): float
+    private function money(?int $cents): ?string
     {
-        return round($value, 2);
+        if ($cents === null) {
+            return null;
+        }
+
+        $sign = $cents < 0 ? '-' : '';
+        $cents = abs($cents);
+
+        return $sign . intdiv($cents, 100) . '.' . str_pad((string) ($cents % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    private static function cents(mixed $value): int
+    {
+        if (is_int($value)) {
+            return $value * 100;
+        }
+
+        if (!is_string($value)) {
+            throw new UnexpectedValueException('Cantidad financiera de Numa no valida.');
+        }
+
+        $amount = trim((string) $value);
+        if (!preg_match('/^(-?)(\d+)(?:\.(\d{1,2}))?$/', $amount, $matches)) {
+            throw new UnexpectedValueException('Cantidad financiera de Numa no valida.');
+        }
+
+        $fraction = str_pad($matches[3] ?? '', 2, '0');
+        $cents = ((int) $matches[2] * 100) + (int) $fraction;
+
+        return $matches[1] === '-' ? -$cents : $cents;
+    }
+
+    private function percentage(int $numerator, int $denominator): ?float
+    {
+        if ($denominator === 0) {
+            return null;
+        }
+
+        return round(($numerator * 100) / $denominator, 2);
+    }
+
+    /** @param array<int, array<string, string>> $items */
+    private function largestMonth(array $items): ?array
+    {
+        if ($items === []) {
+            return null;
+        }
+
+        usort($items, static fn (array $left, array $right): int => $right['valor'] <=> $left['valor'] ?: $left['mes'] <=> $right['mes']);
+
+        return $items[0];
+    }
+
+    /** @param array<int, array<string, string>> $items */
+    private function monthlyEvolutionPeriod(array $items): ?array
+    {
+        if ($items === []) {
+            return null;
+        }
+
+        $lastItem = $items[array_key_last($items)];
+
+        return [
+            'inicio' => $items[0]['mes'] . '-01',
+            'fin' => (new DateTimeImmutable($lastItem['mes'] . '-01'))->format('Y-m-t'),
+        ];
     }
 
     private function db(): PDO

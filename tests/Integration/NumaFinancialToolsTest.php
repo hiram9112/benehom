@@ -27,12 +27,12 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31']
         );
 
-        self::assertSame(2000.0, $result['ingresos']);
-        self::assertSame(950.0, $result['gastos']);
-        self::assertSame(800.0, $result['gastos_esenciales']);
-        self::assertSame(150.0, $result['gastos_flexibles']);
-        self::assertSame(1200.0, $result['ahorro_posible']);
-        self::assertSame(1050.0, $result['ahorro_real']);
+        self::assertSame('2000.00', $result['ingresos']);
+        self::assertSame('950.00', $result['gastos']);
+        self::assertSame('800.00', $result['gastos_esenciales']);
+        self::assertSame('150.00', $result['gastos_flexibles']);
+        self::assertSame('1200.00', $result['ahorro_posible']);
+        self::assertSame('1050.00', $result['ahorro_real']);
     }
 
     public function testResuelvePeriodosRelativosYNormalizaRangosAMesesCompletos(): void
@@ -54,9 +54,9 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         ]);
 
         self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $relative['periodo']);
-        self::assertSame(1000.0, $relative['ingresos']);
+        self::assertSame('1000.00', $relative['ingresos']);
         self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-08-31'], $explicit['periodo']);
-        self::assertSame(1200.0, $explicit['ingresos']);
+        self::assertSame('1200.00', $explicit['ingresos']);
     }
 
     public function testRankingCategoriasDevuelveTotalesAcotadosSinDatosPrivados(): void
@@ -82,7 +82,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $result['periodo']);
         self::assertSame(2, $result['limite']);
         self::assertSame('alimentacion', $result['categorias'][0]['categoria']);
-        self::assertSame(100.0, $result['categorias'][0]['total']);
+        self::assertSame('100.00', $result['categorias'][0]['total']);
         self::assertSame(50.0, $result['categorias'][0]['porcentaje']);
         self::assertSame(37.5, $result['categorias'][1]['porcentaje']);
         self::assertArrayNotHasKey('usuario_id', $result['categorias'][0]);
@@ -106,7 +106,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'agrupacion' => 'tipo',
         ]);
         self::assertSame([
-            ['tipo' => 'ingresos', 'valor' => 1200.0],
+            ['tipo' => 'ingresos', 'valor' => '1200.00'],
         ], $ingresos['evolucion']);
 
         $gastos = $registry->execute('obtener_evolucion_financiera', $usuarioId, [
@@ -116,8 +116,8 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'agrupacion' => 'tipo',
         ]);
         self::assertSame([
-            ['tipo' => 'esencial', 'valor' => 300.0],
-            ['tipo' => 'flexible', 'valor' => 90.0],
+            ['tipo' => 'esencial', 'valor' => '300.00'],
+            ['tipo' => 'flexible', 'valor' => '90.00'],
         ], $gastos['evolucion']);
     }
 
@@ -141,7 +141,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
                 'fecha_fin' => '2026-07-31',
             ]);
 
-            self::assertSame(1000.0, $resumen['ingresos']);
+            self::assertSame('1000.00', $resumen['ingresos']);
 
             $this->expectException(\InvalidArgumentException::class);
             $registry->executeForAuthenticatedSession('obtener_resumen_financiero', [
@@ -170,10 +170,12 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'metrica' => 'gastos',
         ]);
 
-        self::assertSame(140.0, $comparacion['valor_a']);
-        self::assertSame(60.0, $comparacion['valor_b']);
-        self::assertSame(-80.0, $comparacion['diferencia_absoluta']);
+        self::assertSame('140.00', $comparacion['valor_a']);
+        self::assertSame('60.00', $comparacion['valor_b']);
+        self::assertSame('-80.00', $comparacion['diferencia_absoluta']);
         self::assertSame(-57.14, $comparacion['diferencia_porcentual']);
+        self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $comparacion['periodo_a']);
+        self::assertSame(['inicio' => '2026-08-01', 'fin' => '2026-08-31'], $comparacion['periodo_b']);
     }
 
     public function testCategoriasAceptanAliasControladosYRechazanMetricasIncompatibles(): void
@@ -191,7 +193,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'categoria' => 'Nómina',
         ]);
         self::assertSame('nomina', $incomeStats['categoria']);
-        self::assertSame(1200.0, $incomeStats['total']);
+        self::assertSame('1200.00', $incomeStats['total']);
 
         $expenseStats = $registry->execute('obtener_estadisticas_movimientos', $usuarioId, [
             'fecha_inicio' => '2026-07-01',
@@ -200,7 +202,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'categoria' => 'Regalos',
         ]);
         self::assertSame('regalos', $expenseStats['categoria']);
-        self::assertSame(50.0, $expenseStats['total']);
+        self::assertSame('50.00', $expenseStats['total']);
 
         foreach ([
             ['metrica' => 'ingresos', 'categoria' => 'Regalos'],
@@ -238,12 +240,100 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         );
 
         self::assertSame(2, $estadisticas['cantidad_movimientos']);
-        self::assertSame(140.0, $estadisticas['total']);
-        self::assertSame(70.0, $estadisticas['promedio']);
-        self::assertSame(100.0, $estadisticas['maximo']);
-        self::assertSame(40.0, $estadisticas['minimo']);
+        self::assertSame('140.00', $estadisticas['total']);
+        self::assertSame('70.00', $estadisticas['promedio']);
+        self::assertSame('100.00', $estadisticas['maximo']);
+        self::assertSame('40.00', $estadisticas['minimo']);
         self::assertArrayNotHasKey('movimientos', $estadisticas);
         self::assertArrayNotHasKey('fecha', $estadisticas);
+    }
+
+    public function testEstadisticasMantienenCentimosExactosYPromedioMensualSoloIncluyeMesesConDatos(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-centimos@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 0.10, '2026-06-02');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 0.20, '2026-06-03');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 0.10, '2026-08-04');
+
+        $estadisticas = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute(
+            'obtener_estadisticas_movimientos',
+            $usuarioId,
+            ['fecha_inicio' => '2026-06-01', 'fecha_fin' => '2026-08-31', 'metrica' => 'gastos_flexibles']
+        );
+
+        self::assertSame('0.40', $estadisticas['total']);
+        self::assertSame('0.13', $estadisticas['promedio']);
+        self::assertSame('0.20', $estadisticas['maximo']);
+        self::assertSame('0.10', $estadisticas['minimo']);
+        self::assertSame('0.20', $estadisticas['promedio_mensual']);
+        self::assertSame(2, $estadisticas['meses_con_datos']);
+    }
+
+    public function testEstadisticasSinMovimientosDevuelvenNulosYCeroMeses(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-estadisticas-vacias@example.test');
+
+        $estadisticas = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute(
+            'obtener_estadisticas_movimientos',
+            (int) $usuario['id'],
+            ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31', 'metrica' => 'gastos']
+        );
+
+        self::assertNull($estadisticas['promedio']);
+        self::assertNull($estadisticas['maximo']);
+        self::assertNull($estadisticas['minimo']);
+        self::assertSame('0.00', $estadisticas['total']);
+        self::assertSame(0, $estadisticas['meses_con_datos']);
+    }
+
+    public function testEvolucionMensualConLimiteConservaLosMesesRecientesYDeclaraPeriodoReal(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-evolucion-reciente@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 10, '2026-01-03');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 20, '2026-02-03');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 30, '2026-03-03');
+
+        $evolucion = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute(
+            'obtener_evolucion_financiera',
+            $usuarioId,
+            [
+                'fecha_inicio' => '2026-01-01',
+                'fecha_fin' => '2026-03-31',
+                'metrica' => 'gastos',
+                'agrupacion' => 'mes',
+                'limite' => 2,
+            ]
+        );
+
+        self::assertSame(['inicio' => '2026-02-01', 'fin' => '2026-03-31'], $evolucion['periodo']);
+        self::assertSame(['inicio' => '2026-01-01', 'fin' => '2026-03-31'], $evolucion['periodo_solicitado']);
+        self::assertSame(['2026-02', '2026-03'], array_column($evolucion['evolucion'], 'mes'));
+        self::assertSame(['mes' => '2026-03', 'valor' => '30.00'], $evolucion['mes_mayor_valor']);
+    }
+
+    public function testComparacionConPeriodoBaseVacioNoCalculaPorcentaje(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-division-cero@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 25, '2026-08-03');
+
+        $comparacion = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute(
+            'comparar_periodos',
+            $usuarioId,
+            [
+                'fecha_inicio_a' => '2026-07-01',
+                'fecha_fin_a' => '2026-07-31',
+                'fecha_inicio_b' => '2026-08-01',
+                'fecha_fin_b' => '2026-08-31',
+                'metrica' => 'gastos',
+            ]
+        );
+
+        self::assertSame('0.00', $comparacion['valor_a']);
+        self::assertSame('25.00', $comparacion['valor_b']);
+        self::assertNull($comparacion['diferencia_porcentual']);
     }
 
     public function testUsuarioSinDatosYPeriodoSinMovimientosDevuelvenAgregadosVacios(): void
@@ -263,8 +353,8 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'metrica' => 'gastos',
         ]);
 
-        self::assertSame(0.0, $resumen['ingresos']);
-        self::assertSame(0.0, $resumen['gastos']);
+        self::assertSame('0.00', $resumen['ingresos']);
+        self::assertSame('0.00', $resumen['gastos']);
         self::assertSame([], $ranking['categorias']);
     }
 
@@ -297,7 +387,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(1, $movimientos['limite']);
         self::assertSame([[
             'fecha' => '2026-07-04',
-            'cantidad' => 75.0,
+            'cantidad' => '75.00',
             'tipo_movimiento' => 'gasto',
             'tipo_gasto' => 'flexible',
             'categoria' => 'regalos',

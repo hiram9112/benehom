@@ -431,6 +431,8 @@ final class NumaProviderBoundary implements NumaProviderInterface
             'metrica' => true,
             'agrupacion' => true,
             'limite' => true,
+            'periodo_solicitado' => ['inicio' => true, 'fin' => true],
+            'mes_mayor_valor' => ['mes' => true, 'valor' => true],
             'evolucion' => [[
                 'mes' => true,
                 'categoria' => true,
@@ -460,6 +462,27 @@ final class NumaProviderBoundary implements NumaProviderInterface
             'minimo' => true,
             'total' => true,
             'cantidad_movimientos' => true,
+            'promedio_mensual' => true,
+            'meses_con_datos' => true,
+        ],
+        'obtener_movimientos' => [
+            'tool' => true,
+            'periodo' => ['inicio' => true, 'fin' => true],
+            'tipo_movimiento' => true,
+            'tipo_gasto' => true,
+            'grupo' => true,
+            'categoria' => true,
+            'orden' => true,
+            'direccion' => true,
+            'limite' => true,
+            'movimientos' => [[
+                'fecha' => true,
+                'cantidad' => true,
+                'tipo_movimiento' => true,
+                'tipo_gasto' => true,
+                'categoria' => true,
+                'label' => true,
+            ]],
         ],
     ];
 

@@ -221,6 +221,91 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame([], $ranking['categorias']);
     }
 
+    public function testObtenerMovimientosFiltraOrdenaYLimitaUnaSeleccionSegura(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-movimientos@example.test');
+        $otroUsuario = $this->crearUsuario('numa-tools-movimientos-otro@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertIngreso($usuarioId, 'nomina', 1200, '2026-07-02');
+        $this->insertGasto($usuarioId, 'flexible', 'regalos', 20, '2026-07-03');
+        $this->insertGasto($usuarioId, 'flexible', 'regalos', 75, '2026-07-04');
+        $this->insertGasto((int) $otroUsuario['id'], 'flexible', 'regalos', 999, '2026-07-05');
+
+        $movimientos = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)))->execute(
+            'obtener_movimientos',
+            $usuarioId,
+            [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'tipo_movimiento' => 'gasto',
+                'tipo_gasto' => 'flexible',
+                'categoria' => 'regalos',
+                'orden' => 'cantidad',
+                'direccion' => 'desc',
+                'limite' => 1,
+            ]
+        );
+
+        self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $movimientos['periodo']);
+        self::assertSame(1, $movimientos['limite']);
+        self::assertSame([[
+            'fecha' => '2026-07-04',
+            'cantidad' => 75.0,
+            'tipo_movimiento' => 'gasto',
+            'tipo_gasto' => 'flexible',
+            'categoria' => 'regalos',
+            'label' => 'Regalos',
+        ]], $movimientos['movimientos']);
+    }
+
+    public function testObtenerMovimientosUsaLimiteSeguroDeDiezYRechazaFiltrosIncompatibles(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-movimientos-filtros@example.test');
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+
+        $result = $registry->execute('obtener_movimientos', (int) $usuario['id'], [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ]);
+        self::assertSame(10, $result['limite']);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $registry->execute('obtener_movimientos', (int) $usuario['id'], [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'tipo_movimiento' => 'ingreso',
+            'tipo_gasto' => 'esencial',
+        ]);
+    }
+
+    public function testObtenerMovimientosRechazaGrupoYCategoriaCombinados(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-grupo-categoria@example.test');
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $registry->execute('obtener_movimientos', (int) $usuario['id'], [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'grupo' => 'compras',
+            'categoria' => 'regalos',
+        ]);
+    }
+
+    public function testObtenerMovimientosNoIgnoraUnGrupoIncompatibleConElTipo(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-movimientos-grupo-tipo@example.test');
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $registry->execute('obtener_movimientos', (int) $usuario['id'], [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'tipo_movimiento' => 'ingreso',
+            'grupo' => 'compras',
+        ]);
+    }
+
     public function testResultadoAgregadoDeToolsQuedaAcotadoParaProveedorSinDatosPrivados(): void
     {
         $usuario = $this->crearUsuario('numa-tools-json-limit@example.test');
@@ -271,7 +356,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
     public function testToolsSonSoloLecturaYEjecutanUnicamenteSelect(): void
     {
         $pdo = new RecordingNumaPdo();
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 5, 10000);
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 6, 10000);
 
         $registry->execute('obtener_resumen_financiero', 1, [
             'fecha_inicio' => '2026-07-01',
@@ -299,6 +384,10 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'fecha_inicio' => '2026-07-01',
             'fecha_fin' => '2026-07-31',
             'metrica' => 'gastos',
+        ]);
+        $registry->execute('obtener_movimientos', 1, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
         ]);
 
         self::assertNotSame([], $pdo->preparedSql);

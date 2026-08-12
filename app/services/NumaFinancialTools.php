@@ -248,6 +248,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
     public const OBTENER_EVOLUCION_FINANCIERA = 'obtener_evolucion_financiera';
     public const COMPARAR_PERIODOS = 'comparar_periodos';
     public const OBTENER_ESTADISTICAS_MOVIMIENTOS = 'obtener_estadisticas_movimientos';
+    public const OBTENER_MOVIMIENTOS = 'obtener_movimientos';
 
     /** @var array<int, string> */
     private const TOOL_NAMES = [
@@ -256,6 +257,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
         self::OBTENER_EVOLUCION_FINANCIERA,
         self::COMPARAR_PERIODOS,
         self::OBTENER_ESTADISTICAS_MOVIMIENTOS,
+        self::OBTENER_MOVIMIENTOS,
     ];
 
     /** @var array<int, string> */
@@ -386,7 +388,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             return $result;
         }
 
-        foreach (['categorias', 'evolucion'] as $itemsKey) {
+        foreach (['categorias', 'evolucion', 'movimientos'] as $itemsKey) {
             if (!isset($result[$itemsKey]) || !is_array($result[$itemsKey]) || !array_is_list($result[$itemsKey])) {
                 continue;
             }
@@ -502,6 +504,30 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
                 ['max_items' => 1],
                 'executeEstadisticasMovimientos'
             ),
+            self::OBTENER_MOVIMIENTOS => new NumaFinancialToolDefinition(
+                self::OBTENER_MOVIMIENTOS,
+                'Devuelve una seleccion pequena y ordenada de movimientos filtrados de un periodo.',
+                self::periodSchema([
+                    'tipo_movimiento' => ['type' => 'string', 'enum' => ['ingreso', 'gasto']],
+                    'tipo_gasto' => ['type' => 'string', 'enum' => ['esencial', 'flexible']],
+                    'grupo' => ['type' => 'string', 'enum' => self::movementGroups()],
+                    'categoria' => ['type' => 'string', 'enum' => $categories],
+                    'orden' => ['type' => 'string', 'enum' => ['fecha', 'cantidad']],
+                    'direccion' => ['type' => 'string', 'enum' => ['asc', 'desc']],
+                    'limite' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 10],
+                ]),
+                [],
+                [
+                    'tipo_movimiento' => ['ingreso', 'gasto'],
+                    'tipo_gasto' => ['esencial', 'flexible'],
+                    'grupo' => self::movementGroups(),
+                    'categoria' => $categories,
+                    'orden' => ['fecha', 'cantidad'],
+                    'direccion' => ['asc', 'desc'],
+                ],
+                ['max_items' => 10],
+                'executeObtenerMovimientos'
+            ),
         ];
 
         if (array_keys($definitions) !== self::TOOL_NAMES) {
@@ -517,6 +543,16 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
     private static function dateRangeSchema(): array
     {
         return self::periodSchema();
+    }
+
+    /** @return array<int, string> */
+    private static function movementGroups(): array
+    {
+        return array_values(array_unique(array_merge(
+            array_keys(gastoCategoriasPorTipo('esencial')),
+            array_keys(gastoCategoriasPorTipo('flexible')),
+            array_keys(ingresoCategorias())
+        )));
     }
 
     /**
@@ -584,6 +620,7 @@ final class NumaFinancialToolExecutor
             'executeEvolucionFinanciera' => $this->executeEvolucionFinanciera($authenticatedUserId, $arguments),
             'executeCompararPeriodos' => $this->executeCompararPeriodos($authenticatedUserId, $arguments),
             'executeEstadisticasMovimientos' => $this->executeEstadisticasMovimientos($authenticatedUserId, $arguments),
+            'executeObtenerMovimientos' => $this->executeObtenerMovimientos($authenticatedUserId, $arguments),
             default => throw new InvalidArgumentException('Implementacion de tool financiera de Numa no registrada.'),
         };
 
@@ -782,6 +819,189 @@ final class NumaFinancialToolExecutor
             'total' => $this->money($stats['total']),
             'cantidad_movimientos' => $stats['count'],
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    private function executeObtenerMovimientos(int $usuarioId, array $arguments): array
+    {
+        [$start, $end] = $this->period($arguments);
+        $movementType = isset($arguments['tipo_movimiento']) ? $this->stringArg($arguments, 'tipo_movimiento') : null;
+        $expenseType = isset($arguments['tipo_gasto']) ? $this->stringArg($arguments, 'tipo_gasto') : null;
+        $group = isset($arguments['grupo']) ? $this->stringArg($arguments, 'grupo') : null;
+        $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
+        $order = $this->stringArg($arguments, 'orden', 'fecha');
+        $direction = strtoupper($this->stringArg($arguments, 'direccion', 'desc'));
+        $limit = $this->boundedLimit($arguments['limite'] ?? 10, 1, 10);
+
+        if ($expenseType !== null && $movementType !== 'gasto') {
+            throw new InvalidArgumentException('El tipo de gasto requiere movimientos de gasto.');
+        }
+
+        if ($group !== null && $category !== null) {
+            throw new InvalidArgumentException('Grupo y categoria de movimientos no se pueden combinar.');
+        }
+
+        $categoryFilters = $this->movementCategoryFilters($group, $category);
+        $this->assertMovementFiltersAreCompatible($movementType, $expenseType, $categoryFilters);
+
+        $selects = [];
+        $params = [];
+        if ($movementType !== 'gasto') {
+            $selects[] = $this->movementSelect(
+                'ingresos', 'ingreso', null, $categoryFilters['ingresos'], $usuarioId, $start, $end, $params, 'ingreso'
+            );
+        }
+        if ($movementType !== 'ingreso') {
+            $selects[] = $this->movementSelect(
+                'gastos', 'gasto', $expenseType, $categoryFilters['gastos'], $usuarioId, $start, $end, $params, 'gasto'
+            );
+        }
+
+        $orderColumn = $order === 'cantidad' ? 'cantidad' : 'fecha';
+        $sql = 'SELECT fecha, cantidad, tipo_movimiento, tipo_gasto, categoria FROM (' . implode(' UNION ALL ', $selects) . ') AS movimientos'
+            . " ORDER BY {$orderColumn} {$direction}, fecha DESC, categoria ASC, tipo_movimiento ASC LIMIT :limite";
+        $params[':limite'] = $limit;
+        $stmt = $this->db()->prepare($sql);
+        $this->bindAndExecute($stmt, $params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'tool' => NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS,
+            'periodo' => ['inicio' => $start, 'fin' => $end],
+            'tipo_movimiento' => $movementType,
+            'tipo_gasto' => $expenseType,
+            'grupo' => $group,
+            'categoria' => $category,
+            'orden' => $order,
+            'direccion' => strtolower($direction),
+            'limite' => $limit,
+            'movimientos' => array_map(function (array $row): array {
+                $movementCategory = (string) $row['categoria'];
+
+                return [
+                    'fecha' => (string) $row['fecha'],
+                    'cantidad' => $this->money((float) $row['cantidad']),
+                    'tipo_movimiento' => (string) $row['tipo_movimiento'],
+                    'tipo_gasto' => $row['tipo_gasto'] === null ? null : (string) $row['tipo_gasto'],
+                    'categoria' => $movementCategory,
+                    'label' => formatearCategoria($movementCategory),
+                ];
+            }, $rows),
+        ];
+    }
+
+    /**
+     * @param array{ingresos:array<int, string>|null,gastos:array<int, string>|null} $categoryFilters
+     */
+    private function assertMovementFiltersAreCompatible(?string $movementType, ?string $expenseType, array $categoryFilters): void
+    {
+        if ($movementType === 'ingreso' && $categoryFilters['ingresos'] === []) {
+            throw new InvalidArgumentException('La categoria no es compatible con ingresos.');
+        }
+
+        if ($movementType === 'gasto' && $categoryFilters['gastos'] === []) {
+            throw new InvalidArgumentException('La categoria no es compatible con gastos.');
+        }
+
+        if ($expenseType !== null && $categoryFilters['gastos'] !== null) {
+            foreach ($categoryFilters['gastos'] as $movementCategory) {
+                if (!gastoCategoriaPermitida($expenseType, $movementCategory)) {
+                    throw new InvalidArgumentException('La categoria no es compatible con el tipo de gasto.');
+                }
+            }
+        }
+    }
+
+    /** @return array{ingresos:array<int, string>|null,gastos:array<int, string>|null} */
+    private function movementCategoryFilters(?string $group, ?string $category): array
+    {
+        $incomeCategories = $group === null ? null : [];
+        $expenseCategories = $group === null ? null : [];
+
+        if ($group !== null) {
+            if (isset(ingresoCategorias()[$group])) {
+                $incomeCategories = array_keys(ingresoCategorias()[$group]['conceptos'] ?? []);
+            }
+
+            $expenseGroup = gastoCategoriasPorTipo('esencial')[$group] ?? gastoCategoriasPorTipo('flexible')[$group] ?? null;
+            if ($expenseGroup !== null) {
+                $expenseCategories = array_keys($expenseGroup['items']);
+            }
+
+            if ($incomeCategories === [] && $expenseCategories === []) {
+                throw new InvalidArgumentException('Grupo de movimientos de Numa no permitido.');
+            }
+        }
+
+        if ($category !== null) {
+            $categoryIncome = ingresoCategoriaPermitida($category) ? [$category] : [];
+            $categoryExpense = array_key_exists($category, gastoCategoriaLabels()) ? [$category] : [];
+
+            if ($incomeCategories !== null && array_intersect($incomeCategories, $categoryIncome) === []) {
+                throw new InvalidArgumentException('La categoria no pertenece al grupo indicado.');
+            }
+
+            if ($expenseCategories !== null && array_intersect($expenseCategories, $categoryExpense) === []) {
+                throw new InvalidArgumentException('La categoria no pertenece al grupo indicado.');
+            }
+
+            $incomeCategories = $categoryIncome;
+            $expenseCategories = $categoryExpense;
+        }
+
+        return ['ingresos' => $incomeCategories, 'gastos' => $expenseCategories];
+    }
+
+    /**
+     * @param array<int, string>|null $categories
+     * @param array<string, int|string> $params
+     */
+    private function movementSelect(
+        string $table,
+        string $movementType,
+        ?string $expenseType,
+        ?array $categories,
+        int $usuarioId,
+        string $start,
+        string $end,
+        array &$params,
+        string $prefix,
+    ): string {
+        $userParam = ':' . $prefix . '_usuario_id';
+        $startParam = ':' . $prefix . '_inicio';
+        $endParam = ':' . $prefix . '_fin';
+        $params[$userParam] = $usuarioId;
+        $params[$startParam] = $start;
+        $params[$endParam] = $end;
+
+        $sql = "SELECT DATE(fecha) AS fecha, cantidad, '{$movementType}' AS tipo_movimiento, ";
+        $sql .= $table === 'gastos' ? 'tipo AS tipo_gasto, categoria' : 'NULL AS tipo_gasto, categoria';
+        $sql .= " FROM {$table} WHERE usuario_id = {$userParam} AND DATE(fecha) BETWEEN {$startParam} AND {$endParam}";
+
+        if ($expenseType !== null) {
+            $typeParam = ':' . $prefix . '_tipo';
+            $params[$typeParam] = $expenseType;
+            $sql .= " AND tipo = {$typeParam}";
+        }
+
+        if ($categories !== null) {
+            if ($categories === []) {
+                $sql .= ' AND 1 = 0';
+            } else {
+                $placeholders = [];
+                foreach ($categories as $index => $movementCategory) {
+                    $categoryParam = ':' . $prefix . '_categoria_' . $index;
+                    $params[$categoryParam] = $movementCategory;
+                    $placeholders[] = $categoryParam;
+                }
+                $sql .= ' AND categoria IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
+        return $sql;
     }
 
     /**

@@ -22,6 +22,7 @@ final class NumaFinancialToolRegistryTest extends TestCase
             'obtener_evolucion_financiera',
             'comparar_periodos',
             'obtener_estadisticas_movimientos',
+            'obtener_movimientos',
         ], $registry->names());
         self::assertSame($registry->names(), array_keys($registry->all()));
     }
@@ -144,6 +145,26 @@ final class NumaFinancialToolRegistryTest extends TestCase
                 'fecha_inicio' => '2026-07-01',
                 'fecha_fin' => '2026-07-31',
                 'limite' => 'dos',
+            ]],
+            'orden de movimientos invalido' => ['obtener_movimientos', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'orden' => 'id',
+            ]],
+            'movimientos con parametro dinamico' => ['obtener_movimientos', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'campo' => 'cantidad',
+            ]],
+            'movimientos con direccion invalida' => ['obtener_movimientos', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'direccion' => 'aleatoria',
+            ]],
+            'movimientos con limite excesivo' => ['obtener_movimientos', [
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+                'limite' => 11,
             ]],
         ];
     }

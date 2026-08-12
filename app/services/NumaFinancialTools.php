@@ -216,6 +216,170 @@ final class NumaFinancialToolDefinition
     }
 }
 
+final class NumaFinancialCategoryCatalog
+{
+    /** @var array<string, array{kind:string,expense_type:?string,group:string,label:string}> */
+    private array $categories = [];
+
+    /** @var array<string, array{kind:string,expense_type:?string,label:string}> */
+    private array $groups = [];
+
+    /** @var array<string, string> */
+    private array $categoryAliases = [];
+
+    /** @var array<string, string> */
+    private array $groupAliases = [];
+
+    /** @var array<string, true> */
+    private array $ambiguousCategoryAliases = [];
+
+    /** @var array<string, true> */
+    private array $ambiguousGroupAliases = [];
+
+    public function __construct()
+    {
+        foreach (gastoCategorias() as $expenseType => $expenseGroups) {
+            foreach ($expenseGroups as $groupName => $group) {
+                $this->addGroup($groupName, 'gasto', $expenseType, (string) $group['label']);
+
+                foreach ($group['items'] as $category => $label) {
+                    $this->addCategory($category, 'gasto', $expenseType, $groupName, $label);
+                }
+            }
+        }
+
+        foreach (ingresoCategorias() as $groupName => $group) {
+            $this->addGroup($groupName, 'ingreso', null, (string) $group['label']);
+
+            foreach (($group['conceptos'] ?? []) as $category => $label) {
+                $this->addCategory($category, 'ingreso', null, $groupName, $label);
+            }
+        }
+    }
+
+    /** @return array<int, string> */
+    public function categoryValues(): array
+    {
+        return array_keys($this->categories);
+    }
+
+    /** @return array<int, string> */
+    public function groupValues(): array
+    {
+        return array_keys($this->groups);
+    }
+
+    public function resolveCategory(string $value): string
+    {
+        if (isset($this->categories[$value])) {
+            return $value;
+        }
+
+        $alias = self::normaliseAlias($value);
+        if (isset($this->categoryAliases[$alias])) {
+            return $this->categoryAliases[$alias];
+        }
+
+        if (isset($this->groupAliases[$alias])) {
+            throw new InvalidArgumentException('El grupo no se puede usar como categoria de Numa.');
+        }
+
+        throw new InvalidArgumentException('Categoria de Numa no permitida.');
+    }
+
+    public function resolveGroup(string $value): string
+    {
+        if (isset($this->groups[$value])) {
+            return $value;
+        }
+
+        $alias = self::normaliseAlias($value);
+        if (!isset($this->groupAliases[$alias])) {
+            throw new InvalidArgumentException('Grupo de movimientos de Numa no permitido.');
+        }
+
+        return $this->groupAliases[$alias];
+    }
+
+    /** @return array{kind:string,expense_type:?string,group:string,label:string} */
+    public function category(string $category): array
+    {
+        if (!isset($this->categories[$category])) {
+            throw new InvalidArgumentException('Categoria de Numa no permitida.');
+        }
+
+        return $this->categories[$category];
+    }
+
+    /** @return array{kind:string,expense_type:?string,label:string} */
+    public function group(string $group): array
+    {
+        if (!isset($this->groups[$group])) {
+            throw new InvalidArgumentException('Grupo de movimientos de Numa no permitido.');
+        }
+
+        return $this->groups[$group];
+    }
+
+    /** @return array<int, string> */
+    public function categoriesForGroup(string $group): array
+    {
+        return array_keys(array_filter(
+            $this->categories,
+            static fn (array $category): bool => $category['group'] === $group
+        ));
+    }
+
+    private function addGroup(string $name, string $kind, ?string $expenseType, string $label): void
+    {
+        $this->groups[$name] = ['kind' => $kind, 'expense_type' => $expenseType, 'label' => $label];
+        $this->addAlias($this->groupAliases, $this->ambiguousGroupAliases, $label, $name);
+    }
+
+    private function addCategory(string $name, string $kind, ?string $expenseType, string $group, string $label): void
+    {
+        $this->categories[$name] = [
+            'kind' => $kind,
+            'expense_type' => $expenseType,
+            'group' => $group,
+            'label' => $label,
+        ];
+        $this->addAlias($this->categoryAliases, $this->ambiguousCategoryAliases, $label, $name);
+    }
+
+    /**
+     * @param array<string, string> $aliases
+     * @param array<string, true> $ambiguousAliases
+     */
+    private function addAlias(array &$aliases, array &$ambiguousAliases, string $alias, string $canonical): void
+    {
+        $normalised = self::normaliseAlias($alias);
+        if (isset($ambiguousAliases[$normalised])) {
+            return;
+        }
+
+        if (!isset($aliases[$normalised])) {
+            $aliases[$normalised] = $canonical;
+
+            return;
+        }
+
+        if ($aliases[$normalised] !== $canonical) {
+            unset($aliases[$normalised]);
+            $ambiguousAliases[$normalised] = true;
+        }
+    }
+
+    private static function normaliseAlias(string $value): string
+    {
+        $value = trim(mb_strtolower($value, 'UTF-8'));
+        $value = strtr($value, ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
+        $value = preg_replace('/[^a-z0-9]+/', '_', $value) ?? '';
+
+        return trim($value, '_');
+    }
+}
+
 final class NumaFinancialToolLimitExceeded extends RuntimeException
 {
     public function __construct()
@@ -422,11 +586,9 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
      */
     private static function buildDefinitions(): array
     {
-        $categories = array_values(array_unique(array_merge(
-            array_keys(gastoCategoriaLabels()),
-            array_keys(ingresoCategoriaLabels())
-        )));
-        sort($categories);
+        $catalog = new NumaFinancialCategoryCatalog();
+        $categories = $catalog->categoryValues();
+        $groups = $catalog->groupValues();
 
         $definitions = [
             self::OBTENER_RESUMEN_FINANCIERO => new NumaFinancialToolDefinition(
@@ -510,7 +672,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
                 self::periodSchema([
                     'tipo_movimiento' => ['type' => 'string', 'enum' => ['ingreso', 'gasto']],
                     'tipo_gasto' => ['type' => 'string', 'enum' => ['esencial', 'flexible']],
-                    'grupo' => ['type' => 'string', 'enum' => self::movementGroups()],
+                    'grupo' => ['type' => 'string', 'enum' => $groups],
                     'categoria' => ['type' => 'string', 'enum' => $categories],
                     'orden' => ['type' => 'string', 'enum' => ['fecha', 'cantidad']],
                     'direccion' => ['type' => 'string', 'enum' => ['asc', 'desc']],
@@ -520,7 +682,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
                 [
                     'tipo_movimiento' => ['ingreso', 'gasto'],
                     'tipo_gasto' => ['esencial', 'flexible'],
-                    'grupo' => self::movementGroups(),
+                    'grupo' => $groups,
                     'categoria' => $categories,
                     'orden' => ['fecha', 'cantidad'],
                     'direccion' => ['asc', 'desc'],
@@ -543,16 +705,6 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
     private static function dateRangeSchema(): array
     {
         return self::periodSchema();
-    }
-
-    /** @return array<int, string> */
-    private static function movementGroups(): array
-    {
-        return array_values(array_unique(array_merge(
-            array_keys(gastoCategoriasPorTipo('esencial')),
-            array_keys(gastoCategoriasPorTipo('flexible')),
-            array_keys(ingresoCategorias())
-        )));
     }
 
     /**
@@ -593,6 +745,7 @@ final class NumaFinancialToolExecutor
         private readonly ?PDO $connection = null,
         ?int $maxToolRangeDays = null,
         private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
+        private readonly NumaFinancialCategoryCatalog $categoryCatalog = new NumaFinancialCategoryCatalog(),
     ) {
         $this->maxToolRangeDays = $maxToolRangeDays
             ?? bh_env_int('NUMA_MAX_TOOL_RANGE_DAYS', self::MAX_TOOL_RANGE_DAYS);
@@ -612,6 +765,7 @@ final class NumaFinancialToolExecutor
             throw new InvalidArgumentException('Usuario de Numa no valido.');
         }
 
+        $arguments = $this->normaliseCategoryArguments($arguments);
         $this->validateArguments($definition, $arguments);
 
         $result = match ($definition->implementation()) {
@@ -678,6 +832,31 @@ final class NumaFinancialToolExecutor
         }
 
         $this->assertPeriodArguments($definition->implementation(), $arguments);
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    private function normaliseCategoryArguments(array $arguments): array
+    {
+        if (isset($arguments['categoria'])) {
+            if (!is_string($arguments['categoria'])) {
+                throw new InvalidArgumentException('Categoria de Numa no permitida.');
+            }
+
+            $arguments['categoria'] = $this->categoryCatalog->resolveCategory($arguments['categoria']);
+        }
+
+        if (isset($arguments['grupo'])) {
+            if (!is_string($arguments['grupo'])) {
+                throw new InvalidArgumentException('Grupo de movimientos de Numa no permitido.');
+            }
+
+            $arguments['grupo'] = $this->categoryCatalog->resolveGroup($arguments['grupo']);
+        }
+
+        return $arguments;
     }
 
     /**
@@ -780,6 +959,7 @@ final class NumaFinancialToolExecutor
 
         $metric = $this->stringArg($arguments, 'metrica');
         $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
+        $this->assertCategoryCompatibleWithMetric($metric, $category);
         $valueA = $this->calculateMetric($usuarioId, $startA, $endA, $metric, $category);
         $valueB = $this->calculateMetric($usuarioId, $startB, $endB, $metric, $category);
         $difference = $valueB - $valueA;
@@ -806,6 +986,7 @@ final class NumaFinancialToolExecutor
         [$start, $end] = $this->period($arguments);
         $metric = $this->stringArg($arguments, 'metrica');
         $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
+        $this->assertCategoryCompatibleWithMetric($metric, $category);
         $stats = $this->movementStats($usuarioId, $start, $end, $metric, $category);
 
         return [
@@ -922,23 +1103,16 @@ final class NumaFinancialToolExecutor
         $expenseCategories = $group === null ? null : [];
 
         if ($group !== null) {
-            if (isset(ingresoCategorias()[$group])) {
-                $incomeCategories = array_keys(ingresoCategorias()[$group]['conceptos'] ?? []);
-            }
-
-            $expenseGroup = gastoCategoriasPorTipo('esencial')[$group] ?? gastoCategoriasPorTipo('flexible')[$group] ?? null;
-            if ($expenseGroup !== null) {
-                $expenseCategories = array_keys($expenseGroup['items']);
-            }
-
-            if ($incomeCategories === [] && $expenseCategories === []) {
-                throw new InvalidArgumentException('Grupo de movimientos de Numa no permitido.');
-            }
+            $groupDefinition = $this->categoryCatalog->group($group);
+            $groupCategories = $this->categoryCatalog->categoriesForGroup($group);
+            $incomeCategories = $groupDefinition['kind'] === 'ingreso' ? $groupCategories : [];
+            $expenseCategories = $groupDefinition['kind'] === 'gasto' ? $groupCategories : [];
         }
 
         if ($category !== null) {
-            $categoryIncome = ingresoCategoriaPermitida($category) ? [$category] : [];
-            $categoryExpense = array_key_exists($category, gastoCategoriaLabels()) ? [$category] : [];
+            $categoryDefinition = $this->categoryCatalog->category($category);
+            $categoryIncome = $categoryDefinition['kind'] === 'ingreso' ? [$category] : [];
+            $categoryExpense = $categoryDefinition['kind'] === 'gasto' ? [$category] : [];
 
             if ($incomeCategories !== null && array_intersect($incomeCategories, $categoryIncome) === []) {
                 throw new InvalidArgumentException('La categoria no pertenece al grupo indicado.');
@@ -953,6 +1127,35 @@ final class NumaFinancialToolExecutor
         }
 
         return ['ingresos' => $incomeCategories, 'gastos' => $expenseCategories];
+    }
+
+    private function assertCategoryCompatibleWithMetric(string $metric, ?string $category): void
+    {
+        if ($category === null) {
+            return;
+        }
+
+        if (in_array($metric, ['ahorro_posible', 'ahorro_real'], true)) {
+            throw new InvalidArgumentException('La categoria no es compatible con la metrica de ahorro.');
+        }
+
+        $categoryDefinition = $this->categoryCatalog->category($category);
+        if ($categoryDefinition['kind'] === 'ingreso' && $metric !== 'ingresos') {
+            throw new InvalidArgumentException('La categoria no es compatible con gastos.');
+        }
+
+        if ($categoryDefinition['kind'] === 'gasto' && $metric === 'ingresos') {
+            throw new InvalidArgumentException('La categoria no es compatible con ingresos.');
+        }
+
+        if ($categoryDefinition['kind'] === 'gasto'
+            && ($metric === 'gastos' || $metric === 'gastos_' . $categoryDefinition['expense_type'])) {
+            return;
+        }
+
+        if ($categoryDefinition['kind'] === 'gasto' && in_array($metric, ['gastos', 'gastos_esenciales', 'gastos_flexibles'], true)) {
+            throw new InvalidArgumentException('La categoria no es compatible con la metrica de gasto.');
+        }
     }
 
     /**

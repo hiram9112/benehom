@@ -176,6 +176,53 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(-57.14, $comparacion['diferencia_porcentual']);
     }
 
+    public function testCategoriasAceptanAliasControladosYRechazanMetricasIncompatibles(): void
+    {
+        $usuario = $this->crearUsuario('numa-tools-categorias@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertIngreso($usuarioId, 'nomina', 1200, '2026-07-02');
+        $this->insertGasto($usuarioId, 'flexible', 'regalos', 50, '2026-07-03');
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 5);
+
+        $incomeStats = $registry->execute('obtener_estadisticas_movimientos', $usuarioId, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'ingresos',
+            'categoria' => 'Nómina',
+        ]);
+        self::assertSame('nomina', $incomeStats['categoria']);
+        self::assertSame(1200.0, $incomeStats['total']);
+
+        $expenseStats = $registry->execute('obtener_estadisticas_movimientos', $usuarioId, [
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+            'metrica' => 'gastos',
+            'categoria' => 'Regalos',
+        ]);
+        self::assertSame('regalos', $expenseStats['categoria']);
+        self::assertSame(50.0, $expenseStats['total']);
+
+        foreach ([
+            ['metrica' => 'ingresos', 'categoria' => 'Regalos'],
+            ['metrica' => 'gastos', 'categoria' => 'Nómina'],
+            ['metrica' => 'ahorro_posible', 'categoria' => 'Regalos'],
+            ['metrica' => 'ahorro_real', 'categoria' => 'Regalos'],
+        ] as $arguments) {
+            try {
+                $registry->execute('comparar_periodos', $usuarioId, [
+                    'fecha_inicio_a' => '2026-07-01',
+                    'fecha_fin_a' => '2026-07-31',
+                    'fecha_inicio_b' => '2026-06-01',
+                    'fecha_fin_b' => '2026-06-30',
+                    ...$arguments,
+                ]);
+                self::fail('La categoria incompatible fue aceptada.');
+            } catch (\InvalidArgumentException) {
+                self::assertTrue(true);
+            }
+        }
+    }
+
     public function testEstadisticasMovimientosCalculaAgregados(): void
     {
         $usuario = $this->crearUsuario('numa-tools-estadisticas@example.test');

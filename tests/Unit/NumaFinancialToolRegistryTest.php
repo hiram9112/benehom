@@ -65,6 +65,30 @@ final class NumaFinancialToolRegistryTest extends TestCase
         );
     }
 
+    public function testCatalogoReutilizaCategoriasDeFormulariosYDistingueGruposDeHojas(): void
+    {
+        $catalog = new \NumaFinancialCategoryCatalog();
+
+        self::assertContains('nomina', $catalog->categoryValues());
+        self::assertContains('regalos', $catalog->categoryValues());
+        self::assertContains('compras', $catalog->groupValues());
+        self::assertArrayHasKey('nomina', ingresoCategoriaLabels());
+        self::assertArrayHasKey('regalos', gastoCategoriaLabels());
+        self::assertSame('nomina', $catalog->resolveCategory('Nómina'));
+        self::assertSame('regalos', $catalog->resolveCategory('Regalos'));
+        self::assertSame('compras', $catalog->resolveGroup('Compras'));
+
+        $this->expectException(InvalidArgumentException::class);
+        $catalog->resolveCategory('Compras');
+    }
+
+    public function testCatalogoRechazaAliasDeCategoriaAmbiguo(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new \NumaFinancialCategoryCatalog())->resolveCategory('Otros');
+    }
+
     public function testRechazaToolsNoRegistradas(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -135,6 +159,14 @@ final class NumaFinancialToolRegistryTest extends TestCase
                 'fecha_fin_b' => '2026-06-30',
                 'metrica' => 'gastos',
                 'categoria' => 'categoria_inexistente',
+            ]],
+            'grupo aplicado como categoria' => ['comparar_periodos', [
+                'fecha_inicio_a' => '2026-07-01',
+                'fecha_fin_a' => '2026-07-31',
+                'fecha_inicio_b' => '2026-06-01',
+                'fecha_fin_b' => '2026-06-30',
+                'metrica' => 'gastos',
+                'categoria' => 'Compras',
             ]],
             'limite fuera de rango' => ['obtener_ranking_categorias', [
                 'fecha_inicio' => '2026-07-01',

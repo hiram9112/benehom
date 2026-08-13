@@ -19,6 +19,10 @@ final class FakeNumaEmbeddingProvider implements \NumaEmbeddingProviderInterface
     public function __construct(
         private readonly int $dimensions = 768,
         private readonly array $vectors = [],
+        private readonly string $provider = 'fake',
+        private readonly string $model = 'deterministic',
+        private readonly string $taskType = 'SEMANTIC_SIMILARITY',
+        private readonly string $formatVersion = '1',
     ) {
         if ($dimensions <= 0) {
             throw new \InvalidArgumentException('La dimension del fake de embeddings de Numa es invalida.');
@@ -54,5 +58,16 @@ final class FakeNumaEmbeddingProvider implements \NumaEmbeddingProviderInterface
         }
 
         return $vector;
+    }
+
+    public function signature(): \NumaEmbeddingSignature
+    {
+        return new \NumaEmbeddingSignature(
+            $this->provider,
+            $this->model,
+            $this->taskType,
+            $this->dimensions,
+            $this->formatVersion
+        );
     }
 }

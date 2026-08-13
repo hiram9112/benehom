@@ -60,10 +60,11 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         self::assertSame(1, $provider->calls);
 
         $row = $this->knowledgeRows()[0];
-        self::assertSame('guia:inicio', $row['fragmento_id']);
+        self::assertSame('knowledge:guia:inicio', $row['fragmento_id']);
         self::assertSame('guia.md', $row['documento']);
         self::assertSame('/dashboard', $row['ruta']);
         self::assertSame(4, (int) $row['dimensiones']);
+        self::assertSame($provider->signature()->value(), $row['firma_embedding']);
         self::assertCount(4, json_decode((string) $row['embedding'], true, 512, JSON_THROW_ON_ERROR));
     }
 
@@ -108,8 +109,153 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         self::assertSame(1, $summary->embeddingsGenerated);
         self::assertSame(1, $provider->calls);
         self::assertCount(1, $rows);
-        self::assertSame('guia:inicio', $rows[0]['fragmento_id']);
+        self::assertSame('knowledge:guia:inicio', $rows[0]['fragmento_id']);
         self::assertStringContainsString('Contenido actualizado.', $rows[0]['contenido']);
+    }
+
+    public function testCambioDeFirmaConLasMismasDimensionesRegeneraEmbeddings(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $initialProvider = new FakeNumaEmbeddingProvider(4, [], 'fake', 'modelo-a');
+        $this->indexer($initialProvider, ['guia.md' => '/dashboard'])
+            ->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+
+        $updatedProvider = new FakeNumaEmbeddingProvider(4, [], 'fake', 'modelo-b');
+        $summary = $this->indexer($updatedProvider, ['guia.md' => '/dashboard'])
+            ->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(1, $summary->updated);
+        self::assertSame(1, $summary->embeddingsGenerated);
+        self::assertSame(1, $updatedProvider->calls);
+        self::assertSame($updatedProvider->signature()->value(), $this->knowledgeRows()[0]['firma_embedding']);
+    }
+
+    public function testCambioDeTaskTypeRegeneraEmbedding(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $this->indexer(new FakeNumaEmbeddingProvider(4), ['guia.md' => '/dashboard'])
+            ->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+
+        $provider = new FakeNumaEmbeddingProvider(4, [], 'fake', 'deterministic', 'RETRIEVAL_DOCUMENT');
+        $summary = $this->indexer($provider, ['guia.md' => '/dashboard'])
+            ->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(1, $summary->updated);
+        self::assertSame(1, $summary->embeddingsGenerated);
+        self::assertSame(1, $provider->calls);
+    }
+
+    public function testCambioDeMetadatosRegeneraEmbedding(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $provider = new FakeNumaEmbeddingProvider(4);
+        $this->indexer($provider, ['guia.md' => '/dashboard'])
+            ->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+        $provider->calls = 0;
+
+        $summary = $this->indexer($provider, ['guia.md' => '/cuenta'])
+            ->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(1, $summary->updated);
+        self::assertSame(1, $summary->embeddingsGenerated);
+        self::assertSame(1, $provider->calls);
+        self::assertSame('/cuenta', $this->knowledgeRows()[0]['ruta']);
+    }
+
+    public function testCorpusSeparaIdsDeConocimientoYBlogYActualizaMetadatosDeBlog(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $provider = new FakeNumaEmbeddingProvider(4);
+        $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
+        $article = $this->blogArticle('guia', 'Titulo inicial', 'Inicio', 'Contenido publico de BeneHom.');
+
+        $first = $indexer->indexCorpus($directory, [$article], new DateTimeImmutable(self::INDEXED_AT));
+        $rows = $this->knowledgeRows();
+
+        self::assertSame(2, $first->created);
+        self::assertSame(['blog:guia:inicio:part-1', 'knowledge:guia:inicio'], array_column($rows, 'fragmento_id'));
+        self::assertNotSame($rows[0]['hash'], $rows[1]['hash']);
+
+        $provider->calls = 0;
+        $article['titulo'] = 'Titulo actualizado';
+        $updated = $indexer->indexCorpus($directory, [$article], new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(1, $updated->updated);
+        self::assertSame(1, $updated->embeddingsGenerated);
+        self::assertSame(1, $provider->calls);
+
+        $provider->calls = 0;
+        $article['contenido'][0]['titulo'] = 'Seccion actualizada';
+        $updatedSection = $indexer->indexCorpus($directory, [$article], new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(1, $updatedSection->created);
+        self::assertSame(1, $updatedSection->deleted);
+        self::assertSame(1, $updatedSection->embeddingsGenerated);
+        self::assertSame(1, $provider->calls);
+    }
+
+    public function testCambioDeSlugDelBlogEliminaLosFragmentosAnteriores(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $provider = new FakeNumaEmbeddingProvider(4);
+        $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
+
+        $indexer->indexCorpus($directory, [
+            $this->blogArticle('slug-anterior', 'Titulo', 'Inicio', 'Contenido del articulo.'),
+        ], new DateTimeImmutable(self::INDEXED_AT));
+        $provider->calls = 0;
+
+        $summary = $indexer->indexCorpus($directory, [
+            $this->blogArticle('slug-nuevo', 'Titulo', 'Inicio', 'Contenido del articulo.'),
+        ], new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(1, $summary->created);
+        self::assertSame(1, $summary->deleted);
+        self::assertSame(1, $summary->unchanged);
+        self::assertSame(1, $provider->calls);
+        self::assertSame(['blog:slug-nuevo:inicio:part-1', 'knowledge:guia:inicio'], array_column(
+            $this->knowledgeRows(),
+            'fragmento_id'
+        ));
+    }
+
+    public function testInsertarSeccionAlPrincipioConservaLosIdsDeLasSeccionesExistentes(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $provider = new FakeNumaEmbeddingProvider(4);
+        $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
+        $article = $this->blogArticle('guia', 'Titulo', 'Seccion estable', 'Contenido de la seccion estable.');
+
+        $indexer->indexCorpus($directory, [$article], new DateTimeImmutable(self::INDEXED_AT));
+        $provider->calls = 0;
+        array_unshift($article['contenido'], [
+            'titulo' => 'Seccion nueva',
+            'parrafos' => ['Contenido de la seccion nueva.'],
+        ]);
+
+        $summary = $indexer->indexCorpus($directory, [$article], new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(1, $summary->created);
+        self::assertSame(2, $summary->unchanged);
+        self::assertSame(0, $summary->updated);
+        self::assertSame(1, $provider->calls);
+        self::assertSame([
+            'blog:guia:seccion-estable:part-1',
+            'blog:guia:seccion-nueva:part-1',
+            'knowledge:guia:inicio',
+        ], array_column($this->knowledgeRows(), 'fragmento_id'));
     }
 
     public function testFalloDeEmbeddingNoDejaCambiosParciales(): void
@@ -221,6 +367,24 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
     }
 
     /**
+     * @return array{slug:string, titulo:string, resumen:string, intencion_busqueda:string, contenido:array<int, array{titulo:string, parrafos:array<int, string>}>, conexion:string}
+     */
+    private function blogArticle(string $slug, string $title, string $section, string $content): array
+    {
+        return [
+            'slug' => $slug,
+            'titulo' => $title,
+            'resumen' => 'Resumen publico',
+            'intencion_busqueda' => 'Consulta publica',
+            'contenido' => [[
+                'titulo' => $section,
+                'parrafos' => [$content],
+            ]],
+            'conexion' => 'Conexion publica',
+        ];
+    }
+
+    /**
      * @return array{llamadas:int,input_tokens:int,output_tokens:int}
      */
     private function globalUsageRow(string $fecha): array
@@ -270,5 +434,10 @@ final class FailingEmbeddingProvider implements \NumaEmbeddingProviderInterface
     public function embed(string $text): array
     {
         throw new \RuntimeException('embedding_failed');
+    }
+
+    public function signature(): \NumaEmbeddingSignature
+    {
+        return new \NumaEmbeddingSignature('failing', 'failing', 'SEMANTIC_SIMILARITY', 4, '1');
     }
 }

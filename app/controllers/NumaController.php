@@ -298,7 +298,8 @@ class NumaController
             $embeddingProvider,
             bh_env_int('NUMA_EMBEDDING_DIMENSIONS', 768),
             bh_env_int('NUMA_MAX_RAG_RESULTS', 3),
-            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.65')
+            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.65'),
+            $embeddingProvider->signature()
         );
     }
 

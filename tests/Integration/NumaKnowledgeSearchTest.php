@@ -45,6 +45,23 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         self::assertArrayHasKey('similarity', $results[0]->toArray());
     }
 
+    public function testNoMezclaVectoresConLaMismaDimensionPeroFirmaDistinta(): void
+    {
+        $this->insertKnowledge(
+            'movimientos:incompatible',
+            'movimientos.md',
+            'Movimientos',
+            'Anadir movimientos',
+            'Contenido con otro modelo.',
+            [1.0, 0.0],
+            new \NumaEmbeddingSignature('fake', 'modelo-anterior', 'SEMANTIC_SIMILARITY', 2, '1')
+        );
+        $provider = FakeNumaEmbeddingProvider::withVectors(['como anadir movimiento' => [1.0, 0.0]], 2);
+        $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2, 3, 0.65);
+
+        self::assertSame([], $searcher->search('como anadir movimiento'));
+    }
+
     public function testDevuelveVacioCuandoNadaSuperaElUmbral(): void
     {
         $this->insertKnowledge('cuenta:perfil', 'cuenta.md', 'Cuenta', 'Perfil', 'Gestion de cuenta.', [0.0, 1.0]);
@@ -124,12 +141,13 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         string $section,
         string $content,
         array $embedding,
+        ?\NumaEmbeddingSignature $signature = null,
     ): void {
         $stmt = $this->db->prepare(
             'INSERT INTO numa_conocimiento
-                (fragmento_id, documento, titulo, seccion, ruta, contenido, hash, embedding, dimensiones, indexed_at)
+                (fragmento_id, documento, titulo, seccion, ruta, contenido, hash, embedding, dimensiones, firma_embedding, indexed_at)
              VALUES
-                (:fragmento_id, :documento, :titulo, :seccion, :ruta, :contenido, :hash, :embedding, :dimensiones, :indexed_at)'
+                (:fragmento_id, :documento, :titulo, :seccion, :ruta, :contenido, :hash, :embedding, :dimensiones, :firma_embedding, :indexed_at)'
         );
         $stmt->execute([
             ':fragmento_id' => $fragmentId,
@@ -141,6 +159,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
             ':hash' => hash('sha256', $content),
             ':embedding' => json_encode($embedding, JSON_THROW_ON_ERROR),
             ':dimensiones' => count($embedding),
+            ':firma_embedding' => ($signature ?? new \NumaEmbeddingSignature('fake', 'deterministic', 'SEMANTIC_SIMILARITY', count($embedding), '1'))->value(),
             ':indexed_at' => '2026-07-29 12:00:00',
         ]);
     }

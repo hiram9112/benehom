@@ -11,6 +11,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
     private const DEFAULT_DIMENSIONS = 768;
     private const TASK_TYPE = 'SEMANTIC_SIMILARITY';
+    private const FORMAT_VERSION = '1';
 
     /** @var callable */
     private $transport;
@@ -97,6 +98,17 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
     public function tokenUsage(): NumaTokenUsage
     {
         return $this->lastTokenUsage ?? NumaTokenUsage::unknown();
+    }
+
+    public function signature(): NumaEmbeddingSignature
+    {
+        return new NumaEmbeddingSignature(
+            'gemini',
+            $this->model,
+            self::TASK_TYPE,
+            $this->dimensions,
+            self::FORMAT_VERSION
+        );
     }
 
     /**

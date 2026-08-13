@@ -190,6 +190,11 @@ final class GeminiEmbeddingProviderTest extends TestCase
             {
                 return new \NumaTokenUsage(23, 0);
             }
+
+            public function signature(): \NumaEmbeddingSignature
+            {
+                return new \NumaEmbeddingSignature('fake', 'test', 'SEMANTIC_SIMILARITY', 2, '1');
+            }
         };
         $consumption = new class implements \NumaProviderConsumptionInterface {
             public int $calls = 0;
@@ -222,6 +227,11 @@ final class GeminiEmbeddingProviderTest extends TestCase
             public function embed(string $text): array
             {
                 throw new \RuntimeException('No debe invocarse.');
+            }
+
+            public function signature(): \NumaEmbeddingSignature
+            {
+                return new \NumaEmbeddingSignature('fake', 'test', 'SEMANTIC_SIMILARITY', 2, '1');
             }
         };
         $consumption = new class implements \NumaProviderConsumptionInterface {

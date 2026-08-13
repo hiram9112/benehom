@@ -153,6 +153,7 @@ CREATE TABLE numa_conocimiento (
   hash CHAR(64) NOT NULL,
   embedding JSON NOT NULL,
   dimensiones INT UNSIGNED NOT NULL,
+  firma_embedding VARCHAR(500) NOT NULL,
   indexed_at DATETIME NOT NULL,
   UNIQUE KEY numa_conocimiento_fragmento_id_unique (fragmento_id),
   KEY numa_conocimiento_documento_idx (documento),

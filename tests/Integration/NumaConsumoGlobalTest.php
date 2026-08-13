@@ -274,6 +274,11 @@ final class NumaConsumoGlobalTest extends TestCase
             {
                 return [0.1, 0.2];
             }
+
+            public function signature(): \NumaEmbeddingSignature
+            {
+                return new \NumaEmbeddingSignature('fake', 'test', 'SEMANTIC_SIMILARITY', 2, '1');
+            }
         };
         $consumo = \NumaConsumoGlobal::forEmbedding($this->db, new DateTimeImmutable('2026-07-24 10:00:00'));
 

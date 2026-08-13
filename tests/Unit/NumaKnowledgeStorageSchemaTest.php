@@ -25,6 +25,7 @@ final class NumaKnowledgeStorageSchemaTest extends TestCase
         self::assertStringContainsString('hash CHAR(64) NOT NULL', $table);
         self::assertStringContainsString('embedding JSON NOT NULL', $table);
         self::assertStringContainsString('dimensiones INT UNSIGNED NOT NULL', $table);
+        self::assertStringContainsString('firma_embedding VARCHAR(500) NOT NULL', $table);
         self::assertStringContainsString('indexed_at DATETIME NOT NULL', $table);
         self::assertStringContainsString('UNIQUE KEY numa_conocimiento_fragmento_id_unique (fragmento_id)', $table);
         self::assertStringContainsString('ENGINE=InnoDB DEFAULT CHARSET=utf8mb4', $table);

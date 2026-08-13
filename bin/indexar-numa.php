@@ -29,6 +29,7 @@ if (is_file($envPath) && is_readable($envPath)) {
 require_once APP_PATH . '/helpers/utils.php';
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
+require_once APP_PATH . '/models/ArticuloBlog.php';
 require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
 require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
@@ -43,10 +44,14 @@ try {
         Database::getConnection(),
         $embeddingProvider,
         new NumaKnowledgeFragmenter(maxContentChars: bh_env_int('NUMA_MAX_RAG_CHUNK_CHARS', 900)),
-        $dimensions
+        $dimensions,
+        $embeddingProvider->signature()
     );
 
-    $summary = $indexer->indexDirectory(BASE_PATH . '/knowledge/numa');
+    $summary = $indexer->indexCorpus(
+        BASE_PATH . '/knowledge/numa',
+        ArticuloBlog::publicadosParaRag()
+    );
 
     fwrite(STDOUT, "Indexacion de Numa completada.\n");
     fwrite(STDOUT, 'Documentos leidos: ' . $summary->documents . "\n");

@@ -41,14 +41,44 @@ final class NumaKnowledgeFragmenterTest extends TestCase
         self::assertCount(6, $fragments);
 
         $first = $fragments[0];
-        self::assertSame('movimientos:que-son-los-movimientos', $first->id());
+        self::assertSame('knowledge:movimientos:que-son-los-movimientos', $first->id());
         self::assertSame('movimientos.md', $first->document());
         self::assertSame('Movimientos', $first->title());
         self::assertSame('Que son los movimientos', $first->section());
         self::assertSame('/dashboard', $first->route());
         self::assertStringStartsWith("Movimientos\nQue son los movimientos\n\n", $first->content());
-        self::assertSame(hash('sha256', $first->content()), $first->hash());
+        self::assertSame(hash('sha256', json_encode([
+            'source' => 'knowledge',
+            'source_identity' => $first->document(),
+            'document' => $first->document(),
+            'title' => $first->title(),
+            'section' => $first->section(),
+            'route' => $first->route(),
+            'content' => $first->content(),
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), $first->hash());
         self::assertSame(self::INDEXED_AT, $first->indexedAt()->format(DATE_ATOM));
+    }
+
+    public function testFragmentaArticuloConNamespaceYPartesEstables(): void
+    {
+        $fragments = (new \NumaKnowledgeFragmenter(maxContentChars: 200))->fragmentArticles([
+            [
+                'slug' => 'guia-del-blog',
+                'titulo' => 'Guia del blog',
+                'resumen' => 'Resumen',
+                'intencion_busqueda' => 'intencion',
+                'conexion' => 'conexion',
+                'contenido' => [[
+                    'titulo' => 'Inicio',
+                    'parrafos' => ['Primer bloque suficientemente breve.', 'Segundo bloque suficientemente breve.'],
+                ]],
+            ],
+        ], new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(['blog:guia-del-blog:inicio:part-1'], array_map(
+            static fn (\NumaKnowledgeFragment $fragment): string => $fragment->id(),
+            $fragments
+        ));
     }
 
     public function testFragmentaTodaLaBaseDeConocimientoConIdsEstables(): void
@@ -92,8 +122,8 @@ MD;
         $fragments = $fragmenter->fragmentFile($path, new DateTimeImmutable(self::INDEXED_AT));
 
         self::assertCount(2, $fragments);
-        self::assertSame('guia:seccion-larga-1', $fragments[0]->id());
-        self::assertSame('guia:seccion-larga-2', $fragments[1]->id());
+        self::assertSame('knowledge:guia:seccion-larga-1', $fragments[0]->id());
+        self::assertSame('knowledge:guia:seccion-larga-2', $fragments[1]->id());
 
         foreach ($fragments as $fragment) {
             self::assertLessThanOrEqual(220, $this->length($fragment->content()));
@@ -125,7 +155,7 @@ MD;
         self::assertCount(2, $fragments);
         self::assertSame('Simulaciones', $fragments[0]->section());
         self::assertSame('Simulaciones > Inflacion', $fragments[1]->section());
-        self::assertSame('proyecciones:simulaciones-inflacion', $fragments[1]->id());
+        self::assertSame('knowledge:proyecciones:simulaciones-inflacion', $fragments[1]->id());
     }
 
     public function testToArrayExponeContratoDeFragmento(): void
@@ -136,7 +166,7 @@ MD;
         );
 
         self::assertSame([
-            'id' => 'ahorro:ahorro-posible',
+            'id' => 'knowledge:ahorro:ahorro-posible',
             'document' => 'ahorro.md',
             'title' => 'Ahorro',
             'section' => 'Ahorro posible',

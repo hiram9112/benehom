@@ -144,7 +144,9 @@ final class NumaKnowledgeFragmenter
             $parsed['title'],
             $route,
             $parsed['sections'],
-            $indexedAt
+            $indexedAt,
+            'knowledge',
+            $document
         );
     }
 
@@ -163,6 +165,64 @@ final class NumaKnowledgeFragmenter
         $fragments = [];
         foreach ($paths as $path) {
             array_push($fragments, ...$this->fragmentFile($path, $indexedAt));
+        }
+
+        return $fragments;
+    }
+
+    /**
+     * @param array<int, array{slug:string, titulo:string, resumen:string, intencion_busqueda:string, contenido:array<int, array{titulo:string, parrafos:array<int, string>}>, conexion:string}> $articles
+     * @return array<int, NumaKnowledgeFragment>
+     */
+    public function fragmentArticles(array $articles, ?DateTimeImmutable $indexedAt = null): array
+    {
+        $indexedAt ??= new DateTimeImmutable('now');
+        $fragments = [];
+        $slugs = [];
+
+        foreach ($articles as $article) {
+            $slug = trim((string) ($article['slug'] ?? ''));
+            $title = trim((string) ($article['titulo'] ?? ''));
+            $sections = $article['contenido'] ?? null;
+
+            if ($slug === '' || $title === '' || !is_array($sections) || isset($slugs[$slug])) {
+                throw new InvalidArgumentException('Articulo de blog para conocimiento de Numa invalido.');
+            }
+
+            $slugs[$slug] = true;
+            $normalizedSections = [];
+            $sectionIdentities = [];
+            foreach ($sections as $section) {
+                $sectionTitle = trim((string) ($section['titulo'] ?? ''));
+                $paragraphs = $section['parrafos'] ?? null;
+
+                $sectionIdentity = $sectionTitle === '' ? '' : $this->slug($sectionTitle);
+                if ($sectionIdentity === '' || !is_array($paragraphs) || isset($sectionIdentities[$sectionIdentity])) {
+                    throw new InvalidArgumentException('Seccion de articulo para conocimiento de Numa invalida.');
+                }
+
+                $sectionIdentities[$sectionIdentity] = true;
+                $body = $this->normalizeText(implode("\n\n", array_map('strval', $paragraphs)));
+                if ($body === '') {
+                    throw new InvalidArgumentException('Seccion de articulo para conocimiento de Numa sin contenido.');
+                }
+
+                $normalizedSections[] = ['section' => $sectionTitle, 'body' => $body];
+            }
+
+            if ($normalizedSections === []) {
+                throw new InvalidArgumentException('Articulo de blog para conocimiento de Numa sin secciones.');
+            }
+
+            array_push($fragments, ...$this->buildFragments(
+                'blog/' . $slug,
+                $title,
+                '/blog/' . $slug,
+                $normalizedSections,
+                $indexedAt,
+                'blog',
+                $slug
+            ));
         }
 
         return $fragments;
@@ -269,6 +329,8 @@ final class NumaKnowledgeFragmenter
         string $route,
         array $sections,
         DateTimeImmutable $indexedAt,
+        string $source,
+        string $sourceIdentity,
     ): array {
         $fragments = [];
 
@@ -277,8 +339,10 @@ final class NumaKnowledgeFragmenter
             $sectionSlug = $this->slug($sectionData['section']);
 
             foreach ($parts as $index => $content) {
-                $suffix = count($parts) === 1 ? '' : '-' . ($index + 1);
-                $id = $this->slug(pathinfo($document, PATHINFO_FILENAME)) . ':' . $sectionSlug . $suffix;
+                $id = $source === 'blog'
+                    ? 'blog:' . $this->slug($sourceIdentity) . ':' . $sectionSlug . ':part-' . ($index + 1)
+                    : 'knowledge:' . $this->slug(pathinfo($document, PATHINFO_FILENAME)) . ':' . $sectionSlug
+                        . (count($parts) === 1 ? '' : '-' . ($index + 1));
 
                 $fragments[] = new NumaKnowledgeFragment(
                     $id,
@@ -287,7 +351,15 @@ final class NumaKnowledgeFragmenter
                     $sectionData['section'],
                     $route,
                     $content,
-                    hash('sha256', $content),
+                    hash('sha256', json_encode([
+                        'source' => $source,
+                        'source_identity' => $sourceIdentity,
+                        'document' => $document,
+                        'title' => $title,
+                        'section' => $sectionData['section'],
+                        'route' => $route,
+                        'content' => $content,
+                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
                     $indexedAt
                 );
             }
@@ -563,8 +635,15 @@ final class NumaKnowledgeSearcher
         private readonly int $dimensions = 768,
         private readonly int $maxResults = 3,
         private readonly float $minSimilarity = 0.65,
+        private readonly ?NumaEmbeddingSignature $signature = null,
     ) {
-        if ($dimensions <= 0 || $maxResults <= 0 || $minSimilarity < -1.0 || $minSimilarity > 1.0) {
+        if (
+            $dimensions <= 0
+            || $maxResults <= 0
+            || $minSimilarity < -1.0
+            || $minSimilarity > 1.0
+            || ($signature !== null && $signature->dimensions() !== $dimensions)
+        ) {
             throw new InvalidArgumentException('Configuracion de busqueda semantica de Numa invalida.');
         }
     }
@@ -575,12 +654,13 @@ final class NumaKnowledgeSearcher
     public function search(string $knowledgeQuery): array
     {
         $knowledgeQuery = $this->normalizeKnowledgeQuery($knowledgeQuery);
+        $signature = $this->signature ?? $this->embeddingProvider->signature();
         $queryEmbedding = $this->embeddingProvider->embed($knowledgeQuery);
         $this->validateEmbedding($queryEmbedding);
 
         $resultsByHash = [];
 
-        foreach ($this->candidates() as $candidate) {
+        foreach ($this->candidates($signature) as $candidate) {
             $embedding = $this->decodeEmbedding((string) $candidate['embedding']);
             $similarity = NumaVectorSimilarity::cosine($queryEmbedding, $embedding);
 
@@ -727,15 +807,18 @@ final class NumaKnowledgeSearcher
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function candidates(): array
+    private function candidates(NumaEmbeddingSignature $signature): array
     {
         // La base inicial es pequena; si crece de forma significativa, esta carga en memoria debera revisarse.
         $stmt = $this->connection->prepare(
             'SELECT fragmento_id, documento, titulo, seccion, ruta, contenido, hash, embedding
              FROM numa_conocimiento
-             WHERE dimensiones = :dimensiones'
+              WHERE dimensiones = :dimensiones AND firma_embedding = :firma_embedding'
         );
-        $stmt->execute([':dimensiones' => $this->dimensions]);
+        $stmt->execute([
+            ':dimensiones' => $this->dimensions,
+            ':firma_embedding' => $signature->value(),
+        ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -793,17 +876,55 @@ final class NumaKnowledgeIndexer
         private readonly NumaEmbeddingProviderInterface $embeddingProvider,
         private readonly NumaKnowledgeFragmenter $fragmenter = new NumaKnowledgeFragmenter(),
         private readonly int $dimensions = 768,
+        private readonly ?NumaEmbeddingSignature $signature = null,
     ) {
         if ($dimensions <= 0) {
             throw new InvalidArgumentException('La dimension de embeddings de Numa es invalida.');
+        }
+
+        if ($signature !== null && $signature->dimensions() !== $dimensions) {
+            throw new InvalidArgumentException('La firma de embeddings de Numa no coincide con sus dimensiones.');
         }
     }
 
     public function indexDirectory(string $directory, ?DateTimeImmutable $indexedAt = null): NumaKnowledgeIndexSummary
     {
         $indexedAt ??= new DateTimeImmutable('now');
+        $signature = $this->signature ?? $this->embeddingProvider->signature();
         $documents = $this->markdownDocuments($directory);
         $fragments = $this->fragmenter->fragmentDirectory($directory, $indexedAt);
+
+        return $this->indexFragments($fragments, count($documents), $signature);
+    }
+
+    /**
+     * @param array<int, array{slug:string, titulo:string, resumen:string, intencion_busqueda:string, contenido:array<int, array{titulo:string, parrafos:array<int, string>}>, conexion:string}> $articles
+     */
+    public function indexCorpus(
+        string $directory,
+        array $articles,
+        ?DateTimeImmutable $indexedAt = null,
+    ): NumaKnowledgeIndexSummary {
+        $indexedAt ??= new DateTimeImmutable('now');
+        $signature = $this->signature ?? $this->embeddingProvider->signature();
+        $documents = $this->markdownDocuments($directory);
+        $fragments = array_merge(
+            $this->fragmenter->fragmentDirectory($directory, $indexedAt),
+            $this->fragmenter->fragmentArticles($articles, $indexedAt)
+        );
+
+        return $this->indexFragments($fragments, count($documents) + count($articles), $signature);
+    }
+
+    /**
+     * @param array<int, NumaKnowledgeFragment> $fragments
+     */
+    public function indexFragments(
+        array $fragments,
+        int $documents,
+        ?NumaEmbeddingSignature $signature = null,
+    ): NumaKnowledgeIndexSummary {
+        $signature ??= $this->signature ?? $this->embeddingProvider->signature();
 
         if ($fragments === []) {
             throw new RuntimeException('No hay fragmentos de conocimiento de Numa para indexar.');
@@ -822,7 +943,8 @@ final class NumaKnowledgeIndexer
             $current = $existing[$fragment->id()] ?? null;
             $mustGenerateEmbedding = $current === null
                 || $current['hash'] !== $fragment->hash()
-                || $current['dimensiones'] !== $this->dimensions;
+                || $current['dimensiones'] !== $this->dimensions
+                || $current['firma_embedding'] !== $signature->value();
 
             if (!$mustGenerateEmbedding) {
                 $unchanged++;
@@ -850,10 +972,10 @@ final class NumaKnowledgeIndexer
             $fragments
         ));
 
-        $this->persist($records, $fragments);
+        $this->persist($records, $fragments, $signature);
 
         return new NumaKnowledgeIndexSummary(
-            count($documents),
+            $documents,
             count($fragments),
             $created,
             $updated,
@@ -895,11 +1017,11 @@ final class NumaKnowledgeIndexer
     }
 
     /**
-     * @return array<string, array{hash:string, dimensiones:int}>
+     * @return array<string, array{hash:string, dimensiones:int, firma_embedding:string}>
      */
     private function existingFragments(): array
     {
-        $stmt = $this->connection->query('SELECT fragmento_id, hash, dimensiones FROM numa_conocimiento');
+        $stmt = $this->connection->query('SELECT fragmento_id, hash, dimensiones, firma_embedding FROM numa_conocimiento');
 
         if ($stmt === false) {
             throw new RuntimeException('No se pudo leer el indice de conocimiento de Numa.');
@@ -907,13 +1029,14 @@ final class NumaKnowledgeIndexer
 
         $rows = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            if (!isset($row['fragmento_id'], $row['hash'], $row['dimensiones'])) {
+            if (!isset($row['fragmento_id'], $row['hash'], $row['dimensiones'], $row['firma_embedding'])) {
                 continue;
             }
 
             $rows[(string) $row['fragmento_id']] = [
                 'hash' => (string) $row['hash'],
                 'dimensiones' => (int) $row['dimensiones'],
+                'firma_embedding' => (string) $row['firma_embedding'],
             ];
         }
 
@@ -960,7 +1083,7 @@ final class NumaKnowledgeIndexer
      * @param array<int, array{fragment:NumaKnowledgeFragment, embedding:array<int, float>}> $records
      * @param array<int, NumaKnowledgeFragment> $fragments
      */
-    private function persist(array $records, array $fragments): void
+    private function persist(array $records, array $fragments, NumaEmbeddingSignature $signature): void
     {
         $started = !$this->connection->inTransaction();
 
@@ -970,7 +1093,7 @@ final class NumaKnowledgeIndexer
 
         try {
             foreach ($records as $record) {
-                $this->upsertFragment($record['fragment'], $record['embedding']);
+                $this->upsertFragment($record['fragment'], $record['embedding'], $signature);
             }
 
             $this->deleteObsolete(array_map(
@@ -993,13 +1116,17 @@ final class NumaKnowledgeIndexer
     /**
      * @param array<int, float> $embedding
      */
-    private function upsertFragment(NumaKnowledgeFragment $fragment, array $embedding): void
+    private function upsertFragment(
+        NumaKnowledgeFragment $fragment,
+        array $embedding,
+        NumaEmbeddingSignature $signature,
+    ): void
     {
         $stmt = $this->connection->prepare(
             'INSERT INTO numa_conocimiento
-                (fragmento_id, documento, titulo, seccion, ruta, contenido, hash, embedding, dimensiones, indexed_at)
+                (fragmento_id, documento, titulo, seccion, ruta, contenido, hash, embedding, dimensiones, firma_embedding, indexed_at)
              VALUES
-                (:fragmento_id, :documento, :titulo, :seccion, :ruta, :contenido, :hash, :embedding, :dimensiones, :indexed_at)
+                (:fragmento_id, :documento, :titulo, :seccion, :ruta, :contenido, :hash, :embedding, :dimensiones, :firma_embedding, :indexed_at)
              ON DUPLICATE KEY UPDATE
                 documento = VALUES(documento),
                 titulo = VALUES(titulo),
@@ -1009,6 +1136,7 @@ final class NumaKnowledgeIndexer
                 hash = VALUES(hash),
                 embedding = VALUES(embedding),
                 dimensiones = VALUES(dimensiones),
+                firma_embedding = VALUES(firma_embedding),
                 indexed_at = VALUES(indexed_at)'
         );
         $stmt->execute([
@@ -1021,6 +1149,7 @@ final class NumaKnowledgeIndexer
             ':hash' => $fragment->hash(),
             ':embedding' => json_encode(array_values($embedding), JSON_THROW_ON_ERROR),
             ':dimensiones' => $this->dimensions,
+            ':firma_embedding' => $signature->value(),
             ':indexed_at' => $fragment->indexedAt()->format('Y-m-d H:i:s'),
         ]);
     }

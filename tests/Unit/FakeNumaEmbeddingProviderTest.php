@@ -21,6 +21,7 @@ final class FakeNumaEmbeddingProviderTest extends TestCase
         self::assertNotSame($first, $other);
         self::assertCount(4, $first);
         self::assertSame(3, $provider->calls);
+        self::assertSame(['document', 'document', 'document'], $provider->tasks);
         self::assertSame([
             'Texto publico de BeneHom',
             'Texto publico de BeneHom',
@@ -36,5 +37,15 @@ final class FakeNumaEmbeddingProviderTest extends TestCase
 
         self::assertSame([1.0, 0.0], $provider->embed('consulta documental'));
         self::assertCount(2, $provider->embed('otra consulta'));
+    }
+
+    public function testDistingueEntreEmbeddingsDeDocumentoYConsulta(): void
+    {
+        $provider = new FakeNumaEmbeddingProvider(2);
+
+        $provider->embedDocument('Documento publico');
+        $provider->embedQuery('Consulta documental');
+
+        self::assertSame(['document', 'query'], $provider->tasks);
     }
 }

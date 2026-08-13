@@ -38,8 +38,10 @@ final class GeminiEmbeddingProviderTest extends TestCase
     public function testConstruyeSolicitudDeEmbeddingYMapeaVectorValido(): void
     {
         $captured = [];
-        $vector = array_fill(0, 768, 0.125);
-        $transport = function (string $url, array $headers, string $body, int $timeout) use (&$captured, $vector): array {
+        $transportCalls = 0;
+        $vector = array_merge([1.0], array_fill(0, 767, 0.0));
+        $transport = function (string $url, array $headers, string $body, int $timeout) use (&$captured, &$transportCalls, $vector): array {
+            $transportCalls++;
             $captured = [
                 'url' => $url,
                 'headers' => $headers,
@@ -66,11 +68,14 @@ final class GeminiEmbeddingProviderTest extends TestCase
         self::assertStringEndsWith('/models/gemini-embedding-001:embedContent', $captured['url']);
         self::assertContains('x-goog-api-key: embedding-key', $captured['headers']);
         self::assertSame(10, $captured['timeout']);
-        self::assertSame('SEMANTIC_SIMILARITY', $captured['body']['taskType']);
-        self::assertSame(768, $captured['body']['output_dimensionality']);
+        self::assertArrayNotHasKey('taskType', $captured['body']);
+        self::assertArrayNotHasKey('outputDimensionality', $captured['body']);
+        self::assertSame('RETRIEVAL_DOCUMENT', $captured['body']['embedContentConfig']['taskType']);
+        self::assertSame(768, $captured['body']['embedContentConfig']['outputDimensionality']);
         self::assertSame('Como se anade un movimiento en BeneHom', $captured['body']['content']['parts'][0]['text']);
+        self::assertSame(1, $transportCalls);
         self::assertCount(768, $embedding);
-        self::assertSame(0.125, $embedding[0]);
+        self::assertSame(1.0, $embedding[0]);
         self::assertSame(37, $provider->tokenUsage()->inputTokens());
         self::assertSame(0, $provider->tokenUsage()->outputTokens());
         self::assertTrue($provider->tokenUsage()->hasReliableTokens());
@@ -159,7 +164,41 @@ final class GeminiEmbeddingProviderTest extends TestCase
         $embedding = $provider->embed('Texto publico de BeneHom');
 
         self::assertCount(768, $embedding);
-        self::assertSame(768, $captured['output_dimensionality']);
+        self::assertSame(768, $captured['embedContentConfig']['outputDimensionality']);
+    }
+
+    public function testUsaTaskTypeDeConsultaYNormalizaVectoresReducidos(): void
+    {
+        $captured = [];
+        $provider = new \GeminiEmbeddingProvider('key', 'gemini-embedding-001', 2, transport: function (
+            string $url,
+            array $headers,
+            string $body
+        ) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'status' => 200,
+                'body' => json_encode(['embedding' => ['values' => [3.0, 4.0]]]),
+            ];
+        });
+
+        self::assertSame([0.6, 0.8], $provider->embedQuery('Consulta documental'));
+        self::assertSame('RETRIEVAL_QUERY', $captured['embedContentConfig']['taskType']);
+        self::assertSame('RETRIEVAL_DOCUMENT', json_decode($provider->signature()->value(), true, 512, JSON_THROW_ON_ERROR)['task_type']);
+    }
+
+    public function testRechazaVectorNulo(): void
+    {
+        $provider = new \GeminiEmbeddingProvider('key', 'gemini-embedding-001', 2, transport: fn (): array => [
+            'status' => 200,
+            'body' => json_encode(['embedding' => ['values' => [0.0, 0.0]]]),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->embedDocument('Texto publico de BeneHom');
     }
 
     public function testFactoryRechazaProveedorNoSoportado(): void
@@ -193,7 +232,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
 
             public function signature(): \NumaEmbeddingSignature
             {
-                return new \NumaEmbeddingSignature('fake', 'test', 'SEMANTIC_SIMILARITY', 2, '1');
+                return new \NumaEmbeddingSignature('fake', 'test', 'RETRIEVAL_DOCUMENT', 2, '1');
             }
         };
         $consumption = new class implements \NumaProviderConsumptionInterface {
@@ -221,6 +260,78 @@ final class GeminiEmbeddingProviderTest extends TestCase
         self::assertSame(0, $consumption->usage?->outputTokens());
     }
 
+    public function testEmbeddingMedidoEspecializadoInvocaUnaSolaVezProveedorYConsumo(): void
+    {
+        $provider = new class implements \NumaEmbeddingProviderUsageInterface, \NumaEmbeddingTaskProviderInterface {
+            public int $embedCalls = 0;
+
+            public int $documentCalls = 0;
+
+            public int $queryCalls = 0;
+
+            public function embed(string $text): array
+            {
+                $this->embedCalls++;
+
+                return [0.0, 1.0];
+            }
+
+            public function embedDocument(string $text): array
+            {
+                $this->documentCalls++;
+
+                return [1.0, 0.0];
+            }
+
+            public function embedQuery(string $text): array
+            {
+                $this->queryCalls++;
+
+                return [0.5, 0.5];
+            }
+
+            public function tokenUsage(): \NumaTokenUsage
+            {
+                return new \NumaTokenUsage(11, 0);
+            }
+
+            public function signature(): \NumaEmbeddingSignature
+            {
+                return new \NumaEmbeddingSignature('fake', 'test', 'RETRIEVAL_DOCUMENT', 2, '1');
+            }
+        };
+        $consumption = new class implements \NumaProviderConsumptionInterface {
+            public int $calls = 0;
+
+            public int $tokenRegistrations = 0;
+
+            public function iniciarLlamada(): void
+            {
+                $this->calls++;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+                $this->tokenRegistrations++;
+            }
+        };
+        $metered = new \NumaMeteredEmbeddingProvider($provider, $consumption);
+
+        self::assertSame([1.0, 0.0], $metered->embedDocument('Documento publico de BeneHom'));
+        self::assertSame(0, $provider->embedCalls);
+        self::assertSame(1, $provider->documentCalls);
+        self::assertSame(0, $provider->queryCalls);
+        self::assertSame(1, $consumption->calls);
+        self::assertSame(1, $consumption->tokenRegistrations);
+
+        self::assertSame([0.5, 0.5], $metered->embedQuery('Consulta documental de BeneHom'));
+        self::assertSame(0, $provider->embedCalls);
+        self::assertSame(1, $provider->documentCalls);
+        self::assertSame(1, $provider->queryCalls);
+        self::assertSame(2, $consumption->calls);
+        self::assertSame(2, $consumption->tokenRegistrations);
+    }
+
     public function testEmbeddingMedidoNoConsumeSiElTextoEsInvalido(): void
     {
         $provider = new class implements \NumaEmbeddingProviderInterface {
@@ -231,7 +342,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
 
             public function signature(): \NumaEmbeddingSignature
             {
-                return new \NumaEmbeddingSignature('fake', 'test', 'SEMANTIC_SIMILARITY', 2, '1');
+                return new \NumaEmbeddingSignature('fake', 'test', 'RETRIEVAL_DOCUMENT', 2, '1');
             }
         };
         $consumption = new class implements \NumaProviderConsumptionInterface {

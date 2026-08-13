@@ -58,6 +58,7 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         self::assertSame(0, $summary->deleted);
         self::assertSame(1, $summary->embeddingsGenerated);
         self::assertSame(1, $provider->calls);
+        self::assertSame(['document'], $provider->tasks);
 
         $row = $this->knowledgeRows()[0];
         self::assertSame('knowledge:guia:inicio', $row['fragmento_id']);
@@ -137,7 +138,7 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         $directory = $this->knowledgeDirectory([
             'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
         ]);
-        $this->indexer(new FakeNumaEmbeddingProvider(4), ['guia.md' => '/dashboard'])
+        $this->indexer(new FakeNumaEmbeddingProvider(4, [], 'fake', 'deterministic', 'SEMANTIC_SIMILARITY'), ['guia.md' => '/dashboard'])
             ->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
 
         $provider = new FakeNumaEmbeddingProvider(4, [], 'fake', 'deterministic', 'RETRIEVAL_DOCUMENT');
@@ -438,6 +439,6 @@ final class FailingEmbeddingProvider implements \NumaEmbeddingProviderInterface
 
     public function signature(): \NumaEmbeddingSignature
     {
-        return new \NumaEmbeddingSignature('failing', 'failing', 'SEMANTIC_SIMILARITY', 4, '1');
+        return new \NumaEmbeddingSignature('failing', 'failing', 'RETRIEVAL_DOCUMENT', 4, '1');
     }
 }

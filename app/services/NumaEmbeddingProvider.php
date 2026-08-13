@@ -51,12 +51,25 @@ interface NumaEmbeddingProviderInterface
     public function signature(): NumaEmbeddingSignature;
 }
 
+interface NumaEmbeddingTaskProviderInterface extends NumaEmbeddingProviderInterface
+{
+    /**
+     * @return array<int, float>
+     */
+    public function embedDocument(string $text): array;
+
+    /**
+     * @return array<int, float>
+     */
+    public function embedQuery(string $text): array;
+}
+
 interface NumaEmbeddingProviderUsageInterface extends NumaEmbeddingProviderInterface
 {
     public function tokenUsage(): NumaTokenUsage;
 }
 
-final class NumaMeteredEmbeddingProvider implements NumaEmbeddingProviderInterface
+final class NumaMeteredEmbeddingProvider implements NumaEmbeddingTaskProviderInterface
 {
     public function __construct(
         private readonly NumaEmbeddingProviderInterface $provider,
@@ -66,12 +79,32 @@ final class NumaMeteredEmbeddingProvider implements NumaEmbeddingProviderInterfa
 
     public function embed(string $text): array
     {
+        return $this->embedWith($text, 'embed');
+    }
+
+    public function embedDocument(string $text): array
+    {
+        return $this->embedWith($text, 'embedDocument');
+    }
+
+    public function embedQuery(string $text): array
+    {
+        return $this->embedWith($text, 'embedQuery');
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function embedWith(string $text, string $method): array
+    {
         if (trim($text) === '') {
             throw new InvalidArgumentException('El texto para embeddings de Numa no puede estar vacio.');
         }
 
         $this->consumption->iniciarLlamada();
-        $embedding = $this->provider->embed($text);
+        $embedding = $this->provider instanceof NumaEmbeddingTaskProviderInterface
+            ? $this->provider->{$method}($text)
+            : $this->provider->embed($text);
         $usage = $this->provider instanceof NumaEmbeddingProviderUsageInterface
             ? $this->provider->tokenUsage()
             : NumaTokenUsage::unknown();

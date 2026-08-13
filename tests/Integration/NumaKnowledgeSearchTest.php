@@ -37,6 +37,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         $results = $searcher->search("  como anadir\nmovimiento  ");
 
         self::assertSame(['como anadir movimiento'], $provider->texts);
+        self::assertSame(['query'], $provider->tasks);
         self::assertCount(3, $results);
         self::assertSame('movimientos:anadir', $results[0]->fragmentId());
         self::assertSame('ahorro:posible', $results[1]->fragmentId());
@@ -54,7 +55,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
             'Anadir movimientos',
             'Contenido con otro modelo.',
             [1.0, 0.0],
-            new \NumaEmbeddingSignature('fake', 'modelo-anterior', 'SEMANTIC_SIMILARITY', 2, '1')
+            new \NumaEmbeddingSignature('fake', 'modelo-anterior', 'RETRIEVAL_DOCUMENT', 2, '1')
         );
         $provider = FakeNumaEmbeddingProvider::withVectors(['como anadir movimiento' => [1.0, 0.0]], 2);
         $searcher = new \NumaKnowledgeSearcher($this->db, $provider, 2, 3, 0.65);
@@ -101,6 +102,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         $searcher->search('Me llamo Laura Pérez. ¿Qué son los gastos flexibles y cuánto gasté 123,45 euros este mes? Mi correo es laura@example.com y mi usuario_id 42.');
 
         self::assertSame(['Qué son los gastos flexibles'], $provider->texts);
+        self::assertSame(['query'], $provider->tasks);
     }
 
     public function testRechazaConsultaDocumentalConDatosPrivadosSinParteDocumental(): void
@@ -159,7 +161,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
             ':hash' => hash('sha256', $content),
             ':embedding' => json_encode($embedding, JSON_THROW_ON_ERROR),
             ':dimensiones' => count($embedding),
-            ':firma_embedding' => ($signature ?? new \NumaEmbeddingSignature('fake', 'deterministic', 'SEMANTIC_SIMILARITY', count($embedding), '1'))->value(),
+            ':firma_embedding' => ($signature ?? new \NumaEmbeddingSignature('fake', 'deterministic', 'RETRIEVAL_DOCUMENT', count($embedding), '1'))->value(),
             ':indexed_at' => '2026-07-29 12:00:00',
         ]);
     }

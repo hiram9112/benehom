@@ -29,4 +29,11 @@ final class NumaVectorSimilarityTest extends TestCase
 
         \NumaVectorSimilarity::cosine([1.0], [1.0, 0.0]);
     }
+
+    public function testRechazaVectoresNoFinitos(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        \NumaVectorSimilarity::cosine([INF, 0.0], [1.0, 0.0]);
+    }
 }

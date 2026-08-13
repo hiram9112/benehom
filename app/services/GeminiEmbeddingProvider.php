@@ -6,12 +6,14 @@ require_once __DIR__ . '/NumaProvider.php';
 require_once __DIR__ . '/NumaEmbeddingProvider.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
 
-final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface
+final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface, NumaEmbeddingTaskProviderInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
     private const DEFAULT_DIMENSIONS = 768;
-    private const TASK_TYPE = 'SEMANTIC_SIMILARITY';
-    private const FORMAT_VERSION = '1';
+    private const DOCUMENT_TASK_TYPE = 'RETRIEVAL_DOCUMENT';
+    private const QUERY_TASK_TYPE = 'RETRIEVAL_QUERY';
+    private const FORMAT_VERSION = '2';
+    private const FULL_DIMENSIONS = 3072;
 
     /** @var callable */
     private $transport;
@@ -49,6 +51,24 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
      */
     public function embed(string $text): array
     {
+        return $this->embedDocument($text);
+    }
+
+    public function embedDocument(string $text): array
+    {
+        return $this->embedWithTaskType($text, self::DOCUMENT_TASK_TYPE);
+    }
+
+    public function embedQuery(string $text): array
+    {
+        return $this->embedWithTaskType($text, self::QUERY_TASK_TYPE);
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function embedWithTaskType(string $text, string $taskType): array
+    {
         $this->lastTokenUsage = null;
 
         if (trim($text) === '') {
@@ -56,12 +76,14 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
         }
 
         $payload = [
-            'taskType' => self::TASK_TYPE,
-            'output_dimensionality' => $this->dimensions,
             'content' => [
                 'parts' => [[
                     'text' => $text,
                 ]],
+            ],
+            'embedContentConfig' => [
+                'taskType' => $taskType,
+                'outputDimensionality' => $this->dimensions,
             ],
         ];
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -105,7 +127,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
         return new NumaEmbeddingSignature(
             'gemini',
             $this->model,
-            self::TASK_TYPE,
+            self::DOCUMENT_TASK_TYPE,
             $this->dimensions,
             self::FORMAT_VERSION
         );
@@ -188,7 +210,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
 
         $this->lastTokenUsage = $this->extractTokenUsage($decoded);
 
-        return $values;
+        return $this->normalizeReducedEmbedding($values);
     }
 
     /**
@@ -197,7 +219,9 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
     private function extractTokenUsage(array $decoded): NumaTokenUsage
     {
         $usage = $decoded['usageMetadata'] ?? null;
-        $promptTokenCount = is_array($usage) ? ($usage['promptTokenCount'] ?? null) : null;
+        $promptTokenCount = is_array($usage)
+            ? ($usage['promptTokenCount'] ?? $usage['totalTokenCount'] ?? null)
+            : null;
 
         if (!is_int($promptTokenCount) || $promptTokenCount < 0) {
             return NumaTokenUsage::unknown();
@@ -228,10 +252,46 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
                 throw self::invalidResponseError();
             }
 
-            $embedding[] = (float) $value;
+            $value = (float) $value;
+
+            if (!is_finite($value)) {
+                throw self::invalidResponseError();
+            }
+
+            $embedding[] = $value;
         }
 
         return $embedding;
+    }
+
+    /**
+     * gemini-embedding-001 requires client-side normalization for reduced vectors.
+     *
+     * @param array<int, float> $embedding
+     * @return array<int, float>
+     */
+    private function normalizeReducedEmbedding(array $embedding): array
+    {
+        $magnitude = 0.0;
+
+        foreach ($embedding as $value) {
+            $magnitude += $value * $value;
+        }
+
+        if (!is_finite($magnitude) || $magnitude <= 0.0) {
+            throw self::invalidResponseError();
+        }
+
+        if ($this->model !== 'gemini-embedding-001' || $this->dimensions === self::FULL_DIMENSIONS) {
+            return $embedding;
+        }
+
+        $magnitude = sqrt($magnitude);
+
+        return array_map(
+            static fn (float $value): float => $value / $magnitude,
+            $embedding
+        );
     }
 
     private function httpError(int $status, string $responseBody): NumaProviderException

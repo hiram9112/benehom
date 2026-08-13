@@ -607,7 +607,12 @@ final class NumaVectorSimilarity
         foreach ($leftValues as $index => $leftValue) {
             $rightValue = $rightValues[$index];
 
-            if ((!is_float($leftValue) && !is_int($leftValue)) || (!is_float($rightValue) && !is_int($rightValue))) {
+            if (
+                (!is_float($leftValue) && !is_int($leftValue))
+                || (!is_float($rightValue) && !is_int($rightValue))
+                || !is_finite((float) $leftValue)
+                || !is_finite((float) $rightValue)
+            ) {
                 throw new InvalidArgumentException('Los vectores de Numa solo pueden contener numeros.');
             }
 
@@ -655,7 +660,9 @@ final class NumaKnowledgeSearcher
     {
         $knowledgeQuery = $this->normalizeKnowledgeQuery($knowledgeQuery);
         $signature = $this->signature ?? $this->embeddingProvider->signature();
-        $queryEmbedding = $this->embeddingProvider->embed($knowledgeQuery);
+        $queryEmbedding = $this->embeddingProvider instanceof NumaEmbeddingTaskProviderInterface
+            ? $this->embeddingProvider->embedQuery($knowledgeQuery)
+            : $this->embeddingProvider->embed($knowledgeQuery);
         $this->validateEmbedding($queryEmbedding);
 
         $resultsByHash = [];
@@ -844,6 +851,10 @@ final class NumaKnowledgeSearcher
                 throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
             }
 
+            if (!is_finite((float) $value)) {
+                throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
+            }
+
             $embedding[] = (float) $value;
         }
 
@@ -862,7 +873,7 @@ final class NumaKnowledgeSearcher
         }
 
         foreach ($embedding as $value) {
-            if (!is_float($value) && !is_int($value)) {
+            if ((!is_float($value) && !is_int($value)) || !is_finite((float) $value)) {
                 throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
             }
         }
@@ -951,7 +962,9 @@ final class NumaKnowledgeIndexer
                 continue;
             }
 
-            $embedding = $this->embeddingProvider->embed($fragment->content());
+            $embedding = $this->embeddingProvider instanceof NumaEmbeddingTaskProviderInterface
+                ? $this->embeddingProvider->embedDocument($fragment->content())
+                : $this->embeddingProvider->embed($fragment->content());
             $this->validateEmbedding($embedding);
 
             $records[] = [
@@ -1053,7 +1066,7 @@ final class NumaKnowledgeIndexer
         }
 
         foreach ($embedding as $value) {
-            if (!is_float($value) && !is_int($value)) {
+            if ((!is_float($value) && !is_int($value)) || !is_finite((float) $value)) {
                 throw new RuntimeException('Embedding de conocimiento de Numa invalido.');
             }
         }

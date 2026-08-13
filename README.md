@@ -237,6 +237,16 @@ Queda fuera del alcance de los tests actuales:
 - Tests HTTP de controladores que dependen de `echo`, `header` y `exit`.
 - Tests e2e de interfaz, Chart.js y comportamiento visual.
 
+## Indexación de Numa
+
+El índice documental de Numa se actualiza manualmente con:
+
+```bash
+php bin/indexar-numa.php
+```
+
+Ejecuta este comando una vez en el entorno correspondiente después de desplegar cualquier alta, modificación, cambio de estado, retirada o cambio de slug de un artículo del blog. El comando es idempotente, usa `config/blog_articulos.php` como catálogo canónico, no indexa implícitamente al servir el blog y requiere la base de datos y el proveedor de embeddings configurados.
+
 ## Variables de entorno
 
 | Variable | Descripción |

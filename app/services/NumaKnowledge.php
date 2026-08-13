@@ -183,15 +183,27 @@ final class NumaKnowledgeFragmenter
         foreach ($articles as $article) {
             $slug = trim((string) ($article['slug'] ?? ''));
             $title = trim((string) ($article['titulo'] ?? ''));
+            $summary = $this->normalizeText((string) ($article['resumen'] ?? ''));
+            $searchIntent = $this->normalizeText((string) ($article['intencion_busqueda'] ?? ''));
+            $connection = $this->normalizeText((string) ($article['conexion'] ?? ''));
             $sections = $article['contenido'] ?? null;
 
-            if ($slug === '' || $title === '' || !is_array($sections) || isset($slugs[$slug])) {
+            if (
+                $slug === ''
+                || $title === ''
+                || $summary === ''
+                || $searchIntent === ''
+                || $connection === ''
+                || !is_array($sections)
+                || isset($slugs[$slug])
+            ) {
                 throw new InvalidArgumentException('Articulo de blog para conocimiento de Numa invalido.');
             }
 
             $slugs[$slug] = true;
             $normalizedSections = [];
             $sectionIdentities = [];
+            $context = $this->articleContext($summary, $searchIntent, $connection);
             foreach ($sections as $section) {
                 $sectionTitle = trim((string) ($section['titulo'] ?? ''));
                 $paragraphs = $section['parrafos'] ?? null;
@@ -207,7 +219,7 @@ final class NumaKnowledgeFragmenter
                     throw new InvalidArgumentException('Seccion de articulo para conocimiento de Numa sin contenido.');
                 }
 
-                $normalizedSections[] = ['section' => $sectionTitle, 'body' => $body];
+                $normalizedSections[] = ['section' => $sectionTitle, 'body' => $body, 'context' => $context];
             }
 
             if ($normalizedSections === []) {
@@ -301,7 +313,7 @@ final class NumaKnowledgeFragmenter
     }
 
     /**
-     * @param array<int, array{section: string, body: string}> $sections
+     * @param array<int, array{section: string, body: string, context?: string}> $sections
      * @param array<int, string> $bodyLines
      */
     private function pushSection(array &$sections, ?string $section, array $bodyLines): void
@@ -335,7 +347,12 @@ final class NumaKnowledgeFragmenter
         $fragments = [];
 
         foreach ($sections as $sectionData) {
-            $parts = $this->splitBody($title, $sectionData['section'], $sectionData['body']);
+            $parts = $this->splitBodyWithContext(
+                $title,
+                $sectionData['section'],
+                $sectionData['body'],
+                (string) ($sectionData['context'] ?? '')
+            );
             $sectionSlug = $this->slug($sectionData['section']);
 
             foreach ($parts as $index => $content) {
@@ -373,6 +390,14 @@ final class NumaKnowledgeFragmenter
      */
     private function splitBody(string $title, string $section, string $body): array
     {
+        return $this->splitBodyWithContext($title, $section, $body);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function splitBodyWithContext(string $title, string $section, string $body, string $context = ''): array
+    {
         $blocks = preg_split('/\n{2,}/u', $body) ?: [];
         $parts = [];
         $current = '';
@@ -385,7 +410,7 @@ final class NumaKnowledgeFragmenter
             }
 
             $candidateBody = $current === '' ? $block : $current . "\n\n" . $block;
-            $candidateContent = $this->formatContent($title, $section, $candidateBody);
+            $candidateContent = $this->formatContentBestEffort($title, $section, $candidateBody, $context);
 
             if ($this->length($candidateContent) <= $this->maxContentChars) {
                 $current = $candidateBody;
@@ -393,20 +418,17 @@ final class NumaKnowledgeFragmenter
             }
 
             if ($current !== '') {
-                $parts[] = $this->formatContent($title, $section, $current);
+                $parts[] = $this->formatContentWithinLimit($title, $section, $current, $context);
                 $current = '';
             }
 
-            $singleBlockContent = $this->formatContent($title, $section, $block);
-            if ($this->length($singleBlockContent) > $this->maxContentChars) {
-                throw new InvalidArgumentException('Bloque de conocimiento de Numa supera el limite de 900 caracteres.');
-            }
+            $singleBlockContent = $this->formatContentWithinLimit($title, $section, $block, $context);
 
             $current = $block;
         }
 
         if ($current !== '') {
-            $parts[] = $this->formatContent($title, $section, $current);
+            $parts[] = $this->formatContentWithinLimit($title, $section, $current, $context);
         }
 
         if ($parts === []) {
@@ -416,9 +438,109 @@ final class NumaKnowledgeFragmenter
         return $parts;
     }
 
-    private function formatContent(string $title, string $section, string $body): string
+    private function formatContentWithinLimit(string $title, string $section, string $body, string $context = ''): string
     {
-        return $this->normalizeText($title . "\n" . $section . "\n\n" . $body);
+        $contentWithoutContext = $this->formatContent($title, $section, $body);
+        if ($this->length($contentWithoutContext) > $this->maxContentChars) {
+            throw new InvalidArgumentException('Bloque de conocimiento de Numa supera el limite de 900 caracteres.');
+        }
+
+        if ($context === '') {
+            return $contentWithoutContext;
+        }
+
+        $content = $this->formatContent($title, $section, $body, $context);
+        if ($this->length($content) <= $this->maxContentChars) {
+            return $content;
+        }
+
+        $compactContext = $context;
+        while ($compactContext !== '') {
+            $compactContext = $this->shortenText($compactContext, max(0, $this->length($compactContext) - 40));
+            if ($compactContext === '') {
+                break;
+            }
+
+            $content = $this->formatContent($title, $section, $body, $compactContext);
+            if ($this->length($content) <= $this->maxContentChars) {
+                return $content;
+            }
+        }
+
+        return $contentWithoutContext;
+    }
+
+    private function formatContentBestEffort(string $title, string $section, string $body, string $context = ''): string
+    {
+        if ($context === '') {
+            return $this->formatContent($title, $section, $body);
+        }
+
+        $content = $this->formatContent($title, $section, $body, $context);
+        if ($this->length($content) <= $this->maxContentChars) {
+            return $content;
+        }
+
+        $contentWithoutContext = $this->formatContent($title, $section, $body);
+        $compactContext = $context;
+        while ($compactContext !== '') {
+            $compactContext = $this->shortenText($compactContext, max(0, $this->length($compactContext) - 40));
+            if ($compactContext === '') {
+                break;
+            }
+
+            $content = $this->formatContent($title, $section, $body, $compactContext);
+            if ($this->length($content) <= $this->maxContentChars) {
+                return $content;
+            }
+        }
+
+        return $contentWithoutContext;
+    }
+
+    private function formatContent(string $title, string $section, string $body, string $context = ''): string
+    {
+        if ($context === '') {
+            return $this->normalizeText($title . "\n" . $section . "\n\n" . $body);
+        }
+
+        $parts = [$title, $section];
+        $parts[] = $context;
+        $parts[] = $body;
+
+        return $this->normalizeText(implode("\n\n", $parts));
+    }
+
+    private function articleContext(string $summary, string $searchIntent, string $connection): string
+    {
+        return $this->normalizeText(
+            'Resumen: ' . $summary . "\n"
+            . 'Intencion de busqueda: ' . $searchIntent . "\n"
+            . 'Conexion con BeneHom: ' . $connection
+        );
+    }
+
+    private function shortenText(string $text, int $maxChars): string
+    {
+        if ($maxChars <= 0) {
+            return '';
+        }
+
+        if ($this->length($text) <= $maxChars) {
+            return $text;
+        }
+
+        if ($maxChars <= 3) {
+            return substr($text, 0, $maxChars);
+        }
+
+        $cut = function_exists('mb_substr')
+            ? mb_substr($text, 0, $maxChars - 3, 'UTF-8')
+            : substr($text, 0, $maxChars - 3);
+        $cut = preg_replace('/\s+\S*$/u', '', $cut) ?? $cut;
+        $cut = trim($cut);
+
+        return $cut === '' ? '' : $cut . '...';
     }
 
     private function normalizeText(string $text): string

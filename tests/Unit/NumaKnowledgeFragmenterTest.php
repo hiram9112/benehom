@@ -79,6 +79,28 @@ final class NumaKnowledgeFragmenterTest extends TestCase
             static fn (\NumaKnowledgeFragment $fragment): string => $fragment->id(),
             $fragments
         ));
+        self::assertStringContainsString('Resumen: Resumen', $fragments[0]->content());
+        self::assertStringContainsString('Intencion de busqueda: intencion', $fragments[0]->content());
+        self::assertStringContainsString('Conexion con BeneHom: conexion', $fragments[0]->content());
+    }
+
+    public function testRechazaArticuloSinCamposPublicosDeContexto(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new \NumaKnowledgeFragmenter())->fragmentArticles([
+            [
+                'slug' => 'guia-del-blog',
+                'titulo' => 'Guia del blog',
+                'resumen' => '',
+                'intencion_busqueda' => 'intencion',
+                'conexion' => 'conexion',
+                'contenido' => [[
+                    'titulo' => 'Inicio',
+                    'parrafos' => ['Contenido publico.'],
+                ]],
+            ],
+        ], new DateTimeImmutable(self::INDEXED_AT));
     }
 
     public function testFragmentaTodaLaBaseDeConocimientoConIdsEstables(): void

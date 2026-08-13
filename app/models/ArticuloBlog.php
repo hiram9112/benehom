@@ -4,7 +4,16 @@ class ArticuloBlog
 {
     public static function publicados(): array
     {
-        $articulos = array_filter(self::todos(), static function (array $articulo): bool {
+        return self::publicadosDesdeCatalogo(self::todos());
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $catalogo
+     * @return array<int, array<string, mixed>>
+     */
+    private static function publicadosDesdeCatalogo(array $catalogo): array
+    {
+        $articulos = array_filter($catalogo, static function (array $articulo): bool {
             return ($articulo['estado'] ?? '') === 'publicado';
         });
 
@@ -27,7 +36,19 @@ class ArticuloBlog
      */
     public static function publicadosParaRag(): array
     {
-        $articulos = array_filter(self::publicados(), [self::class, 'esElegibleParaRag']);
+        return self::seleccionarParaRag(self::todos());
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $catalogo
+     * @return array<int, array{slug:string, titulo:string, resumen:string, intencion_busqueda:string, contenido:array<int, array{titulo:string, parrafos:array<int, string>}>, conexion:string}>
+     */
+    public static function seleccionarParaRag(array $catalogo): array
+    {
+        $publicados = self::publicadosDesdeCatalogo($catalogo);
+        self::validarArticulosPublicadosParaRag($publicados);
+        $articulos = array_filter($publicados, [self::class, 'esElegibleParaRag']);
+        self::validarArticulosParaRag(array_values($articulos));
 
         return array_values(array_map(static function (array $articulo): array {
             $secciones = array_map(static function (array $seccion): array {
@@ -46,6 +67,109 @@ class ArticuloBlog
                 'conexion' => (string) ($articulo['conexion'] ?? ''),
             ];
         }, $articulos));
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $articulos
+     */
+    private static function validarArticulosPublicadosParaRag(array $articulos): void
+    {
+        $slugs = [];
+
+        foreach ($articulos as $articulo) {
+            $slug = trim((string) ($articulo['slug'] ?? ''));
+            $contenido = $articulo['contenido'] ?? null;
+
+            if (
+                $slug === ''
+                || isset($slugs[$slug])
+                || trim((string) ($articulo['titulo'] ?? '')) === ''
+                || trim((string) ($articulo['resumen'] ?? '')) === ''
+                || trim((string) ($articulo['intencion_busqueda'] ?? '')) === ''
+                || trim((string) ($articulo['conexion'] ?? '')) === ''
+                || !is_array($contenido)
+                || $contenido === []
+                || !array_key_exists('rag_pertinente', $articulo)
+                || !is_bool($articulo['rag_pertinente'])
+                || !array_key_exists('rag_aprobado', $articulo)
+                || !is_bool($articulo['rag_aprobado'])
+            ) {
+                throw new RuntimeException('Articulo publicado del blog para RAG invalido.');
+            }
+
+            $slugs[$slug] = true;
+
+            foreach ($contenido as $seccion) {
+                if (!is_array($seccion)) {
+                    throw new RuntimeException('Articulo publicado del blog para RAG invalido.');
+                }
+
+                $parrafos = $seccion['parrafos'] ?? null;
+                if (
+                    trim((string) ($seccion['titulo'] ?? '')) === ''
+                    || !is_array($parrafos)
+                    || $parrafos === []
+                ) {
+                    throw new RuntimeException('Articulo publicado del blog para RAG invalido.');
+                }
+
+                foreach ($parrafos as $parrafo) {
+                    if (trim((string) $parrafo) === '') {
+                        throw new RuntimeException('Articulo publicado del blog para RAG invalido.');
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $articulos
+     */
+    private static function validarArticulosParaRag(array $articulos): void
+    {
+        $slugs = [];
+
+        foreach ($articulos as $articulo) {
+            $slug = trim((string) ($articulo['slug'] ?? ''));
+            $contenido = $articulo['contenido'] ?? null;
+
+            if (
+                ($articulo['estado'] ?? '') !== 'publicado'
+                || $slug === ''
+                || isset($slugs[$slug])
+                || trim((string) ($articulo['titulo'] ?? '')) === ''
+                || trim((string) ($articulo['resumen'] ?? '')) === ''
+                || trim((string) ($articulo['intencion_busqueda'] ?? '')) === ''
+                || trim((string) ($articulo['conexion'] ?? '')) === ''
+                || !is_array($contenido)
+                || $contenido === []
+            ) {
+                throw new RuntimeException('Articulo de blog para RAG invalido.');
+            }
+
+            $slugs[$slug] = true;
+
+            foreach ($contenido as $seccion) {
+                if (!is_array($seccion)) {
+                    throw new RuntimeException('Articulo de blog para RAG invalido.');
+                }
+
+                $parrafos = $seccion['parrafos'] ?? null;
+                if (
+                    trim((string) ($seccion['titulo'] ?? '')) === ''
+                    || !is_array($parrafos)
+                    || $parrafos === []
+                ) {
+                    throw new RuntimeException('Articulo de blog para RAG invalido.');
+                }
+
+                foreach ($parrafos as $parrafo) {
+                    if (trim((string) $parrafo) === '') {
+                        throw new RuntimeException('Articulo de blog para RAG invalido.');
+                    }
+                }
+            }
+        }
     }
 
     public static function obtenerPorSlug(string $slug): ?array
@@ -116,9 +240,18 @@ class ArticuloBlog
 
     private static function todos(): array
     {
-        $articulos = require CONFIG_PATH . '/blog_articulos.php';
+        $catalogPath = CONFIG_PATH . '/blog_articulos.php';
+        if (!is_file($catalogPath) || !is_readable($catalogPath)) {
+            throw new RuntimeException('Catalogo de articulos del blog no legible.');
+        }
 
-        return is_array($articulos) ? $articulos : [];
+        $articulos = require $catalogPath;
+
+        if (!is_array($articulos)) {
+            throw new RuntimeException('Catalogo de articulos del blog invalido.');
+        }
+
+        return $articulos;
     }
 
 }

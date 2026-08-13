@@ -10,6 +10,7 @@ use Tests\Support\FakeNumaEmbeddingProvider;
 require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
+require_once APP_PATH . '/models/ArticuloBlog.php';
 require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
 
 final class NumaKnowledgeIndexerTest extends IntegrationTestCase
@@ -257,6 +258,68 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
             'blog:guia:seccion-nueva:part-1',
             'knowledge:guia:inicio',
         ], array_column($this->knowledgeRows(), 'fragmento_id'));
+    }
+
+    public function testMarkdownYArticulosSeReconcilianJuntosSinBorrarLaOtraFuente(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $provider = new FakeNumaEmbeddingProvider(4);
+        $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
+
+        $indexer->indexCorpus($directory, [
+            $this->blogArticle('guia-blog', 'Titulo', 'Inicio', 'Contenido del articulo.'),
+        ], new DateTimeImmutable(self::INDEXED_AT));
+        $provider->calls = 0;
+        $this->writeDocument($directory, 'guia.md', "# Guia\n\n## Inicio\n\nContenido publico de BeneHom actualizado.");
+
+        $summary = $indexer->indexCorpus($directory, [
+            $this->blogArticle('guia-blog', 'Titulo', 'Inicio', 'Contenido del articulo.'),
+        ], new DateTimeImmutable(self::INDEXED_AT));
+
+        self::assertSame(0, $summary->created);
+        self::assertSame(1, $summary->updated);
+        self::assertSame(1, $summary->unchanged);
+        self::assertSame(0, $summary->deleted);
+        self::assertSame([
+            'blog:guia-blog:inicio:part-1',
+            'knowledge:guia:inicio',
+        ], array_column($this->knowledgeRows(), 'fragmento_id'));
+    }
+
+    public function testArticuloPublicadoMalformadoFallaYConservaIndiceAnterior(): void
+    {
+        $directory = $this->knowledgeDirectory([
+            'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+        ]);
+        $provider = new FakeNumaEmbeddingProvider(4);
+        $indexer = $this->indexer($provider, ['guia.md' => '/dashboard']);
+        $article = $this->blogArticle('guia-blog', 'Titulo', 'Inicio', 'Contenido del articulo.');
+        $article['estado'] = 'publicado';
+        $article['rag_pertinente'] = true;
+        $article['rag_aprobado'] = true;
+
+        $indexer->indexCorpus(
+            $directory,
+            \ArticuloBlog::seleccionarParaRag([$article]),
+            new DateTimeImmutable(self::INDEXED_AT)
+        );
+        $rowsBefore = $this->knowledgeRows();
+        unset($article['rag_aprobado']);
+
+        try {
+            $indexer->indexCorpus(
+                $directory,
+                \ArticuloBlog::seleccionarParaRag([$article]),
+                new DateTimeImmutable(self::INDEXED_AT)
+            );
+            self::fail('La indexacion debe fallar si un articulo publicado llega malformado al selector RAG.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('Articulo publicado del blog para RAG invalido.', $exception->getMessage());
+        }
+
+        self::assertSame($rowsBefore, $this->knowledgeRows());
     }
 
     public function testFalloDeEmbeddingNoDejaCambiosParciales(): void

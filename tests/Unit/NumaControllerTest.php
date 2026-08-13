@@ -224,6 +224,11 @@ final class MeteredNumaProviderFake implements \NumaProviderInterface
     }
 }
 
+final class NumaKnowledgeSearchSpy
+{
+    public int $calls = 0;
+}
+
 final class NumaControllerTest extends TestCase
 {
     private string $originalMethod = 'GET';
@@ -833,6 +838,94 @@ final class NumaControllerTest extends TestCase
         self::assertSame(3, $numaUso->reservations);
         self::assertSame(3, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
+    }
+
+    public function testChatActivoNoConsultaRagParaPreguntaExclusivamenteFinanciera(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake();
+        $knowledgeSearchSpy = new NumaKnowledgeSearchSpy();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_financial_summary',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO)),
+            new \NumaResponse('Tus gastos del periodo fueron 800 euros.')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuánto gasté este mes?"}',
+            $numaUso,
+            $provider,
+            [new \NumaKnowledgeSearchResult('frag-privado', 'doc.md', 'No usado', 'No usado', '/dashboard', 'Este fragmento no debe llegar al contexto.', 0.99)],
+            null,
+            null,
+            false,
+            true,
+            $knowledgeSearchSpy,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame(0, $knowledgeSearchSpy->calls);
+        self::assertSame(3, $response['data']['usage']['interaction_used']);
+        self::assertSame(3, $numaUso->reservations);
+        self::assertCount(3, $provider->requests());
+
+        foreach (array_slice($provider->requests(), 1) as $request) {
+            self::assertNotContains('knowledge_fragments', array_column($request->context(), 'type'));
+        }
+    }
+
+    public function testChatActivoConsultaCombinadaUsaRagYToolsSinExponerFuentes(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $knowledgeSearchSpy = new NumaKnowledgeSearchSpy();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'consulta_combinada',
+                'allowed' => true,
+                'reason' => 'combined_help',
+                'knowledge_query' => 'gastos flexibles en BeneHom',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO)),
+            new \NumaResponse('Los gastos flexibles son variables; en el periodo gastaste 800 euros.')
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Qué son los gastos flexibles y cuánto gasté este mes?"}',
+            new NumaUsoFake(),
+            $provider,
+            [new \NumaKnowledgeSearchResult('gastos-flexibles', 'gastos.md', 'Gastos', 'Flexibles', '/dashboard', 'Los gastos flexibles son variables y ajustables.', 0.97)],
+            null,
+            null,
+            false,
+            false,
+            $knowledgeSearchSpy,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame(1, $knowledgeSearchSpy->calls);
+        self::assertSame('Los gastos flexibles son variables; en el periodo gastaste 800 euros.', $response['data']['message']);
+        self::assertArrayNotHasKey('sources', $response['data']);
+        self::assertArrayNotHasKey('sources', $response['data']['conversation'][1]);
+        self::assertSame(['start' => '2026-07-01', 'end' => '2026-07-31'], $response['data']['period']);
+
+        $firstFinalContextTypes = array_column($provider->requests()[1]->context(), 'type');
+        $secondFinalContextTypes = array_column($provider->requests()[2]->context(), 'type');
+
+        self::assertContains('knowledge_fragments', $firstFinalContextTypes);
+        self::assertContains('available_financial_tools', $firstFinalContextTypes);
+        self::assertNotContains('financial_tool_results', $firstFinalContextTypes);
+        self::assertContains('knowledge_fragments', $secondFinalContextTypes);
+        self::assertContains('financial_tool_results', $secondFinalContextTypes);
     }
 
     public function testChatActivoErrorProveedorTrasConsumirUnidadDevuelveUsoActualizado(): void
@@ -1486,6 +1579,7 @@ final class NumaControllerTest extends TestCase
         ?NumaGlobalAvailabilityFake $globalAvailability = null,
         bool $providerFailsOnResolve = false,
         bool $meterKnowledge = false,
+        ?NumaKnowledgeSearchSpy $knowledgeSearchSpy = null,
     ): array
     {
         http_response_code(200);
@@ -1499,7 +1593,7 @@ final class NumaControllerTest extends TestCase
         $financialTools ??= new NumaFinancialToolRegistryFake();
         $globalAvailability ??= new NumaGlobalAvailabilityFake();
 
-        $controller = new class($rawBody, $numaUso, $provider, $knowledgeResults, $financialTools, $globalAvailability, $providerFailsOnResolve, $meterKnowledge) extends \NumaController {
+        $controller = new class($rawBody, $numaUso, $provider, $knowledgeResults, $financialTools, $globalAvailability, $providerFailsOnResolve, $meterKnowledge, $knowledgeSearchSpy) extends \NumaController {
             public function __construct(
                 private readonly string $body,
                 private readonly NumaUsoFake $fakeNumaUso,
@@ -1509,6 +1603,7 @@ final class NumaControllerTest extends TestCase
                 private readonly NumaGlobalAvailabilityFake $fakeGlobalAvailability,
                 private readonly bool $providerFailsOnResolve,
                 private readonly bool $meterKnowledge,
+                private readonly ?NumaKnowledgeSearchSpy $knowledgeSearchSpy,
             )
             {
             }
@@ -1567,6 +1662,10 @@ final class NumaControllerTest extends TestCase
                 ?\NumaProviderConsumptionInterface $consumption = null,
             ): array
             {
+                if ($this->knowledgeSearchSpy !== null) {
+                    $this->knowledgeSearchSpy->calls++;
+                }
+
                 if ($this->meterKnowledge && $consumption !== null) {
                     $consumption->iniciarLlamada();
                 }

@@ -223,11 +223,6 @@ class NumaController
             && (int) $currentUserId === $authenticatedUserId;
     }
 
-    protected function providerScopeClassifier(): NumaProviderScopeClassifier
-    {
-        return new NumaProviderScopeClassifier($this->provider());
-    }
-
     protected function provider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface
     {
         if ($consumption === null) {
@@ -259,7 +254,6 @@ class NumaController
         return new NumaService(
             $this->numaUso(),
             $this->localScopeClassifier(),
-            fn (): NumaProviderScopeClassifier => $this->providerScopeClassifier(),
             fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $this->provider($consumption),
             fn (NumaClassification $classification, string $message, ?NumaProviderConsumptionInterface $consumption = null): array => $this->knowledgeResults($classification, $message, $consumption),
             fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),

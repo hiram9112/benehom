@@ -226,34 +226,21 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
 final class NumaService
 {
     private const NO_KNOWLEDGE_MESSAGE = 'No encuentro información suficiente sobre esa función dentro de BeneHom.';
+    private const CLARIFICATION_MESSAGE = '¿Podrías concretar qué quieres consultar en BeneHom?';
     private const APPROX_CHARS_PER_TOKEN = 4;
     private const CONTEXT_OVERHEAD_CHARS = 2500;
     private const MAX_CONTROLLED_REQUEST_CHARS = 13000;
     private const CONVERSATION_LIMIT_MESSAGE = 'Esta conversación ha alcanzado el límite de contexto de Numa. Inicia una nueva conversación para continuar.';
 
-    /** @var array<string, string> */
-    private const DATA_INTENT_TO_TOOL = [
-        NumaDataIntent::RESUMEN_FINANCIERO => NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
-        NumaDataIntent::RANKING_CATEGORIAS => NumaFinancialToolRegistry::OBTENER_RANKING_CATEGORIAS,
-        NumaDataIntent::EVOLUCION_FINANCIERA => NumaFinancialToolRegistry::OBTENER_EVOLUCION_FINANCIERA,
-        NumaDataIntent::COMPARACION_PERIODOS => NumaFinancialToolRegistry::COMPARAR_PERIODOS,
-        NumaDataIntent::ESTADISTICAS_MOVIMIENTOS => NumaFinancialToolRegistry::OBTENER_ESTADISTICAS_MOVIMIENTOS,
-        NumaDataIntent::MOVIMIENTOS => NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS,
-    ];
-
     public function __construct(
         private readonly NumaUso $usage,
         private readonly NumaLocalScopeClassifier $localScopeClassifier,
-        NumaProviderScopeClassifier|Closure $providerScopeClassifier,
         NumaProviderInterface|Closure $provider,
         callable $knowledgeSearch,
         NumaFinancialToolRegistryInterface|Closure $financialTools,
         NumaGlobalAvailabilityInterface|Closure $globalAvailability,
         private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
     ) {
-        $this->providerScopeClassifierFactory = $providerScopeClassifier instanceof NumaProviderScopeClassifier
-            ? static fn (): NumaProviderScopeClassifier => $providerScopeClassifier
-            : $providerScopeClassifier;
         $this->providerFactory = $provider instanceof NumaProviderInterface
             ? static fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $provider
             : $provider;
@@ -266,9 +253,6 @@ final class NumaService
             : $globalAvailability;
     }
 
-    /** @var Closure(): NumaProviderScopeClassifier */
-    private readonly Closure $providerScopeClassifierFactory;
-
     /** @var Closure(?NumaProviderConsumptionInterface): NumaProviderInterface */
     private readonly Closure $providerFactory;
 
@@ -280,8 +264,6 @@ final class NumaService
 
     /** @var Closure(): NumaGlobalAvailabilityInterface */
     private readonly Closure $globalAvailabilityFactory;
-
-    private ?NumaProviderScopeClassifier $resolvedProviderScopeClassifier = null;
 
     private ?NumaProviderInterface $resolvedProvider = null;
 
@@ -330,7 +312,8 @@ final class NumaService
 
         try {
             $provider = $this->provider($budget);
-            $classification = (new NumaProviderScopeClassifier($provider))->classify($message, $history);
+            $decision = (new NumaProviderFunctionalDecider($provider))->decide($message, $history);
+            $classification = $decision->classification();
 
             if (!$classification->allowed()) {
                 $fixedMessage = NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason());
@@ -339,6 +322,14 @@ final class NumaService
                     $authenticatedUserId,
                     $fixedMessage,
                     contextual: false,
+                    interactionUsed: $budget->llamadasIniciadas()
+                );
+            }
+
+            if ($decision->needsClarification()) {
+                return $this->result(
+                    $authenticatedUserId,
+                    self::CLARIFICATION_MESSAGE,
                     interactionUsed: $budget->llamadasIniciadas()
                 );
             }
@@ -355,6 +346,7 @@ final class NumaService
                 $knowledgeResults,
                 $history,
                 $provider,
+                $decision->toolRequest(),
             );
 
             return $this->result(
@@ -431,11 +423,6 @@ final class NumaService
         return array_slice(($this->knowledgeSearch)($classification, $message, $budget), 0, $this->maxRagResults());
     }
 
-    private function providerScopeClassifier(): NumaProviderScopeClassifier
-    {
-        return $this->resolvedProviderScopeClassifier ??= ($this->providerScopeClassifierFactory)();
-    }
-
     private function provider(?NumaProviderConsumptionInterface $budget = null): NumaProviderInterface
     {
         if ($budget === null) {
@@ -474,17 +461,25 @@ final class NumaService
         array $knowledgeResults,
         array $history,
         NumaProviderInterface $provider,
+        ?NumaToolRequest $initialToolRequest,
     ): array {
-        $availableTools = $this->availableToolNames($classification);
+        $availableTools = $this->availableToolNames($classification, $initialToolRequest);
         $toolResults = [];
         $remainingFinalCalls = max(0, $this->maxProviderCalls() - 1);
+
+        if ($initialToolRequest !== null) {
+            $toolResults[] = $this->executeToolRequest($initialToolRequest, $authenticatedUserId, $history);
+        }
+
+        // La decisión estructurada ya eligió la tool: la llamada final solo redacta con su resultado.
+        $finalAvailableTools = $toolResults === [] ? $availableTools : [];
 
         for ($call = 0; $call < $remainingFinalCalls; $call++) {
             $response = $provider->respond(new NumaRequest(
                 $message,
                 '',
-                $this->finalContext($message, $classification, $knowledgeResults, $availableTools, $toolResults, $history),
-                $availableTools,
+                $this->finalContext($message, $classification, $knowledgeResults, $finalAvailableTools, $toolResults, $history),
+                $finalAvailableTools,
                 $history,
             ));
 
@@ -502,15 +497,11 @@ final class NumaService
                 return [$this->withBoundedMovementSelectionNotice($finalMessage, $toolResults), $toolResults];
             }
 
-            if (!in_array($toolRequest->name(), $availableTools, true)) {
+            if (!in_array($toolRequest->name(), $finalAvailableTools, true)) {
                 throw new InvalidArgumentException('Tool de Numa no permitida para esta consulta.');
             }
 
-            $toolResults[] = $this->financialTools()->execute(
-                $toolRequest->name(),
-                $authenticatedUserId,
-                $this->resolveToolPeriods($toolRequest->arguments(), $history)
-            );
+            $toolResults[] = $this->executeToolRequest($toolRequest, $authenticatedUserId, $history);
         }
 
         throw new NumaProviderException(new NumaProviderError(
@@ -553,24 +544,36 @@ final class NumaService
     /**
      * @return array<int, string>
      */
-    private function availableToolNames(NumaClassification $classification): array
+    private function availableToolNames(NumaClassification $classification, ?NumaToolRequest $toolRequest): array
     {
         if (!$this->needsTools($classification)) {
             return [];
         }
 
-        $dataIntent = $classification->dataIntent();
-        if ($dataIntent === null || !isset(self::DATA_INTENT_TO_TOOL[$dataIntent])) {
-            throw new InvalidArgumentException('La clasificacion de Numa no incluye una intencion de datos permitida.');
+        if ($toolRequest === null) {
+            throw new InvalidArgumentException('La decision de Numa no incluye una tool permitida.');
         }
 
-        $toolName = self::DATA_INTENT_TO_TOOL[$dataIntent];
+        $toolName = $toolRequest->name();
 
         if (!in_array($toolName, $this->financialTools()->names(), true)) {
             throw new InvalidArgumentException('La tool de Numa autorizada no esta registrada.');
         }
 
         return [$toolName];
+    }
+
+    /**
+     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
+     * @return array<string, mixed>
+     */
+    private function executeToolRequest(NumaToolRequest $toolRequest, int $authenticatedUserId, array $history): array
+    {
+        return $this->financialTools()->execute(
+            $toolRequest->name(),
+            $authenticatedUserId,
+            $this->resolveToolPeriods($toolRequest->arguments(), $history)
+        );
     }
 
     /**

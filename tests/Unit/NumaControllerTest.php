@@ -171,7 +171,43 @@ final class SequentialNumaProviderFake implements \NumaProviderInterface
             ));
         }
 
-        return array_shift($this->responses);
+        $response = array_shift($this->responses);
+
+        if ($request->responseSchema() === null || $response->structuredData() === null) {
+            return $response;
+        }
+
+        $data = $response->structuredData();
+        if (array_key_exists('needs_clarification', $data)) {
+            return $response;
+        }
+
+        $tool = null;
+        if (isset($data['data_intent'])) {
+            $toolResponse = array_shift($this->responses);
+            $toolRequest = $toolResponse?->toolRequest();
+            if ($toolRequest === null) {
+                if ($toolResponse !== null) {
+                    array_unshift($this->responses, $toolResponse);
+                }
+
+                $toolRequest = new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO);
+            }
+
+            $tool = [
+                'name' => $toolRequest->name(),
+                'arguments' => $toolRequest->arguments(),
+            ];
+        }
+
+        return new \NumaResponse($response->message(), [
+            'intent' => $data['intent'] ?? null,
+            'allowed' => $data['allowed'] ?? null,
+            'reason' => $data['reason'] ?? null,
+            'needs_clarification' => false,
+            'knowledge_query' => $data['knowledge_query'] ?? null,
+            'tool' => $tool,
+        ]);
     }
 
     /** @return array<int, \NumaRequest> */
@@ -196,6 +232,8 @@ final class SessionChangingNumaProviderFake implements \NumaProviderInterface
             'allowed' => true,
             'reason' => 'product_help',
             'knowledge_query' => 'movimientos',
+            'needs_clarification' => false,
+            'tool' => null,
         ]);
     }
 
@@ -541,6 +579,43 @@ final class NumaControllerTest extends TestCase
         self::assertSame(0, $numaUso->reversions);
     }
 
+    public function testChatActivoPideAclaracionSinConsultarRagONingunaTool(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $usage = new NumaUsoFake();
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'producto',
+            'allowed' => true,
+            'reason' => 'ambiguous_product_question',
+            'needs_clarification' => true,
+            'knowledge_query' => null,
+            'tool' => null,
+        ]);
+        $knowledgeSearchSpy = new NumaKnowledgeSearchSpy();
+        $tools = new NumaFinancialToolRegistryFake();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Puedes ayudarme con eso?"}',
+            $usage,
+            $provider,
+            [new \NumaKnowledgeSearchResult('no-usado', 'doc.md', 'No usado', 'No usado', '/dashboard', 'No debe recuperarse.', 0.99)],
+            $tools,
+            null,
+            false,
+            false,
+            $knowledgeSearchSpy,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame('¿Podrías concretar qué quieres consultar en BeneHom?', $response['data']['message']);
+        self::assertSame(1, $response['data']['usage']['interaction_used']);
+        self::assertSame(0, $knowledgeSearchSpy->calls);
+        self::assertSame(0, $tools->executions);
+        self::assertCount(1, $provider->requests());
+    }
+
     public function testChatActivoRechazaLimiteIndividualAntesDeInvocarProveedor(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
@@ -872,9 +947,9 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame(0, $knowledgeSearchSpy->calls);
-        self::assertSame(3, $response['data']['usage']['interaction_used']);
-        self::assertSame(3, $numaUso->reservations);
-        self::assertCount(3, $provider->requests());
+        self::assertSame(2, $response['data']['usage']['interaction_used']);
+        self::assertSame(2, $numaUso->reservations);
+        self::assertCount(2, $provider->requests());
 
         foreach (array_slice($provider->requests(), 1) as $request) {
             self::assertNotContains('knowledge_fragments', array_column($request->context(), 'type'));
@@ -918,14 +993,11 @@ final class NumaControllerTest extends TestCase
         self::assertArrayNotHasKey('sources', $response['data']['conversation'][1]);
         self::assertSame(['start' => '2026-07-01', 'end' => '2026-07-31'], $response['data']['period']);
 
-        $firstFinalContextTypes = array_column($provider->requests()[1]->context(), 'type');
-        $secondFinalContextTypes = array_column($provider->requests()[2]->context(), 'type');
+        $finalContextTypes = array_column($provider->requests()[1]->context(), 'type');
 
-        self::assertContains('knowledge_fragments', $firstFinalContextTypes);
-        self::assertContains('available_financial_tools', $firstFinalContextTypes);
-        self::assertNotContains('financial_tool_results', $firstFinalContextTypes);
-        self::assertContains('knowledge_fragments', $secondFinalContextTypes);
-        self::assertContains('financial_tool_results', $secondFinalContextTypes);
+        self::assertContains('knowledge_fragments', $finalContextTypes);
+        self::assertNotContains('available_financial_tools', $finalContextTypes);
+        self::assertContains('financial_tool_results', $finalContextTypes);
     }
 
     public function testChatActivoErrorProveedorTrasConsumirUnidadDevuelveUsoActualizado(): void
@@ -1045,10 +1117,10 @@ final class NumaControllerTest extends TestCase
         self::assertSame(['start' => '2026-07-01', 'end' => '2026-07-31'], $response['data']['period']);
         self::assertSame(1, $tools->executions);
         self::assertSame(123, $tools->calls[0]['user_id']);
-        self::assertCount(3, $provider->requests());
-        self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $provider->requests()[1]->availableTools());
-        self::assertSame(3, $numaUso->reservations);
-        self::assertSame(3, $numaUso->confirmations);
+        self::assertCount(2, $provider->requests());
+        self::assertSame([], $provider->requests()[1]->availableTools());
+        self::assertSame(2, $numaUso->reservations);
+        self::assertSame(2, $numaUso->confirmations);
         self::assertFalse($numaUso->reverted);
     }
 
@@ -1139,29 +1211,8 @@ final class NumaControllerTest extends TestCase
                     'status' => 200,
                     'body' => json_encode([
                         'candidates' => [['content' => ['parts' => [[
-                            'text' => '{"intent":"datos_usuario","allowed":true,"reason":"user_data","data_intent":"resumen_financiero"}',
+                            'text' => '{"intent":"datos_usuario","allowed":true,"reason":"user_data","needs_clarification":false,"knowledge_query":null,"tool":{"name":"obtener_resumen_financiero","arguments":{"fecha_inicio":"2026-07-01","fecha_fin":"2026-07-31"}}}',
                         ]]]]],
-                    ], JSON_THROW_ON_ERROR),
-                ],
-                2 => [
-                    'status' => 200,
-                    'body' => json_encode([
-                        'candidates' => [[
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [[
-                                    'functionCall' => [
-                                        'id' => 'gemini-call-1',
-                                        'name' => \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
-                                        'args' => [
-                                            'fecha_inicio' => '2026-07-01',
-                                            'fecha_fin' => '2026-07-31',
-                                        ],
-                                    ],
-                                    'thoughtSignature' => 'gemini-signature',
-                                ]],
-                            ],
-                        ]],
                     ], JSON_THROW_ON_ERROR),
                 ],
                 default => [
@@ -1187,11 +1238,10 @@ final class NumaControllerTest extends TestCase
         self::assertSame(['start' => '2026-07-01', 'end' => '2026-07-31'], $response['data']['period']);
         self::assertSame(1, $tools->executions);
         self::assertSame(123, $tools->calls[0]['user_id']);
-        self::assertSame(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $captured[1]['tools'][0]['functionDeclarations'][0]['name']);
-        self::assertSame('gemini-call-1', $captured[2]['contents'][1]['parts'][0]['functionCall']['id']);
-        self::assertSame('gemini-signature', $captured[2]['contents'][1]['parts'][0]['thoughtSignature']);
-        self::assertSame('gemini-call-1', $captured[2]['contents'][2]['parts'][0]['functionResponse']['id']);
-        self::assertSame(1200, $captured[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['ingresos']);
+        self::assertSame('application/json', $captured[0]['generationConfig']['responseMimeType']);
+        self::assertSame('OBJECT', $captured[0]['generationConfig']['responseSchema']['type']);
+        self::assertArrayNotHasKey('tools', $captured[1]);
+        self::assertStringContainsString('financial_tool_results', $captured[1]['contents'][0]['parts'][0]['text']);
     }
 
     public function testChatActivoRespondeLocalmenteCuandoLaSolicitudCompletaNoCabe(): void
@@ -1541,9 +1591,8 @@ final class NumaControllerTest extends TestCase
             $tools
         );
 
-        self::assertFalse($response['ok']);
-        self::assertSame(503, $response['_status']);
-        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertTrue($response['ok']);
+        self::assertSame('Esta tercera llamada no debe ejecutarse.', $response['data']['message']);
         self::assertCount(2, $provider->requests());
         self::assertSame(1, $tools->executions);
         self::assertSame(2, $numaUso->reservations);

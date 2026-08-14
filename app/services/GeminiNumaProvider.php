@@ -143,12 +143,12 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $contents[] = [
             'role' => 'user',
             'parts' => [[
-                'text' => $this->buildUserText($request, $toolResults !== []),
+                'text' => $this->buildUserText($request, $toolResults !== [] && $this->functionCallTurns !== []),
             ]],
         ];
 
-        if ($toolResults !== []) {
-            if ($this->functionCallTurns === [] || count($toolResults) > count($this->functionCallTurns)) {
+        if ($toolResults !== [] && $this->functionCallTurns !== []) {
+            if (count($toolResults) > count($this->functionCallTurns)) {
                 throw self::invalidResponseError();
             }
 
@@ -184,6 +184,11 @@ final class GeminiNumaProvider implements NumaProviderInterface
                 ],
             ],
         ];
+
+        if ($request->responseSchema() !== null) {
+            $payload['generationConfig']['responseMimeType'] = 'application/json';
+            $payload['generationConfig']['responseSchema'] = $request->responseSchema();
+        }
 
         if (trim($request->systemInstruction()) !== '') {
             $payload['system_instruction'] = [

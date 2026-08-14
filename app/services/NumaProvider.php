@@ -118,6 +118,7 @@ final class NumaRequest
      * @param array<int, array<string, mixed>> $context
      * @param array<int, string> $availableTools
      * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
+     * @param array<string, mixed>|null $responseSchema
      */
     public function __construct(
         private readonly string $message,
@@ -125,6 +126,7 @@ final class NumaRequest
         private readonly array $context = [],
         private readonly array $availableTools = [],
         private readonly array $history = [],
+        private readonly ?array $responseSchema = null,
     ) {
         foreach ($history as $entry) {
             if (!is_array($entry)
@@ -169,6 +171,12 @@ final class NumaRequest
     public function history(): array
     {
         return $this->history;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function responseSchema(): ?array
+    {
+        return $this->responseSchema;
     }
 }
 
@@ -686,6 +694,7 @@ final class NumaSystemInstructionProvider implements NumaProviderInterface
             $request->context(),
             $request->availableTools(),
             $request->history(),
+            $request->responseSchema(),
         );
         NumaInputBudget::assertFits($controlledRequest);
 

@@ -55,23 +55,26 @@ final class NumaMovementConversationTest extends IntegrationTestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_movements',
-                'data_intent' => 'movimientos',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
+                'tool' => [
+                    'name' => 'obtener_movimientos',
+                    'arguments' => [
+                        'periodo' => 'julio',
+                        'tipo_movimiento' => 'gasto',
+                        'tipo_gasto' => 'flexible',
+                        'categoria' => 'regalos',
+                        'orden' => 'cantidad',
+                        'direccion' => 'desc',
+                        'limite' => 10,
+                    ],
+                ],
             ]),
-            new \NumaResponse('consulta', null, new \NumaToolRequest('obtener_movimientos', [
-                'periodo' => 'julio',
-                'tipo_movimiento' => 'gasto',
-                'tipo_gasto' => 'flexible',
-                'categoria' => 'regalos',
-                'orden' => 'cantidad',
-                'direccion' => 'desc',
-                'limite' => 10,
-            ])),
             new \NumaResponse('Estos son tus movimientos flexibles de regalos más recientes.'),
         );
         $service = new \NumaService(
             new \NumaUso($this->db, new \DateTimeImmutable('2026-08-12')),
             new \NumaLocalScopeClassifier(),
-            static fn (): \NumaProviderScopeClassifier => new \NumaProviderScopeClassifier($provider),
             static fn (?\NumaProviderConsumptionInterface $consumption): \NumaProviderInterface => $provider,
             static fn (): array => [],
             new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 2, 10000),
@@ -97,10 +100,10 @@ final class NumaMovementConversationTest extends IntegrationTestCase
             "Estos son tus movimientos flexibles de regalos más recientes.\n\nEl listado completo puede consultarse en BeneHom.",
             $result->toArray()['message']
         );
-        self::assertCount(3, $provider->requests());
-        self::assertSame(['obtener_movimientos'], $provider->requests()[1]->availableTools());
+        self::assertCount(2, $provider->requests());
+        self::assertSame([], $provider->requests()[1]->availableTools());
 
-        $toolResults = $this->financialToolResults($provider->requests()[2]->context());
+        $toolResults = $this->financialToolResults($provider->requests()[1]->context());
         self::assertCount(1, $toolResults);
         self::assertSame('obtener_movimientos', $toolResults[0]['tool']);
         self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $toolResults[0]['periodo']);

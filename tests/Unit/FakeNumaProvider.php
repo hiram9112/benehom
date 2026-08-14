@@ -115,7 +115,7 @@ final class FakeNumaProvider implements NumaProviderInterface
         $this->lastRequest = $request;
         $this->requests[] = $request;
 
-        return match ($this->scenario) {
+        $response = match ($this->scenario) {
             self::VALID_RESPONSE,
             self::STRUCTURED_RESPONSE,
             self::TOOL_REQUEST => $this->response ?? new NumaResponse('Respuesta valida de Numa.'),
@@ -147,6 +147,8 @@ final class FakeNumaProvider implements NumaProviderInterface
                 'NUMA_PROVIDER_INVALID_RESPONSE'
             )),
         };
+
+        return $this->functionalDecisionResponse($request, $response);
     }
 
     public function lastRequest(): ?NumaRequest
@@ -179,5 +181,22 @@ final class FakeNumaProvider implements NumaProviderInterface
             self::INVALID_JSON,
             self::EMPTY_RESPONSE,
         ];
+    }
+
+    private function functionalDecisionResponse(NumaRequest $request, NumaResponse $response): NumaResponse
+    {
+        $data = $response->structuredData();
+        if ($request->responseSchema() === null || $data === null || array_key_exists('needs_clarification', $data)) {
+            return $response;
+        }
+
+        return new NumaResponse($response->message(), [
+            'intent' => $data['intent'] ?? null,
+            'allowed' => $data['allowed'] ?? null,
+            'reason' => $data['reason'] ?? null,
+            'needs_clarification' => false,
+            'knowledge_query' => $data['knowledge_query'] ?? null,
+            'tool' => null,
+        ], $response->toolRequest(), $response->tokenUsage());
     }
 }

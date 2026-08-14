@@ -361,7 +361,7 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes revisar esta consulta?"}',
             providerFailsOnResolve: true
         );
 
@@ -543,13 +543,11 @@ final class NumaControllerTest extends TestCase
         self::assertTrue($response['ok']);
         self::assertSame(200, $response['_status']);
         self::assertSame('No encuentro información suficiente sobre esa función dentro de BeneHom.', $response['data']['message']);
-        self::assertSame(1, $numaUso->reservations);
-        self::assertSame(1, $numaUso->confirmations);
+        self::assertSame(0, $numaUso->reservations);
+        self::assertSame(0, $numaUso->confirmations);
         self::assertFalse($numaUso->reverted);
         self::assertSame(0, $numaUso->reversions);
-        self::assertCount(1, $provider->requests());
-        self::assertSame('¿Cómo añado un movimiento?', $provider->lastRequest()?->message());
-        self::assertSame([], $provider->lastRequest()?->availableTools());
+        self::assertCount(0, $provider->requests());
     }
 
     public function testChatActivoDevuelveRechazoClasificadoPorProveedorYConsumeCuotaUsuario(): void
@@ -629,7 +627,7 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes revisar esta consulta?"}',
             $numaUso,
             $provider
         );
@@ -754,7 +752,7 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes revisar esta consulta?"}',
             $numaUso,
             $provider,
             [new \NumaKnowledgeSearchResult('movimientos-uso', 'movimientos.md', 'Movimientos', 'Añadir', '/movimientos', 'Puedes añadir movimientos desde la sección Movimientos.', 0.92)]
@@ -793,7 +791,7 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes revisar esta consulta?"}',
             new NumaUsoFake(),
             new class implements \NumaProviderInterface {
                 public function respond(\NumaRequest $request): \NumaResponse
@@ -850,12 +848,6 @@ final class NumaControllerTest extends TestCase
         ];
         $numaUso = new NumaUsoFake($usage);
         $provider = new SequentialNumaProviderFake(
-            new \NumaResponse('clasificacion', [
-                'intent' => 'producto',
-                'allowed' => true,
-                'reason' => 'product_help',
-                'knowledge_query' => 'añadir movimiento',
-            ]),
             new \NumaResponse('Para añadir un movimiento, usa la sección Movimientos.')
         );
 
@@ -871,12 +863,13 @@ final class NumaControllerTest extends TestCase
         self::assertSame('Para añadir un movimiento, usa la sección Movimientos.', $response['data']['message']);
         self::assertArrayNotHasKey('sources', $response['data']);
         self::assertNull($response['data']['period']);
-        self::assertSame($usage + ['interaction_used' => 2], $response['data']['usage']);
+        self::assertSame($usage + ['interaction_used' => 1], $response['data']['usage']);
         self::assertArrayNotHasKey('sources', $response['data']['conversation'][1]);
-        self::assertCount(2, $provider->requests());
-        self::assertSame([], $provider->requests()[1]->availableTools());
-        self::assertSame(2, $numaUso->reservations);
-        self::assertSame(2, $numaUso->confirmations);
+        self::assertCount(1, $provider->requests());
+        self::assertNull($provider->requests()[0]->responseSchema());
+        self::assertContains('knowledge_fragments', array_column($provider->requests()[0]->context(), 'type'));
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(1, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
     }
 
@@ -908,10 +901,10 @@ final class NumaControllerTest extends TestCase
         );
 
         self::assertTrue($response['ok']);
-        self::assertSame(3, $response['data']['usage']['interaction_used']);
-        self::assertCount(2, $provider->requests());
-        self::assertSame(3, $numaUso->reservations);
-        self::assertSame(3, $numaUso->confirmations);
+        self::assertSame(2, $response['data']['usage']['interaction_used']);
+        self::assertCount(1, $provider->requests());
+        self::assertSame(2, $numaUso->reservations);
+        self::assertSame(2, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
     }
 
@@ -1009,7 +1002,7 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes revisar esta consulta?"}',
             $numaUso,
             $provider,
         );
@@ -1064,7 +1057,7 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($response['ok']);
         self::assertSame(429, $response['_status']);
         self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
-        self::assertCount(1, $provider->requests());
+        self::assertCount(0, $provider->requests());
         self::assertSame(2, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
@@ -1395,7 +1388,7 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes ayudarme?"}',
             new NumaUsoFake(),
             $provider,
         );
@@ -1404,7 +1397,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame([], $provider->requests()[0]->history());
         self::assertSame(123, $_SESSION['numa_conversation']['usuario_id']);
         self::assertCount(2, $response['data']['conversation']);
-        self::assertSame('¿Cómo añado un movimiento?', $response['data']['conversation'][0]['message']);
+        self::assertSame('¿Puedes ayudarme?', $response['data']['conversation'][0]['message']);
     }
 
     public function testChatNoAnexaRespuestaSiLaSesionCambiaDeUsuario(): void
@@ -1415,7 +1408,7 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes ayudarme?"}',
             new NumaUsoFake(),
             $provider,
         );
@@ -1452,7 +1445,7 @@ final class NumaControllerTest extends TestCase
         );
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes ayudarme?"}',
             new NumaUsoFake(),
             $provider,
         );

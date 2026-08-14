@@ -312,8 +312,20 @@ final class NumaService
 
         try {
             $provider = $this->provider($budget);
-            $decision = (new NumaProviderFunctionalDecider($provider))->decide($message, $history);
-            $classification = $decision->classification();
+            $decision = null;
+
+            if ($preRoute->route() === NumaPreRoute::PRODUCTO) {
+                // El recorrido documental evidente solo necesita recuperar contexto y redactarlo.
+                $classification = new NumaClassification(
+                    NumaClassificationIntent::PRODUCTO,
+                    true,
+                    'local_documentary_route',
+                    $message,
+                );
+            } else {
+                $decision = (new NumaProviderFunctionalDecider($provider))->decide($message, $history);
+                $classification = $decision->classification();
+            }
 
             if (!$classification->allowed()) {
                 $fixedMessage = NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason());
@@ -326,7 +338,7 @@ final class NumaService
                 );
             }
 
-            if ($decision->needsClarification()) {
+            if ($decision?->needsClarification()) {
                 return $this->result(
                     $authenticatedUserId,
                     self::CLARIFICATION_MESSAGE,
@@ -346,7 +358,7 @@ final class NumaService
                 $knowledgeResults,
                 $history,
                 $provider,
-                $decision->toolRequest(),
+                $decision?->toolRequest(),
             );
 
             return $this->result(
@@ -494,6 +506,8 @@ final class NumaService
                     ));
                 }
 
+                $this->assertRequiredFlowCompleted($classification, $knowledgeResults, $toolResults);
+
                 return [$this->withBoundedMovementSelectionNotice($finalMessage, $toolResults), $toolResults];
             }
 
@@ -539,6 +553,24 @@ final class NumaService
             NumaClassificationIntent::DATOS_USUARIO,
             NumaClassificationIntent::CONSULTA_COMBINADA,
         ], true);
+    }
+
+    /**
+     * @param array<int, NumaKnowledgeSearchResult> $knowledgeResults
+     * @param array<int, array<string, mixed>> $toolResults
+     */
+    private function assertRequiredFlowCompleted(
+        NumaClassification $classification,
+        array $knowledgeResults,
+        array $toolResults,
+    ): void {
+        if ($this->needsKnowledge($classification) && $knowledgeResults === []) {
+            throw new InvalidArgumentException('La respuesta documental de Numa requiere fragmentos recuperados.');
+        }
+
+        if ($this->needsTools($classification) && $toolResults === []) {
+            throw new InvalidArgumentException('La respuesta financiera de Numa requiere una tool ejecutada.');
+        }
     }
 
     /**

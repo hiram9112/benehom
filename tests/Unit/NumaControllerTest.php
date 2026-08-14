@@ -1145,6 +1145,54 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($numaUso->reverted);
     }
 
+    public function testChatActivoUsaFallbackSiElProveedorInventaUnaCifraFinanciera(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(
+                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'],
+            )),
+            new \NumaResponse('En julio ingresaste 1200 EUR y gastaste 801 EUR.'),
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuál es mi resumen financiero de julio?"}',
+            new NumaUsoFake(),
+            $provider,
+            [],
+            $tools,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame(
+            'Del 2026-07-01 al 2026-07-31: Ingresos: 1200.00 EUR. Gastos: 800.00 EUR.',
+            $response['data']['message']
+        );
+
+        $contexts = $provider->requests()[1]->context();
+        $financialFacts = array_values(array_filter(
+            $contexts,
+            static fn (array $context): bool => ($context['type'] ?? null) === 'financial_facts'
+        ));
+
+        self::assertSame([
+            ['kind' => 'date', 'value' => '2026-07-01'],
+            ['kind' => 'date', 'value' => '2026-07-31'],
+            ['kind' => 'amount', 'value' => '1200.00'],
+            ['kind' => 'amount', 'value' => '800.00'],
+        ], $financialFacts[0]['items']);
+    }
+
     public function testChatResuelveJulioConLaFechaControladaPorElBackend(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

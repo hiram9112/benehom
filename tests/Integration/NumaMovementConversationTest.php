@@ -114,6 +114,7 @@ final class NumaMovementConversationTest extends IntegrationTestCase
         self::assertSame('78.00', $toolResults[0]['importe_total']);
         self::assertTrue($toolResults[0]['seleccion_acotada']);
         self::assertCount(10, $toolResults[0]['movimientos']);
+        self::assertGreaterThan(1600, strlen(json_encode($toolResults, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)));
         self::assertSame('12.00', $toolResults[0]['movimientos'][0]['cantidad']);
         self::assertSame('3.00', $toolResults[0]['movimientos'][9]['cantidad']);
     }

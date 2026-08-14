@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/NumaUso.php';
 require_once __DIR__ . '/../models/NumaConsumoGlobal.php';
 require_once __DIR__ . '/NumaClassification.php';
 require_once __DIR__ . '/NumaFinancialTools.php';
+require_once __DIR__ . '/NumaFinancialFactValidator.php';
 require_once __DIR__ . '/NumaKnowledge.php';
 require_once __DIR__ . '/NumaPreRouter.php';
 require_once __DIR__ . '/NumaProvider.php';
@@ -279,7 +280,6 @@ final class NumaService
     private const SYSTEM_INSTRUCTION_BUDGET_CHARS = 3000;
     private const REQUEST_STRUCTURE_BUDGET_CHARS = 1500;
     private const RAG_CONTEXT_BUDGET_CHARS = 3000;
-    private const TOOL_CONTEXT_BUDGET_CHARS = 1600;
     private const FINAL_RESPONSE_CONTEXT_BUDGET_CHARS = 3900;
     private const CONVERSATION_LIMIT_MESSAGE = 'Esta conversación ha alcanzado el límite de contexto de Numa. Inicia una nueva conversación para continuar.';
 
@@ -291,6 +291,7 @@ final class NumaService
         NumaFinancialToolRegistryInterface|Closure $financialTools,
         NumaGlobalAvailabilityInterface|Closure $globalAvailability,
         private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
+        private readonly NumaFinancialFactValidator $financialFacts = new NumaFinancialFactValidator(),
     ) {
         $this->providerFactory = $provider instanceof NumaProviderInterface
             ? static fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $provider
@@ -578,6 +579,10 @@ final class NumaService
 
                 $this->assertRequiredFlowCompleted($classification, $knowledgeResults, $toolResults);
 
+                if ($toolResults !== [] && !$this->financialFacts->validates($finalMessage, $toolResults)) {
+                    $finalMessage = $this->financialFacts->fallback($toolResults);
+                }
+
                 return [$this->withBoundedMovementSelectionNotice($finalMessage, $toolResults), $toolResults];
             }
 
@@ -706,6 +711,7 @@ final class NumaService
                 'No inventes datos si falta informacion.',
                 'Devuelve una respuesta breve en español para el usuario final.',
                 'La fecha actual y los periodos los controla BeneHom. Para periodos relativos usa solo los valores simbólicos permitidos por la tool; no calcules fechas por tu cuenta.',
+                'Copia importes, porcentajes, fechas y cantidades exactamente de los hechos financieros autorizados; no los recalcules ni introduzcas cifras nuevas.',
                 'Si obtener_movimientos indica seleccion_acotada o resultado_acotado, aclara que el listado completo puede consultarse en BeneHom.',
             ],
         ]];
@@ -739,8 +745,8 @@ final class NumaService
                 'type' => 'available_financial_tools',
                 'items' => $this->toolDefinitionsForContext($availableTools),
             ];
-            if ($this->jsonLength($toolDefinitions) > min($remainingBudget, self::TOOL_CONTEXT_BUDGET_CHARS)) {
-                throw new NumaFinancialToolLimitExceeded();
+            if ($this->jsonLength($toolDefinitions) > max(0, $remainingBudget)) {
+                throw new NumaInputLimitExceeded();
             }
 
             $context[] = $toolDefinitions;
@@ -748,19 +754,41 @@ final class NumaService
         }
 
         if ($toolResults !== []) {
+            $financialFacts = [
+                'type' => 'financial_facts',
+                'items' => $this->financialFacts->facts($toolResults),
+            ];
+            if ($this->jsonLength($financialFacts) > max(0, $remainingBudget)) {
+                throw new NumaInputLimitExceeded();
+            }
+
+            $context[] = $financialFacts;
+            $remainingBudget -= $this->jsonLength($financialFacts);
+
+            $toolResultContext = [
+                'type' => 'financial_tool_results',
+                'items' => [],
+            ];
+            $toolResultContextOverhead = $this->jsonLength($toolResultContext) - $this->jsonLength([]);
             $toolItems = $this->toolResultsForContext(
                 $toolResults,
-                min($remainingBudget, self::TOOL_CONTEXT_BUDGET_CHARS)
+                max(0, $remainingBudget - $toolResultContextOverhead)
             );
 
             if (count($toolItems) !== count($toolResults)) {
+                if ($this->jsonLength($toolResults) <= bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', 1600)) {
+                    throw new NumaInputLimitExceeded();
+                }
+
                 throw new NumaFinancialToolLimitExceeded();
             }
 
-            $context[] = [
-                'type' => 'financial_tool_results',
-                'items' => $toolItems,
-            ];
+            $toolResultContext['items'] = $toolItems;
+            if ($this->jsonLength($toolResultContext) > max(0, $remainingBudget)) {
+                throw new NumaInputLimitExceeded();
+            }
+
+            $context[] = $toolResultContext;
         }
 
         return $context;
@@ -999,7 +1027,6 @@ final class NumaService
         return self::SYSTEM_INSTRUCTION_BUDGET_CHARS
             + self::REQUEST_STRUCTURE_BUDGET_CHARS
             + self::RAG_CONTEXT_BUDGET_CHARS
-            + self::TOOL_CONTEXT_BUDGET_CHARS
             + self::FINAL_RESPONSE_CONTEXT_BUDGET_CHARS;
     }
 

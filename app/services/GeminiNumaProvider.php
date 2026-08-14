@@ -70,6 +70,9 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         do {
             ++$attempts;
+            // Calcula el timeout antes de reservar consumo: si el deadline ya venció,
+            // no se confirma una unidad para una llamada que no llegará a empezar.
+            $timeoutSeconds = $this->safeTimeoutSeconds();
             $this->consumption?->iniciarLlamada();
 
             try {
@@ -77,7 +80,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
                     $url,
                     $headers,
                     $body,
-                    $this->safeTimeoutSeconds()
+                    $timeoutSeconds
                 );
             } catch (NumaProviderException $exception) {
                 if ($this->shouldRetry($exception, $attempts, $maxAttempts)) {
@@ -231,6 +234,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
     private function safeTimeoutSeconds(): int
     {
+        if ($this->consumption instanceof NumaInteractionBudgetInterface) {
+            return $this->consumption->timeoutForCall($this->timeoutSeconds);
+        }
+
         return max(1, min($this->timeoutSeconds, 10));
     }
 
@@ -630,7 +637,12 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
     private function shouldRetry(NumaProviderException $exception, int $attempts, int $maxAttempts): bool
     {
-        return $attempts < $maxAttempts && $exception->providerError()->retryable();
+        if ($attempts >= $maxAttempts || !$exception->providerError()->retryable()) {
+            return false;
+        }
+
+        return !($this->consumption instanceof NumaInteractionBudgetInterface)
+            || $this->consumption->allowTransientRetry();
     }
 
     private static function configurationError(): NumaProviderException

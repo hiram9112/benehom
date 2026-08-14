@@ -69,6 +69,11 @@ interface NumaEmbeddingProviderUsageInterface extends NumaEmbeddingProviderInter
     public function tokenUsage(): NumaTokenUsage;
 }
 
+interface NumaEmbeddingTimeoutProviderInterface extends NumaEmbeddingProviderInterface
+{
+    public function withTimeoutSeconds(int $timeoutSeconds): NumaEmbeddingProviderInterface;
+}
+
 final class NumaMeteredEmbeddingProvider implements NumaEmbeddingTaskProviderInterface
 {
     public function __construct(
@@ -101,12 +106,20 @@ final class NumaMeteredEmbeddingProvider implements NumaEmbeddingTaskProviderInt
             throw new InvalidArgumentException('El texto para embeddings de Numa no puede estar vacio.');
         }
 
+        $provider = $this->provider;
+        if ($this->consumption instanceof NumaInteractionBudgetInterface) {
+            $timeoutSeconds = $this->consumption->timeoutForCall(10);
+            if ($provider instanceof NumaEmbeddingTimeoutProviderInterface) {
+                $provider = $provider->withTimeoutSeconds($timeoutSeconds);
+            }
+        }
+
         $this->consumption->iniciarLlamada();
-        $embedding = $this->provider instanceof NumaEmbeddingTaskProviderInterface
-            ? $this->provider->{$method}($text)
-            : $this->provider->embed($text);
-        $usage = $this->provider instanceof NumaEmbeddingProviderUsageInterface
-            ? $this->provider->tokenUsage()
+        $embedding = $provider instanceof NumaEmbeddingTaskProviderInterface
+            ? $provider->{$method}($text)
+            : $provider->embed($text);
+        $usage = $provider instanceof NumaEmbeddingProviderUsageInterface
+            ? $provider->tokenUsage()
             : NumaTokenUsage::unknown();
         $this->consumption->registrarTokens($usage);
 

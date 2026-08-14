@@ -23,12 +23,21 @@ final class NumaGlobalAvailability implements NumaGlobalAvailabilityInterface
 
     public function assertAvailable(): void
     {
-        $status = $this->consumoGlobal->estadoGlobal();
+        $this->assertPlannedCallsAvailable(1);
+    }
 
-        if ($status['daily_calls'] >= $status['daily_calls_limit']
-            || $status['monthly_calls'] >= $status['monthly_calls_limit']
-            || $status['daily_tokens'] >= $status['daily_tokens_limit']
-            || $status['monthly_tokens'] >= $status['monthly_tokens_limit']
+    public function assertPlannedCallsAvailable(int $calls): void
+    {
+        $calls = max(1, $calls);
+        $status = $this->consumoGlobal->estadoGlobal();
+        $tokensPerCall = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000))
+            + max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 220));
+        $plannedTokens = $calls * $tokensPerCall;
+
+        if ($status['daily_calls'] + $calls > $status['daily_calls_limit']
+            || $status['monthly_calls'] + $calls > $status['monthly_calls_limit']
+            || $status['daily_tokens'] + $plannedTokens > $status['daily_tokens_limit']
+            || $status['monthly_tokens'] + $plannedTokens > $status['monthly_tokens_limit']
         ) {
             throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
         }
@@ -104,19 +113,30 @@ final class NumaServiceResult
     }
 }
 
-final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterface
+final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterface, NumaInteractionBudgetInterface
 {
     private int $startedCalls = 0;
+    private int $transientRetries = 0;
     private bool $closed = false;
+    private readonly float $deadline;
+
+    /** @var Closure(): float */
+    private readonly Closure $monotonicClock;
 
     public function __construct(
         private readonly NumaUso $usage,
         private readonly int $usuarioId,
         private readonly int $maxCalls,
+        private readonly int $maxTransientRetries = 1,
+        private readonly int $requestTimeoutSeconds = 25,
+        ?Closure $monotonicClock = null,
     ) {
-        if ($maxCalls < 1) {
+        if ($maxCalls < 1 || $maxTransientRetries < 0 || $requestTimeoutSeconds < 1) {
             throw new InvalidArgumentException('El presupuesto de Numa requiere al menos una llamada.');
         }
+
+        $this->monotonicClock = $monotonicClock ?? static fn (): float => hrtime(true) / 1_000_000_000;
+        $this->deadline = ($this->monotonicClock)() + $requestTimeoutSeconds;
     }
 
     public function iniciarLlamada(): void
@@ -136,6 +156,8 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
         if ($this->closed) {
             throw $this->usageError();
         }
+
+        $this->timeoutForCall(1);
 
         if ($this->startedCalls >= $this->maxCalls) {
             throw $this->usageError();
@@ -195,6 +217,32 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
     public function llamadasIniciadas(): int
     {
         return $this->startedCalls;
+    }
+
+    public function timeoutForCall(int $configuredTimeoutSeconds): int
+    {
+        $remaining = $this->deadline - ($this->monotonicClock)();
+        $timeout = min(max(1, $configuredTimeoutSeconds), (int) floor($remaining));
+
+        if ($timeout < 1) {
+            throw new NumaProviderException(new NumaProviderError(
+                NumaProviderError::TIMEOUT,
+                'NUMA_PROVIDER_TIMEOUT'
+            ));
+        }
+
+        return $timeout;
+    }
+
+    public function allowTransientRetry(): bool
+    {
+        if ($this->transientRetries >= $this->maxTransientRetries || $this->startedCalls >= $this->maxCalls) {
+            return false;
+        }
+
+        ++$this->transientRetries;
+
+        return true;
     }
 
     private function revert(string $reservationId): void
@@ -292,8 +340,18 @@ final class NumaService
             return $this->result($authenticatedUserId, self::CONVERSATION_LIMIT_MESSAGE, contextual: false, interactionUsed: 0);
         }
 
+        $budget = null;
+
         try {
-            $this->globalAvailability()->assertAvailable();
+            $this->assertPlannedCapacity($authenticatedUserId, $preRoute);
+            $globalAvailability = $this->globalAvailability();
+            if ($globalAvailability instanceof NumaGlobalAvailability) {
+                $globalAvailability->assertPlannedCallsAvailable($preRoute->plannedPaidCalls());
+            } else {
+                $globalAvailability->assertAvailable();
+            }
+        } catch (NumaServiceException $exception) {
+            throw $exception;
         } catch (NumaGlobalLimiteAlcanzado $exception) {
             throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception);
         } catch (Throwable $exception) {
@@ -304,7 +362,9 @@ final class NumaService
             $budget = new NumaPaidCallBudget(
                 $this->usage,
                 $authenticatedUserId,
-                $this->maxProviderCalls()
+                $this->maxProviderCalls(),
+                $this->maxTransientRetries(),
+                $this->requestTimeoutSeconds(),
             );
         } catch (Throwable $exception) {
             throw new NumaServiceException('NUMA_USAGE_ERROR', 503, $exception);
@@ -415,7 +475,9 @@ final class NumaService
                 $this->errorData($authenticatedUserId, $budget)
             );
         } finally {
-            $budget->revertRemaining();
+            if ($budget instanceof NumaPaidCallBudget) {
+                $budget->revertRemaining();
+            }
         }
     }
 
@@ -790,6 +852,33 @@ final class NumaService
     private function maxProviderCalls(): int
     {
         return max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 3));
+    }
+
+    private function maxTransientRetries(): int
+    {
+        return max(0, min(1, bh_env_int('NUMA_MAX_TRANSIENT_RETRIES', 1)));
+    }
+
+    private function requestTimeoutSeconds(): int
+    {
+        return max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25));
+    }
+
+    private function assertPlannedCapacity(int $authenticatedUserId, NumaPreRoute $preRoute): void
+    {
+        $plannedCalls = min($preRoute->plannedPaidCalls(), $this->maxProviderCalls());
+        if ($plannedCalls < 1) {
+            return;
+        }
+
+        $usage = $this->usage->estado($authenticatedUserId);
+        if ($usage['daily_remaining'] < $plannedCalls) {
+            throw new NumaServiceException('NUMA_DAILY_LIMIT_REACHED', 429);
+        }
+
+        if ($usage['monthly_remaining'] < $plannedCalls) {
+            throw new NumaServiceException('NUMA_MONTHLY_LIMIT_REACHED', 429);
+        }
     }
 
     private function providerStatusCode(NumaProviderError $error): int

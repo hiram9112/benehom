@@ -27,7 +27,15 @@ interface NumaProviderDeferredConsumptionInterface extends NumaProviderConsumpti
     public function conexionTransaccional(): PDO;
 }
 
-final class NumaProviderConsumptionChain implements NumaProviderConsumptionInterface
+/** Control compartido por todas las llamadas externas de una interacción. */
+interface NumaInteractionBudgetInterface
+{
+    public function timeoutForCall(int $configuredTimeoutSeconds): int;
+
+    public function allowTransientRetry(): bool;
+}
+
+final class NumaProviderConsumptionChain implements NumaProviderConsumptionInterface, NumaInteractionBudgetInterface
 {
     /** @var list<NumaProviderConsumptionInterface> */
     private readonly array $consumers;
@@ -109,6 +117,28 @@ final class NumaProviderConsumptionChain implements NumaProviderConsumptionInter
         foreach ($this->consumers as $consumer) {
             $consumer->registrarTokens($usage);
         }
+    }
+
+    public function timeoutForCall(int $configuredTimeoutSeconds): int
+    {
+        return $this->interactionBudget()?->timeoutForCall($configuredTimeoutSeconds)
+            ?? max(1, $configuredTimeoutSeconds);
+    }
+
+    public function allowTransientRetry(): bool
+    {
+        return $this->interactionBudget()?->allowTransientRetry() ?? false;
+    }
+
+    private function interactionBudget(): ?NumaInteractionBudgetInterface
+    {
+        foreach ($this->consumers as $consumer) {
+            if ($consumer instanceof NumaInteractionBudgetInterface) {
+                return $consumer;
+            }
+        }
+
+        return null;
     }
 }
 

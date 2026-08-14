@@ -325,6 +325,75 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame('Disponible de nuevo.', $response->message());
     }
 
+    public function testComparteElUnicoReintentoYElTimeoutConLaInteraccion(): void
+    {
+        $transportCalls = 0;
+        $timeouts = [];
+        $consumption = new class implements \NumaProviderConsumptionInterface, \NumaInteractionBudgetInterface {
+            public int $calls = 0;
+            public int $retries = 0;
+
+            public function iniciarLlamada(): void
+            {
+                ++$this->calls;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+
+            public function timeoutForCall(int $configuredTimeoutSeconds): int
+            {
+                return 2;
+            }
+
+            public function allowTransientRetry(): bool
+            {
+                if ($this->retries >= 1) {
+                    return false;
+                }
+
+                ++$this->retries;
+
+                return true;
+            }
+        };
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: function (string $url, array $headers, string $body, int $timeout) use (&$transportCalls, &$timeouts): array {
+                ++$transportCalls;
+                $timeouts[] = $timeout;
+
+                if ($transportCalls === 1 || $transportCalls === 3) {
+                    return ['status' => 503, 'body' => '{}'];
+                }
+
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [['text' => 'Respuesta válida.']]]]],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            },
+            consumption: $consumption,
+        );
+
+        self::assertSame('Respuesta válida.', $provider->respond(new \NumaRequest('Primera consulta'))->message());
+
+        try {
+            $provider->respond(new \NumaRequest('Segunda consulta'));
+            self::fail('La segunda llamada transitoria no debe reutilizar el reintento.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_UNAVAILABLE', $exception->providerError()->safeCode());
+        }
+
+        self::assertSame(3, $transportCalls);
+        self::assertSame(3, $consumption->calls);
+        self::assertSame(1, $consumption->retries);
+        self::assertSame([2, 2, 2], $timeouts);
+    }
+
     public function testNoReintentaErrorDeAutenticacion(): void
     {
         $calls = 0;

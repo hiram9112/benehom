@@ -6,7 +6,7 @@ require_once __DIR__ . '/NumaProvider.php';
 require_once __DIR__ . '/NumaEmbeddingProvider.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
 
-final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface, NumaEmbeddingTaskProviderInterface
+final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface, NumaEmbeddingTaskProviderInterface, NumaEmbeddingTimeoutProviderInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
     private const DEFAULT_DIMENSIONS = 768;
@@ -128,6 +128,18 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             self::DOCUMENT_TASK_TYPE,
             $this->dimensions,
             self::FORMAT_VERSION
+        );
+    }
+
+    public function withTimeoutSeconds(int $timeoutSeconds): NumaEmbeddingProviderInterface
+    {
+        return new self(
+            $this->apiKey,
+            $this->model,
+            $this->dimensions,
+            max(1, min($timeoutSeconds, 10)),
+            $this->transport,
+            $this->baseUrl,
         );
     }
 

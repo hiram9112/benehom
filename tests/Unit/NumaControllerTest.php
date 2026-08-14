@@ -641,6 +641,34 @@ final class NumaControllerTest extends TestCase
         self::assertCount(0, $provider->requests());
     }
 
+    public function testChatActivoNoIniciaElFlujoSiLaCuotaNoCubreElPresupuestoPrevisto(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake([
+            'daily_used' => 4,
+            'daily_limit' => 5,
+            'daily_remaining' => 1,
+            'monthly_used' => 4,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 16,
+        ]);
+        $provider = \FakeNumaProvider::validResponse('No debe invocarse.');
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            $numaUso,
+            $provider,
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(429, $response['_status']);
+        self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame(0, $numaUso->reservations);
+        self::assertCount(0, $provider->requests());
+    }
+
     public function testChatActivoAplicaRechazoLocalSinReservarConsumo(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

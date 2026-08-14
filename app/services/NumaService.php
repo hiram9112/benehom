@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/NumaConsumoGlobal.php';
 require_once __DIR__ . '/NumaClassification.php';
 require_once __DIR__ . '/NumaFinancialTools.php';
 require_once __DIR__ . '/NumaKnowledge.php';
+require_once __DIR__ . '/NumaPreRouter.php';
 require_once __DIR__ . '/NumaProvider.php';
 
 interface NumaGlobalAvailabilityInterface
@@ -299,7 +300,8 @@ final class NumaService
             throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503);
         }
 
-        $localRejection = $this->localScopeClassifier->classify($message, $history !== []);
+        $preRoute = (new NumaPreRouter($this->localScopeClassifier))->route($message, $history !== []);
+        $localRejection = $preRoute->localRejection();
         if ($localRejection !== null) {
             return $this->result($authenticatedUserId, $localRejection->message(), contextual: false, interactionUsed: 0);
         }

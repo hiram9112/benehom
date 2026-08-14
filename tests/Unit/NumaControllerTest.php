@@ -1309,6 +1309,67 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($numaUso->reverted);
     }
 
+    public function testChatEnvíaLosIntercambiosRecientesCompletosQueCabenEnElContexto(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
+        $this->configureJsonPost();
+        $conversation = new \NumaConversation();
+
+        for ($index = 1; $index <= 40; $index++) {
+            $conversation->appendExchange(
+                "Pregunta anterior {$index}: " . str_repeat('detalle ', 30),
+                "Respuesta anterior {$index}: " . str_repeat('contexto ', 30),
+            );
+        }
+
+        $provider = new SequentialNumaProviderFake(new \NumaResponse('Puedes añadir movimientos desde Movimientos.'));
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cómo añado un movimiento?"}',
+            new NumaUsoFake(),
+            $provider,
+            [new \NumaKnowledgeSearchResult('movimientos-uso', 'movimientos.md', 'Movimientos', 'Añadir', '/movimientos', 'Puedes añadir movimientos desde la sección Movimientos.', 0.92)]
+        );
+
+        self::assertTrue($response['ok']);
+        $history = $provider->requests()[0]->history();
+        self::assertNotEmpty($history);
+        self::assertSame(0, count($history) % 2);
+        self::assertSame('user', $history[0]['role']);
+        self::assertSame('assistant', $history[array_key_last($history)]['role']);
+        self::assertStringContainsString('Respuesta anterior 40', $history[array_key_last($history)]['message']);
+    }
+
+    public function testChatPideContextoCuandoElPeriodoNecesarioQuedóFueraDelPresupuesto(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
+        $this->configureJsonPost();
+        $conversation = new \NumaConversation();
+        $conversation->appendExchange(
+            '¿Cuánto gasté en julio?',
+            'En julio gastaste 800 euros.',
+            period: ['start' => '2026-07-01', 'end' => '2026-07-31'],
+        );
+
+        for ($index = 1; $index <= 40; $index++) {
+            $conversation->appendExchange(
+                "Consulta sin periodo {$index}: " . str_repeat('detalle ', 30),
+                "Respuesta sin periodo {$index}: " . str_repeat('contexto ', 30),
+            );
+        }
+
+        $numaUso = new NumaUsoFake();
+        $provider = \FakeNumaProvider::validResponse('No debería usarse.');
+        $response = $this->invoke('chat', '{"message":"¿Y el mes pasado?"}', $numaUso, $provider);
+
+        self::assertTrue($response['ok']);
+        self::assertSame('Formula la pregunta completa en un solo mensaje para que pueda ayudarte sin usar turnos anteriores.', $response['data']['message']);
+        self::assertSame(0, $numaUso->reservations);
+        self::assertCount(0, $provider->requests());
+    }
+
     public function testChatRechazaDatosSoloMediantePost(): void
     {
         $this->configureJsonPost();

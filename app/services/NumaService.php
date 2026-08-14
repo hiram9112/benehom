@@ -276,8 +276,11 @@ final class NumaService
     private const NO_KNOWLEDGE_MESSAGE = 'No encuentro información suficiente sobre esa función dentro de BeneHom.';
     private const CLARIFICATION_MESSAGE = '¿Podrías concretar qué quieres consultar en BeneHom?';
     private const APPROX_CHARS_PER_TOKEN = 4;
-    private const CONTEXT_OVERHEAD_CHARS = 2500;
-    private const MAX_CONTROLLED_REQUEST_CHARS = 13000;
+    private const SYSTEM_INSTRUCTION_BUDGET_CHARS = 3000;
+    private const REQUEST_STRUCTURE_BUDGET_CHARS = 1500;
+    private const RAG_CONTEXT_BUDGET_CHARS = 3000;
+    private const TOOL_CONTEXT_BUDGET_CHARS = 1600;
+    private const FINAL_RESPONSE_CONTEXT_BUDGET_CHARS = 3900;
     private const CONVERSATION_LIMIT_MESSAGE = 'Esta conversación ha alcanzado el límite de contexto de Numa. Inicia una nueva conversación para continuar.';
 
     public function __construct(
@@ -330,14 +333,19 @@ final class NumaService
             throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503);
         }
 
-        $preRoute = (new NumaPreRouter($this->localScopeClassifier))->route($message, $history !== []);
+        $providerHistory = $this->recentCompleteHistory($message, $history);
+        $preRoute = (new NumaPreRouter($this->localScopeClassifier))->route($message, $providerHistory !== []);
         $localRejection = $preRoute->localRejection();
         if ($localRejection !== null) {
             return $this->result($authenticatedUserId, $localRejection->message(), contextual: false, interactionUsed: 0);
         }
 
-        if (!$this->conversationFits($message, $history)) {
+        if (!$this->conversationFits($message)) {
             return $this->result($authenticatedUserId, self::CONVERSATION_LIMIT_MESSAGE, contextual: false, interactionUsed: 0);
+        }
+
+        if ($this->requiresOmittedContext($message, $history, $providerHistory)) {
+            return $this->result($authenticatedUserId, NumaFixedScopeResponse::contextRequired(), contextual: false, interactionUsed: 0);
         }
 
         $budget = null;
@@ -383,7 +391,7 @@ final class NumaService
                     $message,
                 );
             } else {
-                $decision = (new NumaProviderFunctionalDecider($provider))->decide($message, $history);
+                $decision = (new NumaProviderFunctionalDecider($provider))->decide($message, $providerHistory);
                 $classification = $decision->classification();
             }
 
@@ -416,7 +424,7 @@ final class NumaService
                 $message,
                 $classification,
                 $knowledgeResults,
-                $history,
+                $providerHistory,
                 $provider,
                 $decision?->toolRequest(),
             );
@@ -714,7 +722,10 @@ final class NumaService
         }
 
         if ($knowledgeResults !== []) {
-            $knowledgeItems = $this->knowledgeItemsForContext($knowledgeResults, $remainingBudget);
+            $knowledgeItems = $this->knowledgeItemsForContext(
+                $knowledgeResults,
+                min($remainingBudget, self::RAG_CONTEXT_BUDGET_CHARS)
+            );
 
             $context[] = [
                 'type' => 'knowledge_fragments',
@@ -724,15 +735,23 @@ final class NumaService
         }
 
         if ($availableTools !== []) {
-            $context[] = [
+            $toolDefinitions = [
                 'type' => 'available_financial_tools',
                 'items' => $this->toolDefinitionsForContext($availableTools),
             ];
-            $remainingBudget -= $this->jsonLength(end($context));
+            if ($this->jsonLength($toolDefinitions) > min($remainingBudget, self::TOOL_CONTEXT_BUDGET_CHARS)) {
+                throw new NumaFinancialToolLimitExceeded();
+            }
+
+            $context[] = $toolDefinitions;
+            $remainingBudget -= $this->jsonLength($toolDefinitions);
         }
 
         if ($toolResults !== []) {
-            $toolItems = $this->toolResultsForContext($toolResults, $remainingBudget);
+            $toolItems = $this->toolResultsForContext(
+                $toolResults,
+                min($remainingBudget, self::TOOL_CONTEXT_BUDGET_CHARS)
+            );
 
             if (count($toolItems) !== count($toolResults)) {
                 throw new NumaFinancialToolLimitExceeded();
@@ -906,20 +925,92 @@ final class NumaService
     /** @param array<int, array{role:string,message:string}> $history */
     private function contextCharBudget(string $message, array $history): int
     {
-        $maxInputTokens = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000));
-        $messageChars = function_exists('mb_strlen') ? mb_strlen($message, 'UTF-8') : strlen($message);
-        $historyChars = $this->jsonLength($history);
-
-        return max(0, ($maxInputTokens * self::APPROX_CHARS_PER_TOKEN) - $messageChars - $historyChars - self::CONTEXT_OVERHEAD_CHARS);
+        return max(0, $this->maxInputChars() - $this->textLength($message) - $this->jsonLength($history)
+            - self::SYSTEM_INSTRUCTION_BUDGET_CHARS - self::REQUEST_STRUCTURE_BUDGET_CHARS);
     }
 
-    /** @param array<int, array{role:string,message:string}> $history */
-    private function conversationFits(string $message, array $history): bool
+    private function conversationFits(string $message): bool
     {
-        $maxChars = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000)) * self::APPROX_CHARS_PER_TOKEN;
-        $messageChars = function_exists('mb_strlen') ? mb_strlen($message, 'UTF-8') : strlen($message);
+        return $this->textLength($message) + self::controlledContextBudget() <= $this->maxInputChars();
+    }
 
-        return $this->jsonLength($history) + $messageChars + self::MAX_CONTROLLED_REQUEST_CHARS <= $maxChars;
+    /**
+     * Conserva los intercambios más recientes sin partir parejas usuario/asistente.
+     *
+     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
+     * @return array<int, array{role:string,message:string,period?:array<string,string>}>
+     */
+    private function recentCompleteHistory(string $message, array $history): array
+    {
+        $remainingBudget = $this->maxInputChars() - $this->textLength($message) - self::controlledContextBudget();
+        if ($remainingBudget <= 0) {
+            return [];
+        }
+
+        $exchanges = [];
+        for ($index = 0, $last = count($history) - 1; $index < $last; $index += 2) {
+            $user = $history[$index];
+            $assistant = $history[$index + 1];
+            if (($user['role'] ?? null) !== 'user' || ($assistant['role'] ?? null) !== 'assistant') {
+                continue;
+            }
+
+            $exchanges[] = [$user, $assistant];
+        }
+
+        $selected = [];
+        foreach (array_reverse($exchanges) as $exchange) {
+            $candidate = [...$exchange, ...$selected];
+            if ($this->jsonLength($candidate) > $remainingBudget) {
+                break;
+            }
+
+            $selected = $candidate;
+        }
+
+        return $selected;
+    }
+
+    /**
+     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
+     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $providerHistory
+     */
+    private function requiresOmittedContext(string $message, array $history, array $providerHistory): bool
+    {
+        if (count($history) === count($providerHistory)) {
+            return false;
+        }
+
+        $withoutHistory = $this->localScopeClassifier->classify($message, false);
+        if ($withoutHistory?->classification()->reason() !== 'local_context_dependent') {
+            return false;
+        }
+
+        if ($providerHistory === []) {
+            return true;
+        }
+
+        return preg_match('/\b(mes|ano|periodo)\b/u', $message) === 1
+            && $this->latestConversationPeriod($providerHistory) === null;
+    }
+
+    private function controlledContextBudget(): int
+    {
+        return self::SYSTEM_INSTRUCTION_BUDGET_CHARS
+            + self::REQUEST_STRUCTURE_BUDGET_CHARS
+            + self::RAG_CONTEXT_BUDGET_CHARS
+            + self::TOOL_CONTEXT_BUDGET_CHARS
+            + self::FINAL_RESPONSE_CONTEXT_BUDGET_CHARS;
+    }
+
+    private function maxInputChars(): int
+    {
+        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000)) * self::APPROX_CHARS_PER_TOKEN;
+    }
+
+    private function textLength(string $text): int
+    {
+        return function_exists('mb_strlen') ? mb_strlen($text, 'UTF-8') : strlen($text);
     }
 
     /**

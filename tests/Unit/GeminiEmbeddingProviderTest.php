@@ -68,10 +68,9 @@ final class GeminiEmbeddingProviderTest extends TestCase
         self::assertStringEndsWith('/models/gemini-embedding-001:embedContent', $captured['url']);
         self::assertContains('x-goog-api-key: embedding-key', $captured['headers']);
         self::assertSame(10, $captured['timeout']);
-        self::assertArrayNotHasKey('taskType', $captured['body']);
-        self::assertArrayNotHasKey('outputDimensionality', $captured['body']);
-        self::assertSame('RETRIEVAL_DOCUMENT', $captured['body']['embedContentConfig']['taskType']);
-        self::assertSame(768, $captured['body']['embedContentConfig']['outputDimensionality']);
+        self::assertArrayNotHasKey('embedContentConfig', $captured['body']);
+        self::assertSame('RETRIEVAL_DOCUMENT', $captured['body']['taskType']);
+        self::assertSame(768, $captured['body']['outputDimensionality']);
         self::assertSame('Como se anade un movimiento en BeneHom', $captured['body']['content']['parts'][0]['text']);
         self::assertSame(1, $transportCalls);
         self::assertCount(768, $embedding);
@@ -164,7 +163,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
         $embedding = $provider->embed('Texto publico de BeneHom');
 
         self::assertCount(768, $embedding);
-        self::assertSame(768, $captured['embedContentConfig']['outputDimensionality']);
+        self::assertSame(768, $captured['outputDimensionality']);
     }
 
     public function testUsaTaskTypeDeConsultaYNormalizaVectoresReducidos(): void
@@ -184,7 +183,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
         });
 
         self::assertSame([0.6, 0.8], $provider->embedQuery('Consulta documental'));
-        self::assertSame('RETRIEVAL_QUERY', $captured['embedContentConfig']['taskType']);
+        self::assertSame('RETRIEVAL_QUERY', $captured['taskType']);
         self::assertSame('RETRIEVAL_DOCUMENT', json_decode($provider->signature()->value(), true, 512, JSON_THROW_ON_ERROR)['task_type']);
     }
 

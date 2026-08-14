@@ -247,6 +247,14 @@ php bin/indexar-numa.php
 
 Ejecuta este comando una vez en el entorno correspondiente después de desplegar cualquier alta, modificación, cambio de estado, retirada o cambio de slug de un artículo del blog. El comando es idempotente, usa `config/blog_articulos.php` como catálogo canónico, no indexa implícitamente al servir el blog y requiere la base de datos y el proveedor de embeddings configurados.
 
+La calibración real del umbral RAG es una operación manual separada de PHPUnit y CI:
+
+```bash
+php bin/evaluar-rag-numa.php --real
+```
+
+Requiere una clave dedicada en `NUMA_EMBEDDING_API_KEY` y una base aislada configurada mediante `NUMA_RAG_EVALUATION_DB_*`, con credenciales propias y nombre terminado en `_test` o `_sandbox`. La base debe contener las tablas `numa_conocimiento` y `numa_uso_proveedor` creadas desde `database/schema.sql`. El comando valida de antemano las llamadas y reservas conservadoras de tokens necesarias; para la primera ejecución deben aumentarse solo en el entorno sandbox los límites globales hasta cubrir el resumen mostrado por el error de preflight. Usa exclusivamente el corpus público versionado, registra el consumo global en esa base y genera `resources/numa/evaluacion-rag-resultados.md` sin claves, vectores ni datos privados. Los tests normales continúan usando fakes y nunca ejecutan este comando.
+
 ## Variables de entorno
 
 | Variable | Descripción |
@@ -259,6 +267,7 @@ Ejecuta este comando una vez en el entorno correspondiente después de desplegar
 | `APP_ENV` | Entorno de ejecución: `local` o `production` |
 | `APP_URL` | URL base de la aplicación |
 | `SESSION_IDLE_TIMEOUT` | Segundos de inactividad antes de cerrar la sesión, por defecto `1800` |
+| `NUMA_RAG_EVALUATION_DB_*` | Conexión aislada usada únicamente por la evaluación RAG real manual |
 | `SMTP_USER` | Usuario SMTP para recuperación de contraseña |
 | `SMTP_PASS` | Contraseña SMTP |
 

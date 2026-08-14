@@ -12,7 +12,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
     private const DEFAULT_DIMENSIONS = 768;
     private const DOCUMENT_TASK_TYPE = 'RETRIEVAL_DOCUMENT';
     private const QUERY_TASK_TYPE = 'RETRIEVAL_QUERY';
-    private const FORMAT_VERSION = '2';
+    private const FORMAT_VERSION = '3';
     private const FULL_DIMENSIONS = 3072;
 
     /** @var callable */
@@ -81,10 +81,8 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
                     'text' => $text,
                 ]],
             ],
-            'embedContentConfig' => [
-                'taskType' => $taskType,
-                'outputDimensionality' => $this->dimensions,
-            ],
+            'taskType' => $taskType,
+            'outputDimensionality' => $this->dimensions,
         ];
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $url = rtrim($this->baseUrl, '/') . '/models/' . rawurlencode($this->model) . ':embedContent';

@@ -501,8 +501,10 @@ function bh_numa_error_message(string $code): string
     return [
         'NUMA_INVALID_CSRF' => 'Solicitud no válida. Recarga la página e inténtalo de nuevo.',
         'NUMA_INVALID_MESSAGE' => 'Escribe una consulta válida.',
-        'NUMA_MESSAGE_TOO_LONG' => 'La consulta no puede superar 300 caracteres.',
+        'NUMA_MESSAGE_TOO_LONG' => sprintf('La consulta no puede superar %d caracteres.', bh_numa_max_message_length()),
+        'NUMA_REQUEST_TOO_LARGE' => 'La consulta supera el tamaño permitido.',
         'NUMA_NOT_AVAILABLE' => 'Numa no está disponible en este momento.',
+        'NUMA_RATE_LIMITED' => 'Has enviado demasiadas consultas seguidas. Espera un momento antes de volver a intentarlo.',
         'NUMA_DAILY_LIMIT_REACHED' => 'Has alcanzado el límite diario de llamadas pagadas de Numa.',
         'NUMA_MONTHLY_LIMIT_REACHED' => 'Has alcanzado el límite mensual de llamadas pagadas de Numa.',
         'NUMA_USAGE_ERROR' => 'No hemos podido comprobar el consumo de Numa.',
@@ -516,6 +518,16 @@ function bh_numa_error_message(string $code): string
         'NUMA_GLOBAL_LIMIT_REACHED' => 'Numa no está disponible en este momento.',
         'NUMA_INTERNAL_ERROR' => 'No hemos podido procesar la consulta.',
     ][$code] ?? 'No hemos podido procesar la consulta.';
+}
+
+function bh_numa_max_message_length(): int
+{
+    return max(1, bh_env_int('NUMA_MAX_MESSAGE_LENGTH', 300));
+}
+
+function bh_numa_max_request_body_bytes(): int
+{
+    return max(1, bh_env_int('NUMA_MAX_REQUEST_BODY_BYTES', 2048));
 }
 
 function bh_numa_error(string $code, int $statusCode, ?array $data = null): void

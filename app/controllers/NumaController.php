@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once APP_PATH . '/models/NumaUso.php';
 require_once APP_PATH . '/models/Database.php';
+require_once APP_PATH . '/models/IntentoAcceso.php';
 require_once APP_PATH . '/services/NumaClassification.php';
 require_once APP_PATH . '/services/NumaConversation.php';
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
@@ -28,6 +29,10 @@ class NumaController
     ];
 
     private const ALLOWED_CLIENT_KEYS = ['message'];
+
+    private const CHAT_RATE_LIMIT_ACTION = 'numa_chat';
+
+    private bool $requestBodyTooLarge = false;
 
     public function chat(): void
     {
@@ -56,7 +61,7 @@ class NumaController
         $payload = $this->requestPayload();
 
         if ($payload === null) {
-            bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+            bh_numa_error($this->requestBodyTooLarge ? 'NUMA_REQUEST_TOO_LARGE' : 'NUMA_INVALID_MESSAGE', $this->requestBodyTooLarge ? 413 : 400);
             return;
         }
 
@@ -86,7 +91,7 @@ class NumaController
             return;
         }
 
-        $maxLength = bh_env_int('NUMA_MAX_MESSAGE_LENGTH', 300);
+        $maxLength = bh_numa_max_message_length();
 
         if ($this->textLength($message) > $maxLength) {
             bh_numa_error('NUMA_MESSAGE_TOO_LONG', 422);
@@ -99,6 +104,11 @@ class NumaController
         }
 
         $authenticatedUserId = (int) $_SESSION['usuario_id'];
+
+        if ($this->isChatRateLimited($authenticatedUserId)) {
+            bh_numa_error('NUMA_RATE_LIMITED', 429);
+            return;
+        }
 
         try {
             $conversation = $this->conversation($authenticatedUserId);
@@ -299,18 +309,41 @@ class NumaController
 
     protected function rawBody(): string
     {
-        return (string) file_get_contents('php://input');
+        $stream = fopen('php://input', 'rb');
+
+        if ($stream === false) {
+            return '';
+        }
+
+        $body = stream_get_contents($stream, bh_numa_max_request_body_bytes() + 1);
+        fclose($stream);
+
+        return is_string($body) ? $body : '';
     }
 
     private function requestPayload(): ?array
     {
+        if ($this->declaredBodySizeExceedsLimit()) {
+            $this->requestBodyTooLarge = true;
+            return null;
+        }
+
         $rawBody = $this->rawBody();
+
+        if (strlen($rawBody) > bh_numa_max_request_body_bytes()) {
+            $this->requestBodyTooLarge = true;
+            return null;
+        }
 
         if (trim($rawBody) === '') {
             return null;
         }
 
-        $decoded = json_decode($rawBody, true);
+        try {
+            $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
 
         if (!is_array($decoded)) {
             return null;
@@ -327,15 +360,64 @@ class NumaController
     {
         $contentType = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? ''));
 
-        return str_contains($contentType, 'application/json');
+        $mediaType = trim(explode(';', $contentType, 2)[0]);
+
+        return $mediaType === 'application/json';
+    }
+
+    private function declaredBodySizeExceedsLimit(): bool
+    {
+        $contentLength = $_SERVER['CONTENT_LENGTH'] ?? null;
+
+        if ($contentLength === null || $contentLength === '') {
+            return false;
+        }
+
+        if (!is_string($contentLength) && !is_int($contentLength)) {
+            return true;
+        }
+
+        $contentLength = (string) $contentLength;
+
+        if (!ctype_digit($contentLength)) {
+            return true;
+        }
+
+        return (int) $contentLength > bh_numa_max_request_body_bytes();
+    }
+
+    protected function isChatRateLimited(int $authenticatedUserId): bool
+    {
+        $key = IntentoAcceso::claveHash('numa:' . $authenticatedUserId);
+        $windowSeconds = max(1, bh_env_int('NUMA_CHAT_BURST_WINDOW_SECONDS', 60));
+        $blockSeconds = max(1, bh_env_int('NUMA_CHAT_BURST_BLOCK_SECONDS', 60));
+        $maxRequests = max(1, bh_env_int('NUMA_CHAT_BURST_MAX_REQUESTS', 5));
+
+        if (IntentoAcceso::estaBloqueado(self::CHAT_RATE_LIMIT_ACTION, $key)) {
+            return true;
+        }
+
+        // registrarFallo bloquea el intento que alcanza el umbral; se conserva la ráfaga configurada.
+        return IntentoAcceso::registrarFallo(
+            self::CHAT_RATE_LIMIT_ACTION,
+            $key,
+            $maxRequests + 1,
+            $windowSeconds,
+            $blockSeconds,
+        );
     }
 
     private function textLength(string $text): int
     {
-        if (function_exists('mb_strlen')) {
-            return mb_strlen($text, 'UTF-8');
+        if (function_exists('mb_convert_encoding')) {
+            return intdiv(strlen(mb_convert_encoding($text, 'UTF-16LE', 'UTF-8')), 2);
         }
 
-        return strlen($text);
+        $characters = preg_match_all('/./us', $text);
+        $supplementaryCharacters = preg_match_all('/[\x{10000}-\x{10FFFF}]/u', $text);
+
+        return $characters !== false && $supplementaryCharacters !== false
+            ? $characters + $supplementaryCharacters
+            : strlen($text);
     }
 }

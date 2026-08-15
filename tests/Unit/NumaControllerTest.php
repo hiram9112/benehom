@@ -292,6 +292,10 @@ final class NumaControllerTest extends TestCase
         ];
         $_ENV['NUMA_ENABLED'] = 'false';
         $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '300';
+        $_ENV['NUMA_MAX_REQUEST_BODY_BYTES'] = '2048';
+        $_ENV['NUMA_CHAT_BURST_MAX_REQUESTS'] = '5';
+        $_ENV['NUMA_CHAT_BURST_WINDOW_SECONDS'] = '60';
+        $_ENV['NUMA_CHAT_BURST_BLOCK_SECONDS'] = '60';
         $_ENV['NUMA_DAILY_LIMIT'] = '5';
         $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
@@ -394,6 +398,31 @@ final class NumaControllerTest extends TestCase
         self::assertSame('NUMA_INVALID_MESSAGE', $response['error']['code']);
     }
 
+    public function testChatExigeElMediaTypeJsonExacto(): void
+    {
+        $this->configureJsonPost();
+        $_SERVER['CONTENT_TYPE'] = 'application/json-patch+json';
+
+        $response = $this->invoke('chat', '{"message":"Hola"}');
+
+        self::assertFalse($response['ok']);
+        self::assertSame(400, $response['_status']);
+        self::assertSame('NUMA_INVALID_MESSAGE', $response['error']['code']);
+    }
+
+    public function testChatRechazaCuerpoExcesivoAntesDeLeerlo(): void
+    {
+        $_ENV['NUMA_MAX_REQUEST_BODY_BYTES'] = '20';
+        $this->configureJsonPost();
+        $_SERVER['CONTENT_LENGTH'] = '21';
+
+        $response = $this->invokeWithUnreadableBody();
+
+        self::assertFalse($response['ok']);
+        self::assertSame(413, $response['_status']);
+        self::assertSame('NUMA_REQUEST_TOO_LARGE', $response['error']['code']);
+    }
+
     public function testChatRechazaFormularioTradicional(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -441,6 +470,32 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($response['ok']);
         self::assertSame(422, $response['_status']);
         self::assertSame('NUMA_MESSAGE_TOO_LONG', $response['error']['code']);
+    }
+
+    public function testChatCuentaCaracteresUnicodeConLaSemanticaDelCliente(): void
+    {
+        $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '4';
+        $this->configureJsonPost();
+
+        $accepted = $this->invoke('chat', '{"message":"😀😀"}');
+        $rejected = $this->invoke('chat', '{"message":"😀😀😀"}');
+
+        self::assertSame('NUMA_NOT_AVAILABLE', $accepted['error']['code']);
+        self::assertSame(422, $rejected['_status']);
+        self::assertSame('NUMA_MESSAGE_TOO_LONG', $rejected['error']['code']);
+        self::assertSame('La consulta no puede superar 4 caracteres.', $rejected['error']['message']);
+    }
+
+    public function testChatRechazaRafagaLimitadaAntesDelServicio(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+
+        $response = $this->invokeRateLimitedChat('{"message":"¿Cómo añado un movimiento?"}');
+
+        self::assertFalse($response['ok']);
+        self::assertSame(429, $response['_status']);
+        self::assertSame('NUMA_RATE_LIMITED', $response['error']['code']);
     }
 
     public function testChatRechazaParametrosInternosDelCliente(): void
@@ -1797,6 +1852,11 @@ final class NumaControllerTest extends TestCase
                 return $this->body;
             }
 
+            protected function isChatRateLimited(int $authenticatedUserId): bool
+            {
+                return false;
+            }
+
             protected function providerScopeClassifier(): \NumaProviderScopeClassifier
             {
                 if ($this->providerFailsOnResolve) {
@@ -1889,6 +1949,11 @@ final class NumaControllerTest extends TestCase
                 return $this->body;
             }
 
+            protected function isChatRateLimited(int $authenticatedUserId): bool
+            {
+                return false;
+            }
+
             protected function numaUso(): \NumaUso
             {
                 return new NumaUsoFake();
@@ -1920,6 +1985,55 @@ final class NumaControllerTest extends TestCase
         ob_end_clean();
 
         return [];
+    }
+
+    private function invokeWithUnreadableBody(): array
+    {
+        http_response_code(200);
+
+        $controller = new class extends \NumaController {
+            protected function rawBody(): string
+            {
+                throw new \LogicException('El cuerpo no debe leerse.');
+            }
+        };
+
+        ob_start();
+        $controller->chat();
+        $output = (string) ob_get_clean();
+        $decoded = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+        $decoded['_status'] = http_response_code();
+
+        return $decoded;
+    }
+
+    private function invokeRateLimitedChat(string $rawBody): array
+    {
+        http_response_code(200);
+
+        $controller = new class($rawBody) extends \NumaController {
+            public function __construct(private readonly string $body)
+            {
+            }
+
+            protected function rawBody(): string
+            {
+                return $this->body;
+            }
+
+            protected function isChatRateLimited(int $authenticatedUserId): bool
+            {
+                return true;
+            }
+        };
+
+        ob_start();
+        $controller->chat();
+        $output = (string) ob_get_clean();
+        $decoded = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+        $decoded['_status'] = http_response_code();
+
+        return $decoded;
     }
 
     private function configureJsonPost(?string $csrfToken = 'csrf-token'): void

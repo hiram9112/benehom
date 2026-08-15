@@ -12,12 +12,17 @@ final class NumaLauncherTest extends TestCase
 {
     private bool $hadNumaEnabled;
     private ?string $numaEnabled;
+    private bool $hadMaxMessageLength;
+    private ?string $maxMessageLength;
     private array $sessionBackup;
 
     protected function setUp(): void
     {
         $this->hadNumaEnabled = array_key_exists('NUMA_ENABLED', $_ENV);
         $this->numaEnabled = $this->hadNumaEnabled ? (string) $_ENV['NUMA_ENABLED'] : null;
+        $this->hadMaxMessageLength = array_key_exists('NUMA_MAX_MESSAGE_LENGTH', $_ENV);
+        $this->maxMessageLength = $this->hadMaxMessageLength ? (string) $_ENV['NUMA_MAX_MESSAGE_LENGTH'] : null;
+        $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '300';
         $this->sessionBackup = $_SESSION ?? [];
         $_SESSION = [];
     }
@@ -28,6 +33,12 @@ final class NumaLauncherTest extends TestCase
             $_ENV['NUMA_ENABLED'] = $this->numaEnabled;
         } else {
             unset($_ENV['NUMA_ENABLED']);
+        }
+
+        if ($this->hadMaxMessageLength) {
+            $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = $this->maxMessageLength;
+        } else {
+            unset($_ENV['NUMA_MAX_MESSAGE_LENGTH']);
         }
 
         $_SESSION = $this->sessionBackup;
@@ -55,6 +66,9 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/chat"', $html);
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/conversation/new"', $html);
         self::assertStringContainsString('data-numa-csrf="', $html);
+        self::assertStringContainsString('data-numa-max-message-length="300"', $html);
+        self::assertStringContainsString('maxlength="300"', $html);
+        self::assertStringContainsString('>0/300</span>', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
         self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
         self::assertStringContainsString('/img/numa/runtime/numa-body.webp?v=', $html);
@@ -84,6 +98,21 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('No disponible', $html);
         self::assertStringNotContainsString('aria-disabled="true"', $html);
         self::assertMatchesRegularExpression('/<button\s+type="button"\s+class="bh-numa-launcher is-unavailable"[^>]*data-available="false">/s', $html);
+    }
+
+    public function testPropagaElMaximoConfiguradoAlContratoDelCliente(): void
+    {
+        $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '280';
+
+        $html = $this->renderLauncher();
+        $script = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertStringContainsString('data-numa-max-message-length="280"', $html);
+        self::assertStringContainsString('maxlength="280"', $html);
+        self::assertStringContainsString('>0/280</span>', $html);
+        self::assertIsString($script);
+        self::assertStringContainsString("widget.getAttribute('data-numa-max-message-length')", $script);
+        self::assertStringContainsString('input.value.length', $script);
     }
 
     public function testSoloLasVistasPrivadasIncluyenElBoton(): void
@@ -285,7 +314,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("const INITIAL_TOOLTIP_TEXT = 'Hola, soy Numa. ¿En qué puedo ayudarte?'", $javascript);
         self::assertStringContainsString("const DEFAULT_TOOLTIP_TEXT = '¿En qué puedo ayudarte?'", $javascript);
         self::assertStringContainsString('const INITIAL_TOOLTIP_TIMEOUT_MS = 5200', $javascript);
-        self::assertStringContainsString('const MAX_MESSAGE_LENGTH = 300', $javascript);
+        self::assertStringContainsString("widget.getAttribute('data-numa-max-message-length')", $javascript);
         self::assertStringContainsString("'¿Qué quieres consultar?'", $javascript);
         self::assertStringContainsString("'¿Cuánto he ahorrado este mes?'", $javascript);
         self::assertStringContainsString("'¿Qué son gastos esenciales y flexibles?'", $javascript);

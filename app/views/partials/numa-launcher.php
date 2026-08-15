@@ -3,6 +3,7 @@
 function bh_numa_launcher(): void
 {
     $available = bh_env_bool('NUMA_ENABLED', false);
+    $maxMessageLength = bh_numa_max_message_length();
     $stateClass = $available ? ' is-available' : ' is-unavailable';
     $bodySrc = bh_asset('img/numa/runtime/numa-body.webp');
     $faceFrames = [
@@ -29,7 +30,8 @@ function bh_numa_launcher(): void
         data-numa-status-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=numa/status', ENT_QUOTES, 'UTF-8') ?>"
         data-numa-chat-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=numa/chat', ENT_QUOTES, 'UTF-8') ?>"
         data-numa-new-conversation-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=numa/conversation/new', ENT_QUOTES, 'UTF-8') ?>"
-        data-numa-csrf="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+        data-numa-csrf="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-max-message-length="<?= $maxMessageLength ?>">
         <button
             type="button"
             class="bh-numa-launcher<?= $stateClass ?>"
@@ -103,11 +105,11 @@ function bh_numa_launcher(): void
                             class="bh-numa-input"
                             name="message"
                             rows="1"
-                            maxlength="300"
+                            maxlength="<?= $maxMessageLength ?>"
                             placeholder="Pregunta a Numa…"
                             data-numa-input
                             disabled></textarea>
-                        <span class="bh-numa-counter" data-numa-counter>0/300</span>
+                        <span class="bh-numa-counter" data-numa-counter>0/<?= $maxMessageLength ?></span>
                         <button type="submit" class="bh-numa-submit" aria-label="Enviar mensaje" data-numa-submit disabled>
                             <i class="ti ti-arrow-up" aria-hidden="true" data-numa-submit-icon></i>
                             <span class="bh-numa-submit-processing" aria-hidden="true"></span>

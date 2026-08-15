@@ -6,7 +6,6 @@
     const INITIAL_TOOLTIP_TIMEOUT_MS = 5200;
     const OPEN_LABEL = 'Abrir Numa';
     const CLOSE_LABEL = 'Cerrar Numa';
-    const MAX_MESSAGE_LENGTH = 300;
     const MAX_INPUT_HEIGHT = 120;
 
     const EMPTY_MESSAGES = [
@@ -86,6 +85,10 @@
         const chatUrl = widget.getAttribute('data-numa-chat-url') || '';
         const newConversationUrl = widget.getAttribute('data-numa-new-conversation-url') || '';
         const csrfToken = widget.getAttribute('data-numa-csrf') || '';
+        const configuredMaxMessageLength = Number(widget.getAttribute('data-numa-max-message-length'));
+        const maxMessageLength = Number.isInteger(configuredMaxMessageLength) && configuredMaxMessageLength > 0
+            ? configuredMaxMessageLength
+            : input ? input.maxLength : 0;
 
         if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !form || !input || !submitButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
             return;
@@ -182,7 +185,7 @@
 
         const updateCounter = () => {
             if (counter) {
-                counter.textContent = `${input.value.length}/${MAX_MESSAGE_LENGTH}`;
+                counter.textContent = `${input.value.length}/${maxMessageLength}`;
             }
         };
 
@@ -480,8 +483,8 @@
                 return;
             }
 
-            if (message.length > MAX_MESSAGE_LENGTH) {
-                announceStatus(`La consulta no puede superar ${MAX_MESSAGE_LENGTH} caracteres.`);
+            if (message.length > maxMessageLength) {
+                announceStatus(`La consulta no puede superar ${maxMessageLength} caracteres.`);
                 return;
             }
 

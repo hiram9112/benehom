@@ -530,6 +530,11 @@ function bh_numa_max_request_body_bytes(): int
     return max(1, bh_env_int('NUMA_MAX_REQUEST_BODY_BYTES', 2048));
 }
 
+function bh_numa_max_provider_response_body_bytes(): int
+{
+    return max(1, bh_env_int('NUMA_MAX_PROVIDER_RESPONSE_BODY_BYTES', 65536));
+}
+
 function bh_numa_error(string $code, int $statusCode, ?array $data = null): void
 {
     bh_json_error($code, bh_numa_error_message($code), $statusCode, $data);

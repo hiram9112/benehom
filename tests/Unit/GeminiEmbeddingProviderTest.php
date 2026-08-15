@@ -115,6 +115,19 @@ final class GeminiEmbeddingProviderTest extends TestCase
         $provider->embed('Texto publico de BeneHom');
     }
 
+    public function testRechazaCuerpoDeRespuestaExcesivoAntesDeDecodificarlo(): void
+    {
+        $provider = new \GeminiEmbeddingProvider('key', 'model', maxResponseBodyBytes: 32, transport: static fn (): array => [
+            'status' => 200,
+            'body' => str_repeat('{', 33),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->embed('Texto publico de BeneHom');
+    }
+
     public function testRechazaClaveModeloODimensionesInvalidas(): void
     {
         $this->expectException(\NumaProviderException::class);

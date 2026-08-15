@@ -30,8 +30,9 @@ final class GeminiNumaProvider implements NumaProviderInterface
         ?callable $transport = null,
         private readonly string $baseUrl = self::API_BASE_URL,
         private readonly ?NumaProviderConsumptionInterface $consumption = null,
+        private readonly int $maxResponseBodyBytes = 65536,
     ) {
-        if (trim($apiKey) === '' || trim($model) === '') {
+        if (trim($apiKey) === '' || trim($model) === '' || $maxResponseBodyBytes <= 0) {
             throw self::configurationError();
         }
 
@@ -51,7 +52,8 @@ final class GeminiNumaProvider implements NumaProviderInterface
             bh_env_int('NUMA_MAX_TRANSIENT_RETRIES', 1),
             $transport,
             self::API_BASE_URL,
-            $consumption
+            $consumption,
+            bh_numa_max_provider_response_body_bytes(),
         );
     }
 
@@ -101,6 +103,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
             $status = isset($result['status']) && is_int($result['status']) ? $result['status'] : 0;
             $responseBody = isset($result['body']) && is_string($result['body']) ? $result['body'] : '';
+            $this->assertResponseBodySize($responseBody);
 
             if ($status < 200 || $status >= 300) {
                 $exception = $this->httpError($status, $responseBody);
@@ -258,8 +261,9 @@ final class GeminiNumaProvider implements NumaProviderInterface
             throw self::unavailableError();
         }
 
+        $responseBody = '';
+        $responseTooLarge = false;
         curl_setopt_array($handle, [
-            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $body,
             CURLOPT_HTTPHEADER => $headers,
@@ -267,14 +271,29 @@ final class GeminiNumaProvider implements NumaProviderInterface
             CURLOPT_TIMEOUT => $timeoutSeconds,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_WRITEFUNCTION => function ($curlHandle, string $chunk) use (&$responseBody, &$responseTooLarge): int {
+                if (strlen($responseBody) + strlen($chunk) > $this->maxResponseBodyBytes) {
+                    $responseTooLarge = true;
+
+                    return 0;
+                }
+
+                $responseBody .= $chunk;
+
+                return strlen($chunk);
+            },
         ]);
 
-        $responseBody = curl_exec($handle);
+        $completed = curl_exec($handle);
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         $errno = curl_errno($handle);
-        unset($handle);
+        curl_close($handle);
 
-        if ($responseBody === false) {
+        if ($responseTooLarge) {
+            throw self::invalidResponseError();
+        }
+
+        if ($completed === false) {
             if ($errno === CURLE_OPERATION_TIMEDOUT || $errno === CURLE_COULDNT_CONNECT) {
                 throw self::timeoutError(true);
             }
@@ -284,12 +303,14 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         return [
             'status' => $status,
-            'body' => (string) $responseBody,
+            'body' => $responseBody,
         ];
     }
 
     private function parseResponse(string $responseBody): NumaResponse
     {
+        $this->assertResponseBodySize($responseBody);
+
         try {
             $decoded = json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
@@ -753,6 +774,13 @@ final class GeminiNumaProvider implements NumaProviderInterface
             NumaProviderError::INVALID_RESPONSE,
             'NUMA_PROVIDER_INVALID_RESPONSE'
         ), $previous);
+    }
+
+    private function assertResponseBodySize(string $responseBody): void
+    {
+        if (strlen($responseBody) > $this->maxResponseBodyBytes) {
+            throw self::invalidResponseError();
+        }
     }
 
     private static function timeoutError(bool $retryable = false): NumaProviderException

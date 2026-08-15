@@ -27,8 +27,9 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
         private readonly int $timeoutSeconds = 10,
         ?callable $transport = null,
         private readonly string $baseUrl = self::API_BASE_URL,
+        private readonly int $maxResponseBodyBytes = 65536,
     ) {
-        if (trim($apiKey) === '' || trim($model) === '' || $dimensions <= 0) {
+        if (trim($apiKey) === '' || trim($model) === '' || $dimensions <= 0 || $maxResponseBodyBytes <= 0) {
             throw self::configurationError();
         }
 
@@ -42,7 +43,9 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             (string) bh_env_value('NUMA_EMBEDDING_MODEL', 'gemini-embedding-001'),
             bh_env_int('NUMA_EMBEDDING_DIMENSIONS', self::DEFAULT_DIMENSIONS),
             bh_env_int('NUMA_PROVIDER_TIMEOUT_SECONDS', 10),
-            $transport
+            $transport,
+            self::API_BASE_URL,
+            bh_numa_max_provider_response_body_bytes(),
         );
     }
 
@@ -107,6 +110,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
 
         $status = isset($result['status']) && is_int($result['status']) ? $result['status'] : 0;
         $responseBody = isset($result['body']) && is_string($result['body']) ? $result['body'] : '';
+        $this->assertResponseBodySize($responseBody);
 
         if ($status < 200 || $status >= 300) {
             throw $this->httpError($status, $responseBody);
@@ -140,6 +144,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             max(1, min($timeoutSeconds, 10)),
             $this->transport,
             $this->baseUrl,
+            $this->maxResponseBodyBytes,
         );
     }
 
@@ -159,8 +164,9 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             throw self::unavailableError();
         }
 
+        $responseBody = '';
+        $responseTooLarge = false;
         curl_setopt_array($handle, [
-            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $body,
             CURLOPT_HTTPHEADER => $headers,
@@ -168,14 +174,29 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             CURLOPT_TIMEOUT => $timeoutSeconds,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_WRITEFUNCTION => function ($curlHandle, string $chunk) use (&$responseBody, &$responseTooLarge): int {
+                if (strlen($responseBody) + strlen($chunk) > $this->maxResponseBodyBytes) {
+                    $responseTooLarge = true;
+
+                    return 0;
+                }
+
+                $responseBody .= $chunk;
+
+                return strlen($chunk);
+            },
         ]);
 
-        $responseBody = curl_exec($handle);
+        $completed = curl_exec($handle);
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         $errno = curl_errno($handle);
-        unset($handle);
+        curl_close($handle);
 
-        if ($responseBody === false) {
+        if ($responseTooLarge) {
+            throw self::invalidResponseError();
+        }
+
+        if ($completed === false) {
             if ($errno === CURLE_OPERATION_TIMEDOUT || $errno === CURLE_COULDNT_CONNECT) {
                 throw new NumaProviderException(new NumaProviderError(
                     NumaProviderError::TIMEOUT,
@@ -188,7 +209,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
 
         return [
             'status' => $status,
-            'body' => (string) $responseBody,
+            'body' => $responseBody,
         ];
     }
 
@@ -202,6 +223,8 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
      */
     private function parseEmbedding(string $responseBody): array
     {
+        $this->assertResponseBodySize($responseBody);
+
         try {
             $decoded = json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
@@ -352,6 +375,13 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             NumaProviderError::INVALID_RESPONSE,
             'NUMA_PROVIDER_INVALID_RESPONSE'
         ), $previous);
+    }
+
+    private function assertResponseBodySize(string $responseBody): void
+    {
+        if (strlen($responseBody) > $this->maxResponseBodyBytes) {
+            throw self::invalidResponseError();
+        }
     }
 
     private static function unavailableError(?Throwable $previous = null): NumaProviderException

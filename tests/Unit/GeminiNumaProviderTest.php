@@ -110,6 +110,19 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(['intent' => 'producto', 'allowed' => true], $response->structuredData());
     }
 
+    public function testRechazaCuerpoDeRespuestaExcesivoAntesDeDecodificarlo(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', maxResponseBodyBytes: 32, transport: static fn (): array => [
+            'status' => 200,
+            'body' => str_repeat('{', 33),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->respond(new \NumaRequest('Pregunta'));
+    }
+
     public function testRechazaRespuestasBloqueadasTruncadasOVariasCandidatas(): void
     {
         foreach ([

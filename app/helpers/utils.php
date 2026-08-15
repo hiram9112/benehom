@@ -503,6 +503,7 @@ function bh_numa_error_message(string $code): string
         'NUMA_INVALID_MESSAGE' => 'Escribe una consulta válida.',
         'NUMA_MESSAGE_TOO_LONG' => sprintf('La consulta no puede superar %d caracteres.', bh_numa_max_message_length()),
         'NUMA_REQUEST_TOO_LARGE' => 'La consulta supera el tamaño permitido.',
+        'NUMA_REQUEST_IN_PROGRESS' => 'Numa ya está procesando una consulta. Espera a que termine antes de enviar otra.',
         'NUMA_NOT_AVAILABLE' => 'Numa no está disponible en este momento.',
         'NUMA_RATE_LIMITED' => 'Has enviado demasiadas consultas seguidas. Espera un momento antes de volver a intentarlo.',
         'NUMA_DAILY_LIMIT_REACHED' => 'Has alcanzado el límite diario de llamadas pagadas de Numa.',

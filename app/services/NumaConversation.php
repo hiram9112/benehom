@@ -55,6 +55,21 @@ final class NumaConversation
         return $context;
     }
 
+    public function version(): int
+    {
+        $storedConversation = $_SESSION[self::SESSION_KEY] ?? null;
+
+        if (!is_array($storedConversation) || $this->storedUserId($storedConversation) !== $this->currentUserId()) {
+            return 0;
+        }
+
+        $version = $storedConversation['version'] ?? 0;
+
+        return (is_int($version) || (is_string($version) && ctype_digit($version)))
+            ? max(0, (int) $version)
+            : 0;
+    }
+
     /**
      * @param array<int, array{title:string,section:string,url:string}> $sources
      * @param array<string, string>|null $period
@@ -87,6 +102,7 @@ final class NumaConversation
 
         $_SESSION[self::SESSION_KEY] = [
             'usuario_id' => $userId,
+            'version' => $this->version(),
             'entries' => $entries,
         ];
     }

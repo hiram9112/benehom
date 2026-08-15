@@ -31,6 +31,8 @@ class NumaController
     private const ALLOWED_CLIENT_KEYS = ['message'];
 
     private const CHAT_RATE_LIMIT_ACTION = 'numa_chat';
+    private const CHAT_REQUEST_SESSION_KEY = 'numa_chat_request';
+    private const CHAT_REQUEST_EXPIRY_MARGIN_SECONDS = 5;
 
     private const STATUS_REASON_DISABLED = 'disabled';
     private const STATUS_REASON_CONFIGURATION_INCOMPLETE = 'configuration_incomplete';
@@ -123,16 +125,31 @@ class NumaController
             return;
         }
 
+        $sessionReleased = false;
+        $chatRequest = null;
+
         try {
             $conversation = $this->conversation($authenticatedUserId);
+            $conversationVersion = $conversation->version();
+            $chatRequest = $this->startChatRequest($authenticatedUserId, $conversationVersion);
+
+            if ($chatRequest === null) {
+                bh_numa_error('NUMA_REQUEST_IN_PROGRESS', 409);
+                return;
+            }
+
+            // Copy the session-backed context before releasing PHP's session lock for the slow request.
+            $context = $conversation->context();
+            $sessionReleased = $this->releaseSessionForProvider();
             $result = $this->numaService()->answer(
                 $authenticatedUserId,
                 $message,
-                $conversation->context(),
+                $context,
             );
+            $this->reopenSessionAfterProvider($sessionReleased);
+            $sessionReleased = false;
 
-            if (!$this->sessionStillOwnedBy($authenticatedUserId)) {
-                $conversation->clear();
+            if (!$this->sessionStillOwnedBy($authenticatedUserId, $conversationVersion)) {
                 bh_json_error('UNAUTHENTICATED', bh_router_error_message('UNAUTHENTICATED'), 401);
                 return;
             }
@@ -149,15 +166,27 @@ class NumaController
 
             bh_json_success($data);
         } catch (NumaServiceException $exception) {
+            $this->reopenSessionAfterProvider($sessionReleased);
+            $sessionReleased = false;
             bh_numa_error(
                 $exception->safeCode(),
                 $exception->statusCode(),
                 $exception->errorData() !== [] ? $exception->errorData() : null
             );
         } catch (NumaProviderException $exception) {
+            $this->reopenSessionAfterProvider($sessionReleased);
+            $sessionReleased = false;
             bh_numa_error($exception->providerError()->safeCode(), 503);
         } catch (Throwable) {
+            $this->reopenSessionAfterProvider($sessionReleased);
+            $sessionReleased = false;
             bh_numa_error('NUMA_INTERNAL_ERROR', 503);
+        } finally {
+            $this->reopenSessionAfterProvider($sessionReleased);
+
+            if ($chatRequest !== null) {
+                $this->clearChatRequest($chatRequest);
+            }
         }
     }
 
@@ -233,12 +262,96 @@ class NumaController
         return new NumaConversation($authenticatedUserId);
     }
 
-    private function sessionStillOwnedBy(int $authenticatedUserId): bool
+    private function sessionStillOwnedBy(int $authenticatedUserId, int $conversationVersion): bool
     {
         $currentUserId = $_SESSION['usuario_id'] ?? null;
 
         return (is_int($currentUserId) || (is_string($currentUserId) && ctype_digit($currentUserId)))
-            && (int) $currentUserId === $authenticatedUserId;
+            && (int) $currentUserId === $authenticatedUserId
+            && $this->conversation($authenticatedUserId)->version() === $conversationVersion;
+    }
+
+    /**
+     * @return array{timestamp:int,usuario_id:int,conversation_version:int}|null
+     */
+    private function startChatRequest(int $authenticatedUserId, int $conversationVersion): ?array
+    {
+        $activeRequest = $this->activeChatRequest();
+        if ($activeRequest !== null && !$this->chatRequestExpired($activeRequest)) {
+            return null;
+        }
+
+        $request = [
+            'timestamp' => time(),
+            'usuario_id' => $authenticatedUserId,
+            'conversation_version' => $conversationVersion,
+        ];
+        $_SESSION[self::CHAT_REQUEST_SESSION_KEY] = $request;
+
+        return $request;
+    }
+
+    /**
+     * @return array{timestamp:int,usuario_id:int,conversation_version:int}|null
+     */
+    private function activeChatRequest(): ?array
+    {
+        $request = $_SESSION[self::CHAT_REQUEST_SESSION_KEY] ?? null;
+        if (!is_array($request)) {
+            return null;
+        }
+
+        $timestamp = $request['timestamp'] ?? null;
+        $userId = $request['usuario_id'] ?? null;
+        $conversationVersion = $request['conversation_version'] ?? null;
+
+        if ((!is_int($timestamp) && !(is_string($timestamp) && ctype_digit($timestamp)))
+            || (!is_int($userId) && !(is_string($userId) && ctype_digit($userId)))
+            || (!is_int($conversationVersion) && !(is_string($conversationVersion) && ctype_digit($conversationVersion)))
+        ) {
+            unset($_SESSION[self::CHAT_REQUEST_SESSION_KEY]);
+            return null;
+        }
+
+        return [
+            'timestamp' => (int) $timestamp,
+            'usuario_id' => (int) $userId,
+            'conversation_version' => (int) $conversationVersion,
+        ];
+    }
+
+    /** @param array{timestamp:int,usuario_id:int,conversation_version:int} $request */
+    private function chatRequestExpired(array $request): bool
+    {
+        $deadline = max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25));
+
+        return time() > $request['timestamp'] + $deadline + self::CHAT_REQUEST_EXPIRY_MARGIN_SECONDS;
+    }
+
+    /** @param array{timestamp:int,usuario_id:int,conversation_version:int} $request */
+    private function clearChatRequest(array $request): void
+    {
+        if ($this->activeChatRequest() === $request) {
+            unset($_SESSION[self::CHAT_REQUEST_SESSION_KEY]);
+        }
+    }
+
+    protected function releaseSessionForProvider(): bool
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return false;
+        }
+
+        session_write_close();
+
+        return session_status() !== PHP_SESSION_ACTIVE;
+    }
+
+    protected function reopenSessionAfterProvider(bool $sessionReleased): void
+    {
+        if ($sessionReleased && session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
     }
 
     protected function provider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface

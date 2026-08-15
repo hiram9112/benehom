@@ -41,6 +41,7 @@ final class NumaConversationTest extends TestCase
 
         self::assertCount(4, $conversation->transcript());
         self::assertSame(123, $_SESSION['numa_conversation']['usuario_id']);
+        self::assertSame(0, $conversation->version());
         self::assertSame([
             ['role' => 'user', 'message' => '¿Cómo añado un movimiento?'],
             ['role' => 'assistant', 'message' => 'Usa el formulario de Movimientos.'],
@@ -57,6 +58,21 @@ final class NumaConversationTest extends TestCase
 
         self::assertSame([], $conversation->transcript());
         self::assertSame([], $conversation->context());
+    }
+
+    public function testConservaLaVersionDeConversacionEnLosIntercambios(): void
+    {
+        $_SESSION['numa_conversation'] = [
+            'usuario_id' => 123,
+            'version' => 4,
+            'entries' => [],
+        ];
+
+        $conversation = new \NumaConversation();
+        $conversation->appendExchange('Pregunta', 'Respuesta');
+
+        self::assertSame(4, $conversation->version());
+        self::assertSame(4, $_SESSION['numa_conversation']['version']);
     }
 
     public function testConservaElPeriodoEstructuradoParaSeguimientos(): void

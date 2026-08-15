@@ -348,7 +348,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("form.setAttribute('aria-busy', processing ? 'true' : 'false')", $javascript);
         self::assertStringContainsString("addMessage('user', message)", $javascript);
         self::assertStringContainsString("addMessage('assistant'", $javascript);
-        self::assertStringContainsString("addStateMessage('Numa no está disponible en este momento.', 'error')", $javascript);
+        self::assertStringContainsString('const statusMessageForReason', $javascript);
+        self::assertStringContainsString("addStateMessage(statusMessageForReason(reason), reason === 'user_limit' ? 'warning' : 'error')", $javascript);
         self::assertStringContainsString('Has alcanzado el límite diario de llamadas pagadas.', $javascript);
         self::assertStringContainsString('Has alcanzado el límite mensual de llamadas pagadas.', $javascript);
         self::assertStringNotContainsString('Te quedan ${dailyRemaining} llamadas pagadas hoy', $javascript);

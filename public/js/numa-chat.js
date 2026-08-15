@@ -362,17 +362,26 @@
             return messages.join(' ');
         };
 
+        const statusMessageForReason = (reason) => ({
+            disabled: 'Numa está desactivada temporalmente.',
+            configuration_incomplete: 'Numa está temporalmente en configuración.',
+            temporarily_unavailable: 'Numa no está disponible en este momento.',
+            user_limit: 'Has alcanzado el límite de llamadas pagadas de Numa.',
+            global_limit: 'Numa no está disponible en este momento.',
+        }[reason] || 'Numa no está disponible en este momento.');
+
         const applyServiceStatus = (payload) => {
             const data = payload && typeof payload === 'object' ? payload.data : null;
             const available = Boolean(data && data.available === true);
             const usageData = data && typeof data.usage === 'object' ? data.usage : null;
+            const reason = data && typeof data.reason === 'string' ? data.reason : '';
 
             renderConversation(data && Array.isArray(data.conversation) ? data.conversation : []);
             serviceReady = available;
             setUsage(usageData);
 
             if (!available) {
-                addStateMessage('Numa no está disponible en este momento.', 'error');
+                addStateMessage(statusMessageForReason(reason), reason === 'user_limit' ? 'warning' : 'error');
             } else {
                 const usageMessage = statusMessageForUsage(usageData);
 

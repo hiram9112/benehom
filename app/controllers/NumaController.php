@@ -32,6 +32,19 @@ class NumaController
 
     private const CHAT_RATE_LIMIT_ACTION = 'numa_chat';
 
+    private const STATUS_REASON_DISABLED = 'disabled';
+    private const STATUS_REASON_CONFIGURATION_INCOMPLETE = 'configuration_incomplete';
+    private const STATUS_REASON_TEMPORARILY_UNAVAILABLE = 'temporarily_unavailable';
+    private const STATUS_REASON_USER_LIMIT = 'user_limit';
+    private const STATUS_REASON_GLOBAL_LIMIT = 'global_limit';
+
+    private const REQUIRED_STATUS_TABLES = [
+        'numa_uso',
+        'numa_reservas',
+        'numa_uso_proveedor',
+        'numa_conocimiento',
+    ];
+
     private bool $requestBodyTooLarge = false;
 
     public function chat(): void
@@ -164,17 +177,12 @@ class NumaController
 
         $authenticatedUserId = (int) $_SESSION['usuario_id'];
 
-        try {
-            $usage = $this->numaUso()->estado($authenticatedUserId);
+        $status = $this->effectiveStatus($authenticatedUserId);
 
-            bh_json_success([
-                'available' => bh_env_bool('NUMA_ENABLED', false),
-                'usage' => $usage,
-                'conversation' => $this->conversation($authenticatedUserId)->transcript(),
-            ]);
-        } catch (Throwable) {
-            bh_numa_error('NUMA_USAGE_ERROR', 503);
-        }
+        bh_json_success([
+            ...$status,
+            'conversation' => $this->conversation($authenticatedUserId)->transcript(),
+        ]);
     }
 
     public function newConversation(): void
@@ -305,6 +313,108 @@ class NumaController
             (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.67'),
             $embeddingProvider->signature()
         );
+    }
+
+    /**
+     * @return array{
+     *   available:bool,
+     *   reason:'disabled'|'configuration_incomplete'|'temporarily_unavailable'|'user_limit'|'global_limit'|null,
+     *   usage:array{daily_used:int,daily_limit:int,daily_remaining:int,monthly_used:int,monthly_limit:int,monthly_remaining:int}|null
+     * }
+     */
+    protected function effectiveStatus(int $authenticatedUserId): array
+    {
+        // A disabled installation must remain inspectable without Gemini keys or Numa tables.
+        if (!bh_env_bool('NUMA_ENABLED', false)) {
+            return $this->statusData(false, self::STATUS_REASON_DISABLED);
+        }
+
+        try {
+            $signature = $this->statusEmbeddingSignature();
+        } catch (Throwable) {
+            return $this->statusData(false, self::STATUS_REASON_CONFIGURATION_INCOMPLETE);
+        }
+
+        $usage = null;
+
+        try {
+            $connection = $this->statusConnection();
+            $this->assertStatusTables($connection);
+
+            if (!$this->hasCompatibleKnowledgeIndex($connection, $signature)) {
+                return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE);
+            }
+
+            $usage = $this->numaUso()->estado($authenticatedUserId);
+
+            if ($usage['daily_remaining'] <= 0 || $usage['monthly_remaining'] <= 0) {
+                return $this->statusData(false, self::STATUS_REASON_USER_LIMIT, $usage);
+            }
+
+            $this->globalAvailability()->assertAvailable();
+        } catch (NumaGlobalLimiteAlcanzado) {
+            return $this->statusData(false, self::STATUS_REASON_GLOBAL_LIMIT, $usage);
+        } catch (Throwable) {
+            return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE, $usage);
+        }
+
+        return $this->statusData(true, null, $usage);
+    }
+
+    protected function statusConnection(): PDO
+    {
+        return Database::getConnection();
+    }
+
+    protected function statusEmbeddingSignature(): NumaEmbeddingSignature
+    {
+        // Constructing the adapters validates local configuration without sending a request.
+        $this->provider();
+
+        return NumaEmbeddingProviderFactory::fromEnvironment()->signature();
+    }
+
+    /**
+     * @param array{daily_used:int,daily_limit:int,daily_remaining:int,monthly_used:int,monthly_limit:int,monthly_remaining:int}|null $usage
+     * @return array{
+     *   available:bool,
+     *   reason:'disabled'|'configuration_incomplete'|'temporarily_unavailable'|'user_limit'|'global_limit'|null,
+     *   usage:array{daily_used:int,daily_limit:int,daily_remaining:int,monthly_used:int,monthly_limit:int,monthly_remaining:int}|null
+     * }
+     */
+    private function statusData(bool $available, ?string $reason, ?array $usage = null): array
+    {
+        return [
+            'available' => $available,
+            'reason' => $reason,
+            'usage' => $usage,
+        ];
+    }
+
+    private function assertStatusTables(PDO $connection): void
+    {
+        foreach (self::REQUIRED_STATUS_TABLES as $table) {
+            $statement = $connection->query('SELECT 1 FROM ' . $table . ' LIMIT 1');
+
+            if ($statement === false) {
+                throw new RuntimeException('No se pudo comprobar una tabla de Numa.');
+            }
+        }
+    }
+
+    private function hasCompatibleKnowledgeIndex(PDO $connection, NumaEmbeddingSignature $signature): bool
+    {
+        $statement = $connection->prepare(
+            'SELECT 1 FROM numa_conocimiento
+             WHERE dimensiones = :dimensiones AND firma_embedding = :firma_embedding
+             LIMIT 1'
+        );
+        $statement->execute([
+            ':dimensiones' => $signature->dimensions(),
+            ':firma_embedding' => $signature->value(),
+        ]);
+
+        return $statement->fetchColumn() !== false;
     }
 
     protected function rawBody(): string

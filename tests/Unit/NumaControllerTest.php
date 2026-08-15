@@ -321,14 +321,8 @@ final class NumaControllerTest extends TestCase
         self::assertTrue($response['ok']);
         self::assertSame([
             'available' => false,
-            'usage' => [
-                'daily_used' => 0,
-                'daily_limit' => 5,
-                'daily_remaining' => 5,
-                'monthly_used' => 0,
-                'monthly_limit' => 20,
-                'monthly_remaining' => 20,
-            ],
+            'reason' => 'disabled',
+            'usage' => null,
             'conversation' => [],
         ], $response['data']);
     }
@@ -346,6 +340,78 @@ final class NumaControllerTest extends TestCase
         self::assertTrue($response['ok']);
         self::assertSame('¿Qué es el ahorro posible?', $response['data']['conversation'][0]['message']);
         self::assertSame('Es lo que queda tras ingresos y gastos esenciales.', $response['data']['conversation'][1]['message']);
+    }
+
+    public function testStatusInformaConfiguracionIncompletaSinConsultarTablas(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+
+        $response = $this->invokeEffectiveStatusWithDependencies(
+            new NumaUsoFake(),
+            configurationValid: false,
+        );
+
+        self::assertFalse($response['data']['available']);
+        self::assertSame('configuration_incomplete', $response['data']['reason']);
+        self::assertNull($response['data']['usage']);
+    }
+
+    public function testStatusInformaIndiceIncompatibleComoIndisponibilidadTemporal(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+
+        $response = $this->invokeEffectiveStatusWithDependencies(
+            new NumaUsoFake(),
+            indexReady: false,
+        );
+
+        self::assertFalse($response['data']['available']);
+        self::assertSame('temporarily_unavailable', $response['data']['reason']);
+        self::assertNull($response['data']['usage']);
+    }
+
+    public function testStatusInformaElLimiteDelUsuario(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $usage = [
+            'daily_used' => 5,
+            'daily_limit' => 5,
+            'daily_remaining' => 0,
+            'monthly_used' => 5,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 15,
+        ];
+
+        $response = $this->invokeEffectiveStatusWithDependencies(new NumaUsoFake($usage));
+
+        self::assertFalse($response['data']['available']);
+        self::assertSame('user_limit', $response['data']['reason']);
+        self::assertSame($usage, $response['data']['usage']);
+    }
+
+    public function testStatusInformaElLimiteGlobal(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+
+        $response = $this->invokeEffectiveStatusWithDependencies(
+            new NumaUsoFake(),
+            globalAvailability: new NumaGlobalAvailabilityFake(false),
+        );
+
+        self::assertFalse($response['data']['available']);
+        self::assertSame('global_limit', $response['data']['reason']);
+        self::assertNotNull($response['data']['usage']);
+    }
+
+    public function testStatusDisponibleCuandoTodasLasComprobacionesLocalesPasan(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+
+        $response = $this->invokeEffectiveStatusWithDependencies(new NumaUsoFake());
+
+        self::assertTrue($response['data']['available']);
+        self::assertNull($response['data']['reason']);
+        self::assertSame(5, $response['data']['usage']['daily_remaining']);
     }
 
     public function testChatConJsonValidoYCsrfPorCabeceraDevuelveNumaNoDisponible(): void
@@ -1785,22 +1851,15 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($numaUso->reverted);
     }
 
-    public function testStatusDevuelveContadoresDelRepositorio(): void
+    public function testStatusDesactivadoNoCompruebaDependenciasExternas(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
-        $usage = [
-            'daily_used' => 2,
-            'daily_limit' => 5,
-            'daily_remaining' => 2,
-            'monthly_used' => 8,
-            'monthly_limit' => 20,
-            'monthly_remaining' => 11,
-        ];
 
-        $response = $this->invoke('status', '', new NumaUsoFake($usage));
+        $response = $this->invoke('status', '', new NumaUsoFake());
 
         self::assertArrayHasKey('usage', $response['data']);
-        self::assertSame($usage, $response['data']['usage']);
+        self::assertNull($response['data']['usage']);
+        self::assertSame('disabled', $response['data']['reason']);
     }
 
     private function invoke(
@@ -2029,6 +2088,65 @@ final class NumaControllerTest extends TestCase
 
         ob_start();
         $controller->chat();
+        $output = (string) ob_get_clean();
+        $decoded = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+        $decoded['_status'] = http_response_code();
+
+        return $decoded;
+    }
+
+    private function invokeEffectiveStatusWithDependencies(
+        NumaUsoFake $numaUso,
+        bool $configurationValid = true,
+        bool $indexReady = true,
+        ?NumaGlobalAvailabilityFake $globalAvailability = null,
+    ): array {
+        http_response_code(200);
+        $tableStatement = $this->createMock(\PDOStatement::class);
+        $indexStatement = $this->createMock(\PDOStatement::class);
+        $connection = $this->createMock(\PDO::class);
+        $connection->method('query')->willReturn($tableStatement);
+        $connection->method('prepare')->willReturn($indexStatement);
+        $indexStatement->method('execute')->willReturn(true);
+        $indexStatement->method('fetchColumn')->willReturn($indexReady ? 1 : false);
+        $globalAvailability ??= new NumaGlobalAvailabilityFake();
+
+        $controller = new class($numaUso, $connection, $globalAvailability, $configurationValid) extends \NumaController {
+            public function __construct(
+                private readonly NumaUsoFake $fakeNumaUso,
+                private readonly \PDO $connection,
+                private readonly NumaGlobalAvailabilityFake $fakeGlobalAvailability,
+                private readonly bool $configurationValid,
+            ) {
+            }
+
+            protected function numaUso(): \NumaUso
+            {
+                return $this->fakeNumaUso;
+            }
+
+            protected function statusConnection(): \PDO
+            {
+                return $this->connection;
+            }
+
+            protected function statusEmbeddingSignature(): \NumaEmbeddingSignature
+            {
+                if (!$this->configurationValid) {
+                    throw new \RuntimeException('Configuracion incompleta.');
+                }
+
+                return new \NumaEmbeddingSignature('gemini', 'gemini-embedding-001', 'RETRIEVAL_DOCUMENT', 768, '3');
+            }
+
+            protected function globalAvailability(): \NumaGlobalAvailabilityInterface
+            {
+                return $this->fakeGlobalAvailability;
+            }
+        };
+
+        ob_start();
+        $controller->status();
         $output = (string) ob_get_clean();
         $decoded = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
         $decoded['_status'] = http_response_code();

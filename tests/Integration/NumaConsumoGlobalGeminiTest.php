@@ -94,6 +94,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
                                 ], JSON_THROW_ON_ERROR),
                             ]],
                         ],
+                        'finishReason' => 'STOP',
                     ]],
                     'usageMetadata' => [
                         'promptTokenCount' => 90,
@@ -248,6 +249,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
                 'content' => [
                     'parts' => [['text' => 'Respuesta valida.']],
                 ],
+                'finishReason' => 'STOP',
             ]],
         ];
 

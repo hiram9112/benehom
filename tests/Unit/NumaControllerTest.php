@@ -1281,13 +1281,13 @@ final class NumaControllerTest extends TestCase
                     'body' => json_encode([
                         'candidates' => [['content' => ['parts' => [[
                             'text' => '{"intent":"datos_usuario","allowed":true,"reason":"user_data","needs_clarification":false,"knowledge_query":null,"tool":{"name":"obtener_resumen_financiero","arguments":{"fecha_inicio":"2026-07-01","fecha_fin":"2026-07-31"}}}',
-                        ]]]]],
+                        ]]], 'finishReason' => 'STOP']],
                     ], JSON_THROW_ON_ERROR),
                 ],
                 default => [
                     'status' => 200,
                     'body' => json_encode([
-                        'candidates' => [['content' => ['parts' => [['text' => 'En julio ingresaste 1200 € y gastaste 800 €.']]]]],
+                        'candidates' => [['content' => ['parts' => [['text' => 'En julio ingresaste 1200 € y gastaste 800 €.']]], 'finishReason' => 'STOP']],
                     ], JSON_THROW_ON_ERROR),
                 ],
             };

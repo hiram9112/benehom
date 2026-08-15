@@ -55,6 +55,7 @@ final class GeminiNumaProviderTest extends TestCase
                                 'text' => 'Respuesta breve de Numa.',
                             ]],
                         ],
+                        'finishReason' => 'STOP',
                     ]],
                     'usageMetadata' => [
                         'promptTokenCount' => 120,
@@ -99,6 +100,7 @@ final class GeminiNumaProviderTest extends TestCase
                             'text' => '{"intent":"producto","allowed":true}',
                         ]],
                     ],
+                    'finishReason' => 'STOP',
                 ]],
             ]),
         ]);
@@ -106,6 +108,118 @@ final class GeminiNumaProviderTest extends TestCase
         $response = $provider->respond(new \NumaRequest('Pregunta'));
 
         self::assertSame(['intent' => 'producto', 'allowed' => true], $response->structuredData());
+    }
+
+    public function testRechazaRespuestasBloqueadasTruncadasOVariasCandidatas(): void
+    {
+        foreach ([
+            ['finishReason' => 'SAFETY'],
+            ['finishReason' => 'MAX_TOKENS'],
+            ['candidates' => [
+                ['content' => ['parts' => [['text' => 'Primera respuesta.']]]],
+                ['content' => ['parts' => [['text' => 'Segunda respuesta.']]]],
+            ]],
+        ] as $candidate) {
+            $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [$candidate],
+                ], JSON_THROW_ON_ERROR),
+            ]);
+
+            if (isset($candidate['candidates'])) {
+                $provider = new \GeminiNumaProvider('key', 'model', transport: static function () use ($candidate): array {
+                    return [
+                    'status' => 200,
+                    'body' => json_encode($candidate, JSON_THROW_ON_ERROR),
+                    ];
+                });
+            }
+
+            try {
+                $provider->respond(new \NumaRequest('Pregunta'));
+                self::fail('Se esperaba rechazo de una respuesta no utilizable.');
+            } catch (\NumaProviderException $exception) {
+                self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+            }
+        }
+    }
+
+    public function testRechazaRespuestaConContenidoSinFinishReason(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'candidates' => [[
+                    'content' => ['parts' => [['text' => 'Respuesta aparentemente válida.']]],
+                ]],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->respond(new \NumaRequest('Pregunta'));
+    }
+
+    public function testRechazaTextoConFunctionCallSalidaExcesivaYContenidoInseguro(): void
+    {
+        $responses = [
+            [
+                'candidates' => [[
+                    'content' => ['parts' => [
+                        ['text' => 'Ya tengo la respuesta final.'],
+                        ['functionCall' => ['name' => 'obtener_resumen_financiero', 'args' => []]],
+                    ]],
+                    'finishReason' => 'STOP',
+                ]],
+            ],
+            [
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => str_repeat('a', 4000)]]], 'finishReason' => 'STOP'],
+                ],
+            ],
+            [
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => 'Te recomiendo comprar acciones.']]], 'finishReason' => 'STOP'],
+                ],
+            ],
+            [
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => 'La clave de API es confidencial.']]], 'finishReason' => 'STOP'],
+                ],
+            ],
+        ];
+
+        foreach ($responses as $body) {
+            $provider = new \GeminiNumaProvider('key', 'model', transport: static fn () => [
+                'status' => 200,
+                'body' => json_encode($body, JSON_THROW_ON_ERROR),
+            ]);
+
+            try {
+                $provider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['obtener_resumen_financiero']));
+                self::fail('Se esperaba rechazo de una respuesta no utilizable.');
+            } catch (\NumaProviderException $exception) {
+                self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+            }
+        }
+    }
+
+    public function testRechazaUsoDeSalidaPorEncimaDelLimite(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'candidates' => [['content' => ['parts' => [['text' => 'Respuesta.']]], 'finishReason' => 'STOP']],
+                'usageMetadata' => ['candidatesTokenCount' => 221],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->respond(new \NumaRequest('Pregunta'));
     }
 
     public function testEnviaHistorialControladoConRolesDeGemini(): void
@@ -117,7 +231,7 @@ final class GeminiNumaProviderTest extends TestCase
             return [
                 'status' => 200,
                 'body' => json_encode([
-                    'candidates' => [['content' => ['parts' => [['text' => 'Respuesta actual.']]]]],
+                    'candidates' => [['content' => ['parts' => [['text' => 'Respuesta actual.']]], 'finishReason' => 'STOP']],
                 ], JSON_THROW_ON_ERROR),
             ];
         });
@@ -164,6 +278,7 @@ final class GeminiNumaProviderTest extends TestCase
                                     'thoughtSignature' => 'signature-1',
                                 ]],
                             ],
+                            'finishReason' => 'STOP',
                         ]],
                     ], JSON_THROW_ON_ERROR),
                 ];
@@ -172,7 +287,7 @@ final class GeminiNumaProviderTest extends TestCase
             return [
                 'status' => 200,
                 'body' => json_encode([
-                    'candidates' => [['content' => ['parts' => [['text' => 'En julio ingresaste 1200 € y gastaste 800 €.']]]]],
+                    'candidates' => [['content' => ['parts' => [['text' => 'En julio ingresaste 1200 € y gastaste 800 €.']]], 'finishReason' => 'STOP']],
                 ], JSON_THROW_ON_ERROR),
             ];
         });
@@ -237,6 +352,7 @@ final class GeminiNumaProviderTest extends TestCase
                                     ],
                                 ]],
                             ],
+                            'finishReason' => 'STOP',
                         ]],
                     ], JSON_THROW_ON_ERROR),
                 ];
@@ -245,7 +361,7 @@ final class GeminiNumaProviderTest extends TestCase
             return [
                 'status' => 200,
                 'body' => json_encode([
-                    'candidates' => [['content' => ['parts' => [['text' => 'Comparativa lista.']]]]],
+                    'candidates' => [['content' => ['parts' => [['text' => 'Comparativa lista.']]], 'finishReason' => 'STOP']],
                 ], JSON_THROW_ON_ERROR),
             ];
         });
@@ -271,7 +387,7 @@ final class GeminiNumaProviderTest extends TestCase
         $unknownProvider = new \GeminiNumaProvider('key', 'model', transport: fn (): array => [
             'status' => 200,
             'body' => json_encode([
-                'candidates' => [['content' => ['parts' => [['functionCall' => ['name' => 'tool_desconocida', 'args' => []]]]]]],
+                'candidates' => [['content' => ['parts' => [['functionCall' => ['name' => 'tool_desconocida', 'args' => []]]]], 'finishReason' => 'STOP']],
             ], JSON_THROW_ON_ERROR),
         ]);
 
@@ -285,7 +401,7 @@ final class GeminiNumaProviderTest extends TestCase
         $malformedProvider = new \GeminiNumaProvider('key', 'model', transport: fn (): array => [
             'status' => 200,
             'body' => json_encode([
-                'candidates' => [['content' => ['parts' => [['functionCall' => ['args' => ['fecha_inicio' => '2026-07-01']]]]]]],
+                'candidates' => [['content' => ['parts' => [['functionCall' => ['args' => ['fecha_inicio' => '2026-07-01']]]]], 'finishReason' => 'STOP']],
             ], JSON_THROW_ON_ERROR),
         ]);
 
@@ -314,6 +430,7 @@ final class GeminiNumaProviderTest extends TestCase
                         'content' => [
                             'parts' => [['text' => 'Disponible de nuevo.']],
                         ],
+                        'finishReason' => 'STOP',
                     ]],
                 ]),
             ];
@@ -372,7 +489,7 @@ final class GeminiNumaProviderTest extends TestCase
                 return [
                     'status' => 200,
                     'body' => json_encode([
-                        'candidates' => [['content' => ['parts' => [['text' => 'Respuesta válida.']]]]],
+                        'candidates' => [['content' => ['parts' => [['text' => 'Respuesta válida.']]], 'finishReason' => 'STOP']],
                     ], JSON_THROW_ON_ERROR),
                 ];
             },
@@ -513,6 +630,7 @@ final class GeminiNumaProviderTest extends TestCase
                         'content' => [
                             'parts' => [['text' => 'Respuesta breve de Numa.']],
                         ],
+                        'finishReason' => 'STOP',
                     ]],
                 ]),
             ];

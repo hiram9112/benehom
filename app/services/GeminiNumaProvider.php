@@ -10,6 +10,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
     private const OUTPUT_TOKEN_HARD_LIMIT = 220;
+    private const OUTPUT_BYTES_PER_TOKEN_HARD_LIMIT = 16;
 
     /** @var callable */
     private $transport;
@@ -181,7 +182,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $payload = [
             'contents' => $contents,
             'generationConfig' => [
-                'maxOutputTokens' => min(max($this->maxOutputTokens, 1), self::OUTPUT_TOKEN_HARD_LIMIT),
+                'maxOutputTokens' => $this->maxOutputTokens(),
                 'thinkingConfig' => [
                     'thinkingLevel' => 'low',
                 ],
@@ -299,20 +300,27 @@ final class GeminiNumaProvider implements NumaProviderInterface
             throw self::invalidResponseError();
         }
 
-        $toolRequest = $this->extractToolRequest($decoded);
+        $candidate = $this->candidate($decoded);
+        $usage = $this->tokenUsage($decoded);
+        $this->assertOutputWithinLimits($candidate, $usage);
+        $toolRequest = $this->extractToolRequest($candidate);
+        $message = $this->extractText($candidate);
 
         if ($toolRequest !== null) {
+            // Una llamada a function no puede venir acompañada de una respuesta final.
+            if ($message !== '') {
+                throw self::invalidResponseError();
+            }
+
             return new NumaResponse(
-                $this->extractText($decoded) ?: 'Solicitud de tool de Numa.',
+                'Solicitud de tool de Numa.',
                 null,
                 $toolRequest,
-                $this->tokenUsage($decoded)
+                $usage
             );
         }
 
-        $message = $this->extractText($decoded);
-
-        if ($message === '') {
+        if ($message === '' || $this->containsUnsafeText($message)) {
             throw self::invalidResponseError();
         }
 
@@ -322,16 +330,16 @@ final class GeminiNumaProvider implements NumaProviderInterface
             $message,
             $this->structuredData($message),
             null,
-            $this->tokenUsage($decoded)
+            $usage
         );
     }
 
     /**
-     * @param array<string, mixed> $decoded
+     * @param array<string, mixed> $candidate
      */
-    private function extractToolRequest(array $decoded): ?NumaToolRequest
+    private function extractToolRequest(array $candidate): ?NumaToolRequest
     {
-        $content = $decoded['candidates'][0]['content'] ?? null;
+        $content = $candidate['content'] ?? null;
         $parts = is_array($content) ? ($content['parts'] ?? null) : null;
 
         if (!is_array($content) || !is_array($parts)) {
@@ -390,11 +398,11 @@ final class GeminiNumaProvider implements NumaProviderInterface
     }
 
     /**
-     * @param array<string, mixed> $decoded
+     * @param array<string, mixed> $candidate
      */
-    private function extractText(array $decoded): string
+    private function extractText(array $candidate): string
     {
-        $parts = $decoded['candidates'][0]['content']['parts'] ?? null;
+        $parts = $candidate['content']['parts'] ?? null;
 
         if (!is_array($parts)) {
             return '';
@@ -411,6 +419,89 @@ final class GeminiNumaProvider implements NumaProviderInterface
         }
 
         return trim(implode("\n", $textParts));
+    }
+
+    /**
+     * @param array<string, mixed> $decoded
+     * @return array<string, mixed>
+     */
+    private function candidate(array $decoded): array
+    {
+        $feedback = $decoded['promptFeedback'] ?? null;
+        if (is_array($feedback) && isset($feedback['blockReason']) && $feedback['blockReason'] !== '') {
+            throw self::invalidResponseError();
+        }
+
+        $candidates = $decoded['candidates'] ?? null;
+        if (!is_array($candidates) || !array_is_list($candidates) || count($candidates) !== 1 || !is_array($candidates[0])) {
+            throw self::invalidResponseError();
+        }
+
+        $candidate = $candidates[0];
+        $finishReason = $candidate['finishReason'] ?? null;
+        if ($finishReason !== 'STOP') {
+            throw self::invalidResponseError();
+        }
+
+        $ratings = $candidate['safetyRatings'] ?? [];
+        if (!is_array($ratings)) {
+            throw self::invalidResponseError();
+        }
+
+        foreach ($ratings as $rating) {
+            if (!is_array($rating)) {
+                throw self::invalidResponseError();
+            }
+
+            if (($rating['blocked'] ?? false) === true) {
+                throw self::invalidResponseError();
+            }
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * @param array<string, mixed> $candidate
+     */
+    private function assertOutputWithinLimits(array $candidate, NumaTokenUsage $usage): void
+    {
+        $content = $candidate['content'] ?? null;
+        if (!is_array($content)) {
+            throw self::invalidResponseError();
+        }
+
+        try {
+            $contentBytes = strlen(json_encode($content, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        } catch (JsonException $exception) {
+            throw self::invalidResponseError($exception);
+        }
+
+        if ($contentBytes > $this->maxOutputBytes()
+            || ($usage->outputTokens() !== null && $usage->outputTokens() > $this->maxOutputTokens())
+        ) {
+            throw self::invalidResponseError();
+        }
+    }
+
+    private function maxOutputTokens(): int
+    {
+        return min(max($this->maxOutputTokens, 1), self::OUTPUT_TOKEN_HARD_LIMIT);
+    }
+
+    private function maxOutputBytes(): int
+    {
+        return $this->maxOutputTokens() * self::OUTPUT_BYTES_PER_TOKEN_HARD_LIMIT;
+    }
+
+    private function containsUnsafeText(string $message): bool
+    {
+        return preg_match(
+            '/\b(recomiendo|recomendar[ií]a|aconsejo|aconsejar[ií]a|deber[ií]as|conviene)\b.*\b(comprar|vender|invertir|acciones?|criptomonedas?|criptos?|fondos?|etf|bonos?|seguros?)\b'
+            . '|\b(compra|vende|invierte)\b.*\b(acciones?|criptomonedas?|criptos?|fondos?|etf|bonos?|seguros?)\b'
+            . '|\b(instrucciones (?:internas|del sistema)|mensaje de sistema|system prompt|prompt interno|prompt del sistema|api[_ -]?key|clave (?:de )?api|secretos?|token de acceso|contrasena|password)\b/iu',
+            $message
+        ) === 1;
     }
 
     /**
@@ -593,11 +684,14 @@ final class GeminiNumaProvider implements NumaProviderInterface
             );
         }
 
-        if (!is_int($inputTokens) || !is_int($outputTokens)) {
+        if (!is_int($inputTokens) && !is_int($outputTokens)) {
             return NumaTokenUsage::unknown();
         }
 
-        return new NumaTokenUsage($inputTokens, $outputTokens);
+        return new NumaTokenUsage(
+            is_int($inputTokens) ? $inputTokens : null,
+            is_int($outputTokens) ? $outputTokens : null
+        );
     }
 
     private function httpError(int $status, string $responseBody): NumaProviderException

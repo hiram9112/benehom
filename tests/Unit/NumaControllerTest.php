@@ -1258,6 +1258,40 @@ final class NumaControllerTest extends TestCase
         self::assertCount(1, $provider->requests());
     }
 
+    public function testChatActivoNoExponeDetallesTecnicosDeUnErrorDelProveedor(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $technicalDetails = 'Gemini HTTP 500: api_key=secret-provider-key prompt=internal-system-prompt';
+        $provider = new class($technicalDetails) implements \NumaProviderInterface {
+            public function __construct(private readonly string $technicalDetails)
+            {
+            }
+
+            public function respond(\NumaRequest $request): \NumaResponse
+            {
+                throw new \RuntimeException($this->technicalDetails);
+            }
+        };
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Puedes revisar esta consulta?"}',
+            new NumaUsoFake(),
+            $provider,
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertSame('Numa no está disponible en este momento.', $response['error']['message']);
+
+        $jsonResponse = json_encode($response, JSON_THROW_ON_ERROR);
+        self::assertStringNotContainsString($technicalDetails, $jsonResponse);
+        self::assertStringNotContainsString('secret-provider-key', $jsonResponse);
+        self::assertStringNotContainsString('internal-system-prompt', $jsonResponse);
+    }
+
     public function testChatActivoDetieneElFlujoSiNoHayCuotaParaElEmbeddingNecesario(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

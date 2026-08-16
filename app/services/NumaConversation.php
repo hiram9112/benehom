@@ -110,8 +110,22 @@ final class NumaConversation
     public function clear(): void
     {
         $stored = $_SESSION[self::SESSION_KEY] ?? null;
-        if (!is_array($stored) || $this->storedUserId($stored) === $this->currentUserId()) {
-            unset($_SESSION[self::SESSION_KEY]);
+        $userId = $this->currentUserId();
+
+        if ($userId === null) {
+            if (!is_array($stored) || $this->storedUserId($stored) === null) {
+                unset($_SESSION[self::SESSION_KEY]);
+            }
+
+            return;
+        }
+
+        if (!is_array($stored) || $this->storedUserId($stored) === $userId) {
+            $_SESSION[self::SESSION_KEY] = [
+                'usuario_id' => $userId,
+                'version' => $this->version() + 1,
+                'entries' => [],
+            ];
         }
     }
 

@@ -29,11 +29,16 @@ final class NumaUsoFake extends \NumaUso
         private readonly bool $confirmResult = true,
         private readonly ?int $limitAfterReservations = null,
         private readonly bool $countConfirmationsInEstado = false,
+        private readonly bool $throwOnEstado = false,
     ) {
     }
 
     public function estado(int $usuarioId): array
     {
+        if ($this->throwOnEstado) {
+            throw new \RuntimeException('No se pudo calcular el consumo.');
+        }
+
         if ($this->countConfirmationsInEstado) {
             $dailyLimit = (int) $this->usage['daily_limit'];
             $monthlyLimit = (int) $this->usage['monthly_limit'];
@@ -1763,11 +1768,7 @@ final class NumaControllerTest extends TestCase
         $provider = new class implements \NumaProviderInterface {
             public function respond(\NumaRequest $request): \NumaResponse
             {
-                $_SESSION['numa_conversation'] = [
-                    'usuario_id' => 123,
-                    'version' => 1,
-                    'entries' => [],
-                ];
+                (new \NumaConversation(123))->clear();
 
                 return new \NumaResponse('Puedes añadir movimientos desde la sección Movimientos.');
             }
@@ -1792,6 +1793,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame(401, $response['_status']);
         self::assertSame('UNAUTHENTICATED', $response['error']['code']);
         self::assertSame([], $_SESSION['numa_conversation']['entries']);
+        self::assertSame(1, $_SESSION['numa_conversation']['version']);
     }
 
     public function testRechazoLocalQuedaVisiblePeroNoEnContextoPosterior(): void
@@ -1849,7 +1851,23 @@ final class NumaControllerTest extends TestCase
         self::assertTrue($response['ok']);
         self::assertSame([], $response['data']['conversation']);
         self::assertSame($usage, $response['data']['usage']);
-        self::assertArrayNotHasKey('numa_conversation', $_SESSION);
+        self::assertSame(1, $_SESSION['numa_conversation']['version']);
+        self::assertSame([], $_SESSION['numa_conversation']['entries']);
+    }
+
+    public function testNuevaConversacionTieneExitoSinEstadoDeConsumo(): void
+    {
+        (new \NumaConversation())->appendExchange('Pregunta anterior', 'Respuesta anterior');
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-token';
+
+        $response = $this->invoke('newConversation', '', new NumaUsoFake(throwOnEstado: true));
+
+        self::assertTrue($response['ok']);
+        self::assertSame(200, $response['_status']);
+        self::assertNull($response['data']['usage']);
+        self::assertSame([], $response['data']['conversation']);
+        self::assertSame(1, $_SESSION['numa_conversation']['version']);
     }
 
     public function testChatActivoLimitaRagATresFragmentosYRecortaContenido(): void

@@ -235,16 +235,19 @@ class NumaController
             return;
         }
 
+        $this->conversation($authenticatedUserId)->clear();
+
         try {
-            $this->conversation($authenticatedUserId)->clear();
-            bh_json_success([
-                'available' => bh_env_bool('NUMA_ENABLED', false),
-                'usage' => $this->numaUso()->estado($authenticatedUserId),
-                'conversation' => [],
-            ]);
+            $usage = $this->numaUso()->estado($authenticatedUserId);
         } catch (Throwable) {
-            bh_numa_error('NUMA_USAGE_ERROR', 503);
+            $usage = null;
         }
+
+        bh_json_success([
+            'available' => bh_env_bool('NUMA_ENABLED', false),
+            'usage' => $usage,
+            'conversation' => [],
+        ]);
     }
 
     protected function numaUso(): NumaUso

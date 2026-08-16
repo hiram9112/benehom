@@ -58,6 +58,9 @@ final class NumaConversationTest extends TestCase
 
         self::assertSame([], $conversation->transcript());
         self::assertSame([], $conversation->context());
+        self::assertSame(1, $conversation->version());
+        self::assertSame(123, $_SESSION['numa_conversation']['usuario_id']);
+        self::assertSame([], $_SESSION['numa_conversation']['entries']);
     }
 
     public function testConservaLaVersionDeConversacionEnLosIntercambios(): void

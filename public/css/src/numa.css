@@ -370,6 +370,34 @@
     min-width: 0;
 }
 
+.bh-numa-status-retry{
+    display: block;
+    margin: 0.45rem auto 0;
+    padding: 0;
+    border: 0;
+    color: var(--bh-brand-deep);
+    background: transparent;
+    font-family: var(--bh-font-interface);
+    font-size: var(--bh-text-xs);
+    font-weight: var(--bh-weight-semibold);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.bh-numa-status-retry[hidden]{
+    display: none;
+}
+
+.bh-numa-status-retry:focus-visible{
+    outline: none;
+    box-shadow: var(--bh-focus-ring);
+}
+
+.bh-numa-status-retry:disabled{
+    cursor: wait;
+    opacity: 0.6;
+}
+
 .bh-numa-composer{
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto 44px;

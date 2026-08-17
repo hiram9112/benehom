@@ -115,6 +115,7 @@
         const input = panel ? panel.querySelector('[data-numa-input]') : null;
         const submitButton = panel ? panel.querySelector('[data-numa-submit]') : null;
         const submitIcon = panel ? panel.querySelector('[data-numa-submit-icon]') : null;
+        const statusRetryButton = panel ? panel.querySelector('[data-numa-status-retry]') : null;
         const counter = panel ? panel.querySelector('[data-numa-counter]') : null;
         const initialState = panel ? panel.querySelector('[data-numa-initial]') : null;
         const emptyMessage = panel ? panel.querySelector('[data-numa-empty-message]') : null;
@@ -126,14 +127,19 @@
         const chatUrl = widget.getAttribute('data-numa-chat-url') || '';
         const newConversationUrl = widget.getAttribute('data-numa-new-conversation-url') || '';
         const csrfToken = widget.getAttribute('data-numa-csrf') || '';
+        const isPublicMode = widget.getAttribute('data-numa-mode') === 'public';
         const emptyMessages = configuredTextList(widget, 'data-numa-empty-messages', EMPTY_MESSAGES);
         const configuredSuggestions = configuredTextList(widget, 'data-numa-suggestions', SUGGESTIONS);
         const configuredMaxMessageLength = Number(widget.getAttribute('data-numa-max-message-length'));
         const maxMessageLength = Number.isInteger(configuredMaxMessageLength) && configuredMaxMessageLength > 0
             ? configuredMaxMessageLength
             : input ? input.maxLength : 0;
+        const configuredRequestTimeoutMs = Number(widget.getAttribute('data-numa-request-timeout-ms'));
+        const requestTimeoutMs = Number.isInteger(configuredRequestTimeoutMs) && configuredRequestTimeoutMs > 0
+            ? configuredRequestTimeoutMs
+            : 26000;
 
-        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !form || !input || !submitButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
+        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !form || !input || !submitButton || !statusRetryButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
             return;
         }
 
@@ -144,6 +150,7 @@
         let defaultTooltipSuppressed = false;
         let tooltipTimer = 0;
         let statusRequestId = 0;
+        let statusLoading = false;
         let activeRequest = false;
         let hasConversation = false;
         let hasCanonicalConversation = false;
@@ -243,6 +250,11 @@
             }
 
             setInteractiveState();
+        };
+
+        const setStatusRetryVisible = (visible) => {
+            statusRetryButton.hidden = !visible;
+            statusRetryButton.disabled = statusLoading;
         };
 
         const renderInitialState = () => {
@@ -417,17 +429,24 @@
         };
 
         const loadStatus = () => {
+            if (statusLoading) {
+                return;
+            }
+
             if (!statusUrl) {
                 setAvailability('unavailable');
                 addStateMessage('No se ha podido comprobar el estado de Numa.', 'error');
+                setStatusRetryVisible(true);
                 setInteractiveState();
                 return;
             }
 
             const requestId = statusRequestId + 1;
             statusRequestId = requestId;
+            statusLoading = true;
             setAvailability('unavailable');
             announceStatus('Comprobando Numa…');
+            setStatusRetryVisible(true);
             setInteractiveState();
 
             fetch(statusUrl, {
@@ -445,7 +464,9 @@
                         setAvailability('unavailable');
                         addStateMessage(
                             response.status === 401
-                                ? 'La sesión ha caducado. Vuelve a iniciar sesión.'
+                                ? isPublicMode
+                                    ? 'No se ha podido validar tu identidad temporal. Recarga la página e inténtalo de nuevo.'
+                                    : 'La sesión ha caducado. Vuelve a iniciar sesión.'
                                 : 'No se ha podido comprobar el estado de Numa.',
                             'error'
                         );
@@ -454,6 +475,7 @@
                     }
 
                     applyServiceStatus(payload);
+                    setStatusRetryVisible(false);
                 })
                 .catch(() => {
                     if (requestId !== statusRequestId) {
@@ -463,24 +485,52 @@
                     setAvailability('unavailable');
                     addStateMessage('No se ha podido comprobar el estado de Numa.', 'error');
                     setInteractiveState();
+                    setStatusRetryVisible(true);
+                })
+                .finally(() => {
+                    if (requestId !== statusRequestId) {
+                        return;
+                    }
+
+                    statusLoading = false;
+                    statusRetryButton.disabled = false;
                 });
         };
 
         const safeErrorMessage = (payload, statusCode) => {
+            const code = payload && payload.error && typeof payload.error.code === 'string'
+                ? payload.error.code
+                : '';
             const message = payload && payload.error && typeof payload.error.message === 'string'
                 ? payload.error.message
                 : '';
 
-            if (message !== '') {
-                return message;
+            if (code === 'NUMA_INVALID_CSRF' || statusCode === 403) {
+                return 'Solicitud no válida. Recarga la página e inténtalo de nuevo.';
             }
 
             if (statusCode === 401) {
-                return 'La sesión ha caducado. Vuelve a iniciar sesión.';
+                return isPublicMode
+                    ? 'No se ha podido validar tu identidad temporal. Recarga la página e inténtalo de nuevo.'
+                    : 'La sesión ha caducado. Vuelve a iniciar sesión.';
             }
 
-            if (statusCode === 429) {
-                return 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.';
+            if (statusCode === 429 || code === 'NUMA_LIMIT_REACHED' || code === 'NUMA_RATE_LIMITED') {
+                return code === 'NUMA_RATE_LIMITED'
+                    ? 'Has enviado demasiadas consultas seguidas. Espera un momento antes de volver a intentarlo.'
+                    : 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.';
+            }
+
+            if (code === 'NUMA_PROVIDER_TIMEOUT') {
+                return 'Numa ha tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.';
+            }
+
+            if (code === 'NUMA_NOT_AVAILABLE' || statusCode === 503) {
+                return 'Numa no está disponible en este momento. Inténtalo de nuevo más tarde.';
+            }
+
+            if (message !== '') {
+                return message;
             }
 
             return 'No he podido responder ahora. Inténtalo de nuevo en unos minutos.';
@@ -519,21 +569,42 @@
                 return;
             }
 
+            if (!chatUrl) {
+                addStateMessage('No se ha podido iniciar la consulta. Conservamos tu borrador para que puedas volver a intentarlo.', 'error');
+                return;
+            }
+
+            setProcessing(true);
+            const abortController = typeof AbortController === 'function' ? new AbortController() : null;
+            const requestTimeout = abortController
+                ? window.setTimeout(() => abortController.abort(), requestTimeoutMs)
+                : 0;
+            let chatRequest;
+
+            try {
+                chatRequest = fetch(chatUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken,
+                    },
+                    signal: abortController ? abortController.signal : undefined,
+                    body: JSON.stringify({ message }),
+                });
+            } catch {
+                window.clearTimeout(requestTimeout);
+                setProcessing(false);
+                addStateMessage('No se ha podido iniciar la consulta. Conservamos tu borrador para que puedas volver a intentarlo.', 'error');
+                return;
+            }
+
             addMessage('user', message);
             resetComposer();
             announceStatus('Numa está procesando la consulta.');
-            setProcessing(true);
 
-            fetch(chatUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken,
-                },
-                body: JSON.stringify({ message }),
-            })
+            chatRequest
                 .then((response) => response.json().catch(() => null).then((payload) => ({ response, payload })))
                 .then(({ response, payload }) => {
                     if (!response.ok || !payload || payload.ok !== true || !payload.data || typeof payload.data.message !== 'string') {
@@ -558,14 +629,18 @@
                         setAvailability(payload.data.availability);
                     }
                 })
-                .catch(() => {
+                .catch((error) => {
+                    const errorMessage = error && error.name === 'AbortError'
+                        ? 'Numa ha tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.'
+                        : 'No he podido conectar con Numa. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.';
                     addMessage(
                         'assistant',
-                        'No he podido conectar con Numa ahora. Inténtalo de nuevo en unos minutos.',
+                        errorMessage,
                         { tone: 'error', state: true }
                     );
                 })
                 .finally(() => {
+                    window.clearTimeout(requestTimeout);
                     setProcessing(false);
                     loadStatus();
                 });
@@ -659,6 +734,7 @@
 
         closeButton.addEventListener('click', () => closePanel(true));
         newConversationButton.addEventListener('click', startNewConversation);
+        statusRetryButton.addEventListener('click', loadStatus);
 
         launcher.addEventListener('pointerenter', () => {
             hovering = true;

@@ -70,6 +70,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/conversation/new"', $html);
         self::assertStringContainsString('data-numa-csrf="', $html);
         self::assertStringContainsString('data-numa-max-message-length="300"', $html);
+        self::assertStringContainsString('data-numa-request-timeout-ms="26000"', $html);
         self::assertStringContainsString('maxlength="300"', $html);
         self::assertStringContainsString('>0/300</span>', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
@@ -208,7 +209,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('background: var(--bh-brand)', $css);
         self::assertStringContainsString('background: var(--bh-negative-soft)', $css);
         self::assertStringNotContainsString('.bh-numa-panel-header', $css);
-        self::assertStringNotContainsString('.bh-numa-status', $css);
+        self::assertStringNotContainsString('.bh-numa-status{', $css);
         self::assertStringNotContainsString('.bh-numa-scope-note', $css);
     }
 
@@ -298,6 +299,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-suggestions', $html);
         self::assertStringContainsString('data-numa-messages', $html);
         self::assertStringContainsString('data-numa-status', $html);
+        self::assertStringContainsString('data-numa-status-retry', $html);
+        self::assertStringContainsString('>Reintentar estado</button>', $html);
         self::assertStringNotContainsString('data-numa-usage', $html);
         self::assertStringContainsString('data-numa-form', $html);
         self::assertStringNotContainsString('data-numa-scope', $html);
@@ -355,6 +358,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("widget.getAttribute('data-numa-chat-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-new-conversation-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-csrf')", $javascript);
+        self::assertStringContainsString("widget.getAttribute('data-numa-request-timeout-ms')", $javascript);
         self::assertStringContainsString('let initialTooltipDismissed = !shouldShowInitialTooltip', $javascript);
         self::assertStringContainsString('let defaultTooltipSuppressed = false', $javascript);
         self::assertStringContainsString('if (shouldShowInitialTooltip) {', $javascript);
@@ -372,6 +376,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("button.addEventListener('click', () => sendMessage(suggestion))", $javascript);
         self::assertStringContainsString("fetch(statusUrl", $javascript);
         self::assertStringContainsString("fetch(chatUrl", $javascript);
+        self::assertStringContainsString("statusRetryButton.addEventListener('click', loadStatus)", $javascript);
         self::assertStringContainsString("'X-CSRF-Token': csrfToken", $javascript);
         self::assertStringContainsString('JSON.stringify({ message })', $javascript);
         self::assertStringContainsString('renderConversation(payload.data.conversation)', $javascript);
@@ -388,6 +393,10 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('Te estás acercando al límite de uso de Numa.', $javascript);
         self::assertStringContainsString('Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.', $javascript);
         self::assertMatchesRegularExpression('/setProcessing\(false\);\s+loadStatus\(\);/', $javascript);
+        self::assertStringContainsString('Conservamos tu borrador', $javascript);
+        self::assertStringContainsString('AbortController', $javascript);
+        self::assertStringContainsString('podría haberse enviado y haber consumido cuota', $javascript);
+        self::assertStringContainsString("code === 'NUMA_INVALID_CSRF'", $javascript);
         self::assertStringNotContainsString('daily_remaining', $javascript);
         self::assertStringNotContainsString('monthly_remaining', $javascript);
         self::assertStringNotContainsString('user_limit', $javascript);

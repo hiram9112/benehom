@@ -26,6 +26,7 @@ function bh_numa_launcher(string $mode = 'private'): void
     $isPublic = $mode === 'public';
     $available = bh_env_bool('NUMA_ENABLED', false) && (!$isPublic || bh_env_bool('NUMA_PUBLIC_ENABLED', false));
     $maxMessageLength = bh_numa_max_message_length();
+    $requestTimeoutMs = (max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25)) * 1000) + 1000;
     $stateClass = $available ? ' is-available' : ' is-unavailable';
     $bodySrc = bh_asset('img/numa/runtime/numa-body.webp');
     $faceFrames = [
@@ -72,6 +73,7 @@ function bh_numa_launcher(string $mode = 'private'): void
         data-numa-new-conversation-url="<?= htmlspecialchars($endpoints['conversation'], ENT_QUOTES, 'UTF-8') ?>"
         data-numa-csrf="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>"
         data-numa-max-message-length="<?= $maxMessageLength ?>"
+        data-numa-request-timeout-ms="<?= $requestTimeoutMs ?>"
         data-numa-empty-messages="<?= htmlspecialchars((string) json_encode($emptyMessages, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
         data-numa-suggestions="<?= htmlspecialchars((string) json_encode($suggestions, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>">
         <button
@@ -160,6 +162,7 @@ function bh_numa_launcher(string $mode = 'private'): void
                             <span class="bh-numa-submit-processing" aria-hidden="true"></span>
                         </button>
                     </div>
+                    <button type="button" class="bh-numa-status-retry" data-numa-status-retry hidden>Reintentar estado</button>
                 </form>
             </div>
         </section>

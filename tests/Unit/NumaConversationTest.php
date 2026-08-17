@@ -144,4 +144,35 @@ final class NumaConversationTest extends TestCase
         self::assertSame([], (new \NumaConversation())->transcript());
         self::assertArrayNotHasKey('numa_conversation', $_SESSION);
     }
+
+    public function testLaConversacionPublicaSeGuardaEnUnaClaveSeparadaYPorVisitante(): void
+    {
+        $visitorHash = str_repeat('a', 64);
+        $conversation = \NumaConversation::forVisitor($visitorHash);
+        $conversation->appendPublicExchange('¿Cómo añado un movimiento?', 'Usa el formulario de Movimientos.');
+
+        self::assertSame([], (new \NumaConversation())->transcript());
+        self::assertSame('¿Cómo añado un movimiento?', $conversation->publicTranscript()[0]['message']);
+        self::assertSame($visitorHash, $_SESSION['numa_public_conversation']['visitante_hash']);
+        self::assertArrayNotHasKey('usuario_id', $_SESSION['numa_public_conversation']);
+    }
+
+    public function testUnVisitanteDistintoNoPuedeLeerLaConversacionPublicaAnterior(): void
+    {
+        \NumaConversation::forVisitor(str_repeat('a', 64))->appendPublicExchange('Pregunta', 'Respuesta');
+
+        self::assertSame([], \NumaConversation::forVisitor(str_repeat('b', 64))->publicTranscript());
+        self::assertArrayNotHasKey('numa_public_conversation', $_SESSION);
+    }
+
+    public function testNuevaConversacionPublicaConservaLaCuotaYVersionaElTranscript(): void
+    {
+        $conversation = \NumaConversation::forVisitor(str_repeat('a', 64));
+        $conversation->appendPublicExchange('Pregunta', 'Respuesta');
+
+        $conversation->clearPublic();
+
+        self::assertSame([], $conversation->publicTranscript());
+        self::assertSame(1, $conversation->publicVersion());
+    }
 }

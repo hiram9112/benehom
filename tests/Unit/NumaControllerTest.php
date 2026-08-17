@@ -2031,6 +2031,82 @@ final class NumaControllerTest extends TestCase
         self::assertSame('disabled', $response['data']['reason']);
     }
 
+    public function testEstadoPublicoNoIniciaElServicioNiLlamadasExternas(): void
+    {
+        $previousCookie = $_COOKIE;
+        $_ENV['NUMA_ENABLED'] = 'false';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'test-public-hash-key';
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = str_repeat('a', 64);
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $controller = new class extends \NumaController {
+            protected function publicNumaService(): \NumaService
+            {
+                throw new \LogicException('El status público no debe iniciar el servicio.');
+            }
+        };
+
+        try {
+            ob_start();
+            $controller->publicStatus();
+            $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
+
+            self::assertTrue($response['ok']);
+            self::assertSame('disabled', $response['data']['reason']);
+        } finally {
+            $_COOKIE = $previousCookie;
+        }
+    }
+
+    public function testCambioDeVisitanteDurantePeticionPublicaImpideConservarElTranscriptAnterior(): void
+    {
+        $previousCookie = $_COOKIE;
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'test-public-hash-key';
+        $originalToken = str_repeat('a', 64);
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = $originalToken;
+        $visitorHash = hash_hmac('sha256', $originalToken, 'test-public-hash-key');
+        $conversation = \NumaConversation::forVisitor($visitorHash);
+        $conversation->appendPublicExchange('Pregunta inicial', 'Respuesta inicial');
+
+        $controller = new class extends \NumaController {
+            public function cachePublicIdentityForTest(): void
+            {
+                $this->publicIdentity()->visitorHash();
+            }
+        };
+        $controller->cachePublicIdentityForTest();
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = str_repeat('b', 64);
+
+        try {
+            self::assertFalse($this->publicSessionStillOwnedBy($controller, $visitorHash, 0));
+            self::assertCount(2, $conversation->publicTranscript());
+        } finally {
+            unset($_SESSION['numa_public_conversation']);
+            $_COOKIE = $previousCookie;
+        }
+    }
+
+    public function testCambioDeVersionDurantePeticionPublicaImpideConservarElTranscriptAnterior(): void
+    {
+        $previousCookie = $_COOKIE;
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'test-public-hash-key';
+        $token = str_repeat('a', 64);
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = $token;
+        $visitorHash = hash_hmac('sha256', $token, 'test-public-hash-key');
+        $conversation = \NumaConversation::forVisitor($visitorHash);
+        $conversation->appendPublicExchange('Pregunta inicial', 'Respuesta inicial');
+        $conversation->clearPublic();
+
+        try {
+            self::assertFalse($this->publicSessionStillOwnedBy(new \NumaController(), $visitorHash, 0));
+            self::assertSame([], $conversation->publicTranscript());
+        } finally {
+            unset($_SESSION['numa_public_conversation']);
+            $_COOKIE = $previousCookie;
+        }
+    }
+
     private function invoke(
         string $method,
         string $rawBody = '',
@@ -2165,6 +2241,13 @@ final class NumaControllerTest extends TestCase
         $decoded['_status'] = http_response_code();
 
         return $decoded;
+    }
+
+    private function publicSessionStillOwnedBy(\NumaController $controller, string $visitorHash, int $conversationVersion): bool
+    {
+        $method = new \ReflectionMethod(\NumaController::class, 'publicSessionStillOwnedBy');
+
+        return $method->invoke($controller, $visitorHash, $conversationVersion);
     }
 
     private function invokeWithPeriodResolver(

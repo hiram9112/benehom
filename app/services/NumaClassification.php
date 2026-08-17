@@ -293,6 +293,7 @@ final class NumaFixedScopeResponse
     private const RESPONSE_FORBIDDEN_ACTION = 'Numa solo consulta y explica información. No puede crear, modificar ni eliminar datos.';
     private const RESPONSE_CONTEXT_REQUIRED = 'Formula la pregunta completa en un solo mensaje para que pueda ayudarte sin usar turnos anteriores.';
     private const RESPONSE_SENSITIVE_DATA = 'Por seguridad, retira ese identificador sensible y reformula la consulta sin incluirlo.';
+    private const RESPONSE_LOGIN_REQUIRED = 'Para analizar tus datos financieros personales, inicia sesión en BeneHom.';
 
     public static function forIntent(string $intent, ?string $reason = null): string
     {
@@ -319,6 +320,11 @@ final class NumaFixedScopeResponse
     {
         return self::RESPONSE_SENSITIVE_DATA;
     }
+
+    public static function loginRequired(): string
+    {
+        return self::RESPONSE_LOGIN_REQUIRED;
+    }
 }
 
 final class NumaProviderScopeClassifier
@@ -328,13 +334,13 @@ final class NumaProviderScopeClassifier
     }
 
     /** @param array<int, array{role:string,message:string}> $history */
-    public function classify(string $message, array $history = []): NumaClassification
+    public function classify(string $message, array $history = [], bool $publicMode = false): NumaClassification
     {
         try {
             $response = $this->provider->respond(new NumaRequest(
                 $message,
                 '',
-                $this->classificationContext(),
+                $this->classificationContext($publicMode),
                 [],
                 $history,
             ));
@@ -364,7 +370,7 @@ final class NumaProviderScopeClassifier
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function classificationContext(): array
+    private function classificationContext(bool $publicMode): array
     {
         return [[
             'type' => 'numa_scope_classification',
@@ -383,6 +389,9 @@ final class NumaProviderScopeClassifier
                 'Marca allowed true solo para producto, educacion_financiera, datos_usuario o consulta_combinada.',
                 'Usa knowledge_query solo para una consulta documental breve sin datos privados.',
                 'Usa data_intent solo si encaja exactamente con una intención de datos permitida.',
+                ...($publicMode ? [
+                    'Esta interacción es pública: nunca autorices datos_usuario, consulta_combinada, tools ni datos financieros privados.',
+                ] : []),
             ],
         ]];
     }

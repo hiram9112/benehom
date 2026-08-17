@@ -43,6 +43,7 @@ class NumaController
     private const CHAT_RATE_LIMIT_ACTION = 'numa_chat';
     private const PUBLIC_CHAT_RATE_LIMIT_ACTION = 'numa_public_chat_ip';
     private const CHAT_REQUEST_SESSION_KEY = 'numa_chat_request';
+    private const PUBLIC_CHAT_REQUEST_SESSION_KEY = 'numa_public_chat_request';
     private const CHAT_REQUEST_EXPIRY_MARGIN_SECONDS = 5;
 
     private const STATUS_REASON_DISABLED = 'disabled';
@@ -50,6 +51,8 @@ class NumaController
     private const STATUS_REASON_TEMPORARILY_UNAVAILABLE = 'temporarily_unavailable';
     private const STATUS_REASON_USER_LIMIT = 'user_limit';
     private const STATUS_REASON_GLOBAL_LIMIT = 'global_limit';
+    private const STATUS_REASON_VISITOR_LIMIT = 'visitor_limit';
+    private const STATUS_REASON_PUBLIC_GLOBAL_LIMIT = 'public_global_limit';
 
     private const REQUIRED_STATUS_TABLES = [
         'numa_uso',
@@ -58,7 +61,16 @@ class NumaController
         'numa_conocimiento',
     ];
 
+    private const REQUIRED_PUBLIC_STATUS_TABLES = [
+        'numa_uso_publico',
+        'numa_reservas_publicas',
+        'numa_uso_proveedor',
+        'numa_conocimiento',
+    ];
+
     private bool $requestBodyTooLarge = false;
+
+    private ?NumaPublicIdentity $resolvedPublicIdentity = null;
 
     public function chat(): void
     {
@@ -242,9 +254,53 @@ class NumaController
             return;
         }
 
-        // The public provider flow is intentionally introduced in task 15.1.2.
-        unset($visitorHash, $message);
-        bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+        $sessionReleased = false;
+        $chatRequest = null;
+
+        try {
+            $conversation = NumaConversation::forVisitor($visitorHash);
+            $conversationVersion = $conversation->publicVersion();
+            $chatRequest = $this->startPublicChatRequest($visitorHash, $conversationVersion);
+            if ($chatRequest === null) {
+                bh_numa_error('NUMA_REQUEST_IN_PROGRESS', 409);
+                return;
+            }
+
+            $context = $conversation->publicContext();
+            $sessionReleased = $this->releaseSessionForProvider();
+            $result = $this->publicNumaService()->answerPublic($visitorHash, $message, $context);
+            $this->reopenSessionAfterProvider($sessionReleased);
+            $sessionReleased = false;
+
+            if (!$this->publicSessionStillOwnedBy($visitorHash, $conversationVersion)) {
+                bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+                return;
+            }
+
+            $data = $result->toArray();
+            $conversation->appendPublicExchange(
+                $message,
+                (string) $data['message'],
+                $result->sources(),
+                null,
+                $result->contextual(),
+            );
+            $data['conversation'] = $conversation->publicTranscript();
+            bh_json_success($data);
+        } catch (NumaServiceException $exception) {
+            $this->reopenSessionAfterProvider($sessionReleased);
+            $sessionReleased = false;
+            bh_numa_error($exception->safeCode(), $exception->statusCode(), $exception->errorData() !== [] ? $exception->errorData() : null);
+        } catch (Throwable) {
+            $this->reopenSessionAfterProvider($sessionReleased);
+            $sessionReleased = false;
+            bh_numa_error('NUMA_INTERNAL_ERROR', 503);
+        } finally {
+            $this->reopenSessionAfterProvider($sessionReleased);
+            if ($chatRequest !== null) {
+                $this->clearPublicChatRequest($chatRequest);
+            }
+        }
     }
 
     public function publicStatus(): void
@@ -258,15 +314,15 @@ class NumaController
 
         try {
             $visitorHash = $this->publicIdentity()->visitorHash();
-            $usage = $this->publicNumaUso()->estado($visitorHash);
         } catch (Throwable) {
-            bh_json_success(['available' => false, 'usage' => null]);
+            bh_json_success(['available' => false, 'reason' => self::STATUS_REASON_CONFIGURATION_INCOMPLETE, 'usage' => null, 'conversation' => []]);
             return;
         }
 
+        $status = $this->effectivePublicStatus($visitorHash);
         bh_json_success([
-            'available' => $this->isPublicChatEnabled(),
-            'usage' => $usage,
+            ...$status,
+            'conversation' => NumaConversation::forVisitor($visitorHash)->publicTranscript(),
         ]);
     }
 
@@ -290,6 +346,8 @@ class NumaController
             bh_numa_error('NUMA_INVALID_CSRF', 403);
             return;
         }
+
+        NumaConversation::forVisitor($visitorHash)->clearPublic();
 
         try {
             $usage = $this->publicNumaUso()->estado($visitorHash);
@@ -316,7 +374,7 @@ class NumaController
 
     protected function publicIdentity(): NumaPublicIdentity
     {
-        return new NumaPublicIdentity();
+        return $this->resolvedPublicIdentity ??= new NumaPublicIdentity();
     }
 
     protected function localScopeClassifier(): NumaLocalScopeClassifier
@@ -336,6 +394,22 @@ class NumaController
         return (is_int($currentUserId) || (is_string($currentUserId) && ctype_digit($currentUserId)))
             && (int) $currentUserId === $authenticatedUserId
             && $this->conversation($authenticatedUserId)->version() === $conversationVersion;
+    }
+
+    private function publicSessionStillOwnedBy(string $visitorHash, int $conversationVersion): bool
+    {
+        try {
+            $identity = $this->publicIdentity();
+            $cookie = $_COOKIE[NumaPublicIdentity::COOKIE_NAME] ?? null;
+            $currentVisitorHash = $identity->createdDuringRequest() && $cookie === null
+                ? $visitorHash
+                : (new NumaPublicIdentity())->visitorHash();
+
+            return hash_equals($visitorHash, $currentVisitorHash)
+                && NumaConversation::forVisitor($visitorHash)->publicVersion() === $conversationVersion;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -403,6 +477,65 @@ class NumaController
         }
     }
 
+    /** @return array{timestamp:int,visitante_hash:string,conversation_version:int}|null */
+    private function startPublicChatRequest(string $visitorHash, int $conversationVersion): ?array
+    {
+        $activeRequest = $this->activePublicChatRequest();
+        if ($activeRequest !== null && !$this->publicChatRequestExpired($activeRequest)) {
+            return null;
+        }
+
+        $request = [
+            'timestamp' => time(),
+            'visitante_hash' => $visitorHash,
+            'conversation_version' => $conversationVersion,
+        ];
+        $_SESSION[self::PUBLIC_CHAT_REQUEST_SESSION_KEY] = $request;
+
+        return $request;
+    }
+
+    /** @return array{timestamp:int,visitante_hash:string,conversation_version:int}|null */
+    private function activePublicChatRequest(): ?array
+    {
+        $request = $_SESSION[self::PUBLIC_CHAT_REQUEST_SESSION_KEY] ?? null;
+        if (!is_array($request)) {
+            return null;
+        }
+
+        $timestamp = $request['timestamp'] ?? null;
+        $visitorHash = $request['visitante_hash'] ?? null;
+        $conversationVersion = $request['conversation_version'] ?? null;
+        if ((!is_int($timestamp) && !(is_string($timestamp) && ctype_digit($timestamp)))
+            || !is_string($visitorHash) || preg_match('/^[a-f0-9]{64}$/', $visitorHash) !== 1
+            || (!is_int($conversationVersion) && !(is_string($conversationVersion) && ctype_digit($conversationVersion)))) {
+            unset($_SESSION[self::PUBLIC_CHAT_REQUEST_SESSION_KEY]);
+            return null;
+        }
+
+        return [
+            'timestamp' => (int) $timestamp,
+            'visitante_hash' => $visitorHash,
+            'conversation_version' => (int) $conversationVersion,
+        ];
+    }
+
+    /** @param array{timestamp:int,visitante_hash:string,conversation_version:int} $request */
+    private function publicChatRequestExpired(array $request): bool
+    {
+        $deadline = max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25));
+
+        return time() > $request['timestamp'] + $deadline + self::CHAT_REQUEST_EXPIRY_MARGIN_SECONDS;
+    }
+
+    /** @param array{timestamp:int,visitante_hash:string,conversation_version:int} $request */
+    private function clearPublicChatRequest(array $request): void
+    {
+        if ($this->activePublicChatRequest() === $request) {
+            unset($_SESSION[self::PUBLIC_CHAT_REQUEST_SESSION_KEY]);
+        }
+    }
+
     protected function releaseSessionForProvider(): bool
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -460,6 +593,30 @@ class NumaController
         );
     }
 
+    protected function publicNumaService(): NumaService
+    {
+        return new NumaService(
+            $this->publicNumaUso(),
+            $this->localScopeClassifier(),
+            fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $this->publicProvider($consumption),
+            fn (NumaClassification $classification, string $message, ?NumaProviderConsumptionInterface $consumption = null): array => $this->publicKnowledgeResults($classification, $message, $consumption),
+            fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),
+            fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability(),
+            $this->periodResolver(),
+        );
+    }
+
+    protected function publicProvider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface
+    {
+        if ($consumption === null) {
+            return NumaProviderFactory::fromEnvironment();
+        }
+
+        return NumaProviderFactory::fromEnvironment(
+            consumption: new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forPublicLlm())
+        );
+    }
+
     /**
      * @return array<int, NumaKnowledgeSearchResult>
      */
@@ -474,6 +631,17 @@ class NumaController
         return $this->knowledgeSearcher($consumption)->search($knowledgeQuery);
     }
 
+    /** @return array<int, NumaKnowledgeSearchResult> */
+    protected function publicKnowledgeResults(
+        NumaClassification $classification,
+        string $message,
+        ?NumaProviderConsumptionInterface $consumption = null,
+    ): array {
+        $knowledgeQuery = $classification->knowledgeQuery() ?? $message;
+
+        return $this->publicKnowledgeSearcher($consumption)->search($knowledgeQuery);
+    }
+
     protected function knowledgeSearcher(?NumaProviderConsumptionInterface $consumption = null): NumaKnowledgeSearcher
     {
         $embeddingProvider = NumaEmbeddingProviderFactory::fromEnvironment();
@@ -482,6 +650,27 @@ class NumaController
             $embeddingProvider = new NumaMeteredEmbeddingProvider(
                 $embeddingProvider,
                 new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forEmbedding())
+            );
+        }
+
+        return new NumaKnowledgeSearcher(
+            Database::getConnection(),
+            $embeddingProvider,
+            bh_env_int('NUMA_EMBEDDING_DIMENSIONS', 768),
+            bh_env_int('NUMA_MAX_RAG_RESULTS', 3),
+            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.67'),
+            $embeddingProvider->signature()
+        );
+    }
+
+    protected function publicKnowledgeSearcher(?NumaProviderConsumptionInterface $consumption = null): NumaKnowledgeSearcher
+    {
+        $embeddingProvider = NumaEmbeddingProviderFactory::fromEnvironment();
+
+        if ($consumption !== null) {
+            $embeddingProvider = new NumaMeteredEmbeddingProvider(
+                $embeddingProvider,
+                new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forPublicEmbedding())
             );
         }
 
@@ -541,6 +730,47 @@ class NumaController
         return $this->statusData(true, null, $usage);
     }
 
+    /**
+     * @return array{available:bool,reason:string|null,usage:array{daily_used:int,daily_limit:int,daily_remaining:int,monthly_used:int,monthly_limit:int,monthly_remaining:int}|null}
+     */
+    protected function effectivePublicStatus(string $visitorHash): array
+    {
+        if (!bh_env_bool('NUMA_ENABLED', false) || !bh_env_bool('NUMA_PUBLIC_ENABLED', false)) {
+            return $this->statusData(false, self::STATUS_REASON_DISABLED);
+        }
+
+        $usage = null;
+
+        try {
+            $signature = $this->statusEmbeddingSignature();
+            $connection = $this->statusConnection();
+            $this->assertPublicStatusTables($connection);
+            if (!$this->hasCompatibleKnowledgeIndex($connection, $signature)) {
+                return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE);
+            }
+
+            $usage = $this->publicNumaUso()->estado($visitorHash);
+            if ($usage['daily_remaining'] <= 0 || $usage['monthly_remaining'] <= 0) {
+                return $this->statusData(false, self::STATUS_REASON_VISITOR_LIMIT, $usage);
+            }
+
+            $global = new NumaConsumoGlobal();
+            $global->estadoGlobal();
+            if ($global->llamadasPublicasDia() >= max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT', 40))
+                || $global->llamadasPublicasMes() >= max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT', 400))) {
+                return $this->statusData(false, self::STATUS_REASON_PUBLIC_GLOBAL_LIMIT, $usage);
+            }
+
+            $this->globalAvailability()->assertAvailable();
+        } catch (NumaGlobalLimiteAlcanzado) {
+            return $this->statusData(false, self::STATUS_REASON_GLOBAL_LIMIT, $usage ?? null);
+        } catch (Throwable) {
+            return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE, $usage ?? null);
+        }
+
+        return $this->statusData(true, null, $usage);
+    }
+
     protected function statusConnection(): PDO
     {
         return Database::getConnection();
@@ -576,6 +806,16 @@ class NumaController
         foreach (self::REQUIRED_STATUS_TABLES as $table) {
             $statement = $connection->query('SELECT 1 FROM ' . $table . ' LIMIT 1');
 
+            if ($statement === false) {
+                throw new RuntimeException('No se pudo comprobar una tabla de Numa.');
+            }
+        }
+    }
+
+    private function assertPublicStatusTables(PDO $connection): void
+    {
+        foreach (self::REQUIRED_PUBLIC_STATUS_TABLES as $table) {
+            $statement = $connection->query('SELECT 1 FROM ' . $table . ' LIMIT 1');
             if ($statement === false) {
                 throw new RuntimeException('No se pudo comprobar una tabla de Numa.');
             }

@@ -517,6 +517,7 @@ function bh_numa_error_message(string $code): string
         'NUMA_PROVIDER_TIMEOUT' => 'Numa no está disponible en este momento.',
         'NUMA_CONFIGURATION_ERROR' => 'Numa no está disponible en este momento.',
         'NUMA_GLOBAL_LIMIT_REACHED' => 'Numa no está disponible en este momento.',
+        'NUMA_PUBLIC_GLOBAL_LIMIT_REACHED' => 'Numa no está disponible en este momento.',
         'NUMA_INTERNAL_ERROR' => 'No hemos podido procesar la consulta.',
     ][$code] ?? 'No hemos podido procesar la consulta.';
 }

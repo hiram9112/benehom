@@ -86,6 +86,23 @@ final class NumaClassificationTest extends TestCase
         self::assertContains(\NumaDataIntent::MOVIMIENTOS, $provider->lastRequest()?->context()[0]['output']['allowed_data_intents'] ?? []);
     }
 
+    public function testElClasificadorPublicoRecibeLaProhibicionDeDatosYTools(): void
+    {
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'producto',
+            'allowed' => true,
+            'reason' => 'product_help',
+        ]);
+
+        (new \NumaProviderScopeClassifier($provider))->classify('¿Cómo funciona BeneHom?', [], true);
+
+        self::assertContains(
+            'Esta interacción es pública: nunca autorices datos_usuario, consulta_combinada, tools ni datos financieros privados.',
+            $provider->lastRequest()?->context()[0]['rules'] ?? [],
+        );
+        self::assertSame([], $provider->lastRequest()?->availableTools());
+    }
+
     public function testRechazaCategoriaDesconocida(): void
     {
         $this->expectException(InvalidArgumentException::class);

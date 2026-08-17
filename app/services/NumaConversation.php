@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 final class NumaConversation
 {
-    private const SESSION_KEY = 'numa_conversation';
+    private const PRIVATE_SESSION_KEY = 'numa_conversation';
+    private const PUBLIC_SESSION_KEY = 'numa_public_conversation';
     private const MAX_VISIBLE_ENTRIES = 100;
 
     private ?int $authenticatedUserId;
 
-    public function __construct(?int $authenticatedUserId = null)
+    private ?string $visitorHash;
+
+    public function __construct(?int $authenticatedUserId = null, ?string $visitorHash = null)
     {
         $this->authenticatedUserId = $authenticatedUserId;
+        $this->visitorHash = $visitorHash;
+    }
+
+    public static function forVisitor(string $visitorHash): self
+    {
+        return new self(null, $visitorHash);
     }
 
     /**
@@ -57,7 +66,7 @@ final class NumaConversation
 
     public function version(): int
     {
-        $storedConversation = $_SESSION[self::SESSION_KEY] ?? null;
+        $storedConversation = $_SESSION[self::PRIVATE_SESSION_KEY] ?? null;
 
         if (!is_array($storedConversation) || $this->storedUserId($storedConversation) !== $this->currentUserId()) {
             return 0;
@@ -100,7 +109,7 @@ final class NumaConversation
             array_splice($entries, $displayOnlyPair, 2);
         }
 
-        $_SESSION[self::SESSION_KEY] = [
+        $_SESSION[self::PRIVATE_SESSION_KEY] = [
             'usuario_id' => $userId,
             'version' => $this->version(),
             'entries' => $entries,
@@ -109,21 +118,118 @@ final class NumaConversation
 
     public function clear(): void
     {
-        $stored = $_SESSION[self::SESSION_KEY] ?? null;
+        $stored = $_SESSION[self::PRIVATE_SESSION_KEY] ?? null;
         $userId = $this->currentUserId();
 
         if ($userId === null) {
             if (!is_array($stored) || $this->storedUserId($stored) === null) {
-                unset($_SESSION[self::SESSION_KEY]);
+                unset($_SESSION[self::PRIVATE_SESSION_KEY]);
             }
 
             return;
         }
 
         if (!is_array($stored) || $this->storedUserId($stored) === $userId) {
-            $_SESSION[self::SESSION_KEY] = [
+            $_SESSION[self::PRIVATE_SESSION_KEY] = [
                 'usuario_id' => $userId,
                 'version' => $this->version() + 1,
+                'entries' => [],
+            ];
+        }
+    }
+
+    /**
+     * @return array<int, array{role:string,message:string,period:array<string,string>|null}>
+     */
+    public function publicTranscript(): array
+    {
+        return array_map(static fn (array $entry): array => [
+            'role' => $entry['role'],
+            'message' => $entry['message'],
+            'period' => $entry['period'],
+        ], $this->publicEntries());
+    }
+
+    /** @return array<int, array{role:string,message:string,period?:array<string,string>}> */
+    public function publicContext(): array
+    {
+        $context = [];
+        foreach ($this->publicEntries() as $entry) {
+            if (!$entry['include_in_context']) {
+                continue;
+            }
+
+            $contextEntry = ['role' => $entry['role'], 'message' => $entry['message']];
+            if ($entry['period'] !== null) {
+                $contextEntry['period'] = $entry['period'];
+            }
+            $context[] = $contextEntry;
+        }
+
+        return $context;
+    }
+
+    public function publicVersion(): int
+    {
+        $stored = $_SESSION[self::PUBLIC_SESSION_KEY] ?? null;
+        if (!is_array($stored) || $this->storedPublicVisitorHash($stored) !== $this->validVisitorHash()) {
+            return 0;
+        }
+
+        $version = $stored['version'] ?? 0;
+        return (is_int($version) || (is_string($version) && ctype_digit($version))) ? max(0, (int) $version) : 0;
+    }
+
+    /**
+     * @param array<int, array{title:string,section:string,url:string}> $sources
+     * @param array<string, string>|null $period
+     */
+    public function appendPublicExchange(
+        string $userMessage,
+        string $assistantMessage,
+        array $sources = [],
+        ?array $period = null,
+        bool $includeInContext = true,
+    ): void {
+        $visitorHash = $this->validVisitorHash();
+        if ($visitorHash === null) {
+            $this->clearPublic();
+            return;
+        }
+
+        $entries = $this->publicEntries();
+        $entries[] = $this->entry('user', $userMessage, [], null, $includeInContext);
+        $entries[] = $this->entry('assistant', $assistantMessage, $sources, $period, $includeInContext);
+
+        while (count($entries) > self::MAX_VISIBLE_ENTRIES) {
+            $displayOnlyPair = $this->firstDisplayOnlyPair($entries);
+            if ($displayOnlyPair === null) {
+                break;
+            }
+
+            array_splice($entries, $displayOnlyPair, 2);
+        }
+
+        $_SESSION[self::PUBLIC_SESSION_KEY] = [
+            'visitante_hash' => $visitorHash,
+            'version' => $this->publicVersion(),
+            'entries' => $entries,
+        ];
+    }
+
+    public function clearPublic(): void
+    {
+        $visitorHash = $this->validVisitorHash();
+        $stored = $_SESSION[self::PUBLIC_SESSION_KEY] ?? null;
+        if ($visitorHash === null) {
+            unset($_SESSION[self::PUBLIC_SESSION_KEY]);
+            return;
+        }
+
+        if (!is_array($stored) || $this->storedPublicVisitorHash($stored) === $visitorHash) {
+            $_SESSION[self::PUBLIC_SESSION_KEY] = [
+                'visitante_hash' => $visitorHash,
+                'version' => $this->publicVersion() + 1,
                 'entries' => [],
             ];
         }
@@ -134,14 +240,14 @@ final class NumaConversation
      */
     private function entries(): array
     {
-        $storedConversation = $_SESSION[self::SESSION_KEY] ?? null;
+        $storedConversation = $_SESSION[self::PRIVATE_SESSION_KEY] ?? null;
         if (!is_array($storedConversation)) {
             return [];
         }
 
         $userId = $this->currentUserId();
         if ($userId === null || $this->storedUserId($storedConversation) !== $userId) {
-            unset($_SESSION[self::SESSION_KEY]);
+            unset($_SESSION[self::PRIVATE_SESSION_KEY]);
             return [];
         }
 
@@ -174,6 +280,48 @@ final class NumaConversation
         $userId = $stored['usuario_id'] ?? null;
 
         return is_int($userId) || (is_string($userId) && ctype_digit($userId)) ? (int) $userId : null;
+    }
+
+    private function validVisitorHash(): ?string
+    {
+        return is_string($this->visitorHash) && preg_match('/^[a-f0-9]{64}$/', $this->visitorHash) === 1
+            ? $this->visitorHash
+            : null;
+    }
+
+    /** @param array<string, mixed> $stored */
+    private function storedPublicVisitorHash(array $stored): ?string
+    {
+        $visitorHash = $stored['visitante_hash'] ?? null;
+
+        return is_string($visitorHash) && preg_match('/^[a-f0-9]{64}$/', $visitorHash) === 1 ? $visitorHash : null;
+    }
+
+    /**
+     * @return array<int, array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,period:array<string,string>|null,include_in_context:bool}>
+     */
+    private function publicEntries(): array
+    {
+        $stored = $_SESSION[self::PUBLIC_SESSION_KEY] ?? null;
+        if (!is_array($stored) || $this->storedPublicVisitorHash($stored) !== $this->validVisitorHash()) {
+            unset($_SESSION[self::PUBLIC_SESSION_KEY]);
+            return [];
+        }
+
+        $storedEntries = $stored['entries'] ?? null;
+        if (!is_array($storedEntries) || !array_is_list($storedEntries)) {
+            return [];
+        }
+
+        $entries = [];
+        foreach ($storedEntries as $entry) {
+            $normalized = $this->normalizeEntry($entry);
+            if ($normalized !== null) {
+                $entries[] = $normalized;
+            }
+        }
+
+        return $entries;
     }
 
     /**

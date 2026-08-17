@@ -10,6 +10,8 @@ final class NumaPublicIdentity
 
     private ?string $token = null;
 
+    private bool $createdDuringRequest = false;
+
     public function token(): string
     {
         if ($this->token !== null) {
@@ -22,6 +24,7 @@ final class NumaPublicIdentity
         }
 
         $this->token = bin2hex(random_bytes(self::TOKEN_BYTES));
+        $this->createdDuringRequest = true;
         $this->setCookie($this->token);
 
         return $this->token;
@@ -30,6 +33,13 @@ final class NumaPublicIdentity
     public function visitorHash(): string
     {
         return $this->hash($this->token());
+    }
+
+    public function createdDuringRequest(): bool
+    {
+        $this->token();
+
+        return $this->createdDuringRequest;
     }
 
     public function hash(string $value): string

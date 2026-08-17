@@ -284,7 +284,7 @@ final class NumaService
     private const CONVERSATION_LIMIT_MESSAGE = 'Esta conversación ha alcanzado el límite de contexto de Numa. Inicia una nueva conversación para continuar.';
 
     public function __construct(
-        private readonly NumaUso $usage,
+        private readonly NumaUso|NumaPublicUso $usage,
         private readonly NumaLocalScopeClassifier $localScopeClassifier,
         NumaProviderInterface|Closure $provider,
         callable $knowledgeSearch,
@@ -332,6 +332,10 @@ final class NumaService
     {
         if (!bh_env_bool('NUMA_ENABLED', false)) {
             throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503);
+        }
+
+        if (!$this->usage instanceof NumaUso) {
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
         }
 
         $providerHistory = $this->recentCompleteHistory($message, $history);
@@ -489,6 +493,136 @@ final class NumaService
         }
     }
 
+    /** @param array<int, array{role:string,message:string,period?:array<string,string>}> $history */
+    public function answerPublic(string $visitorHash, string $message, array $history = []): NumaServiceResult
+    {
+        if (!bh_env_bool('NUMA_ENABLED', false) || !bh_env_bool('NUMA_PUBLIC_ENABLED', false)) {
+            throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503);
+        }
+
+        if (!$this->usage instanceof NumaPublicUso) {
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+        }
+
+        $providerHistory = $this->recentCompleteHistory($message, $history);
+        $preRoute = (new NumaPreRouter($this->localScopeClassifier))->route($message, $providerHistory !== []);
+        $localRejection = $preRoute->localRejection();
+        if ($localRejection !== null) {
+            return $this->publicResult($visitorHash, $localRejection->message(), contextual: false, interactionUsed: 0);
+        }
+
+        if (in_array($preRoute->route(), [NumaPreRoute::DATOS_FINANCIEROS, NumaPreRoute::CONSULTA_COMBINADA], true)) {
+            return $this->publicResult($visitorHash, NumaFixedScopeResponse::loginRequired(), contextual: false, interactionUsed: 0);
+        }
+
+        if (!$this->conversationFits($message)) {
+            return $this->publicResult($visitorHash, self::CONVERSATION_LIMIT_MESSAGE, contextual: false, interactionUsed: 0);
+        }
+
+        if ($this->requiresOmittedContext($message, $history, $providerHistory)) {
+            return $this->publicResult($visitorHash, NumaFixedScopeResponse::contextRequired(), contextual: false, interactionUsed: 0);
+        }
+
+        $budget = null;
+
+        try {
+            $this->assertPublicPlannedCapacity($visitorHash, $preRoute);
+            $globalAvailability = $this->globalAvailability();
+            if ($globalAvailability instanceof NumaGlobalAvailability) {
+                $globalAvailability->assertPlannedCallsAvailable($preRoute->plannedPaidCalls());
+            } else {
+                $globalAvailability->assertAvailable();
+            }
+
+            $budget = new NumaPaidCallBudget(
+                new NumaPublicUsageBudget($this->usage, $visitorHash),
+                $this->maxProviderCalls(),
+                $this->maxTransientRetries(),
+                $this->requestTimeoutSeconds(),
+            );
+            $provider = $this->provider($budget);
+
+            if ($preRoute->route() === NumaPreRoute::PRODUCTO) {
+                $classification = new NumaClassification(
+                    NumaClassificationIntent::PRODUCTO,
+                    true,
+                    'local_documentary_route',
+                    $message,
+                );
+            } else {
+                $classification = (new NumaProviderScopeClassifier($provider))->classify($message, $providerHistory, true);
+            }
+
+            if (!$classification->allowed()) {
+                return $this->publicResult(
+                    $visitorHash,
+                    NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason()),
+                    contextual: false,
+                    interactionUsed: $budget->llamadasIniciadas(),
+                );
+            }
+
+            if (!in_array($classification->intent(), [
+                NumaClassificationIntent::PRODUCTO,
+                NumaClassificationIntent::EDUCACION_FINANCIERA,
+            ], true)) {
+                return $this->publicResult(
+                    $visitorHash,
+                    NumaFixedScopeResponse::loginRequired(),
+                    contextual: false,
+                    interactionUsed: $budget->llamadasIniciadas(),
+                );
+            }
+
+            $knowledgeResults = $this->knowledgeResults($classification, $message, $budget);
+            if ($knowledgeResults === []) {
+                return $this->publicResult($visitorHash, self::NO_KNOWLEDGE_MESSAGE, interactionUsed: $budget->llamadasIniciadas());
+            }
+
+            [$finalMessage] = $this->generateFinalResponse(
+                null,
+                $message,
+                $classification,
+                $knowledgeResults,
+                $providerHistory,
+                $provider,
+                null,
+                true,
+            );
+
+            return $this->publicResult(
+                $visitorHash,
+                $finalMessage,
+                $this->sources($knowledgeResults),
+                interactionUsed: $budget->llamadasIniciadas(),
+            );
+        } catch (NumaServiceException $exception) {
+            throw $exception;
+        } catch (NumaInputLimitExceeded) {
+            return $this->publicResult(
+                $visitorHash,
+                self::CONVERSATION_LIMIT_MESSAGE,
+                contextual: false,
+                interactionUsed: $budget?->llamadasIniciadas() ?? 0,
+            );
+        } catch (NumaGlobalLimiteAlcanzado $exception) {
+            throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception, $this->publicErrorData($visitorHash, $budget));
+        } catch (NumaProviderException $exception) {
+            throw new NumaServiceException(
+                $exception->providerError()->safeCode(),
+                $this->providerStatusCode($exception->providerError()),
+                $exception,
+                $this->publicErrorData($visitorHash, $budget),
+            );
+        } catch (Throwable $exception) {
+            throw new NumaServiceException('NUMA_PROVIDER_INVALID_RESPONSE', 503, $exception, $this->publicErrorData($visitorHash, $budget));
+        } finally {
+            if ($budget instanceof NumaPaidCallBudget) {
+                $budget->revertRemaining();
+            }
+        }
+    }
+
     /**
      * @return array<int, NumaKnowledgeSearchResult>
      */
@@ -537,13 +671,14 @@ final class NumaService
      * @return array{0:string,1:array<int,array<string,mixed>>}
      */
     private function generateFinalResponse(
-        int $authenticatedUserId,
+        ?int $authenticatedUserId,
         string $message,
         NumaClassification $classification,
         array $knowledgeResults,
         array $history,
         NumaProviderInterface $provider,
         ?NumaToolRequest $initialToolRequest,
+        bool $publicMode = false,
     ): array {
         $availableTools = $this->availableToolNames($classification, $initialToolRequest);
         $toolResults = [];
@@ -560,7 +695,7 @@ final class NumaService
             $response = $provider->respond(new NumaRequest(
                 $message,
                 '',
-                $this->finalContext($message, $classification, $knowledgeResults, $finalAvailableTools, $toolResults, $history),
+                $this->finalContext($message, $classification, $knowledgeResults, $finalAvailableTools, $toolResults, $history, $publicMode),
                 $finalAvailableTools,
                 $history,
             ));
@@ -673,8 +808,12 @@ final class NumaService
      * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
      * @return array<string, mixed>
      */
-    private function executeToolRequest(NumaToolRequest $toolRequest, int $authenticatedUserId, array $history): array
+    private function executeToolRequest(NumaToolRequest $toolRequest, ?int $authenticatedUserId, array $history): array
     {
+        if ($authenticatedUserId === null) {
+            throw new InvalidArgumentException('Las tools no estan disponibles en el modo publico.');
+        }
+
         return $this->financialTools()->execute(
             $toolRequest->name(),
             $authenticatedUserId,
@@ -696,6 +835,7 @@ final class NumaService
         array $availableTools,
         array $toolResults,
         array $history,
+        bool $publicMode = false,
     ): array {
         $remainingBudget = $this->contextCharBudget($message, $history);
         $context = [[
@@ -712,6 +852,7 @@ final class NumaService
                 'La fecha actual y los periodos los controla BeneHom. Para periodos relativos usa solo los valores simbólicos permitidos por la tool; no calcules fechas por tu cuenta.',
                 'Copia importes, porcentajes, fechas y cantidades exactamente de los hechos financieros autorizados; no los recalcules ni introduzcas cifras nuevas.',
                 'Si obtener_movimientos indica seleccion_acotada o resultado_acotado, aclara que el listado completo puede consultarse en BeneHom.',
+                ...($publicMode ? ['Esta interacción es pública: no tienes acceso a datos privados ni a tools financieras.'] : []),
             ],
         ]];
 
@@ -912,12 +1053,37 @@ final class NumaService
 
     private function assertPlannedCapacity(int $authenticatedUserId, NumaPreRoute $preRoute): void
     {
+        if (!$this->usage instanceof NumaUso) {
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+        }
+
         $plannedCalls = min($preRoute->plannedPaidCalls(), $this->maxProviderCalls());
         if ($plannedCalls < 1) {
             return;
         }
 
         $usage = $this->usage->estado($authenticatedUserId);
+        if ($usage['daily_remaining'] < $plannedCalls) {
+            throw new NumaServiceException('NUMA_DAILY_LIMIT_REACHED', 429);
+        }
+
+        if ($usage['monthly_remaining'] < $plannedCalls) {
+            throw new NumaServiceException('NUMA_MONTHLY_LIMIT_REACHED', 429);
+        }
+    }
+
+    private function assertPublicPlannedCapacity(string $visitorHash, NumaPreRoute $preRoute): void
+    {
+        if (!$this->usage instanceof NumaPublicUso) {
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+        }
+
+        $plannedCalls = min($preRoute->plannedPaidCalls(), $this->maxProviderCalls());
+        if ($plannedCalls < 1) {
+            return;
+        }
+
+        $usage = $this->usage->estado($visitorHash);
         if ($usage['daily_remaining'] < $plannedCalls) {
             throw new NumaServiceException('NUMA_DAILY_LIMIT_REACHED', 429);
         }
@@ -938,8 +1104,30 @@ final class NumaService
     /** @return array<string, mixed> */
     private function errorData(int $authenticatedUserId, ?NumaPaidCallBudget $budget): array
     {
+        if (!$this->usage instanceof NumaUso) {
+            return [];
+        }
+
         try {
             $usage = $this->usage->estado($authenticatedUserId);
+        } catch (Throwable) {
+            return [];
+        }
+
+        $usage['interaction_used'] = max(0, $budget?->llamadasIniciadas() ?? 0);
+
+        return ['usage' => $usage];
+    }
+
+    /** @return array<string, mixed> */
+    private function publicErrorData(string $visitorHash, ?NumaPaidCallBudget $budget): array
+    {
+        if (!$this->usage instanceof NumaPublicUso) {
+            return [];
+        }
+
+        try {
+            $usage = $this->usage->estado($visitorHash);
         } catch (Throwable) {
             return [];
         }
@@ -1158,8 +1346,36 @@ final class NumaService
         ?int $interactionUsed = null,
     ): NumaServiceResult
     {
+        if (!$this->usage instanceof NumaUso) {
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+        }
+
         $usage = $this->usage->estado($authenticatedUserId);
 
+        if ($interactionUsed !== null) {
+            $usage['interaction_used'] = max(0, $interactionUsed);
+        }
+
+        return new NumaServiceResult($message, $sources, $period, $usage, $contextual);
+    }
+
+    /**
+     * @param array<int, array{title:string,section:string,url:string}> $sources
+     * @param array<string, mixed>|null $period
+     */
+    private function publicResult(
+        string $visitorHash,
+        string $message,
+        array $sources = [],
+        ?array $period = null,
+        bool $contextual = true,
+        ?int $interactionUsed = null,
+    ): NumaServiceResult {
+        if (!$this->usage instanceof NumaPublicUso) {
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+        }
+
+        $usage = $this->usage->estado($visitorHash);
         if ($interactionUsed !== null) {
             $usage['interaction_used'] = max(0, $interactionUsed);
         }

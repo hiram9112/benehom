@@ -39,6 +39,17 @@ final class NumaPublicIdentityTest extends TestCase
         self::assertNotSame('invalid', $token);
     }
 
+    public function testIndicatesWhetherTheCookieWasCreatedDuringThisRequest(): void
+    {
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'test-public-hash-key';
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = str_repeat('a', 64);
+
+        self::assertFalse((new \NumaPublicIdentity())->createdDuringRequest());
+
+        unset($_COOKIE[\NumaPublicIdentity::COOKIE_NAME]);
+        self::assertTrue((new \NumaPublicIdentity())->createdDuringRequest());
+    }
+
     public function testHashKeyIsRequiredBeforePseudonymization(): void
     {
         $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = str_repeat('b', 64);

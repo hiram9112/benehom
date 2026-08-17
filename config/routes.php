@@ -425,4 +425,27 @@ return [
         'response' => 'json',
         'csrf' => false,
     ],
+    'numa/public/chat' => [
+        'controller' => 'NumaController',
+        'action' => 'publicChat',
+        'methods' => ['POST'],
+        'public' => true,
+        'response' => 'json',
+        'csrf' => false,
+    ],
+    'numa/public/status' => [
+        'controller' => 'NumaController',
+        'action' => 'publicStatus',
+        'methods' => ['GET'],
+        'public' => true,
+        'response' => 'json',
+    ],
+    'numa/public/conversation/new' => [
+        'controller' => 'NumaController',
+        'action' => 'publicNewConversation',
+        'methods' => ['POST'],
+        'public' => true,
+        'response' => 'json',
+        'csrf' => false,
+    ],
 ];

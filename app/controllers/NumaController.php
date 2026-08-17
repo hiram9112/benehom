@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once APP_PATH . '/models/NumaUso.php';
+require_once APP_PATH . '/models/NumaPublicUso.php';
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/IntentoAcceso.php';
 require_once APP_PATH . '/services/NumaClassification.php';
@@ -12,6 +13,7 @@ require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaFinancialTools.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
 require_once APP_PATH . '/services/NumaService.php';
+require_once APP_PATH . '/services/NumaPublicIdentity.php';
 
 class NumaController
 {
@@ -26,11 +28,20 @@ class NumaController
         'instrucciones',
         'system',
         'tools',
+        'mode',
+        'public',
+        'visitor_id',
+        'visitante_id',
+        'anonymous_id',
+        'anon_id',
+        'permissions',
+        'permisos',
     ];
 
     private const ALLOWED_CLIENT_KEYS = ['message'];
 
     private const CHAT_RATE_LIMIT_ACTION = 'numa_chat';
+    private const PUBLIC_CHAT_RATE_LIMIT_ACTION = 'numa_public_chat_ip';
     private const CHAT_REQUEST_SESSION_KEY = 'numa_chat_request';
     private const CHAT_REQUEST_EXPIRY_MARGIN_SECONDS = 5;
 
@@ -63,53 +74,8 @@ class NumaController
             return;
         }
 
-        if (!$this->hasJsonContentType()) {
-            bh_numa_error('NUMA_INVALID_MESSAGE', 400);
-            return;
-        }
-
-        if (!csrf_validate()) {
-            bh_numa_error('NUMA_INVALID_CSRF', 403);
-            return;
-        }
-
-        $payload = $this->requestPayload();
-
-        if ($payload === null) {
-            bh_numa_error($this->requestBodyTooLarge ? 'NUMA_REQUEST_TOO_LARGE' : 'NUMA_INVALID_MESSAGE', $this->requestBodyTooLarge ? 413 : 400);
-            return;
-        }
-
-        foreach (self::DISALLOWED_CLIENT_KEYS as $key) {
-            if (array_key_exists($key, $payload)) {
-                bh_numa_error('NUMA_INVALID_MESSAGE', 400);
-                return;
-            }
-        }
-
-        foreach (array_keys($payload) as $key) {
-            if (!is_string($key) || !in_array($key, self::ALLOWED_CLIENT_KEYS, true)) {
-                bh_numa_error('NUMA_INVALID_MESSAGE', 400);
-                return;
-            }
-        }
-
-        if (!array_key_exists('message', $payload)) {
-            bh_numa_error('NUMA_INVALID_MESSAGE', 400);
-            return;
-        }
-
-        $message = $payload['message'];
-
-        if (!is_string($message) || trim($message) === '') {
-            bh_numa_error('NUMA_INVALID_MESSAGE', 400);
-            return;
-        }
-
-        $maxLength = bh_numa_max_message_length();
-
-        if ($this->textLength($message) > $maxLength) {
-            bh_numa_error('NUMA_MESSAGE_TOO_LONG', 422);
+        $message = $this->validatedMessage();
+        if ($message === null) {
             return;
         }
 
@@ -250,9 +216,107 @@ class NumaController
         ]);
     }
 
+    public function publicChat(): void
+    {
+        bh_json_no_store_private();
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+            return;
+        }
+
+        try {
+            $visitorHash = $this->publicIdentity()->visitorHash();
+        } catch (Throwable) {
+            bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+            return;
+        }
+
+        $message = $this->validatedMessage();
+        if ($message === null) {
+            return;
+        }
+
+        if (!$this->isPublicChatEnabled() || $this->isPublicChatRateLimited()) {
+            bh_numa_error($this->isPublicChatEnabled() ? 'NUMA_RATE_LIMITED' : 'NUMA_NOT_AVAILABLE', $this->isPublicChatEnabled() ? 429 : 503);
+            return;
+        }
+
+        // The public provider flow is intentionally introduced in task 15.1.2.
+        unset($visitorHash, $message);
+        bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+    }
+
+    public function publicStatus(): void
+    {
+        bh_json_no_store_private();
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+            return;
+        }
+
+        try {
+            $visitorHash = $this->publicIdentity()->visitorHash();
+            $usage = $this->publicNumaUso()->estado($visitorHash);
+        } catch (Throwable) {
+            bh_json_success(['available' => false, 'usage' => null]);
+            return;
+        }
+
+        bh_json_success([
+            'available' => $this->isPublicChatEnabled(),
+            'usage' => $usage,
+        ]);
+    }
+
+    public function publicNewConversation(): void
+    {
+        bh_json_no_store_private();
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+            return;
+        }
+
+        try {
+            $visitorHash = $this->publicIdentity()->visitorHash();
+        } catch (Throwable) {
+            bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+            return;
+        }
+
+        if (!csrf_validate()) {
+            bh_numa_error('NUMA_INVALID_CSRF', 403);
+            return;
+        }
+
+        try {
+            $usage = $this->publicNumaUso()->estado($visitorHash);
+        } catch (Throwable) {
+            $usage = null;
+        }
+
+        bh_json_success([
+            'available' => $this->isPublicChatEnabled(),
+            'usage' => $usage,
+            'conversation' => [],
+        ]);
+    }
+
     protected function numaUso(): NumaUso
     {
         return new NumaUso();
+    }
+
+    protected function publicNumaUso(): NumaPublicUso
+    {
+        return new NumaPublicUso();
+    }
+
+    protected function publicIdentity(): NumaPublicIdentity
+    {
+        return new NumaPublicIdentity();
     }
 
     protected function localScopeClassifier(): NumaLocalScopeClassifier
@@ -631,6 +695,85 @@ class NumaController
             $windowSeconds,
             $blockSeconds,
         );
+    }
+
+    private function isPublicChatRateLimited(): bool
+    {
+        try {
+            $address = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+            $key = $this->publicIdentity()->hash($address);
+        } catch (Throwable) {
+            return true;
+        }
+
+        $windowSeconds = max(1, bh_env_int('NUMA_CHAT_BURST_WINDOW_SECONDS', 60));
+        $blockSeconds = max(1, bh_env_int('NUMA_CHAT_BURST_BLOCK_SECONDS', 60));
+        $maxRequests = max(1, bh_env_int('NUMA_CHAT_BURST_MAX_REQUESTS', 5));
+
+        if (IntentoAcceso::estaBloqueado(self::PUBLIC_CHAT_RATE_LIMIT_ACTION, $key)) {
+            return true;
+        }
+
+        return IntentoAcceso::registrarFallo(
+            self::PUBLIC_CHAT_RATE_LIMIT_ACTION,
+            $key,
+            $maxRequests + 1,
+            $windowSeconds,
+            $blockSeconds,
+        );
+    }
+
+    private function isPublicChatEnabled(): bool
+    {
+        return bh_env_bool('NUMA_ENABLED', false) && bh_env_bool('NUMA_PUBLIC_ENABLED', false);
+    }
+
+    private function validatedMessage(): ?string
+    {
+        $this->requestBodyTooLarge = false;
+
+        if (!$this->hasJsonContentType()) {
+            bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+            return null;
+        }
+
+        if (!csrf_validate()) {
+            bh_numa_error('NUMA_INVALID_CSRF', 403);
+            return null;
+        }
+
+        $payload = $this->requestPayload();
+        if ($payload === null) {
+            bh_numa_error($this->requestBodyTooLarge ? 'NUMA_REQUEST_TOO_LARGE' : 'NUMA_INVALID_MESSAGE', $this->requestBodyTooLarge ? 413 : 400);
+            return null;
+        }
+
+        foreach (self::DISALLOWED_CLIENT_KEYS as $key) {
+            if (array_key_exists($key, $payload)) {
+                bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+                return null;
+            }
+        }
+
+        foreach (array_keys($payload) as $key) {
+            if (!is_string($key) || !in_array($key, self::ALLOWED_CLIENT_KEYS, true)) {
+                bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+                return null;
+            }
+        }
+
+        $message = $payload['message'] ?? null;
+        if (!is_string($message) || trim($message) === '') {
+            bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+            return null;
+        }
+
+        if ($this->textLength($message) > bh_numa_max_message_length()) {
+            bh_numa_error('NUMA_MESSAGE_TOO_LONG', 422);
+            return null;
+        }
+
+        return $message;
     }
 
     private function textLength(string $text): int

@@ -147,6 +147,42 @@ final class NumaConsumoGlobalTest extends TestCase
         $repo->iniciarLlamada();
     }
 
+    public function testLlamadasPublicasIncrementanAmbosContadoresEnLaMismaFila(): void
+    {
+        $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '40';
+        $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '400';
+        $public = \NumaConsumoGlobal::forPublicLlm($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+        $private = new \NumaConsumoGlobal($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+
+        $public->iniciarLlamada();
+        $private->iniciarLlamada();
+
+        $statement = $this->db->prepare(
+            'SELECT llamadas, llamadas_publicas FROM numa_uso_proveedor WHERE fecha = :fecha'
+        );
+        $statement->execute([':fecha' => '2026-07-25']);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        self::assertIsArray($row);
+        self::assertSame(2, (int) $row['llamadas']);
+        self::assertSame(1, (int) $row['llamadas_publicas']);
+    }
+
+    public function testLimiteGlobalPublicoBloqueaAunqueQuedeCapacidadGeneral(): void
+    {
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
+        $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
+        $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '400';
+        $repo = \NumaConsumoGlobal::forPublicEmbedding($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+
+        $repo->iniciarLlamada();
+
+        $this->expectException(\NumaGlobalLimiteAlcanzado::class);
+        $this->expectExceptionMessage('NUMA_PUBLIC_GLOBAL_LIMIT_REACHED');
+        $repo->iniciarLlamada();
+    }
+
     public function testLimiteGlobalDiarioDeTokensBloqueaNuevasLlamadas(): void
     {
         $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '1000';
@@ -400,7 +436,7 @@ final class NumaConsumoGlobalTest extends TestCase
         $usuarioId = $this->crearUsuario();
         $usage = new NumaUsoFallaDespuesDeConfirmar($this->db, $now);
         $global = new \NumaConsumoGlobal($this->db, $now);
-        $budget = new \NumaPaidCallBudget($usage, $usuarioId, 3);
+        $budget = new \NumaPaidCallBudget(new \NumaPrivateUsageBudget($usage, $usuarioId), 3);
         $transportCalls = 0;
         $provider = new \GeminiNumaProvider(
             'server-key',
@@ -772,6 +808,8 @@ PHP;
             'NUMA_DAILY_LIMIT',
             'NUMA_MONTHLY_LIMIT',
             'NUMA_RESERVATION_TTL_SECONDS',
+            'NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT',
+            'NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT',
         ];
     }
 }

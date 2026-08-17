@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../models/NumaUso.php';
 require_once __DIR__ . '/../models/NumaConsumoGlobal.php';
+require_once __DIR__ . '/NumaUsageBudget.php';
 require_once __DIR__ . '/NumaClassification.php';
 require_once __DIR__ . '/NumaFinancialTools.php';
 require_once __DIR__ . '/NumaFinancialFactValidator.php';
@@ -125,8 +126,7 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
     private readonly Closure $monotonicClock;
 
     public function __construct(
-        private readonly NumaUso $usage,
-        private readonly int $usuarioId,
+        private readonly NumaUsageBudgetInterface $usage,
         private readonly int $maxCalls,
         private readonly int $maxTransientRetries = 1,
         private readonly int $requestTimeoutSeconds = 25,
@@ -165,7 +165,7 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
         }
 
         try {
-            return $this->usage->reservar($this->usuarioId);
+            return $this->usage->reservar();
         } catch (Throwable $exception) {
             if ($exception instanceof NumaUsoLimiteAlcanzado) {
                 throw $this->limitError($exception);
@@ -369,8 +369,7 @@ final class NumaService
 
         try {
             $budget = new NumaPaidCallBudget(
-                $this->usage,
-                $authenticatedUserId,
+                new NumaPrivateUsageBudget($this->usage, $authenticatedUserId),
                 $this->maxProviderCalls(),
                 $this->maxTransientRetries(),
                 $this->requestTimeoutSeconds(),

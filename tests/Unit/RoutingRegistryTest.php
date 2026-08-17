@@ -78,6 +78,10 @@ final class RoutingRegistryTest extends TestCase
             'proyecciones/eliminarCalculadoraHipotecaAjax',
             'numa/chat',
             'numa/status',
+            'numa/conversation/new',
+            'numa/public/chat',
+            'numa/public/status',
+            'numa/public/conversation/new',
         ];
 
         foreach ($expected as $route) {
@@ -175,6 +179,31 @@ final class RoutingRegistryTest extends TestCase
         self::assertSame('newConversation', $newConversation['action']);
         self::assertSame(['POST'], $newConversation['methods']);
         self::assertFalse($newConversation['public']);
+        self::assertSame('json', $newConversation['response']);
+    }
+
+    public function testRutasPublicasDeNumaTienenUnContratoSeparado(): void
+    {
+        $chat = \bh_route_definition('numa/public/chat');
+        $status = \bh_route_definition('numa/public/status');
+        $newConversation = \bh_route_definition('numa/public/conversation/new');
+
+        self::assertSame('NumaController', $chat['controller']);
+        self::assertSame('publicChat', $chat['action']);
+        self::assertSame(['POST'], $chat['methods']);
+        self::assertTrue($chat['public']);
+        self::assertSame('json', $chat['response']);
+
+        self::assertSame('NumaController', $status['controller']);
+        self::assertSame('publicStatus', $status['action']);
+        self::assertSame(['GET'], $status['methods']);
+        self::assertTrue($status['public']);
+        self::assertSame('json', $status['response']);
+
+        self::assertSame('NumaController', $newConversation['controller']);
+        self::assertSame('publicNewConversation', $newConversation['action']);
+        self::assertSame(['POST'], $newConversation['methods']);
+        self::assertTrue($newConversation['public']);
         self::assertSame('json', $newConversation['response']);
     }
 

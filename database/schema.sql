@@ -130,10 +130,34 @@ CREATE TABLE numa_reservas (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE numa_uso_publico (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  visitante_hash CHAR(64) NOT NULL,
+  fecha DATE NOT NULL,
+  cantidad_confirmada INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY numa_uso_publico_visitante_fecha_unique (visitante_hash, fecha),
+  KEY numa_uso_publico_fecha_idx (fecha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE numa_reservas_publicas (
+  id CHAR(36) PRIMARY KEY,
+  visitante_hash CHAR(64) NOT NULL,
+  fecha DATE NOT NULL,
+  estado ENUM('pendiente','confirmada','revertida','expirada') NOT NULL DEFAULT 'pendiente',
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  KEY numa_reservas_publicas_visitante_fecha_estado_expires_idx (visitante_hash, fecha, estado, expires_at),
+  KEY numa_reservas_publicas_expires_at_idx (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE numa_uso_proveedor (
   id INT AUTO_INCREMENT PRIMARY KEY,
   fecha DATE NOT NULL,
   llamadas INT NOT NULL DEFAULT 0,
+  llamadas_publicas INT NOT NULL DEFAULT 0,
   input_tokens INT NOT NULL DEFAULT 0,
   output_tokens INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

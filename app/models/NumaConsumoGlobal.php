@@ -23,6 +23,7 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
         private readonly ?PDO $connection = null,
         private readonly ?DateTimeImmutable $now = null,
         private readonly string $callType = self::CALL_TYPE_LLM,
+        private readonly bool $public = false,
     ) {
         if (!in_array($callType, [self::CALL_TYPE_LLM, self::CALL_TYPE_EMBEDDING], true)) {
             throw new InvalidArgumentException('Tipo de llamada global de Numa no soportado.');
@@ -37,6 +38,16 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
     public static function forEmbedding(?PDO $connection = null, ?DateTimeImmutable $now = null): self
     {
         return new self($connection, $now, self::CALL_TYPE_EMBEDDING);
+    }
+
+    public static function forPublicLlm(?PDO $connection = null, ?DateTimeImmutable $now = null): self
+    {
+        return new self($connection, $now, self::CALL_TYPE_LLM, true);
+    }
+
+    public static function forPublicEmbedding(?PDO $connection = null, ?DateTimeImmutable $now = null): self
+    {
+        return new self($connection, $now, self::CALL_TYPE_EMBEDDING, true);
     }
 
     /**
@@ -152,14 +163,27 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
                 throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
             }
 
+            if ($this->public
+                && ($this->llamadasPublicasDia($today) + 1 > $this->publicDailyCallLimit()
+                    || $this->llamadasPublicasMes($monthStart, $nextMonthStart) + 1 > $this->publicMonthlyCallLimit())
+            ) {
+                if ($started) {
+                    $db->commit();
+                }
+
+                throw new NumaGlobalLimiteAlcanzado('NUMA_PUBLIC_GLOBAL_LIMIT_REACHED');
+            }
+
             $stmt = $db->prepare(
                 'UPDATE numa_uso_proveedor
                  SET llamadas = llamadas + 1,
+                     llamadas_publicas = llamadas_publicas + :publicas,
                      input_tokens = input_tokens + :input,
                      output_tokens = output_tokens + :output
                  WHERE fecha = :fecha'
             );
             $stmt->execute([
+                ':publicas' => $this->public ? 1 : 0,
                 ':input' => $reservedInputTokens,
                 ':output' => $reservedOutputTokens,
                 ':fecha' => $today,
@@ -244,6 +268,33 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
         return (int) $stmt->fetchColumn();
     }
 
+    public function llamadasPublicasDia(?string $fecha = null): int
+    {
+        $stmt = $this->db()->prepare(
+            'SELECT COALESCE(llamadas_publicas, 0) FROM numa_uso_proveedor WHERE fecha = :fecha'
+        );
+        $stmt->execute([':fecha' => $fecha ?? $this->today()]);
+        $value = $stmt->fetchColumn();
+
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    public function llamadasPublicasMes(?string $monthStart = null, ?string $nextMonthStart = null): int
+    {
+        $today = $this->today();
+        [$defaultStart, $defaultNext] = $this->monthRange($today);
+        $stmt = $this->db()->prepare(
+            'SELECT COALESCE(SUM(llamadas_publicas), 0) FROM numa_uso_proveedor
+             WHERE fecha >= :month_start AND fecha < :next_month_start'
+        );
+        $stmt->execute([
+            ':month_start' => $monthStart ?? $defaultStart,
+            ':next_month_start' => $nextMonthStart ?? $defaultNext,
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
     public function tokensDia(?string $fecha = null): int
     {
         $stmt = $this->db()->prepare(
@@ -290,6 +341,16 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
         return max(0, bh_env_int('NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT', 1000));
     }
 
+    private function publicDailyCallLimit(): int
+    {
+        return max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT', 40));
+    }
+
+    private function publicMonthlyCallLimit(): int
+    {
+        return max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT', 400));
+    }
+
     private function dailyTokenLimit(): int
     {
         return max(0, bh_env_int('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 50000));
@@ -303,8 +364,8 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
     private function ensureRow(string $fecha): void
     {
         $stmt = $this->db()->prepare(
-            'INSERT INTO numa_uso_proveedor (fecha, llamadas, input_tokens, output_tokens)
-             VALUES (:fecha, 0, 0, 0)
+            'INSERT INTO numa_uso_proveedor (fecha, llamadas, llamadas_publicas, input_tokens, output_tokens)
+             VALUES (:fecha, 0, 0, 0, 0)
              ON DUPLICATE KEY UPDATE fecha = fecha'
         );
         $stmt->execute([':fecha' => $fecha]);

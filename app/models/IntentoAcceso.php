@@ -35,16 +35,22 @@ class IntentoAcceso
         string $claveHash,
         int $maxIntentos,
         int $ventanaSegundos,
-        int $bloqueoSegundos
+        int $bloqueoSegundos,
+        int $deadlockRetry = 0,
     ): bool {
         try {
             $db = Database::getConnection();
             $ahora = date('Y-m-d H:i:s');
+            $now = time();
+            $started = !$db->inTransaction();
+            if ($started) {
+                $db->beginTransaction();
+            }
 
             $stmt = $db->prepare(
                 "SELECT intentos, primer_intento, bloqueado_hasta FROM intentos_acceso
                  WHERE accion = :accion AND clave_hash = :clave_hash
-                 LIMIT 1"
+                 LIMIT 1 FOR UPDATE"
             );
             $stmt->bindParam(':accion', $accion, PDO::PARAM_STR);
             $stmt->bindParam(':clave_hash', $claveHash, PDO::PARAM_STR);
@@ -66,16 +72,23 @@ class IntentoAcceso
                 $stmt->bindValue(':bloqueado_hasta', $bloqueadoHasta, $bloqueadoHasta === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
                 $stmt->execute();
 
+                if ($started) {
+                    $db->commit();
+                }
+
                 return $bloqueadoHasta !== null;
             }
 
-            if (!empty($registro['bloqueado_hasta']) && strtotime((string) $registro['bloqueado_hasta']) > time()) {
+            if (!empty($registro['bloqueado_hasta']) && strtotime((string) $registro['bloqueado_hasta']) > $now) {
+                if ($started) {
+                    $db->commit();
+                }
                 return true;
             }
 
             $primerIntento = strtotime((string) $registro['primer_intento']);
 
-            if ($primerIntento === false || $primerIntento < (time() - $ventanaSegundos)) {
+            if ($primerIntento === false || $primerIntento < ($now - $ventanaSegundos)) {
                 $stmt = $db->prepare(
                     "UPDATE intentos_acceso
                      SET intentos = 1, primer_intento = :primer_intento, ultimo_intento = :ultimo_intento, bloqueado_hasta = NULL
@@ -87,11 +100,15 @@ class IntentoAcceso
                 $stmt->bindParam(':clave_hash', $claveHash, PDO::PARAM_STR);
                 $stmt->execute();
 
+                if ($started) {
+                    $db->commit();
+                }
+
                 return false;
             }
 
             $intentos = ((int) $registro['intentos']) + 1;
-            $bloqueadoHasta = $intentos >= $maxIntentos ? date('Y-m-d H:i:s', time() + $bloqueoSegundos) : null;
+            $bloqueadoHasta = $intentos >= $maxIntentos ? date('Y-m-d H:i:s', $now + $bloqueoSegundos) : null;
 
             $stmt = $db->prepare(
                 "UPDATE intentos_acceso
@@ -105,8 +122,27 @@ class IntentoAcceso
             $stmt->bindParam(':clave_hash', $claveHash, PDO::PARAM_STR);
             $stmt->execute();
 
+            if ($started) {
+                $db->commit();
+            }
+
             return $bloqueadoHasta !== null;
         } catch (PDOException $e) {
+            if (($started ?? false) && isset($db) && $db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            if ($deadlockRetry === 0 && (int) ($e->errorInfo[1] ?? 0) === 1213) {
+                return self::registrarFallo(
+                    $accion,
+                    $claveHash,
+                    $maxIntentos,
+                    $ventanaSegundos,
+                    $bloqueoSegundos,
+                    1,
+                );
+            }
+
             return false;
         }
     }

@@ -325,7 +325,7 @@ final class NumaControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function testStatusDevuelveDisponibleYUsoReal(): void
+    public function testStatusDevuelveEstadoConceptualSinDetallesDeUso(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
@@ -333,9 +333,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame([
-            'available' => false,
-            'reason' => 'disabled',
-            'usage' => null,
+            'availability' => 'unavailable',
             'conversation' => [],
         ], $response['data']);
     }
@@ -364,9 +362,7 @@ final class NumaControllerTest extends TestCase
             configurationValid: false,
         );
 
-        self::assertFalse($response['data']['available']);
-        self::assertSame('configuration_incomplete', $response['data']['reason']);
-        self::assertNull($response['data']['usage']);
+        self::assertSame('configuration_required', $response['data']['availability']);
     }
 
     public function testStatusInformaIndiceIncompatibleComoIndisponibilidadTemporal(): void
@@ -378,12 +374,10 @@ final class NumaControllerTest extends TestCase
             indexReady: false,
         );
 
-        self::assertFalse($response['data']['available']);
-        self::assertSame('temporarily_unavailable', $response['data']['reason']);
-        self::assertNull($response['data']['usage']);
+        self::assertSame('unavailable', $response['data']['availability']);
     }
 
-    public function testStatusInformaElLimiteDelUsuario(): void
+    public function testStatusInformaElLimiteSinExponerSuTipoNiContadores(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $usage = [
@@ -397,9 +391,9 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invokeEffectiveStatusWithDependencies(new NumaUsoFake($usage));
 
-        self::assertFalse($response['data']['available']);
-        self::assertSame('user_limit', $response['data']['reason']);
-        self::assertSame($usage, $response['data']['usage']);
+        self::assertSame('limit_reached', $response['data']['availability']);
+        self::assertArrayNotHasKey('reason', $response['data']);
+        self::assertArrayNotHasKey('usage', $response['data']);
     }
 
     public function testStatusInformaElLimiteGlobal(): void
@@ -411,9 +405,9 @@ final class NumaControllerTest extends TestCase
             globalAvailability: new NumaGlobalAvailabilityFake(false),
         );
 
-        self::assertFalse($response['data']['available']);
-        self::assertSame('global_limit', $response['data']['reason']);
-        self::assertNotNull($response['data']['usage']);
+        self::assertSame('unavailable', $response['data']['availability']);
+        self::assertArrayNotHasKey('reason', $response['data']);
+        self::assertArrayNotHasKey('usage', $response['data']);
     }
 
     public function testStatusDisponibleCuandoTodasLasComprobacionesLocalesPasan(): void
@@ -422,9 +416,27 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invokeEffectiveStatusWithDependencies(new NumaUsoFake());
 
-        self::assertTrue($response['data']['available']);
-        self::assertNull($response['data']['reason']);
-        self::assertSame(5, $response['data']['usage']['daily_remaining']);
+        self::assertSame('available', $response['data']['availability']);
+
+        self::assertArrayNotHasKey('reason', $response['data']);
+        self::assertArrayNotHasKey('usage', $response['data']);
+    }
+
+    public function testStatusInformaProximidadAlLimiteSinExponerContadores(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+
+        $response = $this->invokeEffectiveStatusWithDependencies(new NumaUsoFake([
+            'daily_used' => 4,
+            'daily_limit' => 5,
+            'daily_remaining' => 1,
+            'monthly_used' => 4,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 16,
+        ]));
+
+        self::assertSame('near_limit', $response['data']['availability']);
+        self::assertArrayNotHasKey('usage', $response['data']);
     }
 
     public function testStatusInformaIndisponibilidadTemporalDuranteUnaPeticionActivaSinConsultarDependencias(): void
@@ -449,9 +461,7 @@ final class NumaControllerTest extends TestCase
         $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
 
         self::assertTrue($response['ok']);
-        self::assertFalse($response['data']['available']);
-        self::assertSame('temporarily_unavailable', $response['data']['reason']);
-        self::assertNull($response['data']['usage']);
+        self::assertSame('unavailable', $response['data']['availability']);
     }
 
     public function testStatusPublicoInformaIndisponibilidadTemporalDuranteUnaPeticionActivaSinConsultarDependencias(): void
@@ -481,9 +491,22 @@ final class NumaControllerTest extends TestCase
         $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
 
         self::assertTrue($response['ok']);
-        self::assertFalse($response['data']['available']);
-        self::assertSame('temporarily_unavailable', $response['data']['reason']);
-        self::assertNull($response['data']['usage']);
+        self::assertSame('unavailable', $response['data']['availability']);
+    }
+
+    public function testStatusPublicoConIdentidadNoDisponibleNoExponeDetallesInternos(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        unset($_ENV['NUMA_PUBLIC_HASH_KEY']);
+
+        ob_start();
+        (new \NumaController())->publicStatus();
+        $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertTrue($response['ok']);
+        self::assertSame('configuration_required', $response['data']['availability']);
+        self::assertArrayNotHasKey('reason', $response['data']);
+        self::assertArrayNotHasKey('usage', $response['data']);
     }
 
     public function testChatConJsonValidoYCsrfPorCabeceraDevuelveNumaNoDisponible(): void
@@ -875,7 +898,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame('¿Podrías concretar qué quieres consultar en BeneHom?', $response['data']['message']);
-        self::assertSame(1, $response['data']['usage']['interaction_used']);
+        self::assertSame('available', $response['data']['availability']);
         self::assertSame(0, $knowledgeSearchSpy->calls);
         self::assertSame(0, $tools->executions);
         self::assertCount(1, $provider->requests());
@@ -901,8 +924,8 @@ final class NumaControllerTest extends TestCase
 
         self::assertFalse($response['ok']);
         self::assertSame(429, $response['_status']);
-        self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
-        self::assertSame('Has alcanzado el límite diario de llamadas pagadas de Numa.', $response['error']['message']);
+        self::assertSame('NUMA_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame('Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.', $response['error']['message']);
         self::assertSame(1, $numaUso->reservations);
         self::assertSame(0, $numaUso->confirmations);
         self::assertCount(0, $provider->requests());
@@ -931,7 +954,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertFalse($response['ok']);
         self::assertSame(429, $response['_status']);
-        self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame('NUMA_LIMIT_REACHED', $response['error']['code']);
         self::assertSame(0, $numaUso->reservations);
         self::assertCount(0, $provider->requests());
     }
@@ -1098,7 +1121,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertFalse($response['ok']);
         self::assertSame(503, $response['_status']);
-        self::assertSame('NUMA_GLOBAL_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
     }
 
     public function testChatActivoCompruebaLimiteGlobalAntesDeReservar(): void
@@ -1124,7 +1147,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertFalse($response['ok']);
         self::assertSame(503, $response['_status']);
-        self::assertSame('NUMA_GLOBAL_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
         self::assertSame(0, $numaUso->reservations);
         self::assertCount(0, $provider->requests());
     }
@@ -1158,7 +1181,8 @@ final class NumaControllerTest extends TestCase
         self::assertSame('Para añadir un movimiento, usa la sección Movimientos.', $response['data']['message']);
         self::assertArrayNotHasKey('sources', $response['data']);
         self::assertNull($response['data']['period']);
-        self::assertSame($usage + ['interaction_used' => 1], $response['data']['usage']);
+        self::assertSame('available', $response['data']['availability']);
+        self::assertArrayNotHasKey('usage', $response['data']);
         self::assertArrayNotHasKey('sources', $response['data']['conversation'][1]);
         self::assertCount(1, $provider->requests());
         self::assertNull($provider->requests()[0]->responseSchema());
@@ -1196,7 +1220,7 @@ final class NumaControllerTest extends TestCase
         );
 
         self::assertTrue($response['ok']);
-        self::assertSame(2, $response['data']['usage']['interaction_used']);
+        self::assertSame('available', $response['data']['availability']);
         self::assertCount(1, $provider->requests());
         self::assertSame(2, $numaUso->reservations);
         self::assertSame(2, $numaUso->confirmations);
@@ -1235,7 +1259,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame(0, $knowledgeSearchSpy->calls);
-        self::assertSame(2, $response['data']['usage']['interaction_used']);
+        self::assertSame('available', $response['data']['availability']);
         self::assertSame(2, $numaUso->reservations);
         self::assertCount(2, $provider->requests());
 
@@ -1288,7 +1312,7 @@ final class NumaControllerTest extends TestCase
         self::assertContains('financial_tool_results', $finalContextTypes);
     }
 
-    public function testChatActivoErrorProveedorTrasConsumirUnidadDevuelveUsoActualizado(): void
+    public function testChatActivoErrorProveedorTrasConsumirUnidadNoExponeUso(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
@@ -1305,15 +1329,7 @@ final class NumaControllerTest extends TestCase
         self::assertFalse($response['ok']);
         self::assertSame(503, $response['_status']);
         self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
-        self::assertSame([
-            'daily_used' => 1,
-            'daily_limit' => 5,
-            'daily_remaining' => 4,
-            'monthly_used' => 1,
-            'monthly_limit' => 20,
-            'monthly_remaining' => 19,
-            'interaction_used' => 1,
-        ], $response['data']['usage']);
+        self::assertArrayNotHasKey('data', $response);
         self::assertSame(1, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
@@ -1385,20 +1401,12 @@ final class NumaControllerTest extends TestCase
 
         self::assertFalse($response['ok']);
         self::assertSame(429, $response['_status']);
-        self::assertSame('NUMA_DAILY_LIMIT_REACHED', $response['error']['code']);
+        self::assertSame('NUMA_LIMIT_REACHED', $response['error']['code']);
         self::assertCount(0, $provider->requests());
         self::assertSame(2, $numaUso->reservations);
         self::assertSame(1, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
-        self::assertSame([
-            'daily_used' => 1,
-            'daily_limit' => 5,
-            'daily_remaining' => 4,
-            'monthly_used' => 1,
-            'monthly_limit' => 20,
-            'monthly_remaining' => 19,
-            'interaction_used' => 1,
-        ], $response['data']['usage']);
+        self::assertArrayNotHasKey('data', $response);
     }
 
     public function testChatActivoEjecutaToolPermitidaYAdjuntaPeriodo(): void
@@ -1946,12 +1954,13 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame([], $response['data']['conversation']);
-        self::assertSame($usage, $response['data']['usage']);
+        self::assertSame('unavailable', $response['data']['availability']);
+        self::assertArrayNotHasKey('usage', $response['data']);
         self::assertSame(1, $_SESSION['numa_conversation']['version']);
         self::assertSame([], $_SESSION['numa_conversation']['entries']);
     }
 
-    public function testNuevaConversacionTieneExitoSinEstadoDeConsumo(): void
+    public function testNuevaConversacionTieneExitoConEstadoConceptual(): void
     {
         (new \NumaConversation())->appendExchange('Pregunta anterior', 'Respuesta anterior');
         $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -1961,7 +1970,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame(200, $response['_status']);
-        self::assertNull($response['data']['usage']);
+        self::assertSame('unavailable', $response['data']['availability']);
         self::assertSame([], $response['data']['conversation']);
         self::assertSame(1, $_SESSION['numa_conversation']['version']);
     }
@@ -2088,9 +2097,9 @@ final class NumaControllerTest extends TestCase
 
         $response = $this->invoke('status', '', new NumaUsoFake());
 
-        self::assertArrayHasKey('usage', $response['data']);
-        self::assertNull($response['data']['usage']);
-        self::assertSame('disabled', $response['data']['reason']);
+        self::assertSame('unavailable', $response['data']['availability']);
+        self::assertArrayNotHasKey('usage', $response['data']);
+        self::assertArrayNotHasKey('reason', $response['data']);
     }
 
     public function testEstadoPublicoNoIniciaElServicioNiLlamadasExternas(): void
@@ -2115,7 +2124,7 @@ final class NumaControllerTest extends TestCase
             $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
 
             self::assertTrue($response['ok']);
-            self::assertSame('disabled', $response['data']['reason']);
+            self::assertSame('unavailable', $response['data']['availability']);
         } finally {
             $_COOKIE = $previousCookie;
         }
@@ -2213,6 +2222,8 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame('Puedes añadir movimientos desde el formulario.', $response['data']['message']);
+        self::assertSame('available', $response['data']['availability']);
+        self::assertArrayNotHasKey('usage', $response['data']);
         self::assertCount(2, $response['data']['conversation']);
         self::assertSame('¿Cómo añado un movimiento?', $response['data']['conversation'][0]['message']);
         self::assertArrayNotHasKey('numa_public_chat_request', $_SESSION);

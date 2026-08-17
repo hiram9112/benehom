@@ -98,9 +98,7 @@ final class FrontControllerRoutingTest extends TestCase
         self::assertIsArray($decoded);
         self::assertTrue($decoded['ok']);
         self::assertSame([
-            'available' => false,
-            'reason' => 'disabled',
-            'usage' => null,
+            'availability' => 'unavailable',
             'conversation' => [],
         ], $decoded['data']);
     }

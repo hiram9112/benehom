@@ -505,6 +505,7 @@ function bh_numa_error_message(string $code): string
         'NUMA_REQUEST_TOO_LARGE' => 'La consulta supera el tamaño permitido.',
         'NUMA_REQUEST_IN_PROGRESS' => 'Numa ya está procesando una consulta. Espera a que termine antes de enviar otra.',
         'NUMA_NOT_AVAILABLE' => 'Numa no está disponible en este momento.',
+        'NUMA_LIMIT_REACHED' => 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.',
         'NUMA_RATE_LIMITED' => 'Has enviado demasiadas consultas seguidas. Espera un momento antes de volver a intentarlo.',
         'NUMA_DAILY_LIMIT_REACHED' => 'Has alcanzado el límite diario de llamadas pagadas de Numa.',
         'NUMA_MONTHLY_LIMIT_REACHED' => 'Has alcanzado el límite mensual de llamadas pagadas de Numa.',

@@ -147,8 +147,7 @@
         let activeRequest = false;
         let hasConversation = false;
         let hasCanonicalConversation = false;
-        let serviceReady = false;
-        let currentUsage = null;
+        let availability = 'unavailable';
 
         const clearTooltipTimer = () => {
             window.clearTimeout(tooltipTimer);
@@ -208,23 +207,7 @@
             status.textContent = text;
         };
 
-        const setUsage = (usageData) => {
-            currentUsage = usageData;
-        };
-
-        const hasRemainingUsage = () => {
-            if (!currentUsage) {
-                return true;
-            }
-
-            const dailyRemaining = Number(currentUsage.daily_remaining);
-            const monthlyRemaining = Number(currentUsage.monthly_remaining);
-
-            return (!Number.isFinite(dailyRemaining) || dailyRemaining > 0)
-                && (!Number.isFinite(monthlyRemaining) || monthlyRemaining > 0);
-        };
-
-        const canSend = () => serviceReady && hasRemainingUsage() && !activeRequest;
+        const canSend = () => (availability === 'available' || availability === 'near_limit') && !activeRequest;
 
         const updateCounter = () => {
             if (counter) {
@@ -392,56 +375,38 @@
             setInteractiveState();
         };
 
-        const statusMessageForUsage = (usageData) => {
-            if (!usageData || typeof usageData !== 'object') {
-                return '';
-            }
-
-            const dailyRemaining = Number(usageData.daily_remaining);
-            const monthlyRemaining = Number(usageData.monthly_remaining);
-            const messages = [];
-
-            if (Number.isFinite(dailyRemaining) && dailyRemaining <= 0) {
-                messages.push('Has alcanzado el límite diario de llamadas pagadas.');
-            }
-
-            if (Number.isFinite(monthlyRemaining) && monthlyRemaining <= 0) {
-                messages.push('Has alcanzado el límite mensual de llamadas pagadas.');
-            }
-
-            return messages.join(' ');
+        const setAvailability = (value) => {
+            availability = [
+                'available',
+                'near_limit',
+                'limit_reached',
+                'unavailable',
+                'configuration_required',
+            ].includes(value) ? value : 'unavailable';
         };
 
-        const statusMessageForReason = (reason) => ({
-            disabled: 'Numa está desactivada temporalmente.',
-            configuration_incomplete: 'Numa está temporalmente en configuración.',
-            temporarily_unavailable: 'Numa no está disponible en este momento.',
-            user_limit: 'Has alcanzado el límite de llamadas pagadas de Numa.',
-            global_limit: 'Numa no está disponible en este momento.',
-            visitor_limit: 'Has alcanzado el límite de llamadas pagadas de Numa.',
-            public_global_limit: 'Numa no está disponible en este momento.',
-        }[reason] || 'Numa no está disponible en este momento.');
+        const statusMessageForAvailability = (value) => ({
+            near_limit: 'Te estás acercando al límite de uso de Numa.',
+            limit_reached: 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.',
+            configuration_required: 'Numa está temporalmente en configuración.',
+            unavailable: 'Numa no está disponible en este momento.',
+        }[value] || '');
 
         const applyServiceStatus = (payload) => {
             const data = payload && typeof payload === 'object' ? payload.data : null;
-            const available = Boolean(data && data.available === true);
-            const usageData = data && typeof data.usage === 'object' ? data.usage : null;
-            const reason = data && typeof data.reason === 'string' ? data.reason : '';
+            const nextAvailability = data && typeof data.availability === 'string' ? data.availability : 'unavailable';
 
             renderConversation(data && Array.isArray(data.conversation) ? data.conversation : []);
-            serviceReady = available;
-            setUsage(usageData);
+            setAvailability(nextAvailability);
+            const statusMessage = statusMessageForAvailability(availability);
 
-            if (!available) {
-                addStateMessage(statusMessageForReason(reason), reason === 'user_limit' || reason === 'visitor_limit' ? 'warning' : 'error');
+            if (statusMessage !== '') {
+                addStateMessage(
+                    statusMessage,
+                    availability === 'near_limit' || availability === 'limit_reached' ? 'warning' : 'error'
+                );
             } else {
-                const usageMessage = statusMessageForUsage(usageData);
-
-                if (usageMessage !== '') {
-                    addStateMessage(usageMessage, 'warning');
-                } else {
-                    announceStatus('Numa está disponible.');
-                }
+                announceStatus('Numa está disponible.');
             }
 
             setInteractiveState();
@@ -453,7 +418,7 @@
 
         const loadStatus = () => {
             if (!statusUrl) {
-                serviceReady = false;
+                setAvailability('unavailable');
                 addStateMessage('No se ha podido comprobar el estado de Numa.', 'error');
                 setInteractiveState();
                 return;
@@ -461,7 +426,7 @@
 
             const requestId = statusRequestId + 1;
             statusRequestId = requestId;
-            serviceReady = false;
+            setAvailability('unavailable');
             announceStatus('Comprobando Numa…');
             setInteractiveState();
 
@@ -477,7 +442,7 @@
                     }
 
                     if (!response.ok || !payload || payload.ok !== true) {
-                        serviceReady = false;
+                        setAvailability('unavailable');
                         addStateMessage(
                             response.status === 401
                                 ? 'La sesión ha caducado. Vuelve a iniciar sesión.'
@@ -495,7 +460,7 @@
                         return;
                     }
 
-                    serviceReady = false;
+                    setAvailability('unavailable');
                     addStateMessage('No se ha podido comprobar el estado de Numa.', 'error');
                     setInteractiveState();
                 });
@@ -515,7 +480,7 @@
             }
 
             if (statusCode === 429) {
-                return 'Has alcanzado el límite de llamadas pagadas de Numa.';
+                return 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.';
             }
 
             return 'No he podido responder ahora. Inténtalo de nuevo en unos minutos.';
@@ -535,7 +500,12 @@
             }
 
             if (!canSend()) {
-                addStateMessage('Numa no está lista para recibir otra consulta.', 'warning');
+                addStateMessage(
+                    availability === 'limit_reached'
+                        ? statusMessageForAvailability(availability)
+                        : 'Numa no está lista para recibir otra consulta.',
+                    'warning'
+                );
                 return;
             }
 
@@ -571,7 +541,7 @@
                         addMessage('assistant', errorMessage, { tone: 'error', state: true });
 
                         if (response.status === 401 || response.status === 429) {
-                            serviceReady = false;
+                            setAvailability('unavailable');
                         }
                         return;
                     }
@@ -584,8 +554,8 @@
                         });
                     }
 
-                    if (payload.data.usage && typeof payload.data.usage === 'object') {
-                        setUsage(payload.data.usage);
+                    if (typeof payload.data.availability === 'string') {
+                        setAvailability(payload.data.availability);
                     }
                 })
                 .catch(() => {
@@ -597,17 +567,7 @@
                 })
                 .finally(() => {
                     setProcessing(false);
-                    const usageMessage = statusMessageForUsage(currentUsage);
-
-                    if (usageMessage !== '') {
-                        addStateMessage(usageMessage, 'warning');
-                    }
-
-                    setInteractiveState();
-
-                    if (canSend()) {
-                        input.focus();
-                    }
+                    loadStatus();
                 });
         };
 

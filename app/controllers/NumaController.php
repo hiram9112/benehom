@@ -54,6 +54,12 @@ class NumaController
     private const STATUS_REASON_VISITOR_LIMIT = 'visitor_limit';
     private const STATUS_REASON_PUBLIC_GLOBAL_LIMIT = 'public_global_limit';
 
+    private const AVAILABILITY_AVAILABLE = 'available';
+    private const AVAILABILITY_NEAR_LIMIT = 'near_limit';
+    private const AVAILABILITY_LIMIT_REACHED = 'limit_reached';
+    private const AVAILABILITY_UNAVAILABLE = 'unavailable';
+    private const AVAILABILITY_CONFIGURATION_REQUIRED = 'configuration_required';
+
     private const REQUIRED_STATUS_TABLES = [
         'numa_uso',
         'numa_reservas',
@@ -127,7 +133,7 @@ class NumaController
                 return;
             }
 
-            $data = $result->toArray();
+            $data = $this->responseData($result);
             $conversation->appendExchange(
                 $message,
                 (string) $data['message'],
@@ -139,11 +145,7 @@ class NumaController
 
             bh_json_success($data);
         } catch (NumaServiceException $exception) {
-            bh_numa_error(
-                $exception->safeCode(),
-                $exception->statusCode(),
-                $exception->errorData() !== [] ? $exception->errorData() : null
-            );
+            $this->respondServiceError($exception);
         } catch (NumaProviderException $exception) {
             bh_numa_error($exception->providerError()->safeCode(), 503);
         } catch (Throwable) {
@@ -188,11 +190,10 @@ class NumaController
         $authenticatedUserId = (int) $_SESSION['usuario_id'];
 
         $this->resetConversation(
-            bh_env_bool('NUMA_ENABLED', false),
             function () use ($authenticatedUserId): void {
                 $this->conversation($authenticatedUserId)->clear();
             },
-            fn (): array => $this->numaUso()->estado($authenticatedUserId),
+            fn (): array => $this->effectiveStatus($authenticatedUserId),
         );
     }
 
@@ -240,7 +241,7 @@ class NumaController
                 return;
             }
 
-            $data = $result->toArray();
+            $data = $this->responseData($result);
             $conversation->appendPublicExchange(
                 $message,
                 (string) $data['message'],
@@ -251,7 +252,7 @@ class NumaController
             $data['conversation'] = $conversation->publicTranscript();
             bh_json_success($data);
         } catch (NumaServiceException $exception) {
-            bh_numa_error($exception->safeCode(), $exception->statusCode(), $exception->errorData() !== [] ? $exception->errorData() : null);
+            $this->respondServiceError($exception);
         } catch (Throwable) {
             bh_numa_error('NUMA_INTERNAL_ERROR', 503);
         } finally {
@@ -270,7 +271,10 @@ class NumaController
         try {
             $visitorHash = $this->publicIdentity()->visitorHash();
         } catch (Throwable) {
-            bh_json_success(['available' => false, 'reason' => self::STATUS_REASON_CONFIGURATION_INCOMPLETE, 'usage' => null, 'conversation' => []]);
+            $this->respondWithStatus(
+                $this->statusData(false, self::STATUS_REASON_CONFIGURATION_INCOMPLETE),
+                [],
+            );
             return;
         }
 
@@ -294,11 +298,10 @@ class NumaController
         }
 
         $this->resetConversation(
-            $this->isPublicChatEnabled(),
             static function () use ($visitorHash): void {
                 NumaConversation::forVisitor($visitorHash)->clearPublic();
             },
-            fn (): array => $this->publicNumaUso()->estado($visitorHash),
+            fn (): array => $this->effectivePublicStatus($visitorHash),
         );
     }
 
@@ -339,23 +342,20 @@ class NumaController
         return true;
     }
 
-    /**
-     * @param array{available:bool,reason:string|null,usage:array<string,int>|null} $status
-     * @param array<int, array<string, mixed>> $conversation
-     */
+    /** @param array<int, array<string, mixed>> $conversation */
     private function respondWithStatus(array $status, array $conversation): void
     {
         bh_json_success([
-            ...$status,
+            'availability' => $this->availabilityState($status),
             'conversation' => $conversation,
         ]);
     }
 
     /**
      * @param callable():void $clearConversation
-     * @param callable():array<string,int> $usageState
+     * @param callable():array<string,mixed> $statusState
      */
-    private function resetConversation(bool $available, callable $clearConversation, callable $usageState): void
+    private function resetConversation(callable $clearConversation, callable $statusState): void
     {
         if (!csrf_validate()) {
             bh_numa_error('NUMA_INVALID_CSRF', 403);
@@ -365,16 +365,34 @@ class NumaController
         $clearConversation();
 
         try {
-            $usage = $usageState();
+            $status = $statusState();
         } catch (Throwable) {
-            $usage = null;
+            $status = $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE);
         }
 
-        bh_json_success([
-            'available' => $available,
-            'usage' => $usage,
-            'conversation' => [],
-        ]);
+        $this->respondWithStatus($status, []);
+    }
+
+    /** @return array<string,mixed> */
+    private function responseData(NumaServiceResult $result): array
+    {
+        $data = $result->toArray();
+        $usage = $data['usage'] ?? null;
+        unset($data['usage']);
+        $data['availability'] = $this->availabilityFromUsage(is_array($usage) ? $usage : null);
+
+        return $data;
+    }
+
+    private function respondServiceError(NumaServiceException $exception): void
+    {
+        $code = match ($exception->safeCode()) {
+            'NUMA_DAILY_LIMIT_REACHED', 'NUMA_MONTHLY_LIMIT_REACHED' => 'NUMA_LIMIT_REACHED',
+            'NUMA_GLOBAL_LIMIT_REACHED', 'NUMA_PUBLIC_GLOBAL_LIMIT_REACHED' => 'NUMA_NOT_AVAILABLE',
+            default => $exception->safeCode(),
+        };
+
+        bh_numa_error($code, $exception->statusCode());
     }
 
     /** @param callable():NumaServiceResult $answer */
@@ -818,6 +836,43 @@ class NumaController
             'reason' => $reason,
             'usage' => $usage,
         ];
+    }
+
+    /** @param array{available:bool,reason:string|null,usage:array<string,int>|null} $status */
+    private function availabilityState(array $status): string
+    {
+        if (($status['available'] ?? false) !== true) {
+            return match ($status['reason'] ?? null) {
+                self::STATUS_REASON_CONFIGURATION_INCOMPLETE => self::AVAILABILITY_CONFIGURATION_REQUIRED,
+                self::STATUS_REASON_USER_LIMIT, self::STATUS_REASON_VISITOR_LIMIT => self::AVAILABILITY_LIMIT_REACHED,
+                default => self::AVAILABILITY_UNAVAILABLE,
+            };
+        }
+
+        return $this->availabilityFromUsage(is_array($status['usage'] ?? null) ? $status['usage'] : null);
+    }
+
+    /** @param array<string,int>|null $usage */
+    private function availabilityFromUsage(?array $usage): string
+    {
+        if ($usage === null) {
+            return self::AVAILABILITY_AVAILABLE;
+        }
+
+        $dailyRemaining = $usage['daily_remaining'] ?? null;
+        $monthlyRemaining = $usage['monthly_remaining'] ?? null;
+
+        if ((is_int($dailyRemaining) && $dailyRemaining <= 0)
+            || (is_int($monthlyRemaining) && $monthlyRemaining <= 0)) {
+            return self::AVAILABILITY_LIMIT_REACHED;
+        }
+
+        if ((is_int($dailyRemaining) && $dailyRemaining === 1)
+            || (is_int($monthlyRemaining) && $monthlyRemaining === 1)) {
+            return self::AVAILABILITY_NEAR_LIMIT;
+        }
+
+        return self::AVAILABILITY_AVAILABLE;
     }
 
     private function assertStatusTables(PDO $connection): void

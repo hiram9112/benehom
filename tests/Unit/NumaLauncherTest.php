@@ -396,6 +396,22 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('usuario_id', $javascript);
     }
 
+    public function testClienteMuestraSoloTextoSeguroYPeriodosEnEspanol(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString('const formatSpanishDate', $javascript);
+        self::assertStringContainsString("new Intl.DateTimeFormat('es-ES'", $javascript);
+        self::assertStringContainsString('const start = formatSpanishDate(period.start)', $javascript);
+        self::assertStringContainsString('const end = formatSpanishDate(period.end)', $javascript);
+        self::assertStringContainsString("createTextNode('p', 'bh-numa-message-meta', label)", $javascript);
+        self::assertStringContainsString('element.textContent = text', $javascript);
+        self::assertStringNotContainsString('innerHTML', $javascript);
+        self::assertStringNotContainsString('data-numa-sources', $javascript);
+        self::assertStringNotContainsString('metadata.sources', $javascript);
+    }
+
     public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void
     {
         foreach (['numa-static'] as $asset) {

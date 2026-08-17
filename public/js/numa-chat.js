@@ -69,6 +69,29 @@
 
     const normaliseText = (value) => String(value || '').trim();
 
+    const formatSpanishDate = (value) => {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+
+        if (!match) {
+            return '';
+        }
+
+        const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        if (
+            date.getFullYear() !== Number(match[1])
+            || date.getMonth() !== Number(match[2]) - 1
+            || date.getDate() !== Number(match[3])
+        ) {
+            return '';
+        }
+
+        return new Intl.DateTimeFormat('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        }).format(date);
+    };
+
     const createTextNode = (tagName, className, text) => {
         const element = document.createElement(tagName);
 
@@ -279,7 +302,14 @@
                 return;
             }
 
-            bubble.appendChild(createTextNode('p', 'bh-numa-message-meta', `Periodo: ${period.start} a ${period.end}`));
+            const start = formatSpanishDate(period.start);
+            const end = formatSpanishDate(period.end);
+            if (start === '' || end === '') {
+                return;
+            }
+
+            const label = start === end ? `Periodo: ${start}` : `Periodo: ${start} a ${end}`;
+            bubble.appendChild(createTextNode('p', 'bh-numa-message-meta', label));
         };
 
         const addMessage = (role, text, metadata) => {

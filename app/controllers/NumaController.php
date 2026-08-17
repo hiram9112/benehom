@@ -74,10 +74,7 @@ class NumaController
 
     public function chat(): void
     {
-        bh_json_no_store_private();
-
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+        if (!$this->beginJsonRequest('POST')) {
             return;
         }
 
@@ -103,7 +100,6 @@ class NumaController
             return;
         }
 
-        $sessionReleased = false;
         $chatRequest = null;
 
         try {
@@ -118,14 +114,13 @@ class NumaController
 
             // Copy the session-backed context before releasing PHP's session lock for the slow request.
             $context = $conversation->context();
-            $sessionReleased = $this->releaseSessionForProvider();
-            $result = $this->numaService()->answer(
-                $authenticatedUserId,
-                $message,
-                $context,
+            $result = $this->answerWithReleasedSession(
+                fn (): NumaServiceResult => $this->numaService()->answer(
+                    $authenticatedUserId,
+                    $message,
+                    $context,
+                ),
             );
-            $this->reopenSessionAfterProvider($sessionReleased);
-            $sessionReleased = false;
 
             if (!$this->sessionStillOwnedBy($authenticatedUserId, $conversationVersion)) {
                 bh_json_error('UNAUTHENTICATED', bh_router_error_message('UNAUTHENTICATED'), 401);
@@ -144,24 +139,16 @@ class NumaController
 
             bh_json_success($data);
         } catch (NumaServiceException $exception) {
-            $this->reopenSessionAfterProvider($sessionReleased);
-            $sessionReleased = false;
             bh_numa_error(
                 $exception->safeCode(),
                 $exception->statusCode(),
                 $exception->errorData() !== [] ? $exception->errorData() : null
             );
         } catch (NumaProviderException $exception) {
-            $this->reopenSessionAfterProvider($sessionReleased);
-            $sessionReleased = false;
             bh_numa_error($exception->providerError()->safeCode(), 503);
         } catch (Throwable) {
-            $this->reopenSessionAfterProvider($sessionReleased);
-            $sessionReleased = false;
             bh_numa_error('NUMA_INTERNAL_ERROR', 503);
         } finally {
-            $this->reopenSessionAfterProvider($sessionReleased);
-
             if ($chatRequest !== null) {
                 $this->clearChatRequest($chatRequest);
             }
@@ -170,10 +157,7 @@ class NumaController
 
     public function status(): void
     {
-        bh_json_no_store_private();
-
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
-            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+        if (!$this->beginJsonRequest('GET')) {
             return;
         }
 
@@ -184,20 +168,15 @@ class NumaController
 
         $authenticatedUserId = (int) $_SESSION['usuario_id'];
 
-        $status = $this->effectiveStatus($authenticatedUserId);
-
-        bh_json_success([
-            ...$status,
-            'conversation' => $this->conversation($authenticatedUserId)->transcript(),
-        ]);
+        $this->respondWithStatus(
+            $this->effectiveStatus($authenticatedUserId),
+            $this->conversation($authenticatedUserId)->transcript(),
+        );
     }
 
     public function newConversation(): void
     {
-        bh_json_no_store_private();
-
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+        if (!$this->beginJsonRequest('POST')) {
             return;
         }
 
@@ -208,32 +187,18 @@ class NumaController
 
         $authenticatedUserId = (int) $_SESSION['usuario_id'];
 
-        if (!csrf_validate()) {
-            bh_numa_error('NUMA_INVALID_CSRF', 403);
-            return;
-        }
-
-        $this->conversation($authenticatedUserId)->clear();
-
-        try {
-            $usage = $this->numaUso()->estado($authenticatedUserId);
-        } catch (Throwable) {
-            $usage = null;
-        }
-
-        bh_json_success([
-            'available' => bh_env_bool('NUMA_ENABLED', false),
-            'usage' => $usage,
-            'conversation' => [],
-        ]);
+        $this->resetConversation(
+            bh_env_bool('NUMA_ENABLED', false),
+            function () use ($authenticatedUserId): void {
+                $this->conversation($authenticatedUserId)->clear();
+            },
+            fn (): array => $this->numaUso()->estado($authenticatedUserId),
+        );
     }
 
     public function publicChat(): void
     {
-        bh_json_no_store_private();
-
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+        if (!$this->beginJsonRequest('POST')) {
             return;
         }
 
@@ -254,7 +219,6 @@ class NumaController
             return;
         }
 
-        $sessionReleased = false;
         $chatRequest = null;
 
         try {
@@ -267,10 +231,9 @@ class NumaController
             }
 
             $context = $conversation->publicContext();
-            $sessionReleased = $this->releaseSessionForProvider();
-            $result = $this->answerPublic($visitorHash, $message, $context);
-            $this->reopenSessionAfterProvider($sessionReleased);
-            $sessionReleased = false;
+            $result = $this->answerWithReleasedSession(
+                fn (): NumaServiceResult => $this->answerPublic($visitorHash, $message, $context),
+            );
 
             if (!$this->publicSessionStillOwnedBy($visitorHash, $conversationVersion)) {
                 bh_numa_error('NUMA_NOT_AVAILABLE', 503);
@@ -288,15 +251,10 @@ class NumaController
             $data['conversation'] = $conversation->publicTranscript();
             bh_json_success($data);
         } catch (NumaServiceException $exception) {
-            $this->reopenSessionAfterProvider($sessionReleased);
-            $sessionReleased = false;
             bh_numa_error($exception->safeCode(), $exception->statusCode(), $exception->errorData() !== [] ? $exception->errorData() : null);
         } catch (Throwable) {
-            $this->reopenSessionAfterProvider($sessionReleased);
-            $sessionReleased = false;
             bh_numa_error('NUMA_INTERNAL_ERROR', 503);
         } finally {
-            $this->reopenSessionAfterProvider($sessionReleased);
             if ($chatRequest !== null) {
                 $this->clearPublicChatRequest($chatRequest);
             }
@@ -305,10 +263,7 @@ class NumaController
 
     public function publicStatus(): void
     {
-        bh_json_no_store_private();
-
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
-            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+        if (!$this->beginJsonRequest('GET')) {
             return;
         }
 
@@ -319,19 +274,15 @@ class NumaController
             return;
         }
 
-        $status = $this->effectivePublicStatus($visitorHash);
-        bh_json_success([
-            ...$status,
-            'conversation' => NumaConversation::forVisitor($visitorHash)->publicTranscript(),
-        ]);
+        $this->respondWithStatus(
+            $this->effectivePublicStatus($visitorHash),
+            NumaConversation::forVisitor($visitorHash)->publicTranscript(),
+        );
     }
 
     public function publicNewConversation(): void
     {
-        bh_json_no_store_private();
-
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+        if (!$this->beginJsonRequest('POST')) {
             return;
         }
 
@@ -342,24 +293,13 @@ class NumaController
             return;
         }
 
-        if (!csrf_validate()) {
-            bh_numa_error('NUMA_INVALID_CSRF', 403);
-            return;
-        }
-
-        NumaConversation::forVisitor($visitorHash)->clearPublic();
-
-        try {
-            $usage = $this->publicNumaUso()->estado($visitorHash);
-        } catch (Throwable) {
-            $usage = null;
-        }
-
-        bh_json_success([
-            'available' => $this->isPublicChatEnabled(),
-            'usage' => $usage,
-            'conversation' => [],
-        ]);
+        $this->resetConversation(
+            $this->isPublicChatEnabled(),
+            static function () use ($visitorHash): void {
+                NumaConversation::forVisitor($visitorHash)->clearPublic();
+            },
+            fn (): array => $this->publicNumaUso()->estado($visitorHash),
+        );
     }
 
     protected function numaUso(): NumaUso
@@ -385,6 +325,68 @@ class NumaController
     protected function conversation(?int $authenticatedUserId = null): NumaConversation
     {
         return new NumaConversation($authenticatedUserId);
+    }
+
+    private function beginJsonRequest(string $method): bool
+    {
+        bh_json_no_store_private();
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== $method) {
+            bh_json_error('METHOD_NOT_ALLOWED', bh_router_error_message('METHOD_NOT_ALLOWED'), 405);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array{available:bool,reason:string|null,usage:array<string,int>|null} $status
+     * @param array<int, array<string, mixed>> $conversation
+     */
+    private function respondWithStatus(array $status, array $conversation): void
+    {
+        bh_json_success([
+            ...$status,
+            'conversation' => $conversation,
+        ]);
+    }
+
+    /**
+     * @param callable():void $clearConversation
+     * @param callable():array<string,int> $usageState
+     */
+    private function resetConversation(bool $available, callable $clearConversation, callable $usageState): void
+    {
+        if (!csrf_validate()) {
+            bh_numa_error('NUMA_INVALID_CSRF', 403);
+            return;
+        }
+
+        $clearConversation();
+
+        try {
+            $usage = $usageState();
+        } catch (Throwable) {
+            $usage = null;
+        }
+
+        bh_json_success([
+            'available' => $available,
+            'usage' => $usage,
+            'conversation' => [],
+        ]);
+    }
+
+    /** @param callable():NumaServiceResult $answer */
+    private function answerWithReleasedSession(callable $answer): NumaServiceResult
+    {
+        $sessionReleased = $this->releaseSessionForProvider();
+
+        try {
+            return $answer();
+        } finally {
+            $this->reopenSessionAfterProvider($sessionReleased);
+        }
     }
 
     private function sessionStillOwnedBy(int $authenticatedUserId, int $conversationVersion): bool

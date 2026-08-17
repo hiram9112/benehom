@@ -15,6 +15,7 @@ final class NumaLauncherTest extends TestCase
     private bool $hadMaxMessageLength;
     private ?string $maxMessageLength;
     private array $sessionBackup;
+    private array $queryBackup;
 
     protected function setUp(): void
     {
@@ -24,6 +25,7 @@ final class NumaLauncherTest extends TestCase
         $this->maxMessageLength = $this->hadMaxMessageLength ? (string) $_ENV['NUMA_MAX_MESSAGE_LENGTH'] : null;
         $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '300';
         $this->sessionBackup = $_SESSION ?? [];
+        $this->queryBackup = $_GET;
         $_SESSION = [];
     }
 
@@ -42,6 +44,7 @@ final class NumaLauncherTest extends TestCase
         }
 
         $_SESSION = $this->sessionBackup;
+        $_GET = $this->queryBackup;
 
         parent::tearDown();
     }
@@ -115,21 +118,49 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('input.value.length', $script);
     }
 
-    public function testSoloLasVistasPrivadasIncluyenElBoton(): void
+    public function testMontaElWidgetDesdeUnUnicoPuntoYSeleccionaElModoEnServidor(): void
     {
-        foreach (['dashboard.php', 'proyecciones.php', 'cuenta.php'] as $view) {
-            $source = file_get_contents(APP_PATH . '/views/' . $view);
-
-            self::assertIsString($source);
-            self::assertStringContainsString('bh_numa_launcher();', $source, $view);
-        }
-
-        foreach (['home.php', 'blog.php', 'blog-detalle.php'] as $view) {
+        foreach (['dashboard.php', 'proyecciones.php', 'cuenta.php', 'home.php', 'blog.php', 'blog-detalle.php'] as $view) {
             $source = file_get_contents(APP_PATH . '/views/' . $view);
 
             self::assertIsString($source);
             self::assertStringNotContainsString('bh_numa_launcher();', $source, $view);
+            self::assertStringNotContainsString("partials/numa-launcher.php", $source, $view);
         }
+
+        $head = file_get_contents(APP_PATH . '/views/partials/head.php');
+
+        self::assertIsString($head);
+        self::assertStringContainsString("require_once APP_PATH . '/views/partials/numa-launcher.php';", $head);
+        self::assertStringContainsString('bh_numa_widget_mode()', $head);
+
+        $_GET['r'] = 'home/index';
+        self::assertSame('public', bh_numa_widget_mode());
+
+        $_SESSION['usuario_id'] = 123;
+        self::assertSame('private', bh_numa_widget_mode());
+
+        unset($_SESSION['usuario_id']);
+        $_GET['r'] = 'legal/privacidad';
+        self::assertNull(bh_numa_widget_mode());
+    }
+
+    public function testConfiguraElWidgetPublicoSinPermitirQueElClienteElijaElModo(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+
+        $html = $this->renderLauncher('public');
+
+        self::assertStringContainsString('data-numa-mode="public"', $html);
+        self::assertStringContainsString('data-numa-status-url="/index.php?r=numa/public/status"', $html);
+        self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/public/chat"', $html);
+        self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/public/conversation/new"', $html);
+        self::assertStringContainsString('Numa responde sobre BeneHom y contenido público.', $html);
+        self::assertStringContainsString('data-numa-empty-messages=', $html);
+        self::assertStringContainsString('data-numa-suggestions=', $html);
+        self::assertStringNotContainsString('data-numa-tools=', $html);
+        self::assertStringNotContainsString('data-numa-usuario', $html);
     }
 
     public function testEstilosFijanElBotonYLoAdaptanEnResponsive(): void
@@ -240,9 +271,10 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-static', $html);
         self::assertStringContainsString('data-numa-animated', $html);
         self::assertStringNotContainsString('data-numa-hybrid', $html);
-        self::assertStringContainsString('/js/vendor/gsap/gsap.min.js?v=', $html);
-        self::assertStringContainsString('/js/numa-character.js?v=', $html);
-        self::assertStringContainsString('/js/numa-chat.js?v=', $html);
+        $assets = $this->renderAssets();
+        self::assertStringContainsString('/js/vendor/gsap/gsap.min.js?v=', $assets);
+        self::assertStringContainsString('/js/numa-character.js?v=', $assets);
+        self::assertStringContainsString('/js/numa-chat.js?v=', $assets);
     }
 
     public function testRenderizaTooltipYPanelAccesibleSinOffcanvas(): void
@@ -349,7 +381,9 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("addMessage('user', message)", $javascript);
         self::assertStringContainsString("addMessage('assistant'", $javascript);
         self::assertStringContainsString('const statusMessageForReason', $javascript);
-        self::assertStringContainsString("addStateMessage(statusMessageForReason(reason), reason === 'user_limit' ? 'warning' : 'error')", $javascript);
+        self::assertStringContainsString("reason === 'user_limit' || reason === 'visitor_limit' ? 'warning' : 'error'", $javascript);
+        self::assertStringContainsString("configuredTextList(widget, 'data-numa-empty-messages', EMPTY_MESSAGES)", $javascript);
+        self::assertStringContainsString("configuredTextList(widget, 'data-numa-suggestions', SUGGESTIONS)", $javascript);
         self::assertStringContainsString('Has alcanzado el límite diario de llamadas pagadas.', $javascript);
         self::assertStringContainsString('Has alcanzado el límite mensual de llamadas pagadas.', $javascript);
         self::assertStringNotContainsString('Te quedan ${dailyRemaining} llamadas pagadas hoy', $javascript);
@@ -498,10 +532,18 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('setState(stableState)', $javascript);
     }
 
-    private function renderLauncher(): string
+    private function renderLauncher(string $mode = 'private'): string
     {
         ob_start();
-        \bh_numa_launcher();
+        \bh_numa_launcher($mode);
+
+        return (string) ob_get_clean();
+    }
+
+    private function renderAssets(): string
+    {
+        ob_start();
+        \bh_numa_assets();
 
         return (string) ob_get_clean();
     }

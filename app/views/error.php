@@ -34,4 +34,4 @@ bh_document_begin([
             </a>
         </section>
     </main>
-<?php bh_document_end(); ?>
+<?php bh_document_end(['numa_widget' => false]); ?>

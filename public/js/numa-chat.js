@@ -28,6 +28,24 @@
         '¿Qué es el ahorro posible?',
     ];
 
+    const configuredTextList = (widget, attribute, fallback) => {
+        const value = widget.getAttribute(attribute);
+
+        if (!value) {
+            return fallback;
+        }
+
+        try {
+            const parsed = JSON.parse(value);
+
+            return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string' && item.trim() !== '')
+                ? parsed
+                : fallback;
+        } catch {
+            return fallback;
+        }
+    };
+
     const randomItem = (items) => items[Math.floor(Math.random() * items.length)];
 
     const randomSubset = (items, count) => items
@@ -85,6 +103,8 @@
         const chatUrl = widget.getAttribute('data-numa-chat-url') || '';
         const newConversationUrl = widget.getAttribute('data-numa-new-conversation-url') || '';
         const csrfToken = widget.getAttribute('data-numa-csrf') || '';
+        const emptyMessages = configuredTextList(widget, 'data-numa-empty-messages', EMPTY_MESSAGES);
+        const configuredSuggestions = configuredTextList(widget, 'data-numa-suggestions', SUGGESTIONS);
         const configuredMaxMessageLength = Number(widget.getAttribute('data-numa-max-message-length'));
         const maxMessageLength = Number.isInteger(configuredMaxMessageLength) && configuredMaxMessageLength > 0
             ? configuredMaxMessageLength
@@ -227,9 +247,9 @@
                 return;
             }
 
-            emptyMessage.textContent = randomItem(EMPTY_MESSAGES);
+            emptyMessage.textContent = randomItem(emptyMessages);
             suggestions.textContent = '';
-            randomSubset(SUGGESTIONS, 3).forEach((suggestion) => {
+            randomSubset(configuredSuggestions, 3).forEach((suggestion) => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'bh-numa-suggestion';
@@ -368,6 +388,8 @@
             temporarily_unavailable: 'Numa no está disponible en este momento.',
             user_limit: 'Has alcanzado el límite de llamadas pagadas de Numa.',
             global_limit: 'Numa no está disponible en este momento.',
+            visitor_limit: 'Has alcanzado el límite de llamadas pagadas de Numa.',
+            public_global_limit: 'Numa no está disponible en este momento.',
         }[reason] || 'Numa no está disponible en este momento.');
 
         const applyServiceStatus = (payload) => {
@@ -381,7 +403,7 @@
             setUsage(usageData);
 
             if (!available) {
-                addStateMessage(statusMessageForReason(reason), reason === 'user_limit' ? 'warning' : 'error');
+                addStateMessage(statusMessageForReason(reason), reason === 'user_limit' || reason === 'visitor_limit' ? 'warning' : 'error');
             } else {
                 const usageMessage = statusMessageForUsage(usageData);
 

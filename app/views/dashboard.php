@@ -22,7 +22,6 @@ bh_flash_messages();
 <?php
 require_once APP_PATH . '/views/partials/app-navigation.php';
 require_once APP_PATH . '/views/partials/modals.php';
-require_once APP_PATH . '/views/partials/numa-launcher.php';
 bh_mobile_nav();
 $categoriasGasto = gastoCategorias();
 $labelsCategoriasGasto = gastoCategoriaLabels();
@@ -435,7 +434,6 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
 </div>
 
 <?php bh_mobile_menu(); ?>
-<?php bh_numa_launcher(); ?>
 
 <!--Modal de ingresos-->
 <?php bh_info_modal('infoIngresos', '¿Qué son los ingresos?', <<<'HTML'

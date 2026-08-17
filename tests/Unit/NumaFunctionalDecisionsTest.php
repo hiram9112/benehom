@@ -60,6 +60,10 @@ final class NumaFunctionalDecisionsTest extends TestCase
         self::assertStringContainsString('internos de usuario', $privacy);
         self::assertStringContainsString('El transcript de Numa se conserva únicamente en la sesión PHP', $privacy);
         self::assertStringContainsString('no existe memoria de Numa', $privacy);
+        self::assertStringContainsString('Numa usa una cookie técnica', $privacy);
+        self::assertStringContainsString('bh_numa_anon', $privacy);
+        self::assertStringContainsString('seudonimizada', $privacy);
+        self::assertStringContainsString('No se utiliza fingerprinting', $privacy);
     }
 
     private function read(string $path): string

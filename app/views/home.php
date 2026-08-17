@@ -699,7 +699,6 @@ bh_document_begin([
 
 <?php
 $bhHomeGsapScripts =
-    '    <script src="' . bh_asset('js/vendor/gsap/gsap.min.js') . '"></script>' . PHP_EOL .
     '    <script src="' . bh_asset('js/vendor/gsap/ScrollTrigger.min.js') . '"></script>' . PHP_EOL .
     '    <script src="' . bh_asset('js/vendor/gsap/SplitText.min.js') . '"></script>' . PHP_EOL .
     '    <script src="' . bh_asset('js/home.js') . '" defer></script>' . PHP_EOL;

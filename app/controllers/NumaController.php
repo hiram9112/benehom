@@ -268,7 +268,7 @@ class NumaController
 
             $context = $conversation->publicContext();
             $sessionReleased = $this->releaseSessionForProvider();
-            $result = $this->publicNumaService()->answerPublic($visitorHash, $message, $context);
+            $result = $this->answerPublic($visitorHash, $message, $context);
             $this->reopenSessionAfterProvider($sessionReleased);
             $sessionReleased = false;
 
@@ -400,8 +400,7 @@ class NumaController
     {
         try {
             $identity = $this->publicIdentity();
-            $cookie = $_COOKIE[NumaPublicIdentity::COOKIE_NAME] ?? null;
-            $currentVisitorHash = $identity->createdDuringRequest() && $cookie === null
+            $currentVisitorHash = $identity->createdDuringRequest()
                 ? $visitorHash
                 : (new NumaPublicIdentity())->visitorHash();
 
@@ -606,6 +605,14 @@ class NumaController
         );
     }
 
+    /**
+     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $context
+     */
+    protected function answerPublic(string $visitorHash, string $message, array $context): NumaServiceResult
+    {
+        return $this->publicNumaService()->answerPublic($visitorHash, $message, $context);
+    }
+
     protected function publicProvider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface
     {
         if ($consumption === null) {
@@ -698,6 +705,11 @@ class NumaController
             return $this->statusData(false, self::STATUS_REASON_DISABLED);
         }
 
+        $activeRequest = $this->activeChatRequest();
+        if ($activeRequest !== null && !$this->chatRequestExpired($activeRequest)) {
+            return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE);
+        }
+
         try {
             $signature = $this->statusEmbeddingSignature();
         } catch (Throwable) {
@@ -737,6 +749,11 @@ class NumaController
     {
         if (!bh_env_bool('NUMA_ENABLED', false) || !bh_env_bool('NUMA_PUBLIC_ENABLED', false)) {
             return $this->statusData(false, self::STATUS_REASON_DISABLED);
+        }
+
+        $activeRequest = $this->activePublicChatRequest();
+        if ($activeRequest !== null && !$this->publicChatRequestExpired($activeRequest)) {
+            return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE);
         }
 
         $usage = null;
@@ -937,7 +954,7 @@ class NumaController
         );
     }
 
-    private function isPublicChatRateLimited(): bool
+    protected function isPublicChatRateLimited(): bool
     {
         try {
             $address = (string) ($_SERVER['REMOTE_ADDR'] ?? '');

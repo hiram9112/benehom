@@ -210,6 +210,28 @@
     padding: 0.75rem 1rem 1rem;
 }
 
+.bh-numa-public-note{
+    grid-row: 1;
+    z-index: 1;
+    align-self: start;
+    margin: 2.7rem 0 0;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--bh-border-color);
+    border-radius: var(--bh-radius-md);
+    color: var(--bh-text-muted);
+    background: var(--bh-surface-soft);
+    font-size: var(--bh-text-xs);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-numa-public-note + .bh-numa-panel-initial{
+    padding-top: 3.4rem;
+}
+
+.bh-numa-public-note ~ .bh-numa-messages{
+    padding-top: 6.6rem;
+}
+
 .bh-numa-panel-initial{
     display: grid;
     grid-area: 1 / 1;

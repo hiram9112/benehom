@@ -14,7 +14,6 @@ bh_document_begin([
     require_once APP_PATH . '/views/partials/flash-messages.php';
     require_once APP_PATH . '/views/partials/proyecciones-cards.php';
     require_once APP_PATH . '/views/partials/modals.php';
-    require_once APP_PATH . '/views/partials/numa-launcher.php';
     bh_flash_messages();
     bh_mobile_nav();
 
@@ -594,7 +593,6 @@ HTML);
 
     <?php
     bh_mobile_menu();
-    bh_numa_launcher();
 
     $avisoCapacidadSuperada = 'El ahorro asignado a tus proyecciones supera el ahorro mensual simulado que has indicado. Puedes ajustar el importe para seguir simulando sin cambiar tus datos reales; recuerda que para destinar ahorro real a tus metas o inversiones necesitarás aumentar tus ingresos o reducir tus gastos.';
 

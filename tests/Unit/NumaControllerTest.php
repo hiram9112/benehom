@@ -284,6 +284,7 @@ final class NumaControllerTest extends TestCase
     private array $sessionBackup = [];
     private array $serverBackup = [];
     private array $envBackup = [];
+    private array $cookieBackup = [];
 
     protected function setUp(): void
     {
@@ -294,6 +295,7 @@ final class NumaControllerTest extends TestCase
         $this->sessionBackup = is_array($_SESSION ?? null) ? $_SESSION : [];
         $this->serverBackup = $_SERVER;
         $this->envBackup = $_ENV;
+        $this->cookieBackup = is_array($_COOKIE ?? null) ? $_COOKIE : [];
 
         $_POST = [];
         $_SESSION = [
@@ -318,6 +320,7 @@ final class NumaControllerTest extends TestCase
         $_POST = $this->postBackup;
         $_SESSION = $this->sessionBackup;
         $_ENV = $this->envBackup;
+        $_COOKIE = $this->cookieBackup;
 
         parent::tearDown();
     }
@@ -422,6 +425,65 @@ final class NumaControllerTest extends TestCase
         self::assertTrue($response['data']['available']);
         self::assertNull($response['data']['reason']);
         self::assertSame(5, $response['data']['usage']['daily_remaining']);
+    }
+
+    public function testStatusInformaIndisponibilidadTemporalDuranteUnaPeticionActivaSinConsultarDependencias(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SESSION['numa_chat_request'] = [
+            'timestamp' => time(),
+            'usuario_id' => 123,
+            'conversation_version' => 0,
+        ];
+
+        $controller = new class extends \NumaController {
+            protected function statusEmbeddingSignature(): \NumaEmbeddingSignature
+            {
+                throw new \LogicException('El status no debe consultar dependencias con una petición activa.');
+            }
+        };
+
+        ob_start();
+        $controller->status();
+        $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertTrue($response['ok']);
+        self::assertFalse($response['data']['available']);
+        self::assertSame('temporarily_unavailable', $response['data']['reason']);
+        self::assertNull($response['data']['usage']);
+    }
+
+    public function testStatusPublicoInformaIndisponibilidadTemporalDuranteUnaPeticionActivaSinConsultarDependencias(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'test-public-hash-key';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $token = str_repeat('a', 64);
+        $visitorHash = hash_hmac('sha256', $token, 'test-public-hash-key');
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = $token;
+        $_SESSION['numa_public_chat_request'] = [
+            'timestamp' => time(),
+            'visitante_hash' => $visitorHash,
+            'conversation_version' => 0,
+        ];
+
+        $controller = new class extends \NumaController {
+            protected function statusEmbeddingSignature(): \NumaEmbeddingSignature
+            {
+                throw new \LogicException('El status público no debe consultar dependencias con una petición activa.');
+            }
+        };
+
+        ob_start();
+        $controller->publicStatus();
+        $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertTrue($response['ok']);
+        self::assertFalse($response['data']['available']);
+        self::assertSame('temporarily_unavailable', $response['data']['reason']);
+        self::assertNull($response['data']['usage']);
     }
 
     public function testChatConJsonValidoYCsrfPorCabeceraDevuelveNumaNoDisponible(): void
@@ -2105,6 +2167,55 @@ final class NumaControllerTest extends TestCase
             unset($_SESSION['numa_public_conversation']);
             $_COOKIE = $previousCookie;
         }
+    }
+
+    public function testChatPublicoConCookieInvalidaConservaLaNuevaIdentidadDuranteTodaLaPeticion(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'test-public-hash-key';
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = 'cookie-invalida';
+        $this->configureJsonPost();
+
+        $controller = new class extends \NumaController {
+            protected function rawBody(): string
+            {
+                return '{"message":"¿Cómo añado un movimiento?"}';
+            }
+
+            protected function isPublicChatRateLimited(): bool
+            {
+                return false;
+            }
+
+            protected function answerPublic(string $visitorHash, string $message, array $context): \NumaServiceResult
+            {
+                return new \NumaServiceResult(
+                    'Puedes añadir movimientos desde el formulario.',
+                    [],
+                    null,
+                    [
+                        'daily_used' => 1,
+                        'daily_limit' => 5,
+                        'daily_remaining' => 4,
+                        'monthly_used' => 1,
+                        'monthly_limit' => 20,
+                        'monthly_remaining' => 19,
+                        'interaction_used' => 1,
+                    ],
+                );
+            }
+        };
+
+        ob_start();
+        $controller->publicChat();
+        $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertTrue($response['ok']);
+        self::assertSame('Puedes añadir movimientos desde el formulario.', $response['data']['message']);
+        self::assertCount(2, $response['data']['conversation']);
+        self::assertSame('¿Cómo añado un movimiento?', $response['data']['conversation'][0]['message']);
+        self::assertArrayNotHasKey('numa_public_chat_request', $_SESSION);
     }
 
     private function invoke(

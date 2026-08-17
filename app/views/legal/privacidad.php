@@ -56,6 +56,12 @@ bh_document_begin([
                 financieras se ofrecen como texto informativo y no como recomendaciones
                 personalizadas.
             </p>
+            <p>
+                En las páginas públicas donde esté disponible, Numa usa una cookie técnica
+                anónima para aplicar una cuota de uso y conservar temporalmente el contexto de
+                la conversación en la sesión PHP. Esta identidad no autentica a la persona,
+                no da acceso a datos privados y no se utiliza para elaborar perfiles.
+            </p>
 
             <h2 class="mt-4 bh-legal-section-title">4. Base legal</h2>
             <p>
@@ -72,9 +78,15 @@ bh_document_begin([
             </p>
             <p>
                 El transcript de Numa se conserva únicamente en la sesión PHP para mantener la
-                conversación visible mientras la persona usuaria sigue autenticada. No se guarda
+                conversación visible mientras dure la sesión actual. No se guarda
                 en la base de datos, no se persiste en el navegador y no existe memoria de Numa
                 entre sesiones.
+            </p>
+            <p>
+                La cuota pública de Numa se conserva durante el periodo necesario para aplicar
+                sus límites. Solo contiene una identidad seudonimizada derivada de la cookie,
+                la fecha y el número de llamadas confirmadas; no guarda consultas, respuestas,
+                prompts ni el valor original de la cookie.
             </p>
 
             <h2 class="mt-4 bh-legal-section-title">6. Destinatarios y prestadores de servicios</h2>
@@ -92,6 +104,11 @@ bh_document_begin([
                 mínimos necesarios de las herramientas internas. No se envían identificadores
                 internos de usuario, correo de cuenta, SQL, tablas ni columnas.
             </p>
+            <p>
+                Para prevenir abusos del acceso público se aplica un límite de ráfaga usando una
+                versión seudonimizada y limitada de la dirección IP. BeneHom no almacena la IP
+                en claro. No se utiliza fingerprinting del dispositivo, analítica ni publicidad.
+            </p>
 
             <h2 class="mt-4 bh-legal-section-title">7. Tus derechos</h2>
             <p>
@@ -105,7 +122,7 @@ bh_document_begin([
 
             <h2 class="mt-4 bh-legal-section-title">8. Cookies</h2>
             <p>
-                La aplicación utiliza únicamente una cookie técnica de sesión, estrictamente
+                La aplicación utiliza una cookie técnica de sesión, estrictamente
                 necesaria para mantener tu sesión iniciada y proteger las solicitudes frente a
                 falsificaciones (CSRF). No se utilizan cookies de análisis, seguimiento
                 ni publicidad, por lo que no se requiere consentimiento adicional.
@@ -126,6 +143,12 @@ bh_document_begin([
                         <td>Mantener la sesión y autenticar al usuario</td>
                         <td>Técnica y propia</td>
                         <td>Hasta cerrar el navegador o finalizar la sesión</td>
+                    </tr>
+                    <tr>
+                        <td>bh_numa_anon</td>
+                        <td>Aplicar la cuota pública de Numa y asociar temporalmente su conversación</td>
+                        <td>Técnica, propia, HttpOnly y SameSite=Lax</td>
+                        <td>30 días</td>
                     </tr>
                 </tbody>
             </table>

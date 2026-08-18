@@ -399,7 +399,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("statusRetryButton.addEventListener('click', loadStatus)", $javascript);
         self::assertStringContainsString("'X-CSRF-Token': csrfToken", $javascript);
         self::assertStringContainsString('JSON.stringify({ message })', $javascript);
-        self::assertStringContainsString('renderConversation(payload.data.conversation)', $javascript);
+        self::assertStringContainsString('presentChatResponse(payload.data, requestId)', $javascript);
         self::assertStringContainsString("newConversationButton.addEventListener('click', startNewConversation)", $javascript);
         self::assertStringContainsString("submitButton.classList.toggle('is-processing', processing)", $javascript);
         self::assertStringContainsString("form.setAttribute('aria-busy', processing ? 'true' : 'false')", $javascript);
@@ -465,6 +465,30 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('.bh-numa-message.is-assistant .bh-numa-message-content', $css);
         self::assertStringContainsString('.bh-numa-message.is-assistant.is-state .bh-numa-message-content', $css);
         self::assertStringNotContainsString('.bh-numa-message.is-assistant .bh-numa-message-bubble', $css);
+    }
+
+    public function testClienteMuestraEsperaYRevelaSoloLaRespuestaNueva(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+        $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
+
+        self::assertIsString($javascript);
+        self::assertIsString($css);
+        self::assertStringContainsString("showThinkingMessage();", $javascript);
+        self::assertStringContainsString("'Pensando…'", $javascript);
+        self::assertStringContainsString('removeThinkingMessage();', $javascript);
+        self::assertStringContainsString('const revealAssistantResponse', $javascript);
+        self::assertStringContainsString('const words = text.match(/\\S+\\s*/g)', $javascript);
+        self::assertStringContainsString('const acceleration = totalDelay > 2750 ? 2750 / totalDelay : 1', $javascript);
+        self::assertStringContainsString('if (prefersReducedMotion()) {', $javascript);
+        self::assertStringContainsString('cancelProgressiveResponse(false);', $javascript);
+        self::assertStringContainsString('const invalidateChatRequest', $javascript);
+        self::assertStringContainsString('invalidateChatRequest(true);', $javascript);
+        self::assertStringContainsString('if (!conversationsMatch(conversation, canonicalConversation) || !renderedConversationMatches(conversation))', $javascript);
+        self::assertStringContainsString('.bh-numa-message.is-assistant.is-thinking .bh-numa-message-content', $css);
+        self::assertStringContainsString('animation: bh-numa-thinking-shimmer', $css);
+        self::assertStringContainsString('@keyframes bh-numa-thinking-shimmer', $css);
+        self::assertStringContainsString('-webkit-text-fill-color: currentColor', $css);
     }
 
     public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void

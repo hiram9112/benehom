@@ -158,6 +158,13 @@
         let availability = 'unavailable';
         let panelTransitionFrame = 0;
         let panelCloseTimer = 0;
+        let chatRequestId = 0;
+        let activeAbortController = null;
+        let activeRequestTimeout = 0;
+        let thinkingMessage = null;
+        let progressiveResponse = null;
+        let responseRevealTimer = 0;
+        let canonicalConversation = [];
 
         const prefersReducedMotion = () => window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -315,6 +322,39 @@
             messages.scrollTop = messages.scrollHeight;
         };
 
+        const normaliseConversation = (conversation) => {
+            if (!Array.isArray(conversation)) {
+                return [];
+            }
+
+            return conversation.reduce((entries, entry) => {
+                if (!entry || typeof entry !== 'object') {
+                    return entries;
+                }
+
+                const role = entry.role === 'user' ? 'user' : entry.role === 'assistant' ? 'assistant' : '';
+                const message = normaliseText(entry.message);
+                if (role !== '' && message !== '') {
+                    entries.push({ role, message, period: entry.period });
+                }
+
+                return entries;
+            }, []);
+        };
+
+        const conversationsMatch = (first, second) => first.length === second.length && first.every((entry, index) => (
+            entry.role === second[index].role && entry.message === second[index].message
+        ));
+
+        const renderedConversationMatches = (conversation) => {
+            const renderedMessages = Array.from(messages.querySelectorAll('[data-numa-canonical-message="true"]'));
+
+            return renderedMessages.length === conversation.length && renderedMessages.every((item, index) => (
+                item.dataset.numaRole === conversation[index].role
+                && item.dataset.numaMessage === conversation[index].message
+            ));
+        };
+
         const appendPeriod = (bubble, period) => {
             if (!period || typeof period !== 'object' || !period.start || !period.end) {
                 return;
@@ -336,6 +376,12 @@
             const canonicalRole = role === 'user' ? 'user' : 'assistant';
             const item = document.createElement('article');
             item.className = `bh-numa-message is-${canonicalRole}`;
+            item.dataset.numaRole = canonicalRole;
+
+            if (!metadata || !metadata.state) {
+                item.dataset.numaCanonicalMessage = 'true';
+                item.dataset.numaMessage = text;
+            }
 
             if (metadata && metadata.tone) {
                 item.classList.add(`is-${metadata.tone}`);
@@ -357,6 +403,8 @@
             item.appendChild(content);
             messages.appendChild(item);
             scrollMessagesToEnd();
+
+            return item;
         };
 
         const addStateMessage = (text, tone) => {
@@ -380,29 +428,111 @@
             });
         };
 
+        const removeThinkingMessage = () => {
+            if (thinkingMessage && thinkingMessage.isConnected) {
+                thinkingMessage.remove();
+            }
+
+            thinkingMessage = null;
+        };
+
+        const showThinkingMessage = () => {
+            removeThinkingMessage();
+            thinkingMessage = addMessage('assistant', 'Pensando…', {
+                state: true,
+                tone: 'thinking',
+            });
+            thinkingMessage.classList.add('is-thinking');
+        };
+
+        const cancelProgressiveResponse = (complete) => {
+            window.clearTimeout(responseRevealTimer);
+            responseRevealTimer = 0;
+
+            if (!progressiveResponse) {
+                return;
+            }
+
+            const { item, text, resolve } = progressiveResponse;
+            if (item.isConnected) {
+                if (complete) {
+                    const paragraph = item.querySelector('.bh-numa-message-content > p');
+                    if (paragraph) {
+                        paragraph.textContent = text;
+                    }
+                } else {
+                    item.remove();
+                }
+            }
+
+            progressiveResponse = null;
+            resolve();
+        };
+
+        const revealAssistantResponse = (text, metadata, requestId) => {
+            cancelProgressiveResponse(false);
+            const item = addMessage('assistant', '', metadata);
+            const paragraph = item.querySelector('.bh-numa-message-content > p');
+            const words = text.match(/\S+\s*/g) || [text];
+            const delays = words.map((word) => {
+                if (/[.!?…]$/.test(word.trim())) {
+                    return 100;
+                }
+
+                return /[,;:]$/.test(word.trim()) ? 55 : 35;
+            });
+            const totalDelay = delays.reduce((total, delay) => total + delay, 0);
+            const acceleration = totalDelay > 2750 ? 2750 / totalDelay : 1;
+            let wordIndex = 0;
+
+            return new Promise((resolve) => {
+                progressiveResponse = { item, text, requestId, resolve };
+
+                const revealNextWord = () => {
+                    if (!progressiveResponse || progressiveResponse.requestId !== requestId || !paragraph) {
+                        resolve();
+                        return;
+                    }
+
+                    paragraph.textContent += words[wordIndex];
+                    wordIndex += 1;
+
+                    if (wordIndex >= words.length) {
+                        responseRevealTimer = 0;
+                        progressiveResponse = null;
+                        resolve();
+                        return;
+                    }
+
+                    responseRevealTimer = window.setTimeout(
+                        revealNextWord,
+                        Math.max(8, Math.round(delays[wordIndex - 1] * acceleration))
+                    );
+                };
+
+                if (prefersReducedMotion()) {
+                    paragraph.textContent = text;
+                    progressiveResponse = null;
+                    resolve();
+                    return;
+                }
+
+                revealNextWord();
+            });
+        };
+
         const renderConversation = (conversation) => {
+            removeThinkingMessage();
+            cancelProgressiveResponse(false);
             messages.textContent = '';
             hasConversation = false;
             hasCanonicalConversation = false;
+            canonicalConversation = normaliseConversation(conversation);
 
-            if (Array.isArray(conversation)) {
-                conversation.forEach((entry) => {
-                    if (!entry || typeof entry !== 'object') {
-                        return;
-                    }
-
-                    const role = entry.role === 'user' ? 'user' : entry.role === 'assistant' ? 'assistant' : '';
-                    const message = normaliseText(entry.message);
-                    if (role === '' || message === '') {
-                        return;
-                    }
-
-                    addMessage(role, message, {
-                        period: entry.period,
-                    });
-                    hasCanonicalConversation = true;
-                });
-            }
+            canonicalConversation.forEach((entry) => {
+                addMessage(entry.role, entry.message, { period: entry.period });
+                hasCanonicalConversation = true;
+            });
 
             if (!hasCanonicalConversation) {
                 hasConversation = false;
@@ -432,8 +562,11 @@
         const applyServiceStatus = (payload) => {
             const data = payload && typeof payload === 'object' ? payload.data : null;
             const nextAvailability = data && typeof data.availability === 'string' ? data.availability : 'unavailable';
+            const conversation = normaliseConversation(data && Array.isArray(data.conversation) ? data.conversation : []);
 
-            renderConversation(data && Array.isArray(data.conversation) ? data.conversation : []);
+            if (!conversationsMatch(conversation, canonicalConversation) || !renderedConversationMatches(conversation)) {
+                renderConversation(conversation);
+            }
             setAvailability(nextAvailability);
             const statusMessage = statusMessageForAvailability(availability);
 
@@ -567,6 +700,52 @@
             resizeInput();
         };
 
+        const invalidateChatRequest = (completeProgressiveResponse = false) => {
+            chatRequestId += 1;
+            window.clearTimeout(activeRequestTimeout);
+            activeRequestTimeout = 0;
+
+            if (activeAbortController) {
+                activeAbortController.abort();
+            }
+
+            activeAbortController = null;
+            removeThinkingMessage();
+            cancelProgressiveResponse(completeProgressiveResponse);
+            setProcessing(false);
+        };
+
+        const presentChatResponse = (data, requestId) => {
+            const message = normaliseText(data.message);
+            const conversation = normaliseConversation(data.conversation);
+            const lastEntry = conversation[conversation.length - 1];
+
+            removeThinkingMessage();
+
+            if (lastEntry && lastEntry.role === 'assistant' && lastEntry.message === message) {
+                const previousConversation = conversation.slice(0, -1);
+                if (!renderedConversationMatches(previousConversation)) {
+                    renderConversation(previousConversation);
+                }
+
+                canonicalConversation = conversation;
+                hasCanonicalConversation = true;
+                return revealAssistantResponse(message, { period: lastEntry.period || data.period }, requestId);
+            }
+
+            if (conversation.length > 0 && !renderedConversationMatches(conversation)) {
+                renderConversation(conversation);
+            }
+
+            if (lastEntry && lastEntry.role === 'assistant' && lastEntry.message === message) {
+                return Promise.resolve();
+            }
+
+            canonicalConversation = conversation.concat({ role: 'assistant', message, period: data.period });
+            hasCanonicalConversation = true;
+            return revealAssistantResponse(message, { period: data.period }, requestId);
+        };
+
         const sendMessage = (rawMessage) => {
             const message = normaliseText(rawMessage);
 
@@ -601,7 +780,10 @@
 
             setProcessing(true);
             const abortController = typeof AbortController === 'function' ? new AbortController() : null;
-            const requestTimeout = abortController
+            const requestId = chatRequestId + 1;
+            chatRequestId = requestId;
+            activeAbortController = abortController;
+            activeRequestTimeout = abortController
                 ? window.setTimeout(() => abortController.abort(), requestTimeoutMs)
                 : 0;
             let chatRequest;
@@ -619,7 +801,9 @@
                     body: JSON.stringify({ message }),
                 });
             } catch {
-                window.clearTimeout(requestTimeout);
+                window.clearTimeout(activeRequestTimeout);
+                activeRequestTimeout = 0;
+                activeAbortController = null;
                 setProcessing(false);
                 addStateMessage('No se ha podido iniciar la consulta. Conservamos tu borrador para que puedas volver a intentarlo.', 'error');
                 return;
@@ -628,33 +812,45 @@
             addMessage('user', message);
             resetComposer();
             announceStatus('Estoy revisando tu consulta.');
+            showThinkingMessage();
 
             chatRequest
                 .then((response) => response.json().catch(() => null).then((payload) => ({ response, payload })))
                 .then(({ response, payload }) => {
-                    if (!response.ok || !payload || payload.ok !== true || !payload.data || typeof payload.data.message !== 'string') {
+                    if (requestId !== chatRequestId) {
+                        return null;
+                    }
+
+                    if (
+                        !response.ok
+                        || !payload
+                        || payload.ok !== true
+                        || !payload.data
+                        || typeof payload.data.message !== 'string'
+                        || normaliseText(payload.data.message) === ''
+                    ) {
                         const errorMessage = safeErrorMessage(payload, response.status);
+                        removeThinkingMessage();
                         addMessage('assistant', errorMessage, { tone: 'error', state: true });
 
                         if (response.status === 401 || response.status === 429) {
                             setAvailability('unavailable');
                         }
-                        return;
-                    }
-
-                    if (Array.isArray(payload.data.conversation)) {
-                        renderConversation(payload.data.conversation);
-                    } else {
-                        addMessage('assistant', payload.data.message, {
-                            period: payload.data.period,
-                        });
+                        return null;
                     }
 
                     if (typeof payload.data.availability === 'string') {
                         setAvailability(payload.data.availability);
                     }
+
+                    return presentChatResponse(payload.data, requestId);
                 })
                 .catch((error) => {
+                    if (requestId !== chatRequestId) {
+                        return;
+                    }
+
+                    removeThinkingMessage();
                     const errorMessage = error && error.name === 'AbortError'
                         ? 'He tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.'
                         : 'No he podido conectar en este momento. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.';
@@ -665,7 +861,14 @@
                     );
                 })
                 .finally(() => {
-                    window.clearTimeout(requestTimeout);
+                    if (requestId !== chatRequestId) {
+                        return;
+                    }
+
+                    window.clearTimeout(activeRequestTimeout);
+                    activeRequestTimeout = 0;
+                    activeAbortController = null;
+                    removeThinkingMessage();
                     setProcessing(false);
                     loadStatus();
                 });
@@ -676,6 +879,8 @@
                 return;
             }
 
+            removeThinkingMessage();
+            cancelProgressiveResponse(false);
             activeRequest = true;
             newConversationButton.setAttribute('aria-busy', 'true');
             announceStatus('Empezamos una nueva conversación.');
@@ -744,6 +949,10 @@
         const closePanel = (returnFocus) => {
             if (!panelOpen) {
                 return;
+            }
+
+            if (activeRequest || thinkingMessage || progressiveResponse) {
+                invalidateChatRequest(true);
             }
 
             panelOpen = false;

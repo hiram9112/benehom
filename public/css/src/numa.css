@@ -355,6 +355,22 @@
     color: var(--bh-negative-ink);
 }
 
+.bh-numa-message.is-assistant.is-thinking .bh-numa-message-content{
+    border-left-color: var(--bh-border-strong);
+    color: var(--bh-text-muted);
+}
+
+.bh-numa-message.is-assistant.is-thinking .bh-numa-message-content > p{
+    display: inline-block;
+    background: linear-gradient(90deg, var(--bh-text-muted) 0%, var(--bh-text-main) 50%, var(--bh-text-muted) 100%);
+    background-clip: text;
+    background-size: 200% 100%;
+    color: transparent;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: bh-numa-thinking-shimmer 1500ms ease-in-out infinite;
+}
+
 .bh-numa-message-meta{
     margin-top: 0.45rem !important;
     color: var(--bh-text-muted);
@@ -518,6 +534,16 @@
     }
 }
 
+@keyframes bh-numa-thinking-shimmer{
+    from{
+        background-position: 100% 0;
+    }
+
+    to{
+        background-position: -100% 0;
+    }
+}
+
 @keyframes bh-numa-tooltip-in{
     from{
         opacity: 0;
@@ -580,6 +606,13 @@
     }
 
     .bh-numa-submit.is-processing .bh-numa-submit-processing{
+        animation: none;
+    }
+
+    .bh-numa-message.is-assistant.is-thinking .bh-numa-message-content > p{
+        background: none;
+        color: var(--bh-text-muted);
+        -webkit-text-fill-color: currentColor;
         animation: none;
     }
 }

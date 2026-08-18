@@ -7,6 +7,7 @@
     const OPEN_LABEL = 'Abrir Numa';
     const CLOSE_LABEL = 'Cerrar Numa';
     const MAX_INPUT_HEIGHT = 120;
+    const PANEL_TRANSITION_DURATION_MS = 220;
 
     const EMPTY_MESSAGES = [
         '¿Qué quieres revisar hoy?',
@@ -155,6 +156,28 @@
         let hasConversation = false;
         let hasCanonicalConversation = false;
         let availability = 'unavailable';
+        let panelTransitionFrame = 0;
+        let panelCloseTimer = 0;
+
+        const prefersReducedMotion = () => window.matchMedia
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        const clearPanelTransitions = () => {
+            window.cancelAnimationFrame(panelTransitionFrame);
+            window.clearTimeout(panelCloseTimer);
+            panelTransitionFrame = 0;
+            panelCloseTimer = 0;
+        };
+
+        const finishPanelClose = () => {
+            if (panelOpen) {
+                return;
+            }
+
+            clearPanelTransitions();
+            panel.classList.remove('is-numa-entering', 'is-numa-leaving');
+            panel.hidden = true;
+        };
 
         const clearTooltipTimer = () => {
             window.clearTimeout(tooltipTimer);
@@ -694,11 +717,23 @@
             }
 
             panelOpen = true;
+            clearPanelTransitions();
             hideTooltip(true);
             panel.hidden = false;
+            panel.classList.remove('is-numa-leaving');
             launcher.setAttribute('aria-expanded', 'true');
             launcher.setAttribute('aria-label', CLOSE_LABEL);
             widget.classList.add('is-numa-open');
+
+            if (!prefersReducedMotion()) {
+                panel.classList.add('is-numa-entering');
+                panel.getBoundingClientRect();
+                panelTransitionFrame = window.requestAnimationFrame(() => {
+                    panelTransitionFrame = 0;
+                    panel.classList.remove('is-numa-entering');
+                });
+            }
+
             renderInitialState();
             loadStatus();
             focusFirstPanelTarget(panel, closeButton);
@@ -711,10 +746,18 @@
 
             panelOpen = false;
             defaultTooltipSuppressed = true;
-            panel.hidden = true;
+            clearPanelTransitions();
+            panel.classList.remove('is-numa-entering');
             launcher.setAttribute('aria-expanded', 'false');
             launcher.setAttribute('aria-label', OPEN_LABEL);
             widget.classList.remove('is-numa-open');
+
+            if (prefersReducedMotion()) {
+                finishPanelClose();
+            } else {
+                panel.classList.add('is-numa-leaving');
+                panelCloseTimer = window.setTimeout(finishPanelClose, PANEL_TRANSITION_DURATION_MS + 40);
+            }
 
             if (returnFocus) {
                 launcher.focus();
@@ -735,6 +778,12 @@
         closeButton.addEventListener('click', () => closePanel(true));
         newConversationButton.addEventListener('click', startNewConversation);
         statusRetryButton.addEventListener('click', loadStatus);
+
+        panel.addEventListener('transitionend', (event) => {
+            if (event.target === panel && event.propertyName === 'opacity' && !panelOpen) {
+                finishPanelClose();
+            }
+        });
 
         launcher.addEventListener('pointerenter', () => {
             hovering = true;

@@ -202,8 +202,13 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('env(safe-area-inset-bottom)', $css);
         self::assertStringContainsString('@media (min-width: 768px)', $css);
         self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
+        self::assertStringContainsString('grid-template-columns: minmax(0, 1fr)', $css);
         self::assertStringContainsString('grid-template-rows: minmax(0, 1fr) auto', $css);
-        self::assertStringContainsString('grid-template-columns: minmax(0, 1fr) auto 44px', $css);
+        self::assertStringContainsString('grid-column: 1', $css);
+        self::assertStringContainsString('grid-template-columns: minmax(0, 1fr) minmax(2.25rem, auto) 44px', $css);
+        self::assertStringContainsString('transition: opacity 220ms ease-out, transform 220ms ease-out', $css);
+        self::assertStringContainsString('.bh-numa-panel.is-numa-entering,', $css);
+        self::assertStringContainsString('width: 100%', $css);
         self::assertStringContainsString('transform: translateY(-8%)', $css);
         self::assertStringContainsString('white-space: nowrap', $css);
         self::assertStringContainsString('background: var(--bh-brand)', $css);
@@ -367,6 +372,12 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("launcher.setAttribute('aria-expanded', 'false')", $javascript);
         self::assertStringContainsString("launcher.setAttribute('aria-label', CLOSE_LABEL)", $javascript);
         self::assertStringContainsString("launcher.setAttribute('aria-label', OPEN_LABEL)", $javascript);
+        self::assertStringContainsString('const PANEL_TRANSITION_DURATION_MS = 220', $javascript);
+        self::assertStringContainsString("window.matchMedia('(prefers-reduced-motion: reduce)').matches", $javascript);
+        self::assertStringContainsString("panel.classList.add('is-numa-entering')", $javascript);
+        self::assertStringContainsString("panel.classList.add('is-numa-leaving')", $javascript);
+        self::assertStringContainsString('panel.hidden = true', $javascript);
+        self::assertStringContainsString("panel.addEventListener('transitionend'", $javascript);
         self::assertStringContainsString('defaultTooltipSuppressed = true', $javascript);
         self::assertStringContainsString('if (panelOpen || !initialTooltipDismissed || defaultTooltipSuppressed)', $javascript);
         self::assertStringContainsString("event.key === 'Escape'", $javascript);

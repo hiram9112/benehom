@@ -74,6 +74,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('maxlength="300"', $html);
         self::assertStringContainsString('>0/300</span>', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);
+        self::assertStringContainsString('/img/numa/numa-static-sm.webp?v=', $html);
         self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
         self::assertStringContainsString('/img/numa/runtime/numa-body.webp?v=', $html);
         self::assertStringContainsString('/img/numa/runtime/blink/numa-face-00.webp?v=', $html);
@@ -273,7 +274,7 @@ final class NumaLauncherTest extends TestCase
     {
         $html = $this->renderLauncher();
 
-        self::assertStringContainsString('/img/numa/numa-static.webp?v=', $html);
+        self::assertStringContainsString('/img/numa/numa-static-sm.webp?v=', $html);
         self::assertStringContainsString('/img/numa/numa-static-master.png?v=', $html);
         self::assertStringContainsString('/img/numa/runtime/numa-body.webp?v=', $html);
         self::assertStringContainsString('/img/numa/runtime/blink/numa-face-01.webp?v=', $html);
@@ -286,6 +287,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-static', $html);
         self::assertStringContainsString('data-numa-animated', $html);
         self::assertStringNotContainsString('data-numa-hybrid', $html);
+        self::assertStringContainsString('<noscript>', $html);
+        self::assertStringContainsString('Numa necesita JavaScript para funcionar', $html);
         $assets = $this->renderAssets();
         self::assertStringContainsString('/js/vendor/gsap/gsap.min.js?v=', $assets);
         self::assertStringContainsString('/js/numa-character.js?v=', $assets);
@@ -732,6 +735,40 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('thinking: 25000', $javascript);
         self::assertStringNotContainsString('answer: 1200', $javascript);
         self::assertStringNotContainsString('setState(stableState)', $javascript);
+    }
+
+    public function testCssIncluyeMejorasResponsiveYDegradacion(): void
+    {
+        $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
+
+        self::assertIsString($css);
+        self::assertStringContainsString('.bh-numa-message-content{', $css);
+        self::assertStringContainsString('overflow-wrap: anywhere', $css);
+        self::assertStringContainsString('word-break: break-word', $css);
+        self::assertStringContainsString('.bh-numa-input{', $css);
+        self::assertStringContainsString('font-size: 1rem', $css);
+        self::assertStringContainsString('@media (max-width: 389.98px)', $css);
+        self::assertStringContainsString('@media (max-width: 359.98px)', $css);
+        self::assertStringContainsString('@media (max-width: 319.98px)', $css);
+        self::assertStringContainsString('@media (max-height: 500px) and (orientation: landscape)', $css);
+        self::assertStringContainsString('.bh-numa-noscript{', $css);
+        self::assertStringContainsString('Numa necesita JavaScript para funcionar', $this->renderLauncher());
+    }
+
+    public function testFallbackEstaticoOptimizadoTieneDimensionesYTransparencia(): void
+    {
+        $optimizedPath = BASE_PATH . '/public/img/numa/numa-static-sm.webp';
+        $optimizedSize = getimagesize($optimizedPath);
+
+        self::assertIsArray($optimizedSize, $optimizedPath);
+        self::assertSame([384, 384], [$optimizedSize[0], $optimizedSize[1]], $optimizedPath);
+        self::assertSame('image/webp', $optimizedSize['mime'], $optimizedPath);
+
+        $optimizedImage = imagecreatefromwebp($optimizedPath);
+        self::assertNotFalse($optimizedImage, $optimizedPath);
+        self::assertGreaterThan(0, (imagecolorat($optimizedImage, 0, 0) >> 24) & 0x7F, $optimizedPath);
+        self::assertLessThan(90000, filesize($optimizedPath), $optimizedPath);
+        imagedestroy($optimizedImage);
     }
 
     private function renderLauncher(string $mode = 'private'): string

@@ -93,7 +93,7 @@ function bh_numa_launcher(string $mode = 'private'): void
             <span class="bh-numa-launcher-character" aria-hidden="true">
                 <picture class="bh-numa-launcher-picture bh-numa-launcher-static" data-numa-static>
                     <source
-                        srcset="<?= htmlspecialchars(bh_asset('img/numa/numa-static.webp'), ENT_QUOTES, 'UTF-8') ?>"
+                        srcset="<?= htmlspecialchars(bh_asset('img/numa/numa-static-sm.webp'), ENT_QUOTES, 'UTF-8') ?>"
                         type="image/webp">
                     <img
                         src="<?= htmlspecialchars(bh_asset('img/numa/numa-static-master.png'), ENT_QUOTES, 'UTF-8') ?>"
@@ -171,6 +171,9 @@ function bh_numa_launcher(string $mode = 'private'): void
                 </form>
             </div>
         </section>
+        <noscript>
+            <div class="bh-numa-noscript">Numa necesita JavaScript para funcionar. Puedes seguir navegando por BeneHom.</div>
+        </noscript>
     </div>
     <?php
 }

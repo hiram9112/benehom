@@ -62,6 +62,14 @@
         }
     };
 
+    const isPageVisible = () => {
+        if (typeof document.hidden === 'boolean') {
+            return !document.hidden;
+        }
+
+        return true;
+    };
+
     const initialiseCharacter = (launcher) => {
         const staticCharacter = launcher.querySelector('[data-numa-static]');
         const animatedCharacter = launcher.querySelector('[data-numa-animated]');
@@ -91,6 +99,7 @@
         let hovering = false;
         let focusing = false;
         let interactionEngaged = false;
+        let pageVisible = isPageVisible();
         let armFrameIndex = 0;
         let blinkTimer = 0;
         let autoWaveTimer = 0;
@@ -147,6 +156,36 @@
             if (loaded) {
                 restoreNeutralPose();
             }
+        };
+
+        const pauseCharacter = () => {
+            active = false;
+            stopAnimations();
+        };
+
+        const resumeCharacter = () => {
+            if (failed || hasReducedMotion() || !loaded) {
+                return;
+            }
+
+            showAnimatedCharacter();
+        };
+
+        const handleVisibilityChange = () => {
+            const visible = isPageVisible();
+
+            if (visible === pageVisible) {
+                return;
+            }
+
+            pageVisible = visible;
+
+            if (!visible) {
+                pauseCharacter();
+                return;
+            }
+
+            resumeCharacter();
         };
 
         const scheduleBlink = () => {
@@ -347,6 +386,10 @@
             syncInteraction(false);
         });
 
+        if (typeof document.addEventListener === 'function') {
+            document.addEventListener('visibilitychange', handleVisibilityChange, false);
+        }
+
         const showAnimatedCharacter = () => {
             setImage(bodyImage, bodySrc);
             restoreNeutralPose();
@@ -360,6 +403,11 @@
         const activate = () => {
             if (failed || hasReducedMotion()) {
                 stopAnimations();
+                showStaticCharacter();
+                return;
+            }
+
+            if (!pageVisible) {
                 showStaticCharacter();
                 return;
             }

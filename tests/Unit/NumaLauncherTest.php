@@ -508,6 +508,20 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('const scrollMessagesToEnd', $javascript);
     }
 
+    public function testNuevaConversacionPideConfirmacionSoloConTranscriptVisibleYNoBorraElBorradorSinElla(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString("const NEW_CONVERSATION_CONFIRM_TEXT = 'Empezar una conversación nueva borra el contexto de esta conversación, pero no tu consumo. ¿Quieres continuar?'", $javascript);
+        self::assertStringContainsString('newConversationButton.disabled = activeRequest || !hasCanonicalConversation', $javascript);
+        self::assertStringContainsString('if (typeof window.confirm === \'function\' && !window.confirm(NEW_CONVERSATION_CONFIRM_TEXT))', $javascript);
+        self::assertMatchesRegularExpression('/if \(typeof window\.confirm === \'function\' && !window\.confirm\(NEW_CONVERSATION_CONFIRM_TEXT\)\) \{\s+return;\s+\}/', $javascript);
+        self::assertStringContainsString('applyServiceStatus(payload);', $javascript);
+        self::assertStringContainsString('resetComposer();', $javascript);
+        self::assertMatchesRegularExpression('/applyServiceStatus\(payload\);\s+resetComposer\(\);/', $javascript);
+    }
+
     public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void
     {
         foreach (['numa-static'] as $asset) {

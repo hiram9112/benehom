@@ -9,6 +9,7 @@
     const MAX_INPUT_HEIGHT = 120;
     const PANEL_TRANSITION_DURATION_MS = 220;
     const TRANSCRIPT_FOLLOW_THRESHOLD = 48;
+    const NEW_CONVERSATION_CONFIRM_TEXT = 'Empezar una conversación nueva borra el contexto de esta conversación, pero no tu consumo. ¿Quieres continuar?';
 
     const EMPTY_MESSAGES = [
         '¿Qué quieres revisar hoy?',
@@ -908,6 +909,10 @@
                 return;
             }
 
+            if (typeof window.confirm === 'function' && !window.confirm(NEW_CONVERSATION_CONFIRM_TEXT)) {
+                return;
+            }
+
             removeThinkingMessage();
             cancelProgressiveResponse(false);
             activeRequest = true;
@@ -931,6 +936,7 @@
                     }
 
                     applyServiceStatus(payload);
+                    resetComposer();
                     announceStatus('Nueva conversación iniciada.');
                 })
                 .catch(() => {

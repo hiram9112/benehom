@@ -8,6 +8,7 @@
     const CLOSE_LABEL = 'Cerrar Numa';
     const MAX_INPUT_HEIGHT = 120;
     const PANEL_TRANSITION_DURATION_MS = 220;
+    const TRANSCRIPT_FOLLOW_THRESHOLD = 48;
 
     const EMPTY_MESSAGES = [
         '¿Qué quieres revisar hoy?',
@@ -164,6 +165,8 @@
         let thinkingMessage = null;
         let progressiveResponse = null;
         let responseRevealTimer = 0;
+        let transcriptScrollFrame = 0;
+        let followsTranscriptEnd = true;
         let canonicalConversation = [];
 
         const prefersReducedMotion = () => window.matchMedia
@@ -318,8 +321,29 @@
             suggestions.textContent = '';
         };
 
-        const scrollMessagesToEnd = () => {
-            messages.scrollTop = messages.scrollHeight;
+        const isNearTranscriptEnd = () => (
+            messages.scrollHeight - messages.clientHeight - messages.scrollTop <= TRANSCRIPT_FOLLOW_THRESHOLD
+        );
+
+        const scheduleTranscriptScroll = () => {
+            if (!followsTranscriptEnd || transcriptScrollFrame) {
+                return;
+            }
+
+            transcriptScrollFrame = window.requestAnimationFrame(() => {
+                transcriptScrollFrame = 0;
+
+                if (!followsTranscriptEnd) {
+                    return;
+                }
+
+                messages.scrollTop = messages.scrollHeight;
+            });
+        };
+
+        const cancelTranscriptScroll = () => {
+            window.cancelAnimationFrame(transcriptScrollFrame);
+            transcriptScrollFrame = 0;
         };
 
         const normaliseConversation = (conversation) => {
@@ -402,7 +426,7 @@
 
             item.appendChild(content);
             messages.appendChild(item);
-            scrollMessagesToEnd();
+            scheduleTranscriptScroll();
 
             return item;
         };
@@ -418,7 +442,7 @@
             announceStatus(message);
 
             if (lastMessage && lastMessage.dataset.numaStateMessage === message) {
-                scrollMessagesToEnd();
+                scheduleTranscriptScroll();
                 return;
             }
 
@@ -434,6 +458,7 @@
             }
 
             thinkingMessage = null;
+            scheduleTranscriptScroll();
         };
 
         const showThinkingMessage = () => {
@@ -466,6 +491,7 @@
             }
 
             progressiveResponse = null;
+            scheduleTranscriptScroll();
             resolve();
         };
 
@@ -496,10 +522,12 @@
 
                     paragraph.textContent += words[wordIndex];
                     wordIndex += 1;
+                    scheduleTranscriptScroll();
 
                     if (wordIndex >= words.length) {
                         responseRevealTimer = 0;
                         progressiveResponse = null;
+                        scheduleTranscriptScroll();
                         resolve();
                         return;
                     }
@@ -513,6 +541,7 @@
                 if (prefersReducedMotion()) {
                     paragraph.textContent = text;
                     progressiveResponse = null;
+                    scheduleTranscriptScroll();
                     resolve();
                     return;
                 }
@@ -955,6 +984,8 @@
                 invalidateChatRequest(true);
             }
 
+            cancelTranscriptScroll();
+
             panelOpen = false;
             defaultTooltipSuppressed = true;
             clearPanelTransitions();
@@ -1030,6 +1061,10 @@
             updateCounter();
             resizeInput();
             setInteractiveState();
+        });
+
+        messages.addEventListener('scroll', () => {
+            followsTranscriptEnd = isNearTranscriptEnd();
         });
 
         form.addEventListener('submit', (event) => {

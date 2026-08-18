@@ -312,6 +312,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-initial', $html);
         self::assertStringContainsString('data-numa-suggestions', $html);
         self::assertStringContainsString('data-numa-messages', $html);
+        self::assertStringContainsString('data-numa-messages data-lenis-prevent', $html);
         self::assertStringContainsString('data-numa-status', $html);
         self::assertStringContainsString('data-numa-status-retry', $html);
         self::assertStringContainsString('>Reintentar estado</button>', $html);
@@ -489,6 +490,22 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('animation: bh-numa-thinking-shimmer', $css);
         self::assertStringContainsString('@keyframes bh-numa-thinking-shimmer', $css);
         self::assertStringContainsString('-webkit-text-fill-color: currentColor', $css);
+    }
+
+    public function testClienteSigueElTranscriptSinForzarElScrollDeliberado(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString('const TRANSCRIPT_FOLLOW_THRESHOLD = 48', $javascript);
+        self::assertStringContainsString('const isNearTranscriptEnd', $javascript);
+        self::assertStringContainsString('let followsTranscriptEnd = true', $javascript);
+        self::assertStringContainsString('const scheduleTranscriptScroll', $javascript);
+        self::assertStringContainsString('window.requestAnimationFrame', $javascript);
+        self::assertStringContainsString("messages.addEventListener('scroll'", $javascript);
+        self::assertStringContainsString('followsTranscriptEnd = isNearTranscriptEnd();', $javascript);
+        self::assertStringContainsString('const cancelTranscriptScroll', $javascript);
+        self::assertStringNotContainsString('const scrollMessagesToEnd', $javascript);
     }
 
     public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void

@@ -143,7 +143,7 @@ function bh_numa_launcher(string $mode = 'private'): void
                     <div class="bh-numa-suggestions" aria-label="Preguntas sugeridas para Numa" data-numa-suggestions></div>
                 </div>
 
-                <div class="bh-numa-messages" role="log" aria-live="polite" aria-relevant="additions text" data-numa-messages></div>
+                <div class="bh-numa-messages" role="log" aria-live="polite" aria-relevant="additions text" data-numa-messages data-lenis-prevent></div>
 
                 <p class="visually-hidden" role="status" aria-live="polite" data-numa-status></p>
 

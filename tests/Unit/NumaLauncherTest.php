@@ -313,6 +313,11 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-suggestions', $html);
         self::assertStringContainsString('data-numa-messages', $html);
         self::assertStringContainsString('data-numa-messages data-lenis-prevent', $html);
+        self::assertStringContainsString('role="log"', $html);
+        self::assertStringContainsString('aria-relevant="additions"', $html);
+        self::assertStringNotContainsString('aria-relevant="additions text"', $html);
+        self::assertStringContainsString('aria-label="Conversación con Numa"', $html);
+        self::assertStringContainsString('tabindex="0"', $html);
         self::assertStringContainsString('data-numa-status', $html);
         self::assertStringContainsString('data-numa-status-retry', $html);
         self::assertStringContainsString('>Reintentar estado</button>', $html);
@@ -321,11 +326,17 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('data-numa-scope', $html);
         self::assertStringContainsString('data-numa-empty-message', $html);
         self::assertStringContainsString('data-numa-counter', $html);
+        self::assertStringContainsString('data-numa-counter-value', $html);
+        self::assertStringContainsString('id="bh-numa-counter"', $html);
+        self::assertStringContainsString('aria-describedby="bh-numa-counter bh-numa-help"', $html);
+        self::assertStringContainsString('id="bh-numa-help"', $html);
+        self::assertStringContainsString('pulsa Enter para enviar', $html);
+        self::assertStringContainsString('Mayús+Enter para un salto de línea', $html);
+        self::assertStringContainsString('Máximo 300 caracteres.', $html);
         self::assertStringContainsString('data-numa-submit-icon', $html);
         self::assertStringContainsString('aria-label="Enviar mensaje"', $html);
         self::assertStringContainsString('placeholder="Pregunta a Numa…"', $html);
         self::assertStringContainsString('rows="1"', $html);
-        self::assertStringContainsString('role="log"', $html);
         self::assertStringContainsString('role="status"', $html);
         self::assertStringContainsString('maxlength="300"', $html);
         self::assertStringNotContainsString('Numa responde únicamente sobre BeneHom.', $html);
@@ -382,6 +393,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("launcher.setAttribute('aria-expanded', 'false')", $javascript);
         self::assertStringContainsString("launcher.setAttribute('aria-label', CLOSE_LABEL)", $javascript);
         self::assertStringContainsString("launcher.setAttribute('aria-label', OPEN_LABEL)", $javascript);
+        self::assertStringContainsString('panel.inert = false', $javascript);
+        self::assertStringContainsString('panel.inert = true', $javascript);
         self::assertStringContainsString('const PANEL_TRANSITION_DURATION_MS = 220', $javascript);
         self::assertStringContainsString("window.matchMedia('(prefers-reduced-motion: reduce)').matches", $javascript);
         self::assertStringContainsString("panel.classList.add('is-numa-entering')", $javascript);
@@ -520,6 +533,69 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('applyServiceStatus(payload);', $javascript);
         self::assertStringContainsString('resetComposer();', $javascript);
         self::assertMatchesRegularExpression('/applyServiceStatus\(payload\);\s+resetComposer\(\);/', $javascript);
+    }
+
+    public function testClienteAnunciaSoloContenidoNuevoYSilenciaLaRestauracionDelHistorial(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString("speakerPrefix.textContent = canonicalRole === 'user' ? 'Tú: ' : 'Numa: '", $javascript);
+        self::assertStringContainsString("speakerPrefix.className = 'visually-hidden'", $javascript);
+        self::assertStringContainsString('const liveState = messages.getAttribute(\'aria-live\')', $javascript);
+        self::assertStringContainsString("messages.setAttribute('aria-live', 'off')", $javascript);
+        self::assertStringContainsString('messages.textContent = \'\'', $javascript);
+        self::assertStringContainsString('messages.setAttribute(\'aria-live\', liveState)', $javascript);
+        self::assertStringContainsString('const settleProgressiveResponse', $javascript);
+        self::assertStringContainsString("addMessage('assistant', text, metadata)", $javascript);
+        self::assertStringContainsString('if (item.isConnected) {', $javascript);
+        self::assertStringContainsString('item.remove();', $javascript);
+        self::assertStringNotContainsString("announceStatus(message);\n\n            if (lastMessage && lastMessage.dataset.numaStateMessage === message)", $javascript);
+    }
+
+    public function testClienteGestionaEnterShiftEnterYCompositorSinRobarFoco(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString("input.addEventListener('keydown', (event) => {", $javascript);
+        self::assertStringContainsString("if (event.key !== 'Enter' || event.shiftKey || event.isComposing) {", $javascript);
+        self::assertStringContainsString('event.preventDefault();', $javascript);
+        self::assertStringContainsString('sendMessage(input.value);', $javascript);
+        self::assertStringContainsString('let composerHadFocus = false', $javascript);
+        self::assertStringContainsString('if (processing && (document.activeElement === input || document.activeElement === submitButton)) {', $javascript);
+        self::assertStringContainsString('composerHadFocus = true;', $javascript);
+        self::assertStringContainsString('document.activeElement === document.body || document.activeElement === input', $javascript);
+        self::assertStringContainsString('input.focus();', $javascript);
+        self::assertStringContainsString("form.setAttribute('aria-busy', processing ? 'true' : 'false')", $javascript);
+    }
+
+    public function testClienteEvitaQueEscapeCierreNumaConOtroOverlayActivo(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString('const hasBlockingOverlay = () => Boolean(', $javascript);
+        self::assertStringContainsString("document.querySelector('.modal.show, .offcanvas.show, [data-bh-popover][aria-expanded=\"true\"]')", $javascript);
+        self::assertStringContainsString("if (event.key === 'Escape' && !hasBlockingOverlay()) {", $javascript);
+        self::assertStringContainsString("if (event.key !== 'Escape' || hasBlockingOverlay()) {", $javascript);
+        self::assertStringContainsString('}, { capture: true });', $javascript);
+    }
+
+    public function testEstilosMantienenZonaTactilSuficiente(): void
+    {
+        $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
+
+        self::assertIsString($css);
+        self::assertStringContainsString('.bh-numa-launcher{', $css);
+        self::assertStringContainsString('touch-action: manipulation', $css);
+        self::assertStringContainsString('.bh-numa-suggestion{', $css);
+        self::assertStringContainsString('min-height: 44px', $css);
+        self::assertStringContainsString('.bh-numa-new-conversation{', $css);
+        self::assertStringContainsString('min-height: 44px', $css);
+        self::assertStringContainsString('.bh-numa-submit{', $css);
+        self::assertStringContainsString('width: 44px', $css);
+        self::assertStringContainsString('height: 44px', $css);
     }
 
     public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void

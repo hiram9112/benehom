@@ -143,7 +143,7 @@ function bh_numa_launcher(string $mode = 'private'): void
                     <div class="bh-numa-suggestions" aria-label="Preguntas sugeridas para Numa" data-numa-suggestions></div>
                 </div>
 
-                <div class="bh-numa-messages" role="log" aria-live="polite" aria-relevant="additions text" data-numa-messages data-lenis-prevent></div>
+                <div class="bh-numa-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación con Numa" tabindex="0" data-numa-messages data-lenis-prevent></div>
 
                 <p class="visually-hidden" role="status" aria-live="polite" data-numa-status></p>
 
@@ -157,14 +157,16 @@ function bh_numa_launcher(string $mode = 'private'): void
                             rows="1"
                             maxlength="<?= $maxMessageLength ?>"
                             placeholder="Pregunta a Numa…"
+                            aria-describedby="bh-numa-counter bh-numa-help"
                             data-numa-input
                             disabled></textarea>
-                        <span class="bh-numa-counter" data-numa-counter>0/<?= $maxMessageLength ?></span>
+                        <span class="bh-numa-counter" id="bh-numa-counter" data-numa-counter><span class="visually-hidden">Caracteres: </span><span data-numa-counter-value>0/<?= $maxMessageLength ?></span></span>
                         <button type="submit" class="bh-numa-submit" aria-label="Enviar mensaje" data-numa-submit disabled>
                             <i class="ti ti-arrow-up" aria-hidden="true" data-numa-submit-icon></i>
                             <span class="bh-numa-submit-processing" aria-hidden="true"></span>
                         </button>
                     </div>
+                    <p class="visually-hidden" id="bh-numa-help">Escribe tu pregunta y pulsa Enter para enviar. Usa Mayús+Enter para un salto de línea. Máximo <?= $maxMessageLength ?> caracteres.</p>
                     <button type="button" class="bh-numa-status-retry" data-numa-status-retry hidden>Reintentar estado</button>
                 </form>
             </div>

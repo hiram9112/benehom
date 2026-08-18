@@ -23,6 +23,7 @@
     background: transparent;
     overflow: visible;
     cursor: pointer;
+    touch-action: manipulation;
 }
 
 .bh-numa-launcher:focus-visible{
@@ -184,7 +185,7 @@
     top: 0.72rem;
     left: 1rem;
     z-index: 2;
-    min-height: 36px;
+    min-height: 44px;
     padding: 0.38rem 0.62rem;
     border: 1px solid var(--bh-border-color);
     border-radius: var(--bh-radius-pill);
@@ -194,6 +195,7 @@
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-semibold);
     cursor: pointer;
+    touch-action: manipulation;
 }
 
 .bh-numa-new-conversation:hover:not(:disabled){
@@ -263,7 +265,7 @@
 .bh-numa-suggestion{
     width: max-content;
     max-width: 100%;
-    min-height: 40px;
+    min-height: 44px;
     padding: 0.45rem 0.7rem;
     border: 1px solid var(--bh-border-color);
     border-radius: var(--bh-radius-pill);
@@ -275,6 +277,7 @@
     line-height: var(--bh-line-tight);
     white-space: nowrap;
     cursor: pointer;
+    touch-action: manipulation;
 }
 
 .bh-numa-suggestion:hover{
@@ -485,6 +488,7 @@
     color: var(--bh-text-inverse);
     background: var(--bh-brand);
     cursor: pointer;
+    touch-action: manipulation;
 }
 
 .bh-numa-submit > i{

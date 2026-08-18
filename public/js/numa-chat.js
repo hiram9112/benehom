@@ -120,6 +120,7 @@
         const submitIcon = panel ? panel.querySelector('[data-numa-submit-icon]') : null;
         const statusRetryButton = panel ? panel.querySelector('[data-numa-status-retry]') : null;
         const counter = panel ? panel.querySelector('[data-numa-counter]') : null;
+        const counterValue = panel ? panel.querySelector('[data-numa-counter-value]') : null;
         const initialState = panel ? panel.querySelector('[data-numa-initial]') : null;
         const emptyMessage = panel ? panel.querySelector('[data-numa-empty-message]') : null;
         const suggestions = panel ? panel.querySelector('[data-numa-suggestions]') : null;
@@ -169,9 +170,14 @@
         let transcriptScrollFrame = 0;
         let followsTranscriptEnd = true;
         let canonicalConversation = [];
+        let composerHadFocus = false;
 
         const prefersReducedMotion = () => window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        const hasBlockingOverlay = () => Boolean(
+            document.querySelector('.modal.show, .offcanvas.show, [data-bh-popover][aria-expanded="true"]')
+        );
 
         const clearPanelTransitions = () => {
             window.cancelAnimationFrame(panelTransitionFrame);
@@ -251,7 +257,9 @@
         const canSend = () => (availability === 'available' || availability === 'near_limit') && !activeRequest;
 
         const updateCounter = () => {
-            if (counter) {
+            if (counterValue) {
+                counterValue.textContent = `${input.value.length}/${maxMessageLength}`;
+            } else if (counter) {
                 counter.textContent = `${input.value.length}/${maxMessageLength}`;
             }
         };
@@ -274,6 +282,10 @@
         };
 
         const setProcessing = (processing) => {
+            if (processing && (document.activeElement === input || document.activeElement === submitButton)) {
+                composerHadFocus = true;
+            }
+
             activeRequest = processing;
             submitButton.classList.toggle('is-processing', processing);
             submitButton.setAttribute('aria-label', processing ? 'Procesando consulta' : 'Enviar mensaje');
@@ -284,6 +296,14 @@
             }
 
             setInteractiveState();
+
+            if (!processing && composerHadFocus) {
+                composerHadFocus = false;
+
+                if (panelOpen && canSend() && (document.activeElement === document.body || document.activeElement === input)) {
+                    input.focus();
+                }
+            }
         };
 
         const setStatusRetryVisible = (visible) => {
@@ -419,6 +439,10 @@
 
             const content = document.createElement('div');
             content.className = 'bh-numa-message-content';
+            const speakerPrefix = document.createElement('span');
+            speakerPrefix.className = 'visually-hidden';
+            speakerPrefix.textContent = canonicalRole === 'user' ? 'Tú: ' : 'Numa: ';
+            content.appendChild(speakerPrefix);
             content.appendChild(createTextNode('p', '', text));
 
             if (canonicalRole === 'assistant' && metadata) {
@@ -439,8 +463,6 @@
             if (message === '') {
                 return;
             }
-
-            announceStatus(message);
 
             if (lastMessage && lastMessage.dataset.numaStateMessage === message) {
                 scheduleTranscriptScroll();
@@ -513,7 +535,20 @@
             let wordIndex = 0;
 
             return new Promise((resolve) => {
-                progressiveResponse = { item, text, requestId, resolve };
+                progressiveResponse = { item, text, metadata, requestId, resolve };
+
+                const settleProgressiveResponse = () => {
+                    responseRevealTimer = 0;
+                    progressiveResponse = null;
+                    scheduleTranscriptScroll();
+
+                    addMessage('assistant', text, metadata);
+                    if (item.isConnected) {
+                        item.remove();
+                    }
+
+                    resolve();
+                };
 
                 const revealNextWord = () => {
                     if (!progressiveResponse || progressiveResponse.requestId !== requestId || !paragraph) {
@@ -526,10 +561,7 @@
                     scheduleTranscriptScroll();
 
                     if (wordIndex >= words.length) {
-                        responseRevealTimer = 0;
-                        progressiveResponse = null;
-                        scheduleTranscriptScroll();
-                        resolve();
+                        settleProgressiveResponse();
                         return;
                     }
 
@@ -541,9 +573,7 @@
 
                 if (prefersReducedMotion()) {
                     paragraph.textContent = text;
-                    progressiveResponse = null;
-                    scheduleTranscriptScroll();
-                    resolve();
+                    settleProgressiveResponse();
                     return;
                 }
 
@@ -554,6 +584,8 @@
         const renderConversation = (conversation) => {
             removeThinkingMessage();
             cancelProgressiveResponse(false);
+            const liveState = messages.getAttribute('aria-live');
+            messages.setAttribute('aria-live', 'off');
             messages.textContent = '';
             hasConversation = false;
             hasCanonicalConversation = false;
@@ -567,6 +599,12 @@
             if (!hasCanonicalConversation) {
                 hasConversation = false;
                 renderInitialState();
+            }
+
+            if (liveState) {
+                messages.setAttribute('aria-live', liveState);
+            } else {
+                messages.removeAttribute('aria-live');
             }
 
             setInteractiveState();
@@ -962,6 +1000,7 @@
             clearPanelTransitions();
             hideTooltip(true);
             panel.hidden = false;
+            panel.inert = false;
             panel.classList.remove('is-numa-leaving');
             launcher.setAttribute('aria-expanded', 'true');
             launcher.setAttribute('aria-label', CLOSE_LABEL);
@@ -996,6 +1035,7 @@
             defaultTooltipSuppressed = true;
             clearPanelTransitions();
             panel.classList.remove('is-numa-entering');
+            panel.inert = true;
             launcher.setAttribute('aria-expanded', 'false');
             launcher.setAttribute('aria-label', OPEN_LABEL);
             widget.classList.remove('is-numa-open');
@@ -1069,6 +1109,15 @@
             setInteractiveState();
         });
 
+        input.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || event.shiftKey || event.isComposing) {
+                return;
+            }
+
+            event.preventDefault();
+            sendMessage(input.value);
+        });
+
         messages.addEventListener('scroll', () => {
             followsTranscriptEnd = isNearTranscriptEnd();
         });
@@ -1079,14 +1128,14 @@
         });
 
         panel.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' && !hasBlockingOverlay()) {
                 event.preventDefault();
                 closePanel(true);
             }
         });
 
         document.addEventListener('keydown', (event) => {
-            if (event.key !== 'Escape') {
+            if (event.key !== 'Escape' || hasBlockingOverlay()) {
                 return;
             }
 
@@ -1100,7 +1149,7 @@
                 event.preventDefault();
                 hideTooltip(true);
             }
-        });
+        }, { capture: true });
 
         resetComposer();
         renderInitialState();

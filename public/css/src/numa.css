@@ -224,29 +224,6 @@
     padding: 0.75rem 1rem 1rem;
 }
 
-.bh-numa-public-note{
-    grid-row: 1;
-    grid-column: 1;
-    z-index: 1;
-    align-self: start;
-    margin: 2.7rem 0 0;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--bh-border-color);
-    border-radius: var(--bh-radius-md);
-    color: var(--bh-text-muted);
-    background: var(--bh-surface-soft);
-    font-size: var(--bh-text-xs);
-    line-height: var(--bh-line-normal);
-}
-
-.bh-numa-public-note + .bh-numa-panel-initial{
-    padding-top: 3.4rem;
-}
-
-.bh-numa-public-note ~ .bh-numa-messages{
-    padding-top: 6.6rem;
-}
-
 .bh-numa-panel-initial{
     display: grid;
     grid-area: 1 / 1;
@@ -340,38 +317,42 @@
     justify-content: flex-start;
 }
 
-.bh-numa-message-bubble{
+.bh-numa-message-content{
     max-width: min(82%, 18rem);
-    padding: 0.62rem 0.78rem;
-    border-radius: 16px;
     font-size: 0.9rem;
     line-height: var(--bh-line-normal);
 }
 
-.bh-numa-message-bubble > p{
+.bh-numa-message-content > p{
     margin: 0;
 }
 
-.bh-numa-message.is-user .bh-numa-message-bubble{
+.bh-numa-message.is-user .bh-numa-message-content{
+    padding: 0.62rem 0.78rem;
     border-bottom-right-radius: 6px;
+    border-radius: 16px;
     color: var(--bh-text-inverse);
     background: var(--bh-brand);
 }
 
-.bh-numa-message.is-assistant .bh-numa-message-bubble{
-    border-bottom-left-radius: 6px;
+.bh-numa-message.is-assistant .bh-numa-message-content{
+    max-width: min(88%, 20rem);
     color: var(--bh-text-main);
-    background: var(--bh-brand-soft);
 }
 
-.bh-numa-message.is-assistant.is-warning .bh-numa-message-bubble{
+.bh-numa-message.is-assistant.is-state .bh-numa-message-content{
+    padding-left: 0.65rem;
+    border-left: 2px solid var(--bh-border-strong);
+}
+
+.bh-numa-message.is-assistant.is-warning .bh-numa-message-content{
+    border-left-color: var(--bh-flexible-ink);
     color: var(--bh-flexible-ink);
-    background: var(--bh-warning-soft);
 }
 
-.bh-numa-message.is-assistant.is-error .bh-numa-message-bubble{
+.bh-numa-message.is-assistant.is-error .bh-numa-message-content{
+    border-left-color: var(--bh-negative-ink);
     color: var(--bh-negative-ink);
-    background: var(--bh-negative-soft);
 }
 
 .bh-numa-message-meta{

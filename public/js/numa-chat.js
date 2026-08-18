@@ -265,7 +265,7 @@
         const setProcessing = (processing) => {
             activeRequest = processing;
             submitButton.classList.toggle('is-processing', processing);
-            submitButton.setAttribute('aria-label', processing ? 'Numa está procesando' : 'Enviar mensaje');
+            submitButton.setAttribute('aria-label', processing ? 'Procesando consulta' : 'Enviar mensaje');
             form.setAttribute('aria-busy', processing ? 'true' : 'false');
 
             if (submitIcon) {
@@ -333,26 +333,28 @@
         const addMessage = (role, text, metadata) => {
             markConversationStarted();
 
+            const canonicalRole = role === 'user' ? 'user' : 'assistant';
             const item = document.createElement('article');
-            item.className = `bh-numa-message is-${role}`;
+            item.className = `bh-numa-message is-${canonicalRole}`;
 
             if (metadata && metadata.tone) {
                 item.classList.add(`is-${metadata.tone}`);
             }
 
             if (metadata && metadata.state) {
+                item.classList.add('is-state');
                 item.dataset.numaStateMessage = text;
             }
 
-            const bubble = document.createElement('div');
-            bubble.className = 'bh-numa-message-bubble';
-            bubble.appendChild(createTextNode('p', '', text));
+            const content = document.createElement('div');
+            content.className = 'bh-numa-message-content';
+            content.appendChild(createTextNode('p', '', text));
 
-            if (role === 'assistant' && metadata) {
-                appendPeriod(bubble, metadata.period);
+            if (canonicalRole === 'assistant' && metadata) {
+                appendPeriod(content, metadata.period);
             }
 
-            item.appendChild(bubble);
+            item.appendChild(content);
             messages.appendChild(item);
             scrollMessagesToEnd();
         };
@@ -421,10 +423,10 @@
         };
 
         const statusMessageForAvailability = (value) => ({
-            near_limit: 'Te estás acercando al límite de uso de Numa.',
-            limit_reached: 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.',
-            configuration_required: 'Numa está temporalmente en configuración.',
-            unavailable: 'Numa no está disponible en este momento.',
+            near_limit: 'Te estás acercando al límite de uso.',
+            limit_reached: 'Has alcanzado el límite de uso. Podrás volver a utilizarlo cuando se renueve.',
+            configuration_required: 'Ahora no puedo atender consultas mientras termino de configurarme.',
+            unavailable: 'Ahora no puedo atender consultas. Inténtalo de nuevo más tarde.',
         }[value] || '');
 
         const applyServiceStatus = (payload) => {
@@ -441,7 +443,7 @@
                     availability === 'near_limit' || availability === 'limit_reached' ? 'warning' : 'error'
                 );
             } else {
-                announceStatus('Numa está disponible.');
+                announceStatus('Ya puedes hacer una consulta.');
             }
 
             setInteractiveState();
@@ -458,7 +460,7 @@
 
             if (!statusUrl) {
                 setAvailability('unavailable');
-                addStateMessage('No se ha podido comprobar el estado de Numa.', 'error');
+                addStateMessage('No se ha podido comprobar el estado del servicio.', 'error');
                 setStatusRetryVisible(true);
                 setInteractiveState();
                 return;
@@ -468,7 +470,7 @@
             statusRequestId = requestId;
             statusLoading = true;
             setAvailability('unavailable');
-            announceStatus('Comprobando Numa…');
+            announceStatus('Comprobando disponibilidad…');
             setStatusRetryVisible(true);
             setInteractiveState();
 
@@ -490,7 +492,7 @@
                                 ? isPublicMode
                                     ? 'No se ha podido validar tu identidad temporal. Recarga la página e inténtalo de nuevo.'
                                     : 'La sesión ha caducado. Vuelve a iniciar sesión.'
-                                : 'No se ha podido comprobar el estado de Numa.',
+                                : 'No se ha podido comprobar el estado del servicio.',
                             'error'
                         );
                         setInteractiveState();
@@ -506,7 +508,7 @@
                     }
 
                     setAvailability('unavailable');
-                    addStateMessage('No se ha podido comprobar el estado de Numa.', 'error');
+                    addStateMessage('No se ha podido comprobar el estado del servicio.', 'error');
                     setInteractiveState();
                     setStatusRetryVisible(true);
                 })
@@ -541,15 +543,15 @@
             if (statusCode === 429 || code === 'NUMA_LIMIT_REACHED' || code === 'NUMA_RATE_LIMITED') {
                 return code === 'NUMA_RATE_LIMITED'
                     ? 'Has enviado demasiadas consultas seguidas. Espera un momento antes de volver a intentarlo.'
-                    : 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.';
+                    : 'Has alcanzado el límite de uso. Podrás volver a utilizarlo cuando se renueve.';
             }
 
             if (code === 'NUMA_PROVIDER_TIMEOUT') {
-                return 'Numa ha tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.';
+                return 'He tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.';
             }
 
             if (code === 'NUMA_NOT_AVAILABLE' || statusCode === 503) {
-                return 'Numa no está disponible en este momento. Inténtalo de nuevo más tarde.';
+                return 'Ahora no puedo atender consultas. Inténtalo de nuevo más tarde.';
             }
 
             if (message !== '') {
@@ -576,7 +578,7 @@
                 addStateMessage(
                     availability === 'limit_reached'
                         ? statusMessageForAvailability(availability)
-                        : 'Numa no está lista para recibir otra consulta.',
+                        : 'Ahora no puedo recibir otra consulta.',
                     'warning'
                 );
                 return;
@@ -625,7 +627,7 @@
 
             addMessage('user', message);
             resetComposer();
-            announceStatus('Numa está procesando la consulta.');
+            announceStatus('Estoy revisando tu consulta.');
 
             chatRequest
                 .then((response) => response.json().catch(() => null).then((payload) => ({ response, payload })))
@@ -654,8 +656,8 @@
                 })
                 .catch((error) => {
                     const errorMessage = error && error.name === 'AbortError'
-                        ? 'Numa ha tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.'
-                        : 'No he podido conectar con Numa. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.';
+                        ? 'He tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.'
+                        : 'No he podido conectar en este momento. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.';
                     addMessage(
                         'assistant',
                         errorMessage,
@@ -676,7 +678,7 @@
 
             activeRequest = true;
             newConversationButton.setAttribute('aria-busy', 'true');
-            announceStatus('Iniciando una nueva conversación.');
+            announceStatus('Empezamos una nueva conversación.');
             setInteractiveState();
 
             fetch(newConversationUrl, {

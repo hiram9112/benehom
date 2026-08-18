@@ -54,12 +54,18 @@ function bh_numa_launcher(string $mode = 'private'): void
             'chat' => BASE_URL . 'index.php?r=numa/chat',
             'conversation' => BASE_URL . 'index.php?r=numa/conversation/new',
         ];
-    $emptyMessages = $isPublic
-        ? ['¿Qué quieres saber sobre BeneHom?', '¿En qué concepto de economía familiar puedo ayudarte?', '¿Qué función de BeneHom quieres conocer?']
-        : ['¿Qué quieres revisar hoy?', '¿En qué puedo ayudarte?', '¿Qué quieres consultar?', '¿Hay algo que quieras revisar?', '¿Qué te gustaría saber?', '¿Por dónde empezamos?'];
-    $suggestions = $isPublic
-        ? ['¿Cómo funciona BeneHom?', '¿Qué son los gastos esenciales y flexibles?', '¿Cómo añado un movimiento?', '¿Qué es el ahorro posible?']
-        : ['¿Cuánto he ahorrado este mes?', '¿En qué gasto más?', '¿Qué son gastos esenciales y flexibles?', '¿Cómo funcionan mis metas?', '¿Qué es el ahorro disponible?', 'Compara este mes con el anterior.', '¿Cómo añado un movimiento?', '¿Qué es el ahorro posible?'];
+    $emptyMessages = ['¿Qué quieres revisar hoy?', '¿En qué puedo ayudarte?', '¿Qué quieres consultar?', '¿Hay algo que quieras revisar?', '¿Qué te gustaría saber?', '¿Por dónde empezamos?'];
+    $suggestions = ['¿Cuánto he ahorrado este mes?', '¿En qué gasto más?', '¿Qué son gastos esenciales y flexibles?', '¿Cómo funcionan mis metas?', '¿Qué es el ahorro disponible?', 'Compara este mes con el anterior.', '¿Cómo añado un movimiento?', '¿Qué es el ahorro posible?'];
+    if ($isPublic) {
+        $suggestions = array_values(array_filter(
+            $suggestions,
+            static fn (string $suggestion): bool => in_array($suggestion, [
+                '¿Qué son gastos esenciales y flexibles?',
+                '¿Cómo añado un movimiento?',
+                '¿Qué es el ahorro posible?',
+            ], true)
+        ));
+    }
     $faceFramesJson = htmlspecialchars((string) json_encode($faceFrames, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
     $armFramesJson = htmlspecialchars((string) json_encode($armFrames, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
     ?>
@@ -132,9 +138,6 @@ function bh_numa_launcher(string $mode = 'private'): void
             </button>
 
             <div class="bh-numa-panel-body" data-numa-panel-content>
-                <?php if ($isPublic): ?>
-                    <p class="bh-numa-public-note">Numa responde sobre BeneHom y contenido público. Inicia sesión para analizar tus datos personales.</p>
-                <?php endif; ?>
                 <div class="bh-numa-panel-initial" data-numa-initial>
                     <p data-numa-empty-message></p>
                     <div class="bh-numa-suggestions" aria-label="Preguntas sugeridas para Numa" data-numa-suggestions></div>

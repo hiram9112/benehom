@@ -157,9 +157,17 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-status-url="/index.php?r=numa/public/status"', $html);
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/public/chat"', $html);
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/public/conversation/new"', $html);
-        self::assertStringContainsString('Numa responde sobre BeneHom y contenido público.', $html);
         self::assertStringContainsString('data-numa-empty-messages=', $html);
         self::assertStringContainsString('data-numa-suggestions=', $html);
+        self::assertStringContainsString('¿Qué quieres revisar hoy?', $html);
+        self::assertStringContainsString('¿Qué son gastos esenciales y flexibles?', $html);
+        self::assertStringContainsString('¿Cómo añado un movimiento?', $html);
+        self::assertStringContainsString('¿Qué es el ahorro posible?', $html);
+        self::assertStringNotContainsString('¿Cuánto he ahorrado este mes?', $html);
+        self::assertStringNotContainsString('¿En qué gasto más?', $html);
+        self::assertStringNotContainsString('¿Cómo funcionan mis metas?', $html);
+        self::assertStringNotContainsString('Compara este mes con el anterior.', $html);
+        self::assertStringNotContainsString('bh-numa-public-note', $html);
         self::assertStringNotContainsString('data-numa-tools=', $html);
         self::assertStringNotContainsString('data-numa-usuario', $html);
     }
@@ -204,7 +212,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
         self::assertStringContainsString('grid-template-columns: minmax(0, 1fr)', $css);
         self::assertStringContainsString('grid-template-rows: minmax(0, 1fr) auto', $css);
-        self::assertStringContainsString('grid-column: 1', $css);
+        self::assertStringContainsString('grid-area: 1 / 1', $css);
+        self::assertStringNotContainsString('.bh-numa-public-note', $css);
         self::assertStringContainsString('grid-template-columns: minmax(0, 1fr) minmax(2.25rem, auto) 44px', $css);
         self::assertStringContainsString('transition: opacity 220ms ease-out, transform 220ms ease-out', $css);
         self::assertStringContainsString('.bh-numa-panel.is-numa-entering,', $css);
@@ -212,7 +221,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('transform: translateY(-8%)', $css);
         self::assertStringContainsString('white-space: nowrap', $css);
         self::assertStringContainsString('background: var(--bh-brand)', $css);
-        self::assertStringContainsString('background: var(--bh-negative-soft)', $css);
+        self::assertStringContainsString('border-left-color: var(--bh-negative-ink)', $css);
         self::assertStringNotContainsString('.bh-numa-panel-header', $css);
         self::assertStringNotContainsString('.bh-numa-status{', $css);
         self::assertStringNotContainsString('.bh-numa-scope-note', $css);
@@ -401,8 +410,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("configuredTextList(widget, 'data-numa-suggestions', SUGGESTIONS)", $javascript);
         self::assertStringContainsString('const setAvailability', $javascript);
         self::assertStringContainsString('const statusMessageForAvailability', $javascript);
-        self::assertStringContainsString('Te estás acercando al límite de uso de Numa.', $javascript);
-        self::assertStringContainsString('Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.', $javascript);
+        self::assertStringContainsString('Te estás acercando al límite de uso.', $javascript);
+        self::assertStringContainsString('Has alcanzado el límite de uso. Podrás volver a utilizarlo cuando se renueve.', $javascript);
         self::assertMatchesRegularExpression('/setProcessing\(false\);\s+loadStatus\(\);/', $javascript);
         self::assertStringContainsString('Conservamos tu borrador', $javascript);
         self::assertStringContainsString('AbortController', $javascript);
@@ -437,6 +446,25 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('innerHTML', $javascript);
         self::assertStringNotContainsString('data-numa-sources', $javascript);
         self::assertStringNotContainsString('metadata.sources', $javascript);
+    }
+
+    public function testClienteDistingueMensajesPorSuRolCanonico(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+        $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
+
+        self::assertIsString($javascript);
+        self::assertIsString($css);
+        self::assertStringContainsString("const canonicalRole = role === 'user' ? 'user' : 'assistant'", $javascript);
+        self::assertStringContainsString('item.className = `bh-numa-message is-${canonicalRole}`', $javascript);
+        self::assertStringContainsString("content.className = 'bh-numa-message-content'", $javascript);
+        self::assertStringContainsString("addMessage('assistant', message", $javascript);
+        self::assertStringContainsString("const role = entry.role === 'user' ? 'user' : entry.role === 'assistant' ? 'assistant' : ''", $javascript);
+        self::assertStringContainsString('.bh-numa-message.is-user .bh-numa-message-content', $css);
+        self::assertStringContainsString('justify-content: flex-end', $css);
+        self::assertStringContainsString('.bh-numa-message.is-assistant .bh-numa-message-content', $css);
+        self::assertStringContainsString('.bh-numa-message.is-assistant.is-state .bh-numa-message-content', $css);
+        self::assertStringNotContainsString('.bh-numa-message.is-assistant .bh-numa-message-bubble', $css);
     }
 
     public function testAssetsOptimizadosConservanDimensionesYTransparencia(): void

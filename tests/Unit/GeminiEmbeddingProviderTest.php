@@ -378,6 +378,18 @@ final class GeminiEmbeddingProviderTest extends TestCase
         }
     }
 
+    public function testBloqueaElTransporteRealDuranteTestsAutomatizados(): void
+    {
+        $provider = new \GeminiEmbeddingProvider('key', 'model');
+
+        try {
+            $provider->embed('Consulta documental de BeneHom');
+            self::fail('El transporte real no debe iniciarse durante los tests automatizados.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_CONFIGURATION_ERROR', $exception->getMessage());
+        }
+    }
+
     /**
      * @return array<int, string>
      */

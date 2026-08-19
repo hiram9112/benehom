@@ -667,6 +667,18 @@ final class GeminiNumaProviderTest extends TestCase
         new \GeminiNumaProvider('', 'model');
     }
 
+    public function testBloqueaElTransporteRealDuranteTestsAutomatizados(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model');
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta de prueba'));
+            self::fail('El transporte real no debe iniciarse durante los tests automatizados.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_CONFIGURATION_ERROR', $exception->getMessage());
+        }
+    }
+
     public function testFactoryAplicaFronteraDeDatosAntesDelTransporte(): void
     {
         $_ENV['NUMA_PROVIDER'] = 'gemini';

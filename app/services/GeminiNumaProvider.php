@@ -251,6 +251,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
      */
     public function curlTransport(string $url, array $headers, string $body, int $timeoutSeconds): array
     {
+        if (bh_env_value('APP_ENV') === 'testing') {
+            throw self::configurationError();
+        }
+
         if (!function_exists('curl_init')) {
             throw self::configurationError();
         }

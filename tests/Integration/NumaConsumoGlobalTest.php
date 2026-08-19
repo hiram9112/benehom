@@ -38,6 +38,9 @@ final class NumaConsumoGlobalTest extends TestCase
     /** @var list<int> */
     private array $userIds = [];
 
+    /** @var list<string> */
+    private array $visitorHashes = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -69,6 +72,12 @@ final class NumaConsumoGlobalTest extends TestCase
             $this->db->exec("DELETE FROM numa_reservas WHERE usuario_id IN ($ids)");
             $this->db->exec("DELETE FROM numa_uso WHERE usuario_id IN ($ids)");
             $this->db->exec("DELETE FROM usuarios WHERE id IN ($ids)");
+        }
+
+        if ($this->visitorHashes !== []) {
+            $hashes = implode(',', array_map([$this->db, 'quote'], array_unique($this->visitorHashes)));
+            $this->db->exec("DELETE FROM numa_reservas_publicas WHERE visitante_hash IN ($hashes)");
+            $this->db->exec("DELETE FROM numa_uso_publico WHERE visitante_hash IN ($hashes)");
         }
 
         $this->limpiarFilasDePrueba();
@@ -414,6 +423,74 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(1, $this->llamadasMes('2026-07-01', '2026-08-01'));
     }
 
+    public function testLlamadasPublicasConcurrentesDeVisitantesDistintosNoSuperanElLimiteGlobalPublico(): void
+    {
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
+        $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '400';
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '5';
+        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
+
+        $visitorA = $this->visitorHash();
+        $visitorB = $this->visitorHash();
+        $this->fechasCreadas[] = '2026-09-18';
+        $dir = sys_get_temp_dir() . '/benehom-numa-publico-global-' . bin2hex(random_bytes(8));
+        $locker = $this->newConnection();
+
+        $this->insertRow('2026-09-01', 0, 0, 0);
+        self::assertTrue(mkdir($dir, 0700));
+
+        $locker->beginTransaction();
+
+        try {
+            $stmt = $locker->prepare('SELECT fecha FROM numa_uso_proveedor WHERE fecha = :fecha FOR UPDATE');
+            $stmt->execute([':fecha' => '2026-09-01']);
+            self::assertSame('2026-09-01', $stmt->fetchColumn());
+
+            $processA = $this->startConcurrentPublicGlobalCallProcess($visitorA, $dir, 'a', '2026-09-18 10:00:00');
+            $processB = $this->startConcurrentPublicGlobalCallProcess($visitorB, $dir, 'b', '2026-09-18 10:00:00');
+
+            $this->waitForFiles([$processA['ready_file'], $processB['ready_file']]);
+            file_put_contents($dir . '/start', '1');
+            $this->waitForFiles([$processA['attempt_file'], $processB['attempt_file']]);
+            usleep(200000);
+
+            self::assertTrue($this->processIsRunning($processA));
+            self::assertTrue($this->processIsRunning($processB));
+
+            $locker->commit();
+
+            $resultA = $this->collectConcurrentGlobalCallProcess($processA);
+            $resultB = $this->collectConcurrentGlobalCallProcess($processB);
+        } finally {
+            if ($locker->inTransaction()) {
+                $locker->rollBack();
+            }
+
+            foreach (glob($dir . '/*') ?: [] as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+
+            if (is_dir($dir)) {
+                rmdir($dir);
+            }
+        }
+
+        $statuses = [$resultA['status'], $resultB['status']];
+        sort($statuses);
+
+        self::assertSame(['limit', 'started'], $statuses);
+        self::assertSame(1, $this->llamadasPublicasDia('2026-09-18'));
+        self::assertSame(1, $this->confirmadasPublicas($visitorA) + $this->confirmadasPublicas($visitorB));
+        self::assertSame(0, $this->pendientesPublicas($visitorA) + $this->pendientesPublicas($visitorB));
+    }
+
     public function testElErrorDeLimiteNoRevelaProveedorNiSecretos(): void
     {
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '0';
@@ -483,6 +560,173 @@ final class NumaConsumoGlobalTest extends TestCase
         $this->userIds[] = $usuarioId;
 
         return $usuarioId;
+    }
+
+    private function visitorHash(): string
+    {
+        $hash = hash('sha256', random_bytes(32));
+        $this->visitorHashes[] = $hash;
+
+        return $hash;
+    }
+
+    private function confirmadasPublicas(string $visitorHash): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COALESCE(SUM(cantidad_confirmada), 0) FROM numa_uso_publico WHERE visitante_hash = :hash'
+        );
+        $stmt->execute([':hash' => $visitorHash]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function pendientesPublicas(string $visitorHash): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM numa_reservas_publicas WHERE visitante_hash = :hash AND estado = 'pendiente'"
+        );
+        $stmt->execute([':hash' => $visitorHash]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function llamadasPublicasDia(string $fecha): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COALESCE(llamadas_publicas, 0) FROM numa_uso_proveedor WHERE fecha = :fecha'
+        );
+        $stmt->execute([':fecha' => $fecha]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return array{process:resource,pipes:array<int,resource>,ready_file:string,attempt_file:string}
+     */
+    private function startConcurrentPublicGlobalCallProcess(string $visitorHash, string $dir, string $label, string $now): array
+    {
+        $config = require CONFIG_PATH . '/database.php';
+        $readyFile = $dir . '/ready-' . $label;
+        $attemptFile = $dir . '/attempt-' . $label;
+        $payload = json_encode([
+            'base_path' => BASE_PATH,
+            'db' => $config,
+            'visitante_hash' => $visitorHash,
+            'now' => $now,
+            'daily_call_limit' => '100',
+            'monthly_call_limit' => '1000',
+            'daily_token_limit' => '50000',
+            'monthly_token_limit' => '300000',
+            'public_daily_call_limit' => '1',
+            'public_monthly_call_limit' => '400',
+            'public_daily_limit' => '5',
+            'public_monthly_limit' => '20',
+            'reservation_ttl' => '120',
+            'max_input_tokens' => '5000',
+            'max_output_tokens' => '220',
+            'ready_file' => $readyFile,
+            'attempt_file' => $attemptFile,
+            'start_file' => $dir . '/start',
+        ]);
+
+        self::assertIsString($payload);
+
+        $code = <<<'PHP'
+$payload = json_decode($argv[1] ?? '', true);
+
+if (!is_array($payload)) {
+    fwrite(STDERR, "Payload inválido\n");
+    exit(2);
+}
+
+define('BASE_PATH', (string) $payload['base_path']);
+define('APP_PATH', BASE_PATH . '/app');
+define('CONFIG_PATH', BASE_PATH . '/config');
+
+require APP_PATH . '/helpers/utils.php';
+require APP_PATH . '/models/NumaPublicUso.php';
+require APP_PATH . '/models/NumaConsumoGlobal.php';
+require APP_PATH . '/services/NumaUsageBudget.php';
+require APP_PATH . '/services/NumaService.php';
+
+$_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = (string) $payload['daily_call_limit'];
+$_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = (string) $payload['monthly_call_limit'];
+$_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = (string) $payload['daily_token_limit'];
+$_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = (string) $payload['monthly_token_limit'];
+$_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = (string) $payload['public_daily_call_limit'];
+$_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = (string) $payload['public_monthly_call_limit'];
+$_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = (string) $payload['public_daily_limit'];
+$_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = (string) $payload['public_monthly_limit'];
+$_ENV['NUMA_RESERVATION_TTL_SECONDS'] = (string) $payload['reservation_ttl'];
+$_ENV['NUMA_MAX_INPUT_TOKENS'] = (string) $payload['max_input_tokens'];
+$_ENV['NUMA_MAX_OUTPUT_TOKENS'] = (string) $payload['max_output_tokens'];
+
+$db = $payload['db'];
+
+if (!is_array($db)) {
+    fwrite(STDERR, "Configuración de base de datos inválida\n");
+    exit(2);
+}
+
+$pdo = new PDO(
+    "mysql:host={$db['host']};port={$db['port']};dbname={$db['dbname']};charset=utf8mb4",
+    (string) $db['user'],
+    (string) $db['password'],
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+file_put_contents((string) $payload['ready_file'], '1');
+$deadline = microtime(true) + 10;
+
+while (!is_file((string) $payload['start_file'])) {
+    if (microtime(true) > $deadline) {
+        fwrite(STDERR, "Timeout esperando inicio\n");
+        exit(2);
+    }
+
+    usleep(1000);
+}
+
+file_put_contents((string) $payload['attempt_file'], '1');
+
+$publicUso = new NumaPublicUso($pdo, new DateTimeImmutable((string) $payload['now']));
+$budget = new NumaPaidCallBudget(new NumaPublicUsageBudget($publicUso, (string) $payload['visitante_hash']), 3);
+$global = NumaConsumoGlobal::forPublicLlm($pdo, new DateTimeImmutable((string) $payload['now']));
+$chain = new NumaProviderConsumptionChain($budget, $global);
+
+try {
+    $chain->iniciarLlamada();
+    echo json_encode(['status' => 'started']);
+    exit(0);
+} catch (NumaGlobalLimiteAlcanzado $e) {
+    echo json_encode(['status' => 'limit', 'code' => $e->getMessage()]);
+    exit(0);
+} catch (Throwable $e) {
+    fwrite(STDERR, $e::class . ': ' . $e->getMessage() . "\n");
+    exit(1);
+}
+PHP;
+
+        $process = proc_open(
+            [PHP_BINARY, '-d', 'variables_order=EGPCS', '-r', $code, $payload],
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+            BASE_PATH
+        );
+
+        self::assertIsResource($process);
+        fclose($pipes[0]);
+
+        return [
+            'process' => $process,
+            'pipes' => $pipes,
+            'ready_file' => $readyFile,
+            'attempt_file' => $attemptFile,
+        ];
     }
 
     private function reservasPendientes(int $usuarioId): int

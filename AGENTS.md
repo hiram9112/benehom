@@ -58,4 +58,16 @@ composer build:css
 - Run verification appropriate to the modified area before considering the task complete.
 - Prefer targeted tests during implementation, then run the broader relevant suite when appropriate.
 - Report what was changed and which verification commands were executed.
-- Do not claim a tool, dependency, test suite, or service is unavailable without checking the repository configuration first.
+- Do not claim a tool, dependency, test suite, or service is unavailable without checking the r-...epository configuration first.
+
+
+## Codebase exploration
+
+- MUST use `codebase-memory-mcp` first for codebase discovery, symbol lookup,
+  references, architecture exploration, and targeted code retrieval.
+- Use native `Glob`, `Grep`, and `Read` when the MCP does not provide
+  sufficient or current information, or when exact file contents are needed
+  before editing or verification.
+- After locating relevant code through the MCP, inspect only the necessary
+  files or ranges with native tools.
+- Avoid reading entire files when targeted MCP retrieval is sufficient.

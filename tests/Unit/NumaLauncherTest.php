@@ -142,6 +142,11 @@ final class NumaLauncherTest extends TestCase
         $_SESSION['usuario_id'] = 123;
         self::assertSame('private', bh_numa_widget_mode());
 
+        foreach (['dashboard/index', 'proyecciones/index', 'cuenta/index'] as $route) {
+            $_GET['r'] = $route;
+            self::assertSame('private', bh_numa_widget_mode());
+        }
+
         unset($_SESSION['usuario_id']);
         $_GET['r'] = 'legal/privacidad';
         self::assertNull(bh_numa_widget_mode());

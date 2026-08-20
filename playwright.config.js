@@ -1,4 +1,5 @@
 const { defineConfig } = require('@playwright/test');
+const { testDatabaseEnvironment } = require('./tests/browser/helpers/test-environment');
 
 module.exports = defineConfig({
     testDir: './tests/browser/specs',
@@ -24,6 +25,7 @@ module.exports = defineConfig({
             NUMA_PUBLIC_HASH_KEY: 'playwright-numa-testing-key',
             NUMA_PROVIDER: 'fake',
             NUMA_EMBEDDING_PROVIDER: 'fake',
+            ...testDatabaseEnvironment,
         },
     },
 });

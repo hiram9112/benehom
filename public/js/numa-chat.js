@@ -627,18 +627,18 @@
             unavailable: 'Ahora no puedo atender consultas. Inténtalo de nuevo más tarde.',
         }[value] || '');
 
-        const applyServiceStatus = (payload) => {
+        const applyServiceStatus = (payload, preserveConversation) => {
             const data = payload && typeof payload === 'object' ? payload.data : null;
             const nextAvailability = data && typeof data.availability === 'string' ? data.availability : 'unavailable';
             const conversation = normaliseConversation(data && Array.isArray(data.conversation) ? data.conversation : []);
 
-            if (!conversationsMatch(conversation, canonicalConversation) || !renderedConversationMatches(conversation)) {
+            if (!preserveConversation && (!conversationsMatch(conversation, canonicalConversation) || !renderedConversationMatches(conversation))) {
                 renderConversation(conversation);
             }
             setAvailability(nextAvailability);
             const statusMessage = statusMessageForAvailability(availability);
 
-            if (statusMessage !== '') {
+            if (statusMessage !== '' && !preserveConversation) {
                 addStateMessage(
                     statusMessage,
                     availability === 'near_limit' || availability === 'limit_reached' ? 'warning' : 'error'
@@ -654,7 +654,7 @@
             }
         };
 
-        const loadStatus = () => {
+        const loadStatus = (preserveConversation = false) => {
             if (statusLoading) {
                 return;
             }
@@ -700,7 +700,7 @@
                         return;
                     }
 
-                    applyServiceStatus(payload);
+                    applyServiceStatus(payload, preserveConversation);
                     setStatusRetryVisible(false);
                 })
                 .catch(() => {
@@ -851,6 +851,7 @@
             const requestId = chatRequestId + 1;
             chatRequestId = requestId;
             activeAbortController = abortController;
+            let requestFailed = false;
             activeRequestTimeout = abortController
                 ? window.setTimeout(() => abortController.abort(), requestTimeoutMs)
                 : 0;
@@ -897,12 +898,22 @@
                         || typeof payload.data.message !== 'string'
                         || normaliseText(payload.data.message) === ''
                     ) {
+                        requestFailed = true;
+                        const errorCode = payload && payload.error && typeof payload.error.code === 'string'
+                            ? payload.error.code
+                            : '';
+                        const limitReached = response.status === 429 || errorCode === 'NUMA_LIMIT_REACHED';
                         const errorMessage = safeErrorMessage(payload, response.status);
                         removeThinkingMessage();
-                        addMessage('assistant', errorMessage, { tone: 'error', state: true });
+                        addMessage('assistant', errorMessage, {
+                            tone: limitReached ? 'warning' : 'error',
+                            state: true,
+                        });
 
-                        if (response.status === 401 || response.status === 429) {
+                        if (response.status === 401) {
                             setAvailability('unavailable');
+                        } else if (limitReached) {
+                            setAvailability('limit_reached');
                         }
                         return null;
                     }
@@ -918,6 +929,7 @@
                         return;
                     }
 
+                    requestFailed = true;
                     removeThinkingMessage();
                     const errorMessage = error && error.name === 'AbortError'
                         ? 'He tardado demasiado en responder. La consulta podría haberse enviado y haber consumido cuota. Comprueba el estado antes de volver a intentarlo.'
@@ -938,7 +950,7 @@
                     activeAbortController = null;
                     removeThinkingMessage();
                     setProcessing(false);
-                    loadStatus();
+                    loadStatus(requestFailed);
                 });
         };
 

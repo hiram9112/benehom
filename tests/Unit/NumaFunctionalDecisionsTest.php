@@ -64,6 +64,46 @@ final class NumaFunctionalDecisionsTest extends TestCase
         self::assertStringContainsString('bh_numa_anon', $privacy);
         self::assertStringContainsString('seudonimizada', $privacy);
         self::assertStringContainsString('No se utiliza fingerprinting', $privacy);
+        self::assertStringContainsString('condiciones de servicios de pago de Google', $privacy);
+        self::assertStringContainsString('contribución voluntaria de datos', $privacy);
+        self::assertStringContainsString('registro opcional de prompts y respuestas', $privacy);
+        self::assertStringContainsString('almacenamiento de GenerateContent API', $privacy);
+        self::assertStringContainsString('almacenamiento de Interactions API', $privacy);
+        self::assertStringContainsString('no existen datasets compartidos voluntariamente', $privacy);
+        self::assertStringContainsString('55 días', $privacy);
+        self::assertStringContainsString('supervisión de abuso', $privacy);
+        self::assertStringContainsString('rotación periódica', $privacy);
+        self::assertStringContainsString('revocación inmediata', $privacy);
+        self::assertStringContainsString('únicamente cuando decides usar', $privacy);
+        self::assertStringContainsString('artículo 6.1.b del', $privacy);
+        self::assertStringContainsString('No se basa en un consentimiento específico para Gemini', $privacy);
+        self::assertStringContainsString('no se requiere una casilla, modal ni aceptación adicional', $privacy);
+    }
+
+    public function testRunbookDePrivacidadDocumentaControlesDeGeminiYClaveCompartida(): void
+    {
+        $runbook = $this->read(BASE_PATH . '/resources/numa/privacidad-operativa.md');
+
+        self::assertStringContainsString('55 días', $runbook);
+        self::assertStringContainsString('supervisar y prevenir abuso', $runbook);
+        self::assertStringContainsString('contribución voluntaria de datos', $runbook);
+        self::assertStringContainsString('logging opcional de prompts y respuestas', $runbook);
+        self::assertStringContainsString('NUMA_API_KEY', $runbook);
+        self::assertStringContainsString('generación y embeddings', $runbook);
+        self::assertStringContainsString('Rotación y revocación de claves', $runbook);
+        self::assertStringContainsString('NUMA_ENABLED=false', $runbook);
+        self::assertStringContainsString('Base jurídica elegida', $runbook);
+        self::assertStringContainsString('artículo 6.1.b del RGPD', $runbook);
+        self::assertStringContainsString('de la relación contractual y la prestación', $runbook);
+        self::assertStringContainsString('únicamente cuando decide usar Numa', $runbook);
+        self::assertStringContainsString('No se basa en un consentimiento específico para Gemini', $runbook);
+        self::assertStringContainsString('Numa no incorpora una casilla, modal', $runbook);
+        self::assertStringContainsString('Comprobaciones verificadas', $runbook);
+        self::assertStringContainsString('Nivel 1 / Prepago', $runbook);
+        self::assertStringContainsString('GenerateContent API', $runbook);
+        self::assertStringContainsString('Interactions API', $runbook);
+        self::assertStringContainsString('No existen datasets compartidos voluntariamente', $runbook);
+        self::assertStringContainsString('no bloquea el', $runbook);
     }
 
     private function read(string $path): string

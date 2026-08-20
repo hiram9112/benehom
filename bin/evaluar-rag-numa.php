@@ -63,8 +63,8 @@ if (
     exit(1);
 }
 
-if (trim((string) bh_env_value('NUMA_EMBEDDING_API_KEY', '')) === '') {
-    fwrite(STDERR, "Falta NUMA_EMBEDDING_API_KEY en el entorno local.\n");
+if (trim((string) bh_env_value('NUMA_API_KEY', '')) === '') {
+    fwrite(STDERR, "Falta NUMA_API_KEY en el entorno local.\n");
     exit(1);
 }
 

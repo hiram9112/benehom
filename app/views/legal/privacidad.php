@@ -50,11 +50,12 @@ bh_document_begin([
                 emplean con fines comerciales o publicitarios.
             </p>
             <p>
-                Si Numa está activada, BeneHom puede tratar el mensaje validado, el contexto
-                conversacional de la sesión y los datos mínimos necesarios de ingresos, gastos
-                y movimientos para responder consultas dentro de la aplicación. Las respuestas
-                financieras se ofrecen como texto informativo y no como recomendaciones
-                personalizadas.
+                Si Numa está activada, el tratamiento se inicia únicamente cuando decides usar
+                esta funcionalidad y formulas una consulta. BeneHom puede tratar el mensaje
+                validado, el contexto conversacional de la sesión y los datos mínimos necesarios
+                de ingresos, gastos y movimientos para responder a esa solicitud concreta dentro
+                de la aplicación. Las respuestas financieras se ofrecen como texto informativo y
+                no como recomendaciones personalizadas.
             </p>
             <p>
                 En las páginas públicas donde esté disponible, Numa usa una cookie técnica
@@ -68,6 +69,14 @@ bh_document_begin([
                 El tratamiento se basa en el consentimiento otorgado por el usuario al
                 registrarse (art. 6.1.a RGPD) y en la ejecución del servicio solicitado
                 (art. 6.1.b RGPD).
+            </p>
+            <p>
+                El tratamiento asociado a Numa se basa específicamente en el artículo 6.1.b del
+                RGPD, como prestación de la funcionalidad solicitada al formular una consulta.
+                No se basa en un consentimiento específico para Gemini: la aceptación de esta
+                política informa sobre el tratamiento, pero no legitima por sí misma el uso de
+                Gemini. Por ello, no se requiere una casilla, modal ni aceptación adicional para
+                utilizar Numa.
             </p>
 
             <h2 class="mt-4 bh-legal-section-title">5. Conservación de los datos</h2>
@@ -101,8 +110,29 @@ bh_document_begin([
                 de Google como proveedor técnico de inteligencia artificial, con la finalidad
                 exclusiva de generar la respuesta solicitada. BeneHom limita los datos enviados
                 al mensaje validado, el contexto conversacional elegible y los resultados
-                mínimos necesarios de las herramientas internas. No se envían identificadores
-                internos de usuario, correo de cuenta, SQL, tablas ni columnas.
+                mínimos necesarios de las herramientas internas para responder a esa consulta.
+                No se envían identificadores internos de usuario, correo de cuenta, SQL, tablas
+                ni columnas.
+            </p>
+            <p>
+                Gemini se utiliza desde un proyecto con facturación activa sujeto a las
+                condiciones de servicios de pago de Google. La contribución voluntaria de datos
+                para mejorar o entrenar modelos y el registro opcional de prompts y respuestas
+                del proyecto permanecen desactivados. También están desactivados el
+                almacenamiento de GenerateContent API y el almacenamiento de Interactions API,
+                y no existen datasets compartidos voluntariamente con Google. Estos registros y
+                ajustes son distintos del tratamiento que Google pueda realizar para la
+                supervisión de abuso.
+            </p>
+            <p>
+                Según la política de uso de Gemini API, Google conserva prompts, información de
+                contexto y resultados de la API durante 55 días para detectar y prevenir usos
+                prohibidos, proteger la seguridad del servicio y cumplir obligaciones legales o
+                regulatorias. Este tratamiento de supervisión de abuso es independiente de los
+                registros opcionales del proyecto. Para consultas sobre este tratamiento o para
+                ejercer tus derechos, puedes contactar con BeneHom en los datos indicados en esta
+                política; también se aplican las condiciones y la política de privacidad de
+                Google correspondientes al servicio.
             </p>
             <p>
                 Para prevenir abusos del acceso público se aplica un límite de ráfaga usando una
@@ -158,6 +188,12 @@ bh_document_begin([
                 BeneHom aplica medidas técnicas razonables para proteger la información,
                 incluyendo el cifrado de contraseñas, la conexión segura (HTTPS), el control
                 de acceso por sesión y la protección frente a CSRF.
+            </p>
+            <p>
+                Una única clave de Gemini se emplea para generar respuestas y crear embeddings
+                de Numa. Se mantiene únicamente en la configuración del servidor y se restringe
+                a las APIs necesarias. BeneHom documenta su rotación periódica y la revocación inmediata
+                ante una sospecha de exposición.
             </p>
 
             <h2 class="mt-4 bh-legal-section-title">10. Cambios en esta política</h2>

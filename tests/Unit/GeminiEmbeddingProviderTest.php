@@ -152,16 +152,16 @@ final class GeminiEmbeddingProviderTest extends TestCase
         }
     }
 
-    public function testFactoryUsaConfiguracionDeEmbeddings(): void
+    public function testFactoryUsaLaClaveGeminiCompartida(): void
     {
         $_ENV['NUMA_EMBEDDING_PROVIDER'] = 'gemini';
-        $_ENV['NUMA_EMBEDDING_API_KEY'] = 'embedding-key';
+        $_ENV['NUMA_API_KEY'] = 'shared-key';
         $_ENV['NUMA_EMBEDDING_MODEL'] = 'gemini-embedding-001';
         $_ENV['NUMA_EMBEDDING_DIMENSIONS'] = '768';
 
-        $captured = [];
-        $provider = \NumaEmbeddingProviderFactory::fromEnvironment(function (string $url, array $headers, string $body, int $timeout) use (&$captured): array {
-            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        $capturedHeaders = [];
+        $provider = \NumaEmbeddingProviderFactory::fromEnvironment(function (string $url, array $headers) use (&$capturedHeaders): array {
+            $capturedHeaders = $headers;
 
             return [
                 'status' => 200,
@@ -176,7 +176,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
         $embedding = $provider->embed('Texto publico de BeneHom');
 
         self::assertCount(768, $embedding);
-        self::assertSame(768, $captured['outputDimensionality']);
+        self::assertContains('x-goog-api-key: shared-key', $capturedHeaders);
     }
 
     public function testUsaTaskTypeDeConsultaYNormalizaVectoresReducidos(): void
@@ -216,7 +216,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
     public function testFactoryRechazaProveedorNoSoportado(): void
     {
         $_ENV['NUMA_EMBEDDING_PROVIDER'] = 'otro';
-        $_ENV['NUMA_EMBEDDING_API_KEY'] = 'key';
+        $_ENV['NUMA_API_KEY'] = 'key';
         $_ENV['NUMA_EMBEDDING_MODEL'] = 'model';
 
         $this->expectException(\NumaProviderException::class);
@@ -397,7 +397,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
     {
         return [
             'NUMA_EMBEDDING_PROVIDER',
-            'NUMA_EMBEDDING_API_KEY',
+            'NUMA_API_KEY',
             'NUMA_EMBEDDING_MODEL',
             'NUMA_EMBEDDING_DIMENSIONS',
             'NUMA_PROVIDER_TIMEOUT_SECONDS',

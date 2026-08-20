@@ -39,7 +39,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
     public static function fromEnvironment(?callable $transport = null): self
     {
         return new self(
-            (string) bh_env_value('NUMA_EMBEDDING_API_KEY', ''),
+            (string) bh_env_value('NUMA_API_KEY', ''),
             (string) bh_env_value('NUMA_EMBEDDING_MODEL', 'gemini-embedding-001'),
             bh_env_int('NUMA_EMBEDDING_DIMENSIONS', self::DEFAULT_DIMENSIONS),
             bh_env_int('NUMA_PROVIDER_TIMEOUT_SECONDS', 10),

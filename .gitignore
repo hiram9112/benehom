@@ -3,6 +3,8 @@
 /node_modules/
 .phpunit.result.cache
 coverage/
+playwright-report/
+test-results/
 
 skills-lock.json
 

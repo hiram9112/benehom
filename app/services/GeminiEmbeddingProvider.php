@@ -403,6 +403,12 @@ final class NumaEmbeddingProviderFactory
     {
         $provider = strtolower((string) bh_env_value('NUMA_EMBEDDING_PROVIDER', 'gemini'));
 
+        if ($provider === 'fake') {
+            require_once __DIR__ . '/NumaTestingProvider.php';
+
+            return NumaTestingEmbeddingProvider::fromEnvironment();
+        }
+
         if ($provider !== 'gemini') {
             throw new NumaProviderException(new NumaProviderError(
                 NumaProviderError::CONFIGURATION,

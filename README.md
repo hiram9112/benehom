@@ -226,6 +226,15 @@ Ejecuta también el análisis estático antes de cerrar cambios:
 vendor/bin/phpstan analyse app public config
 ```
 
+La suite de navegador usa Playwright e inicia un servidor PHP temporal en `APP_ENV=testing`. Las peticiones llegan a los endpoints reales de Numa; el proveedor y los embeddings de Gemini se sustituyen exclusivamente por fakes PHP configurables, sin llamadas externas ni base de datos.
+
+Cada prueba selecciona su escenario (`success`, `error`, `timeout` o `limit`) en su propio contexto de navegador mediante `configureNumaScenario()`.
+
+```bash
+npm ci
+npm run test:e2e
+```
+
 Cobertura actual de tests:
 
 - Cálculos financieros puros: hipoteca, interés compuesto, inflación, fechas objetivo, normalización de cantidades y protección frente a resultados no fiables.
@@ -235,7 +244,7 @@ Cobertura actual de tests:
 Queda fuera del alcance de los tests actuales:
 
 - Tests HTTP de controladores que dependen de `echo`, `header` y `exit`.
-- Tests e2e de interfaz, Chart.js y comportamiento visual.
+- Tests e2e de Chart.js y comportamiento visual ajenos a Numa.
 
 ## Indexación de Numa
 

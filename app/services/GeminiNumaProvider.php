@@ -823,6 +823,14 @@ final class NumaProviderFactory
     {
         $provider = strtolower((string) bh_env_value('NUMA_PROVIDER', 'gemini'));
 
+        if ($provider === 'fake') {
+            require_once __DIR__ . '/NumaTestingProvider.php';
+
+            return NumaSystemInstructionProvider::fromBasePrompt(new NumaProviderBoundary(
+                NumaTestingProvider::fromEnvironment($consumption ?? NumaConsumoGlobal::forLlm())
+            ));
+        }
+
         if ($provider !== 'gemini') {
             throw new NumaProviderException(new NumaProviderError(
                 NumaProviderError::CONFIGURATION,

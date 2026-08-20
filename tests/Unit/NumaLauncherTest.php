@@ -429,7 +429,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('const statusMessageForAvailability', $javascript);
         self::assertStringContainsString('Te estás acercando al límite de uso.', $javascript);
         self::assertStringContainsString('Has alcanzado el límite de uso. Podrás volver a utilizarlo cuando se renueve.', $javascript);
-        self::assertMatchesRegularExpression('/setProcessing\(false\);\s+loadStatus\(\);/', $javascript);
+        self::assertMatchesRegularExpression('/setProcessing\(false\);\s+loadStatus\(requestFailed\);/', $javascript);
         self::assertStringContainsString('Conservamos tu borrador', $javascript);
         self::assertStringContainsString('AbortController', $javascript);
         self::assertStringContainsString('podría haberse enviado y haber consumido cuota', $javascript);
@@ -501,7 +501,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('cancelProgressiveResponse(false);', $javascript);
         self::assertStringContainsString('const invalidateChatRequest', $javascript);
         self::assertStringContainsString('invalidateChatRequest(true);', $javascript);
-        self::assertStringContainsString('if (!conversationsMatch(conversation, canonicalConversation) || !renderedConversationMatches(conversation))', $javascript);
+        self::assertStringContainsString('if (!preserveConversation && (!conversationsMatch(conversation, canonicalConversation) || !renderedConversationMatches(conversation)))', $javascript);
         self::assertStringContainsString('.bh-numa-message.is-assistant.is-thinking .bh-numa-message-content', $css);
         self::assertStringContainsString('animation: bh-numa-thinking-shimmer', $css);
         self::assertStringContainsString('@keyframes bh-numa-thinking-shimmer', $css);

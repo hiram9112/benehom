@@ -24,6 +24,10 @@ async function mockAvailableStatus(page, conversation = []) {
     }));
 }
 
+function longAnswer() {
+    return Array.from({ length: 240 }, (_, index) => `respuesta${index + 1}`).join(' ');
+}
+
 test('abre el panel y lo cierra al pulsar su control', async ({ page }) => {
     await page.goto(homeUrl);
 
@@ -148,4 +152,84 @@ test('restaura el transcript completo sin revelar progresivamente sus respuestas
     await expect(restoredMessages).toHaveCount(2);
     await expect(restoredMessages.nth(1).locator('.bh-numa-message-content > p')).toHaveText(conversation[1].message);
     await expect(page.locator('[data-numa-messages] .bh-numa-message.is-assistant').last()).toHaveAttribute('data-numa-canonical-message', 'true');
+});
+
+test.describe('en un viewport movil', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+    test('mantiene el panel y compositor usables y sigue el crecimiento progresivo de la respuesta', async ({ page }) => {
+        const question = '¿Cómo organizo mis gastos?';
+        const answer = longAnswer();
+        const messages = page.locator('[data-numa-messages]');
+
+        await mockAvailableStatus(page);
+        await page.route(/\/index\.php\?r=numa\/public\/chat$/, (route) => route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                ok: true,
+                data: {
+                    message: answer,
+                    availability: 'available',
+                    conversation: [
+                        { role: 'user', message: question },
+                        { role: 'assistant', message: answer },
+                    ],
+                },
+            }),
+        }));
+        await page.goto(homeUrl);
+        await openNuma(page);
+
+        const panel = numaPanel(page);
+        const input = page.locator('[data-numa-input]');
+        const panelBox = await panel.boundingBox();
+
+        expect(panelBox).not.toBeNull();
+        expect(panelBox.x).toBeGreaterThanOrEqual(0);
+        expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(390);
+        await expect(page.locator('.bh-numa-composer')).toBeVisible();
+        await expect(input).toBeEnabled();
+        await input.fill(question);
+        await expect(page.getByRole('button', { name: 'Enviar mensaje' })).toBeEnabled();
+        await page.getByRole('button', { name: 'Enviar mensaje' }).click();
+
+        const progressiveMessage = messages.locator('.bh-numa-message.is-assistant').last();
+        const progressiveText = progressiveMessage.locator('.bh-numa-message-content > p');
+        await expect(progressiveText).toContainText('respuesta1');
+        await expect(progressiveText).not.toHaveText(answer);
+        await expect.poll(async () => messages.evaluate((element) => {
+            const maxScrollTop = element.scrollHeight - element.clientHeight;
+
+            return maxScrollTop > 0 && Math.abs(element.scrollTop - maxScrollTop) < 2;
+        })).toBe(true);
+        await expect(messages).toHaveAttribute('data-lenis-prevent', '');
+        expect(await page.evaluate(() => Boolean(window.BHLenis))).toBe(false);
+    });
+});
+
+test('mantiene el scroll del transcript independiente con Lenis activo', async ({ page }) => {
+    const messages = page.locator('[data-numa-messages]');
+    const conversation = [
+        { role: 'user', message: 'Necesito revisar mis gastos.' },
+        { role: 'assistant', message: longAnswer() },
+    ];
+
+    await mockAvailableStatus(page, conversation);
+    await page.goto(homeUrl);
+    await expect.poll(() => page.evaluate(() => Boolean(window.BHLenis))).toBe(true);
+    await openNuma(page);
+    await expect(messages).toHaveAttribute('data-lenis-prevent', '');
+    await expect.poll(async () => messages.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+
+    const beforeScroll = await messages.evaluate((element) => ({
+        transcript: element.scrollTop,
+        page: window.scrollY,
+    }));
+
+    await messages.hover();
+    await page.mouse.wheel(0, -200);
+
+    await expect.poll(async () => messages.evaluate((element) => element.scrollTop)).toBeLessThan(beforeScroll.transcript);
+    expect(await page.evaluate(() => window.scrollY)).toBe(beforeScroll.page);
 });

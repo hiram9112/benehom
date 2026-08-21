@@ -54,6 +54,7 @@ final class NumaServiceException extends RuntimeException
         private readonly int $statusCode,
         ?Throwable $previous = null,
         private readonly array $errorData = [],
+        private readonly string $stage = 'availability',
     ) {
         parent::__construct($safeCode, 0, $previous);
     }
@@ -73,6 +74,11 @@ final class NumaServiceException extends RuntimeException
     {
         return $this->errorData;
     }
+
+    public function stage(): string
+    {
+        return $this->stage;
+    }
 }
 
 final class NumaServiceResult
@@ -80,7 +86,7 @@ final class NumaServiceResult
     /**
      * @param array<int, array{title:string,section:string,url:string}> $sources
      * @param array<string, mixed>|null $period
-     * @param array{daily_used:int,daily_limit:int,daily_remaining:int,monthly_used:int,monthly_limit:int,monthly_remaining:int,interaction_used?:int} $usage
+     * @param array{daily_used:int,daily_limit:int,daily_remaining:int,monthly_used:int,monthly_limit:int,monthly_remaining:int,interaction_used?:int,interaction_tokens?:int|null} $usage
      */
     public function __construct(
         private readonly string $message,
@@ -88,6 +94,7 @@ final class NumaServiceResult
         private readonly ?array $period,
         private readonly array $usage,
         private readonly bool $contextual = true,
+        private readonly string $stage = 'response',
     ) {
     }
 
@@ -113,12 +120,19 @@ final class NumaServiceResult
     {
         return $this->contextual;
     }
+
+    public function stage(): string
+    {
+        return $this->stage;
+    }
 }
 
 final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterface, NumaInteractionBudgetInterface
 {
     private int $startedCalls = 0;
     private int $transientRetries = 0;
+    private int $reportedTokens = 0;
+    private int $tokenUsageReports = 0;
     private bool $closed = false;
     private readonly float $deadline;
 
@@ -208,6 +222,13 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
 
     public function registrarTokens(NumaTokenUsage $usage): void
     {
+        $total = $usage->totalTokens();
+        if ($total === null) {
+            return;
+        }
+
+        $this->reportedTokens += $total;
+        ++$this->tokenUsageReports;
     }
 
     public function revertRemaining(): void
@@ -218,6 +239,15 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
     public function llamadasIniciadas(): int
     {
         return $this->startedCalls;
+    }
+
+    public function tokensInformados(): ?int
+    {
+        if ($this->startedCalls === 0) {
+            return 0;
+        }
+
+        return $this->tokenUsageReports === $this->startedCalls ? $this->reportedTokens : null;
     }
 
     public function timeoutForCall(int $configuredTimeoutSeconds): int
@@ -274,6 +304,11 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
 
 final class NumaService
 {
+    private const STAGE_AVAILABILITY = 'availability';
+    private const STAGE_SCOPE = 'scope';
+    private const STAGE_CLASSIFICATION = 'classification';
+    private const STAGE_KNOWLEDGE = 'knowledge';
+    private const STAGE_RESPONSE = 'response';
     private const NO_KNOWLEDGE_MESSAGE = 'No encuentro información suficiente sobre esa función dentro de BeneHom.';
     private const CLARIFICATION_MESSAGE = '¿Podrías concretar qué quieres consultar en BeneHom?';
     private const APPROX_CHARS_PER_TOKEN = 4;
@@ -331,26 +366,26 @@ final class NumaService
     public function answer(int $authenticatedUserId, string $message, array $history = []): NumaServiceResult
     {
         if (!bh_env_bool('NUMA_ENABLED', false)) {
-            throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503);
+            throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503, stage: self::STAGE_AVAILABILITY);
         }
 
         if (!$this->usage instanceof NumaUso) {
-            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503, stage: self::STAGE_AVAILABILITY);
         }
 
         $providerHistory = $this->recentCompleteHistory($message, $history);
         $preRoute = (new NumaPreRouter($this->localScopeClassifier))->route($message, $providerHistory !== []);
         $localRejection = $preRoute->localRejection();
         if ($localRejection !== null) {
-            return $this->result($authenticatedUserId, $localRejection->message(), contextual: false, interactionUsed: 0);
+            return $this->result($authenticatedUserId, $localRejection->message(), contextual: false, interactionUsed: 0, stage: self::STAGE_SCOPE);
         }
 
         if (!$this->conversationFits($message)) {
-            return $this->result($authenticatedUserId, self::CONVERSATION_LIMIT_MESSAGE, contextual: false, interactionUsed: 0);
+            return $this->result($authenticatedUserId, self::CONVERSATION_LIMIT_MESSAGE, contextual: false, interactionUsed: 0, stage: self::STAGE_SCOPE);
         }
 
         if ($this->requiresOmittedContext($message, $history, $providerHistory)) {
-            return $this->result($authenticatedUserId, NumaFixedScopeResponse::contextRequired(), contextual: false, interactionUsed: 0);
+            return $this->result($authenticatedUserId, NumaFixedScopeResponse::contextRequired(), contextual: false, interactionUsed: 0, stage: self::STAGE_SCOPE);
         }
 
         $budget = null;
@@ -366,9 +401,9 @@ final class NumaService
         } catch (NumaServiceException $exception) {
             throw $exception;
         } catch (NumaGlobalLimiteAlcanzado $exception) {
-            throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception);
+            throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception, stage: self::STAGE_AVAILABILITY);
         } catch (Throwable $exception) {
-            throw new NumaServiceException('NUMA_PROVIDER_UNAVAILABLE', 503, $exception);
+            throw new NumaServiceException('NUMA_PROVIDER_UNAVAILABLE', 503, $exception, stage: self::STAGE_AVAILABILITY);
         }
 
         try {
@@ -379,8 +414,10 @@ final class NumaService
                 $this->requestTimeoutSeconds(),
             );
         } catch (Throwable $exception) {
-            throw new NumaServiceException('NUMA_USAGE_ERROR', 503, $exception);
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503, $exception, stage: self::STAGE_AVAILABILITY);
         }
+
+        $stage = self::STAGE_CLASSIFICATION;
 
         try {
             $provider = $this->provider($budget);
@@ -394,6 +431,7 @@ final class NumaService
                     'local_documentary_route',
                     $message,
                 );
+                $stage = self::STAGE_KNOWLEDGE;
             } else {
                 $decision = (new NumaProviderFunctionalDecider($provider))->decide($message, $providerHistory);
                 $classification = $decision->classification();
@@ -406,7 +444,9 @@ final class NumaService
                     $authenticatedUserId,
                     $fixedMessage,
                     contextual: false,
-                    interactionUsed: $budget->llamadasIniciadas()
+                    interactionUsed: $budget->llamadasIniciadas(),
+                    budget: $budget,
+                    stage: self::STAGE_CLASSIFICATION,
                 );
             }
 
@@ -414,15 +454,19 @@ final class NumaService
                 return $this->result(
                     $authenticatedUserId,
                     self::CLARIFICATION_MESSAGE,
-                    interactionUsed: $budget->llamadasIniciadas()
+                    interactionUsed: $budget->llamadasIniciadas(),
+                    budget: $budget,
+                    stage: self::STAGE_CLASSIFICATION,
                 );
             }
 
+            $stage = self::STAGE_KNOWLEDGE;
             $knowledgeResults = $this->knowledgeResults($classification, $message, $budget);
             if ($this->needsKnowledge($classification) && $knowledgeResults === []) {
-                return $this->result($authenticatedUserId, self::NO_KNOWLEDGE_MESSAGE, interactionUsed: $budget->llamadasIniciadas());
+                return $this->result($authenticatedUserId, self::NO_KNOWLEDGE_MESSAGE, interactionUsed: $budget->llamadasIniciadas(), budget: $budget, stage: self::STAGE_KNOWLEDGE);
             }
 
+            $stage = self::STAGE_RESPONSE;
             [$finalMessage, $toolResults] = $this->generateFinalResponse(
                 $authenticatedUserId,
                 $message,
@@ -438,53 +482,58 @@ final class NumaService
                 $finalMessage,
                 $this->sources($knowledgeResults),
                 $this->periodFromToolResults($toolResults),
-                interactionUsed: $budget->llamadasIniciadas()
+                interactionUsed: $budget->llamadasIniciadas(),
+                budget: $budget,
+                stage: self::STAGE_RESPONSE,
             );
         } catch (NumaServiceException $exception) {
-            if ($exception->errorData() !== []) {
-                throw $exception;
-            }
-
             throw new NumaServiceException(
                 $exception->safeCode(),
                 $exception->statusCode(),
                 $exception,
-                $this->errorData($authenticatedUserId, $budget)
+                $exception->errorData() !== [] ? $exception->errorData() : $this->errorData($authenticatedUserId, $budget),
+                $stage,
             );
         } catch (NumaInputLimitExceeded) {
             return $this->result(
                 $authenticatedUserId,
                 self::CONVERSATION_LIMIT_MESSAGE,
                 contextual: false,
-                interactionUsed: isset($budget) ? $budget->llamadasIniciadas() : 0
+                interactionUsed: isset($budget) ? $budget->llamadasIniciadas() : 0,
+                budget: $budget,
+                stage: $stage,
             );
         } catch (NumaGlobalLimiteAlcanzado $exception) {
             throw new NumaServiceException(
                 'NUMA_GLOBAL_LIMIT_REACHED',
                 503,
                 $exception,
-                $this->errorData($authenticatedUserId, $budget)
+                $this->errorData($authenticatedUserId, $budget),
+                $stage,
             );
         } catch (NumaProviderException $exception) {
             throw new NumaServiceException(
                 $exception->providerError()->safeCode(),
                 $this->providerStatusCode($exception->providerError()),
                 $exception,
-                $this->errorData($authenticatedUserId, $budget)
+                $this->errorData($authenticatedUserId, $budget),
+                $stage,
             );
         } catch (NumaFinancialToolLimitExceeded|InvalidArgumentException $exception) {
             throw new NumaServiceException(
                 'NUMA_PROVIDER_INVALID_RESPONSE',
                 503,
                 $exception,
-                $this->errorData($authenticatedUserId, $budget)
+                $this->errorData($authenticatedUserId, $budget),
+                $stage,
             );
         } catch (Throwable $exception) {
             throw new NumaServiceException(
                 'NUMA_PROVIDER_INVALID_RESPONSE',
                 503,
                 $exception,
-                $this->errorData($authenticatedUserId, $budget)
+                $this->errorData($authenticatedUserId, $budget),
+                $stage,
             );
         } finally {
             if ($budget instanceof NumaPaidCallBudget) {
@@ -497,33 +546,34 @@ final class NumaService
     public function answerPublic(string $visitorHash, string $message, array $history = []): NumaServiceResult
     {
         if (!bh_env_bool('NUMA_ENABLED', false) || !bh_env_bool('NUMA_PUBLIC_ENABLED', false)) {
-            throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503);
+            throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503, stage: self::STAGE_AVAILABILITY);
         }
 
         if (!$this->usage instanceof NumaPublicUso) {
-            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+            throw new NumaServiceException('NUMA_USAGE_ERROR', 503, stage: self::STAGE_AVAILABILITY);
         }
 
         $providerHistory = $this->recentCompleteHistory($message, $history);
         $preRoute = (new NumaPreRouter($this->localScopeClassifier))->route($message, $providerHistory !== []);
         $localRejection = $preRoute->localRejection();
         if ($localRejection !== null) {
-            return $this->publicResult($visitorHash, $localRejection->message(), contextual: false, interactionUsed: 0);
+            return $this->publicResult($visitorHash, $localRejection->message(), contextual: false, interactionUsed: 0, stage: self::STAGE_SCOPE);
         }
 
         if (in_array($preRoute->route(), [NumaPreRoute::DATOS_FINANCIEROS, NumaPreRoute::CONSULTA_COMBINADA], true)) {
-            return $this->publicResult($visitorHash, NumaFixedScopeResponse::loginRequired(), contextual: false, interactionUsed: 0);
+            return $this->publicResult($visitorHash, NumaFixedScopeResponse::loginRequired(), contextual: false, interactionUsed: 0, stage: self::STAGE_SCOPE);
         }
 
         if (!$this->conversationFits($message)) {
-            return $this->publicResult($visitorHash, self::CONVERSATION_LIMIT_MESSAGE, contextual: false, interactionUsed: 0);
+            return $this->publicResult($visitorHash, self::CONVERSATION_LIMIT_MESSAGE, contextual: false, interactionUsed: 0, stage: self::STAGE_SCOPE);
         }
 
         if ($this->requiresOmittedContext($message, $history, $providerHistory)) {
-            return $this->publicResult($visitorHash, NumaFixedScopeResponse::contextRequired(), contextual: false, interactionUsed: 0);
+            return $this->publicResult($visitorHash, NumaFixedScopeResponse::contextRequired(), contextual: false, interactionUsed: 0, stage: self::STAGE_SCOPE);
         }
 
         $budget = null;
+        $stage = self::STAGE_AVAILABILITY;
 
         try {
             $this->assertPublicPlannedCapacity($visitorHash, $preRoute);
@@ -541,6 +591,7 @@ final class NumaService
                 $this->requestTimeoutSeconds(),
             );
             $provider = $this->provider($budget);
+            $stage = self::STAGE_CLASSIFICATION;
 
             if ($preRoute->route() === NumaPreRoute::PRODUCTO) {
                 $classification = new NumaClassification(
@@ -549,6 +600,7 @@ final class NumaService
                     'local_documentary_route',
                     $message,
                 );
+                $stage = self::STAGE_KNOWLEDGE;
             } else {
                 $classification = (new NumaProviderScopeClassifier($provider))->classify($message, $providerHistory, true);
             }
@@ -559,6 +611,8 @@ final class NumaService
                     NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason()),
                     contextual: false,
                     interactionUsed: $budget->llamadasIniciadas(),
+                    budget: $budget,
+                    stage: self::STAGE_CLASSIFICATION,
                 );
             }
 
@@ -571,14 +625,18 @@ final class NumaService
                     NumaFixedScopeResponse::loginRequired(),
                     contextual: false,
                     interactionUsed: $budget->llamadasIniciadas(),
+                    budget: $budget,
+                    stage: self::STAGE_CLASSIFICATION,
                 );
             }
 
+            $stage = self::STAGE_KNOWLEDGE;
             $knowledgeResults = $this->knowledgeResults($classification, $message, $budget);
             if ($knowledgeResults === []) {
-                return $this->publicResult($visitorHash, self::NO_KNOWLEDGE_MESSAGE, interactionUsed: $budget->llamadasIniciadas());
+                return $this->publicResult($visitorHash, self::NO_KNOWLEDGE_MESSAGE, interactionUsed: $budget->llamadasIniciadas(), budget: $budget, stage: self::STAGE_KNOWLEDGE);
             }
 
+            $stage = self::STAGE_RESPONSE;
             [$finalMessage] = $this->generateFinalResponse(
                 null,
                 $message,
@@ -595,27 +653,38 @@ final class NumaService
                 $finalMessage,
                 $this->sources($knowledgeResults),
                 interactionUsed: $budget->llamadasIniciadas(),
+                budget: $budget,
+                stage: self::STAGE_RESPONSE,
             );
         } catch (NumaServiceException $exception) {
-            throw $exception;
+            throw new NumaServiceException(
+                $exception->safeCode(),
+                $exception->statusCode(),
+                $exception,
+                $exception->errorData() !== [] ? $exception->errorData() : $this->publicErrorData($visitorHash, $budget),
+                $stage,
+            );
         } catch (NumaInputLimitExceeded) {
             return $this->publicResult(
                 $visitorHash,
                 self::CONVERSATION_LIMIT_MESSAGE,
                 contextual: false,
                 interactionUsed: $budget?->llamadasIniciadas() ?? 0,
+                budget: $budget,
+                stage: $stage,
             );
         } catch (NumaGlobalLimiteAlcanzado $exception) {
-            throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception, $this->publicErrorData($visitorHash, $budget));
+            throw new NumaServiceException('NUMA_GLOBAL_LIMIT_REACHED', 503, $exception, $this->publicErrorData($visitorHash, $budget), $stage);
         } catch (NumaProviderException $exception) {
             throw new NumaServiceException(
                 $exception->providerError()->safeCode(),
                 $this->providerStatusCode($exception->providerError()),
                 $exception,
                 $this->publicErrorData($visitorHash, $budget),
+                $stage,
             );
         } catch (Throwable $exception) {
-            throw new NumaServiceException('NUMA_PROVIDER_INVALID_RESPONSE', 503, $exception, $this->publicErrorData($visitorHash, $budget));
+            throw new NumaServiceException('NUMA_PROVIDER_INVALID_RESPONSE', 503, $exception, $this->publicErrorData($visitorHash, $budget), $stage);
         } finally {
             if ($budget instanceof NumaPaidCallBudget) {
                 $budget->revertRemaining();
@@ -1115,6 +1184,7 @@ final class NumaService
         }
 
         $usage['interaction_used'] = max(0, $budget?->llamadasIniciadas() ?? 0);
+        $usage['interaction_tokens'] = $budget === null ? 0 : $budget->tokensInformados();
 
         return ['usage' => $usage];
     }
@@ -1133,6 +1203,7 @@ final class NumaService
         }
 
         $usage['interaction_used'] = max(0, $budget?->llamadasIniciadas() ?? 0);
+        $usage['interaction_tokens'] = $budget === null ? 0 : $budget->tokensInformados();
 
         return ['usage' => $usage];
     }
@@ -1344,6 +1415,8 @@ final class NumaService
         ?array $period = null,
         bool $contextual = true,
         ?int $interactionUsed = null,
+        ?NumaPaidCallBudget $budget = null,
+        string $stage = self::STAGE_RESPONSE,
     ): NumaServiceResult
     {
         if (!$this->usage instanceof NumaUso) {
@@ -1354,9 +1427,10 @@ final class NumaService
 
         if ($interactionUsed !== null) {
             $usage['interaction_used'] = max(0, $interactionUsed);
+            $usage['interaction_tokens'] = $budget?->tokensInformados() ?? ($interactionUsed === 0 ? 0 : null);
         }
 
-        return new NumaServiceResult($message, $sources, $period, $usage, $contextual);
+        return new NumaServiceResult($message, $sources, $period, $usage, $contextual, $stage);
     }
 
     /**
@@ -1370,6 +1444,8 @@ final class NumaService
         ?array $period = null,
         bool $contextual = true,
         ?int $interactionUsed = null,
+        ?NumaPaidCallBudget $budget = null,
+        string $stage = self::STAGE_RESPONSE,
     ): NumaServiceResult {
         if (!$this->usage instanceof NumaPublicUso) {
             throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
@@ -1378,8 +1454,9 @@ final class NumaService
         $usage = $this->usage->estado($visitorHash);
         if ($interactionUsed !== null) {
             $usage['interaction_used'] = max(0, $interactionUsed);
+            $usage['interaction_tokens'] = $budget?->tokensInformados() ?? ($interactionUsed === 0 ? 0 : null);
         }
 
-        return new NumaServiceResult($message, $sources, $period, $usage, $contextual);
+        return new NumaServiceResult($message, $sources, $period, $usage, $contextual, $stage);
     }
 }

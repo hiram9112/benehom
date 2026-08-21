@@ -12,6 +12,7 @@ require_once APP_PATH . '/services/GeminiNumaProvider.php';
 require_once APP_PATH . '/services/GeminiEmbeddingProvider.php';
 require_once APP_PATH . '/services/NumaFinancialTools.php';
 require_once APP_PATH . '/services/NumaKnowledge.php';
+require_once APP_PATH . '/services/NumaMinimalLogger.php';
 require_once APP_PATH . '/services/NumaService.php';
 require_once APP_PATH . '/services/NumaPublicIdentity.php';
 
@@ -106,6 +107,8 @@ class NumaController
             return;
         }
 
+        $logger = $this->numaLogger();
+        $startedAt = hrtime(true);
         $chatRequest = null;
 
         try {
@@ -115,6 +118,7 @@ class NumaController
 
             if ($chatRequest === null) {
                 bh_numa_error('NUMA_REQUEST_IN_PROGRESS', 409);
+                $this->logChatFailure($logger, $startedAt, 'NUMA_REQUEST_IN_PROGRESS');
                 return;
             }
 
@@ -130,6 +134,7 @@ class NumaController
 
             if (!$this->sessionStillOwnedBy($authenticatedUserId, $conversationVersion)) {
                 bh_json_error('UNAUTHENTICATED', bh_router_error_message('UNAUTHENTICATED'), 401);
+                $this->logChatFailure($logger, $startedAt, 'NUMA_INTERNAL_ERROR', result: $result);
                 return;
             }
 
@@ -144,12 +149,16 @@ class NumaController
             $data['conversation'] = $conversation->transcript();
 
             bh_json_success($data);
+            $this->logChatSuccess($logger, $startedAt, $result);
         } catch (NumaServiceException $exception) {
             $this->respondServiceError($exception);
+            $this->logChatFailure($logger, $startedAt, $exception->safeCode(), $exception->errorData(), stage: $exception->stage());
         } catch (NumaProviderException $exception) {
             bh_numa_error($exception->providerError()->safeCode(), 503);
+            $this->logChatFailure($logger, $startedAt, $exception->providerError()->safeCode());
         } catch (Throwable) {
             bh_numa_error('NUMA_INTERNAL_ERROR', 503);
+            $this->logChatFailure($logger, $startedAt, 'NUMA_INTERNAL_ERROR');
         } finally {
             if ($chatRequest !== null) {
                 $this->clearChatRequest($chatRequest);
@@ -220,6 +229,8 @@ class NumaController
             return;
         }
 
+        $logger = $this->numaLogger();
+        $startedAt = hrtime(true);
         $chatRequest = null;
 
         try {
@@ -228,6 +239,7 @@ class NumaController
             $chatRequest = $this->startPublicChatRequest($visitorHash, $conversationVersion);
             if ($chatRequest === null) {
                 bh_numa_error('NUMA_REQUEST_IN_PROGRESS', 409);
+                $this->logChatFailure($logger, $startedAt, 'NUMA_REQUEST_IN_PROGRESS');
                 return;
             }
 
@@ -238,6 +250,7 @@ class NumaController
 
             if (!$this->publicSessionStillOwnedBy($visitorHash, $conversationVersion)) {
                 bh_numa_error('NUMA_NOT_AVAILABLE', 503);
+                $this->logChatFailure($logger, $startedAt, 'NUMA_INTERNAL_ERROR', result: $result);
                 return;
             }
 
@@ -251,10 +264,13 @@ class NumaController
             );
             $data['conversation'] = $conversation->publicTranscript();
             bh_json_success($data);
+            $this->logChatSuccess($logger, $startedAt, $result);
         } catch (NumaServiceException $exception) {
             $this->respondServiceError($exception);
+            $this->logChatFailure($logger, $startedAt, $exception->safeCode(), $exception->errorData(), stage: $exception->stage());
         } catch (Throwable) {
             bh_numa_error('NUMA_INTERNAL_ERROR', 503);
+            $this->logChatFailure($logger, $startedAt, 'NUMA_INTERNAL_ERROR');
         } finally {
             if ($chatRequest !== null) {
                 $this->clearPublicChatRequest($chatRequest);
@@ -313,6 +329,11 @@ class NumaController
     protected function publicNumaUso(): NumaPublicUso
     {
         return new NumaPublicUso();
+    }
+
+    protected function numaLogger(): NumaMinimalLogger
+    {
+        return new NumaMinimalLogger();
     }
 
     protected function publicIdentity(): NumaPublicIdentity
@@ -382,6 +403,56 @@ class NumaController
         $data['availability'] = $this->availabilityFromUsage(is_array($usage) ? $usage : null);
 
         return $data;
+    }
+
+    private function logChatSuccess(NumaMinimalLogger $logger, int $startedAt, NumaServiceResult $result): void
+    {
+        $usage = $result->toArray()['usage'] ?? [];
+        $logger->record(
+            $result->stage(),
+            $startedAt,
+            $this->loggedCalls($usage),
+            $this->loggedTokens($usage),
+            true,
+        );
+    }
+
+    /** @param array<string,mixed> $errorData */
+    private function logChatFailure(
+        NumaMinimalLogger $logger,
+        int $startedAt,
+        string $errorCode,
+        array $errorData = [],
+        ?NumaServiceResult $result = null,
+        string $stage = 'request',
+    ): void
+    {
+        $usage = $result?->toArray()['usage'] ?? $errorData['usage'] ?? [];
+        $usage = is_array($usage) ? $usage : [];
+        $logger->record(
+            $result?->stage() ?? $stage,
+            $startedAt,
+            $this->loggedCalls($usage),
+            $this->loggedTokens($usage),
+            false,
+            $errorCode,
+        );
+    }
+
+    /** @param array<string,mixed> $usage */
+    private function loggedCalls(array $usage): int
+    {
+        return is_int($usage['interaction_used'] ?? null) ? max(0, $usage['interaction_used']) : 0;
+    }
+
+    /** @param array<string,mixed> $usage */
+    private function loggedTokens(array $usage): ?int
+    {
+        if (is_int($usage['interaction_tokens'] ?? null)) {
+            return max(0, $usage['interaction_tokens']);
+        }
+
+        return $this->loggedCalls($usage) === 0 ? 0 : null;
     }
 
     private function respondServiceError(NumaServiceException $exception): void

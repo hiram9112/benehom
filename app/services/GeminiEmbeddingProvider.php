@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/NumaProvider.php';
 require_once __DIR__ . '/NumaEmbeddingProvider.php';
+require_once __DIR__ . '/NumaConfiguration.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
 
 final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface, NumaEmbeddingTaskProviderInterface, NumaEmbeddingTimeoutProviderInterface
@@ -38,6 +39,12 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
 
     public static function fromEnvironment(?callable $transport = null): self
     {
+        try {
+            NumaConfiguration::assertIndexing();
+        } catch (NumaConfigurationException) {
+            throw self::configurationError();
+        }
+
         return new self(
             (string) bh_env_value('NUMA_API_KEY', ''),
             (string) bh_env_value('NUMA_EMBEDDING_MODEL', 'gemini-embedding-001'),

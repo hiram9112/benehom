@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/NumaProvider.php';
+require_once __DIR__ . '/NumaConfiguration.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
 require_once dirname(__DIR__) . '/models/NumaConsumoGlobal.php';
 
@@ -44,6 +45,12 @@ final class GeminiNumaProvider implements NumaProviderInterface
         ?NumaProviderConsumptionInterface $consumption = null,
     ): self
     {
+        try {
+            NumaConfiguration::assertRuntime();
+        } catch (NumaConfigurationException) {
+            throw self::configurationError();
+        }
+
         return new self(
             (string) bh_env_value('NUMA_API_KEY', ''),
             (string) bh_env_value('NUMA_MODEL', 'gemini-3.1-flash-lite'),

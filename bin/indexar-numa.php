@@ -32,6 +32,7 @@ if (is_file($envPath) && is_readable($envPath)) {
 }
 
 require_once APP_PATH . '/helpers/utils.php';
+require_once APP_PATH . '/services/NumaConfiguration.php';
 require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
 require_once APP_PATH . '/models/ArticuloBlog.php';
@@ -53,6 +54,7 @@ if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
 }
 
 try {
+    NumaConfiguration::assertIndexing();
     $knowledgeDirectory = BASE_PATH . '/knowledge/numa';
     $markdownDocuments = bh_numa_validate_knowledge_directory($knowledgeDirectory);
     $articles = ArticuloBlog::publicadosParaRag();

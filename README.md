@@ -256,6 +256,8 @@ php bin/indexar-numa.php
 
 Ejecuta este comando una vez en el entorno correspondiente después de desplegar cualquier alta, modificación, cambio de estado, retirada o cambio de slug de un artículo del blog. El comando es idempotente, usa `config/blog_articulos.php` como catálogo canónico, no indexa implícitamente al servir el blog y requiere la base de datos y el proveedor de embeddings configurados.
 
+La activación, los límites, la comprobación del índice, la rotación de claves, la respuesta ante cuota o proveedor no disponible y el SQL aditivo para bases existentes se documentan en [`resources/numa/runbook.md`](resources/numa/runbook.md).
+
 La calibración real del umbral RAG es una operación manual separada de PHPUnit y CI:
 
 ```bash

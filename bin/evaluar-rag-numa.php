@@ -35,6 +35,7 @@ if (is_file($envPath) && is_readable($envPath)) {
 }
 
 require_once APP_PATH . '/helpers/utils.php';
+require_once APP_PATH . '/services/NumaConfiguration.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
 require_once APP_PATH . '/models/ArticuloBlog.php';
 require_once APP_PATH . '/services/NumaEmbeddingProvider.php';
@@ -70,6 +71,13 @@ if (trim((string) bh_env_value('NUMA_API_KEY', '')) === '') {
 
 if (strtolower((string) bh_env_value('NUMA_EMBEDDING_PROVIDER', 'gemini')) !== 'gemini') {
     fwrite(STDERR, "La evaluacion real de 12.6 requiere el proveedor de embeddings Gemini.\n");
+    exit(1);
+}
+
+try {
+    NumaConfiguration::assertRagEvaluation();
+} catch (NumaConfigurationException $exception) {
+    fwrite(STDERR, "Configuracion de evaluacion RAG invalida.\n");
     exit(1);
 }
 

@@ -203,34 +203,74 @@
     left: 1rem;
     z-index: 2;
     min-height: 44px;
-    padding: 0.38rem 0.62rem;
-    border: 1px solid var(--bh-border-color);
-    border-radius: var(--bh-radius-pill);
+    padding: 0.4rem 0.55rem;
+    border-radius: var(--bh-radius-sm);
     color: var(--bh-brand-deep);
-    background: var(--bh-surface-soft);
-    font-family: var(--bh-font-interface);
     font-size: var(--bh-text-xs);
     font-weight: var(--bh-weight-semibold);
-    cursor: pointer;
-    touch-action: manipulation;
 }
 
 .bh-numa-new-conversation:hover:not(:disabled){
-    border-color: var(--bh-border-strong);
     color: var(--bh-brand-deep);
     background: var(--bh-brand-soft);
 }
 
-.bh-numa-new-conversation:focus-visible{
-    outline: none;
-    box-shadow: var(--bh-focus-ring);
+.bh-numa-new-conversation > i{
+    font-size: 1rem;
 }
 
 .bh-numa-new-conversation:disabled{
-    cursor: not-allowed;
     color: var(--bh-text-muted);
+    background: transparent;
+    opacity: 0.6;
+}
+
+.bh-numa-confirmation{
+    position: absolute;
+    top: 3.65rem;
+    left: 50%;
+    z-index: 4;
+    width: min(calc(100% - var(--bh-space-5)), 18rem);
+    transform: translateX(-50%);
+}
+
+.bh-numa-confirmation[hidden]{
+    display: none;
+}
+
+.bh-numa-confirmation-dialog{
+    padding: var(--bh-space-3);
+    border: var(--bh-border-subtle);
+    border-radius: var(--bh-radius-sm);
     background: var(--bh-surface-card);
-    opacity: 0.5;
+    box-shadow: var(--bh-shadow-pop);
+    text-align: center;
+}
+
+.bh-numa-confirmation-dialog > p{
+    margin: 0;
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-xs);
+    line-height: var(--bh-line-normal);
+}
+
+.bh-numa-confirmation-title{
+    color: var(--bh-text-main);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+    line-height: var(--bh-line-tight);
+}
+
+.bh-numa-confirmation-dialog > p + p{
+    margin-top: var(--bh-space-1);
+}
+
+.bh-numa-confirmation-actions{
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--bh-space-2);
+    margin-top: var(--bh-space-2);
 }
 
 .bh-numa-panel-body{
@@ -263,48 +303,52 @@
 
 .bh-numa-panel-initial > p{
     margin: 0;
+    max-width: calc(100% - var(--bh-space-3));
     color: var(--bh-text-main);
     font-family: var(--bh-font-display);
-    font-size: 1.0625rem;
+    font-size: 1.75rem;
     font-weight: var(--bh-weight-semibold);
     line-height: var(--bh-line-tight);
-    white-space: nowrap;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
 }
 
 .bh-numa-suggestions{
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.25rem;
     width: 100%;
 }
 
 .bh-numa-suggestion{
-    width: max-content;
-    max-width: 100%;
-    min-height: 44px;
-    padding: 0.45rem 0.7rem;
-    border: 1px solid var(--bh-border-color);
-    border-radius: var(--bh-radius-pill);
+    width: auto;
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
     color: var(--bh-brand-deep);
-    background: var(--bh-surface-card);
+    background: transparent;
     font-family: var(--bh-font-interface);
     font-size: 0.8125rem;
     font-weight: var(--bh-weight-semibold);
     line-height: var(--bh-line-tight);
-    white-space: nowrap;
+    text-align: center;
+    text-decoration: underline transparent;
+    text-underline-offset: 0.2em;
     cursor: pointer;
     touch-action: manipulation;
 }
 
 .bh-numa-suggestion:hover{
-    border-color: var(--bh-border-strong);
-    background: var(--bh-brand-soft);
+    color: var(--bh-brand);
+    text-decoration-color: currentColor;
 }
 
 .bh-numa-suggestion:focus-visible{
     outline: none;
-    box-shadow: var(--bh-focus-ring);
+    color: var(--bh-brand);
+    text-decoration-color: currentColor;
 }
 
 .bh-numa-suggestion:disabled{
@@ -354,7 +398,11 @@
     border-bottom-right-radius: 6px;
     border-radius: 16px;
     color: var(--bh-text-inverse);
-    background: var(--bh-brand);
+    background: var(--bh-brand-deep);
+}
+
+.bh-numa-message.is-user .bh-numa-message-content > p{
+    color: var(--bh-text-inverse);
 }
 
 .bh-numa-message.is-assistant .bh-numa-message-content{
@@ -447,8 +495,8 @@
 }
 
 .bh-numa-composer:focus-within{
-    border-color: var(--bh-brand);
-    box-shadow: var(--bh-focus-ring);
+    border-color: var(--bh-brand-deep);
+    box-shadow: none;
 }
 
 .bh-numa-input{
@@ -689,13 +737,8 @@
         padding: 0;
     }
 
-    .bh-numa-panel-initial > p{
-        font-size: 0.95rem;
-    }
-
     .bh-numa-suggestion{
-        min-height: 40px;
-        padding: 0.4rem 0.6rem;
+        min-height: 28px;
         font-size: 0.78rem;
     }
 
@@ -741,6 +784,10 @@
 }
 
 @media (max-width: 319.98px){
+    .bh-numa-panel-initial > p{
+        font-size: clamp(1.25rem, 9vw, 1.75rem);
+    }
+
     .bh-numa-widget{
         --bh-numa-launcher-size: 72px;
         --bh-numa-head-anchor-x: 36px;
@@ -758,14 +805,6 @@
         max-width: min(96%, 15rem);
     }
 
-    .bh-numa-panel-initial > p{
-        font-size: 0.9rem;
-    }
-
-    .bh-numa-suggestion{
-        padding: 0.35rem 0.5rem;
-        font-size: 0.75rem;
-    }
 }
 
 @media (max-height: 500px) and (orientation: landscape){
@@ -787,14 +826,6 @@
 
     .bh-numa-panel-initial{
         transform: translateY(-4%);
-    }
-}
-
-@media (max-width: 260px){
-    .bh-numa-panel-initial > p,
-    .bh-numa-suggestion{
-        width: auto;
-        white-space: normal;
     }
 }
 

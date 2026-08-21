@@ -88,7 +88,7 @@ test('presenta los mensajes de usuario y Numa con sus roles, alineacion y estilo
     const userStyles = await userContent.evaluate((element) => {
         const styles = window.getComputedStyle(element);
 
-        return { background: styles.backgroundColor, paddingLeft: styles.paddingLeft };
+        return { background: styles.backgroundColor, color: styles.color, paddingLeft: styles.paddingLeft };
     });
     const assistantStyles = await assistantContent.evaluate((element) => {
         const styles = window.getComputedStyle(element);
@@ -97,8 +97,10 @@ test('presenta los mensajes de usuario y Numa con sus roles, alineacion y estilo
     });
 
     expect(userStyles.background).not.toBe(assistantStyles.background);
+    expect(userStyles.color).toBe('rgb(253, 254, 253)');
     expect(Number.parseFloat(userStyles.paddingLeft)).toBeGreaterThan(0);
     expect(Number.parseFloat(assistantStyles.paddingLeft)).toBe(0);
+    await expect(page.locator('[data-numa-new-conversation]')).toBeEnabled();
 });
 
 test('retira Pensando y muestra un estado de error seguro cuando falla la consulta', async ({ page }) => {

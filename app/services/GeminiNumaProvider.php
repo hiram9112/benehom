@@ -10,7 +10,7 @@ require_once dirname(__DIR__) . '/models/NumaConsumoGlobal.php';
 final class GeminiNumaProvider implements NumaProviderInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-    private const OUTPUT_TOKEN_HARD_LIMIT = 220;
+    private const OUTPUT_TOKEN_HARD_LIMIT = 520;
     private const OUTPUT_BYTES_PER_TOKEN_HARD_LIMIT = 16;
 
     /** @var callable */

@@ -76,7 +76,7 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertStringEndsWith('/models/gemini-model:generateContent', $captured['url']);
         self::assertContains('x-goog-api-key: server-api-key', $captured['headers']);
         self::assertSame(10, $captured['timeout']);
-        self::assertSame(220, $captured['body']['generationConfig']['maxOutputTokens']);
+        self::assertSame(500, $captured['body']['generationConfig']['maxOutputTokens']);
         self::assertSame('low', $captured['body']['generationConfig']['thinkingConfig']['thinkingLevel']);
         self::assertSame('obtener_resumen_financiero', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
         self::assertSame(['fecha_inicio', 'fecha_fin'], $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['required']);
@@ -189,7 +189,7 @@ final class GeminiNumaProviderTest extends TestCase
             ],
             [
                 'candidates' => [
-                    ['content' => ['parts' => [['text' => str_repeat('a', 4000)]]], 'finishReason' => 'STOP'],
+                    ['content' => ['parts' => [['text' => str_repeat('a', 9000)]]], 'finishReason' => 'STOP'],
                 ],
             ],
             [
@@ -225,7 +225,7 @@ final class GeminiNumaProviderTest extends TestCase
             'status' => 200,
             'body' => json_encode([
                 'candidates' => [['content' => ['parts' => [['text' => 'Respuesta.']]], 'finishReason' => 'STOP']],
-                'usageMetadata' => ['candidatesTokenCount' => 221],
+                'usageMetadata' => ['candidatesTokenCount' => 521],
             ], JSON_THROW_ON_ERROR),
         ]);
 

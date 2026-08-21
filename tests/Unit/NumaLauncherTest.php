@@ -317,6 +317,14 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-close', $html);
         self::assertStringContainsString('data-numa-new-conversation', $html);
         self::assertStringContainsString('Nueva conversación', $html);
+        self::assertStringContainsString('data-numa-confirmation', $html);
+        self::assertStringContainsString('role="dialog"', $html);
+        self::assertStringContainsString('aria-label="Confirmar nueva conversación"', $html);
+        self::assertStringContainsString('¿Empezar de nuevo?', $html);
+        self::assertStringContainsString('Numa olvidará lo hablado hasta ahora. Tu límite de uso no cambia.', $html);
+        self::assertStringContainsString('data-numa-confirmation-cancel', $html);
+        self::assertStringContainsString('data-numa-confirmation-confirm', $html);
+        self::assertStringContainsString('>Empezar de nuevo</button>', $html);
         self::assertStringContainsString('data-numa-initial', $html);
         self::assertStringContainsString('data-numa-suggestions', $html);
         self::assertStringContainsString('data-numa-messages', $html);
@@ -422,7 +430,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("'X-CSRF-Token': csrfToken", $javascript);
         self::assertStringContainsString('JSON.stringify({ message })', $javascript);
         self::assertStringContainsString('presentChatResponse(payload.data, requestId)', $javascript);
-        self::assertStringContainsString("newConversationButton.addEventListener('click', startNewConversation)", $javascript);
+        self::assertStringContainsString("newConversationButton.addEventListener('click', () => {", $javascript);
         self::assertStringContainsString("submitButton.classList.toggle('is-processing', processing)", $javascript);
         self::assertStringContainsString("form.setAttribute('aria-busy', processing ? 'true' : 'false')", $javascript);
         self::assertStringContainsString("addMessage('user', message)", $javascript);
@@ -534,10 +542,14 @@ final class NumaLauncherTest extends TestCase
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
 
         self::assertIsString($javascript);
-        self::assertStringContainsString("const NEW_CONVERSATION_CONFIRM_TEXT = 'Empezar una conversación nueva borra el contexto de esta conversación, pero no tu consumo. ¿Quieres continuar?'", $javascript);
         self::assertStringContainsString('newConversationButton.disabled = activeRequest || !hasCanonicalConversation', $javascript);
-        self::assertStringContainsString('if (typeof window.confirm === \'function\' && !window.confirm(NEW_CONVERSATION_CONFIRM_TEXT))', $javascript);
-        self::assertMatchesRegularExpression('/if \(typeof window\.confirm === \'function\' && !window\.confirm\(NEW_CONVERSATION_CONFIRM_TEXT\)\) \{\s+return;\s+\}/', $javascript);
+        self::assertStringContainsString('const openNewConversationConfirmation', $javascript);
+        self::assertStringContainsString('const closeNewConversationConfirmation', $javascript);
+        self::assertStringContainsString("confirmationConfirmButton.addEventListener('click'", $javascript);
+        self::assertStringContainsString("confirmationCancelButton.addEventListener('click'", $javascript);
+        self::assertStringContainsString("if (event.key === 'Escape')", $javascript);
+        self::assertStringContainsString("newConversationButton.setAttribute('aria-expanded', 'true')", $javascript);
+        self::assertStringNotContainsString('window.confirm', $javascript);
         self::assertStringContainsString('applyServiceStatus(payload);', $javascript);
         self::assertStringContainsString('resetComposer();', $javascript);
         self::assertMatchesRegularExpression('/applyServiceStatus\(payload\);\s+resetComposer\(\);/', $javascript);
@@ -585,8 +597,8 @@ final class NumaLauncherTest extends TestCase
         self::assertIsString($javascript);
         self::assertStringContainsString('const hasBlockingOverlay = () => Boolean(', $javascript);
         self::assertStringContainsString("document.querySelector('.modal.show, .offcanvas.show, [data-bh-popover][aria-expanded=\"true\"]')", $javascript);
-        self::assertStringContainsString("if (event.key === 'Escape' && !hasBlockingOverlay()) {", $javascript);
-        self::assertStringContainsString("if (event.key !== 'Escape' || hasBlockingOverlay()) {", $javascript);
+        self::assertStringContainsString("if (event.key === 'Escape' && !confirmationOpen && !hasBlockingOverlay()) {", $javascript);
+        self::assertStringContainsString("if (event.key !== 'Escape' || confirmationOpen || hasBlockingOverlay()) {", $javascript);
         self::assertStringContainsString('}, { capture: true });', $javascript);
     }
 

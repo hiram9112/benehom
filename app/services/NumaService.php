@@ -33,7 +33,7 @@ final class NumaGlobalAvailability implements NumaGlobalAvailabilityInterface
         $calls = max(1, $calls);
         $status = $this->consumoGlobal->estadoGlobal();
         $tokensPerCall = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000))
-            + max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 220));
+            + max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 520));
         $plannedTokens = $calls * $tokensPerCall;
 
         if (!bh_numa_limits_bypassed()

@@ -130,12 +130,33 @@ function bh_numa_launcher(string $mode = 'private'): void
             hidden>
             <button
                 type="button"
-                class="bh-numa-new-conversation"
+                class="bh-btn bh-btn-ghost bh-numa-new-conversation"
                 data-numa-new-conversation
-                disabled>Nueva conversación</button>
+                aria-expanded="false"
+                aria-controls="bh-numa-confirmation"
+                disabled><i class="ti ti-plus" aria-hidden="true"></i><span>Nueva conversación</span></button>
             <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost bh-numa-panel-close" aria-label="Cerrar Numa" data-numa-close>
                 <i class="ti ti-x" aria-hidden="true"></i>
             </button>
+
+            <div
+                id="bh-numa-confirmation"
+                class="bh-numa-confirmation"
+                role="dialog"
+                aria-label="Confirmar nueva conversación"
+                aria-describedby="bh-numa-confirmation-description"
+                aria-hidden="true"
+                data-numa-confirmation
+                hidden>
+                <div class="bh-numa-confirmation-dialog">
+                    <p class="bh-numa-confirmation-title">¿Empezar de nuevo?</p>
+                    <p id="bh-numa-confirmation-description">Numa olvidará lo hablado hasta ahora. Tu límite de uso no cambia.</p>
+                    <div class="bh-numa-confirmation-actions">
+                        <button type="button" class="bh-btn bh-btn-secondary" data-numa-confirmation-cancel>Cancelar</button>
+                        <button type="button" class="bh-btn bh-btn-primary" data-numa-confirmation-confirm>Empezar de nuevo</button>
+                    </div>
+                </div>
+            </div>
 
             <div class="bh-numa-panel-body" data-numa-panel-content>
                 <div class="bh-numa-panel-initial" data-numa-initial>

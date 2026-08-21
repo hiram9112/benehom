@@ -47,6 +47,16 @@ final class NumaConfigurationTest extends TestCase
         self::addToAssertionCount(1);
     }
 
+    public function testAceptaElMaximoDeSalidaAmpliado(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '520';
+
+        \NumaConfiguration::assertRuntime();
+
+        self::addToAssertionCount(1);
+    }
+
     public function testRechazaUnBodyQueNoPuedeContenerElMensajeUnicodeMaximo(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

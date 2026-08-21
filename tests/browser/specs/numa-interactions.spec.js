@@ -43,8 +43,6 @@ test('inicia una nueva conversacion y restablece el panel', async ({ page }) => 
             data: { availability: 'available', conversation: [] },
         }),
     }));
-    page.once('dialog', (dialog) => dialog.accept());
-
     const newConversationRequest = page.waitForRequest((request) => {
         const url = new URL(request.url());
 
@@ -52,14 +50,36 @@ test('inicia una nueva conversacion y restablece el panel', async ({ page }) => 
             && request.method() === 'POST';
     });
     await page.locator('[data-numa-new-conversation]').click();
+    const confirmation = page.getByRole('dialog', { name: 'Confirmar nueva conversación' });
+    await expect(confirmation).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeFocused();
+    await page.getByRole('button', { name: 'Continuar' }).click();
 
     await newConversationRequest;
     await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(0);
     await expect(page.locator('[data-numa-initial]')).toBeVisible();
-    await expect(page.locator('[aria-label="Preguntas sugeridas para Numa"] button')).toHaveCount(3);
+    await expect(page.locator('[aria-label="Preguntas sugeridas para Numa"] button')).toHaveCount(2);
     await expect(page.locator('[data-numa-new-conversation]')).toBeDisabled();
     await expect(page.locator('[data-numa-input]')).toBeFocused();
     await expect(page.locator('[data-numa-status]')).toHaveText('Nueva conversación iniciada.');
+});
+
+test('cancela la nueva conversación con Escape y devuelve el foco a la acción', async ({ page }) => {
+    const conversation = [
+        { role: 'user', message: '¿Qué son los gastos flexibles?' },
+        { role: 'assistant', message: 'Son gastos que puedes ajustar según tus necesidades.' },
+    ];
+
+    await openAvailableNuma(page, conversation);
+    const newConversation = page.locator('[data-numa-new-conversation]');
+    await newConversation.click();
+    await expect(page.getByRole('dialog', { name: 'Confirmar nueva conversación' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Confirmar nueva conversación' })).toBeHidden();
+    await expect(newConversation).toBeFocused();
+    await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(2);
 });
 
 test('mantiene Numa privado al navegar entre dashboard, proyecciones y cuenta', async ({ page }) => {

@@ -9,7 +9,6 @@
     const MAX_INPUT_HEIGHT = 120;
     const PANEL_TRANSITION_DURATION_MS = 220;
     const TRANSCRIPT_FOLLOW_THRESHOLD = 48;
-    const NEW_CONVERSATION_CONFIRM_TEXT = 'Empezar una conversación nueva borra el contexto de esta conversación, pero no tu consumo. ¿Quieres continuar?';
 
     const EMPTY_MESSAGES = [
         '¿Qué quieres revisar hoy?',
@@ -114,6 +113,9 @@
         const panel = panelId ? document.getElementById(panelId) : widget.querySelector('[data-numa-panel]');
         const closeButton = panel ? panel.querySelector('[data-numa-close]') : null;
         const newConversationButton = panel ? panel.querySelector('[data-numa-new-conversation]') : null;
+        const confirmation = panel ? panel.querySelector('[data-numa-confirmation]') : null;
+        const confirmationCancelButton = panel ? panel.querySelector('[data-numa-confirmation-cancel]') : null;
+        const confirmationConfirmButton = panel ? panel.querySelector('[data-numa-confirmation-confirm]') : null;
         const form = panel ? panel.querySelector('[data-numa-form]') : null;
         const input = panel ? panel.querySelector('[data-numa-input]') : null;
         const submitButton = panel ? panel.querySelector('[data-numa-submit]') : null;
@@ -143,7 +145,7 @@
             ? configuredRequestTimeoutMs
             : 26000;
 
-        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !form || !input || !submitButton || !statusRetryButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
+        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !confirmation || !confirmationCancelButton || !confirmationConfirmButton || !form || !input || !submitButton || !statusRetryButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
             return;
         }
 
@@ -171,6 +173,7 @@
         let followsTranscriptEnd = true;
         let canonicalConversation = [];
         let composerHadFocus = false;
+        let confirmationOpen = false;
 
         const prefersReducedMotion = () => window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -321,7 +324,7 @@
 
             emptyMessage.textContent = randomItem(emptyMessages);
             suggestions.textContent = '';
-            randomSubset(configuredSuggestions, 3).forEach((suggestion) => {
+            randomSubset(configuredSuggestions, 2).forEach((suggestion) => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'bh-numa-suggestion';
@@ -954,12 +957,37 @@
                 });
         };
 
-        const startNewConversation = () => {
-            if (activeRequest || !hasCanonicalConversation || !newConversationUrl) {
+        const closeNewConversationConfirmation = (restoreFocus = true) => {
+            if (!confirmationOpen) {
                 return;
             }
 
-            if (typeof window.confirm === 'function' && !window.confirm(NEW_CONVERSATION_CONFIRM_TEXT)) {
+            confirmationOpen = false;
+            confirmation.hidden = true;
+            confirmation.setAttribute('aria-hidden', 'true');
+            newConversationButton.setAttribute('aria-expanded', 'false');
+            setInteractiveState();
+
+            if (restoreFocus) {
+                newConversationButton.focus();
+            }
+        };
+
+        const openNewConversationConfirmation = () => {
+            if (activeRequest || !hasCanonicalConversation || !newConversationUrl || confirmationOpen) {
+                return;
+            }
+
+            confirmationOpen = true;
+            confirmation.hidden = false;
+            confirmation.setAttribute('aria-hidden', 'false');
+            newConversationButton.setAttribute('aria-expanded', 'true');
+            setInteractiveState();
+            confirmationCancelButton.focus();
+        };
+
+        const requestNewConversation = () => {
+            if (activeRequest || !hasCanonicalConversation || !newConversationUrl) {
                 return;
             }
 
@@ -1037,6 +1065,8 @@
                 return;
             }
 
+            closeNewConversationConfirmation(false);
+
             if (activeRequest || thinkingMessage || progressiveResponse) {
                 invalidateChatRequest(true);
             }
@@ -1076,7 +1106,19 @@
         });
 
         closeButton.addEventListener('click', () => closePanel(true));
-        newConversationButton.addEventListener('click', startNewConversation);
+        newConversationButton.addEventListener('click', () => {
+            if (confirmationOpen) {
+                closeNewConversationConfirmation();
+                return;
+            }
+
+            openNewConversationConfirmation();
+        });
+        confirmationCancelButton.addEventListener('click', () => closeNewConversationConfirmation());
+        confirmationConfirmButton.addEventListener('click', () => {
+            closeNewConversationConfirmation(false);
+            requestNewConversation();
+        });
         statusRetryButton.addEventListener('click', loadStatus);
 
         panel.addEventListener('transitionend', (event) => {
@@ -1140,14 +1182,23 @@
         });
 
         panel.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !hasBlockingOverlay()) {
+            if (event.key === 'Escape' && !confirmationOpen && !hasBlockingOverlay()) {
                 event.preventDefault();
                 closePanel(true);
             }
         });
 
+        confirmation.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                closeNewConversationConfirmation();
+            }
+
+        });
+
         document.addEventListener('keydown', (event) => {
-            if (event.key !== 'Escape' || hasBlockingOverlay()) {
+            if (event.key !== 'Escape' || confirmationOpen || hasBlockingOverlay()) {
                 return;
             }
 

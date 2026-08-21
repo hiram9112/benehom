@@ -76,6 +76,39 @@ final class NumaPublicUsoTest extends TestCase
         $repo->reservar($hash);
     }
 
+    public function testBypassLocalPermiteReservaPublicaPeroMantieneSuConfirmacion(): void
+    {
+        $hash = $this->visitorHash();
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '1';
+        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '1';
+        $previousAppEnv = $_ENV['APP_ENV'] ?? null;
+        $previousBypass = $_ENV['NUMA_BYPASS_LIMITS'] ?? null;
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $repo = $this->repo('2026-08-17 10:00:00');
+
+        try {
+            $firstReservation = $repo->reservar($hash);
+            $secondReservation = $repo->reservar($hash);
+
+            self::assertTrue($repo->confirmar($firstReservation));
+            self::assertTrue($repo->confirmar($secondReservation));
+            self::assertSame(2, $repo->estado($hash)['daily_used']);
+        } finally {
+            if ($previousAppEnv === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $previousAppEnv;
+            }
+
+            if ($previousBypass === null) {
+                unset($_ENV['NUMA_BYPASS_LIMITS']);
+            } else {
+                $_ENV['NUMA_BYPASS_LIMITS'] = $previousBypass;
+            }
+        }
+    }
+
     public function testLimiteMensualPublicoSeAplicaAunqueQuedeCuotaDiaria(): void
     {
         $hash = $this->visitorHash();

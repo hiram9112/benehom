@@ -217,6 +217,44 @@ final class NumaConsumoGlobalTest extends TestCase
         $repo->iniciarLlamada();
     }
 
+    public function testBypassLocalSuperaLimitesGlobalesYPublicosPeroLosContabiliza(): void
+    {
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '1';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '1';
+        $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '1';
+        $repo = \NumaConsumoGlobal::forPublicLlm($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+
+        $repo->iniciarLlamada();
+        $repo->registrarTokens(new \NumaTokenUsage(120, 35));
+        $repo->iniciarLlamada();
+        $repo->registrarTokens(new \NumaTokenUsage(140, 45));
+
+        $row = $this->row('2026-07-25');
+
+        self::assertSame(2, $row['llamadas']);
+        self::assertSame(2, $row['llamadas_publicas']);
+        self::assertSame(260, $row['input_tokens']);
+        self::assertSame(80, $row['output_tokens']);
+    }
+
+    public function testBypassCopiadoEnProduccionNoDesactivaElLimiteGlobal(): void
+    {
+        $_ENV['APP_ENV'] = 'production';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '1';
+        $repo = $this->repo('2026-07-25 10:00:00');
+
+        $repo->iniciarLlamada();
+
+        $this->expectException(\NumaGlobalLimiteAlcanzado::class);
+        $repo->iniciarLlamada();
+    }
+
     public function testRegistrarTokensFiablesIncrementaElContador(): void
     {
         $repo = $this->repo('2026-07-25 10:00:00');
@@ -751,12 +789,12 @@ PHP;
     }
 
     /**
-     * @return array{llamadas:int,input_tokens:int,output_tokens:int}
+     * @return array{llamadas:int,llamadas_publicas:int,input_tokens:int,output_tokens:int}
      */
     private function row(string $fecha): array
     {
         $stmt = $this->db->prepare(
-            'SELECT llamadas, input_tokens, output_tokens FROM numa_uso_proveedor WHERE fecha = :fecha'
+            'SELECT llamadas, llamadas_publicas, input_tokens, output_tokens FROM numa_uso_proveedor WHERE fecha = :fecha'
         );
         $stmt->execute([':fecha' => $fecha]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -765,6 +803,7 @@ PHP;
 
         return [
             'llamadas' => (int) $row['llamadas'],
+            'llamadas_publicas' => (int) $row['llamadas_publicas'],
             'input_tokens' => (int) $row['input_tokens'],
             'output_tokens' => (int) $row['output_tokens'],
         ];
@@ -1054,6 +1093,8 @@ PHP;
             'NUMA_RESERVATION_TTL_SECONDS',
             'NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT',
             'NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT',
+            'NUMA_BYPASS_LIMITS',
+            'APP_ENV',
         ];
     }
 }

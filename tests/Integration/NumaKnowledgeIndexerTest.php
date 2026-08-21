@@ -396,6 +396,66 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         }
     }
 
+    public function testIndexacionLocalSuperaElLimiteGlobalYMantieneElConsumo(): void
+    {
+        $envBackup = [];
+        foreach ($this->globalEnvKeys() as $key) {
+            $envBackup[$key] = $_ENV[$key] ?? null;
+        }
+
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '1';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '1';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '900';
+
+        try {
+            $directory = $this->knowledgeDirectory([
+                'guia.md' => "# Guia\n\n## Inicio\n\nContenido publico de BeneHom.",
+                'movimientos.md' => "# Movimientos\n\n## Registro\n\nContenido publico de movimientos.",
+            ]);
+            $transportCalls = 0;
+            $provider = new \GeminiEmbeddingProvider('key', 'model', 4, transport: static function () use (&$transportCalls): array {
+                ++$transportCalls;
+
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'embedding' => ['values' => [0.1, 0.2, 0.3, 0.4]],
+                        'usageMetadata' => ['promptTokenCount' => 29],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            });
+            $meteredProvider = new \NumaMeteredEmbeddingProvider(
+                $provider,
+                \NumaConsumoGlobal::forEmbedding($this->db, new DateTimeImmutable('2026-07-29 12:00:00'))
+            );
+            $indexer = $this->indexer($meteredProvider, [
+                'guia.md' => '/dashboard',
+                'movimientos.md' => '/movimientos',
+            ]);
+
+            $summary = $indexer->indexDirectory($directory, new DateTimeImmutable(self::INDEXED_AT));
+            $row = $this->globalUsageRow('2026-07-29');
+
+            self::assertSame(2, $summary->embeddingsGenerated);
+            self::assertSame(2, $transportCalls);
+            self::assertSame(2, $row['llamadas']);
+            self::assertSame(58, $row['input_tokens']);
+            self::assertSame(0, $row['output_tokens']);
+        } finally {
+            foreach ($envBackup as $key => $value) {
+                if ($value === null) {
+                    unset($_ENV[$key]);
+                } else {
+                    $_ENV[$key] = $value;
+                }
+            }
+        }
+    }
+
     /**
      * @param array<string, string> $routeMap
      */
@@ -477,6 +537,8 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
             'NUMA_GLOBAL_DAILY_TOKEN_LIMIT',
             'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
             'NUMA_MAX_RAG_CHUNK_CHARS',
+            'NUMA_BYPASS_LIMITS',
+            'APP_ENV',
         ];
     }
 

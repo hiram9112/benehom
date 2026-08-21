@@ -126,6 +126,29 @@ final class NumaUsoTest extends TestCase
         self::assertSame(4, $repo->estado($usuarioB)['daily_remaining']);
     }
 
+    public function testUsuarioExentoSuperaSuCuotaPeroConservaElUsoConfirmado(): void
+    {
+        $usuarioId = $this->crearUsuario();
+        $this->insertUso($usuarioId, '2026-07-21', 5);
+        $repo = $this->repo('2026-07-21 10:00:00');
+        $previousExemptUsers = $_ENV['NUMA_LIMIT_EXEMPT_USER_IDS'] ?? null;
+
+        $_ENV['NUMA_LIMIT_EXEMPT_USER_IDS'] = (string) $usuarioId;
+
+        try {
+            $reservationId = $repo->reservar($usuarioId);
+
+            self::assertTrue($repo->confirmar($reservationId));
+            self::assertSame(6, $repo->llamadasPagadasConfirmadasDia($usuarioId));
+        } finally {
+            if ($previousExemptUsers === null) {
+                unset($_ENV['NUMA_LIMIT_EXEMPT_USER_IDS']);
+            } else {
+                $_ENV['NUMA_LIMIT_EXEMPT_USER_IDS'] = $previousExemptUsers;
+            }
+        }
+    }
+
     public function testReservasConConexionesSeparadasBloqueanElLimite(): void
     {
         $_ENV['NUMA_DAILY_LIMIT'] = '1';

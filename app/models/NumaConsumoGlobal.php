@@ -155,7 +155,7 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
                 || $dailyTokens + $reservedTokens > $this->dailyTokenLimit()
                 || $monthlyTokens + $reservedTokens > $this->monthlyTokenLimit();
 
-            if ($limiteAlcanzado) {
+            if ($limiteAlcanzado && !bh_numa_limits_bypassed()) {
                 if ($started) {
                     $db->commit();
                 }
@@ -164,6 +164,7 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
             }
 
             if ($this->public
+                && !bh_numa_limits_bypassed()
                 && ($this->llamadasPublicasDia($today) + 1 > $this->publicDailyCallLimit()
                     || $this->llamadasPublicasMes($monthStart, $nextMonthStart) + 1 > $this->publicMonthlyCallLimit())
             ) {

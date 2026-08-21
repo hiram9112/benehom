@@ -79,6 +79,8 @@ final class NumaConfiguration
         self::assertInteger('NUMA_CHAT_BURST_MAX_REQUESTS', 5, 1);
         self::assertInteger('NUMA_CHAT_BURST_WINDOW_SECONDS', 60, 1);
         self::assertInteger('NUMA_CHAT_BURST_BLOCK_SECONDS', 60, 1);
+        self::assertBoolean('NUMA_BYPASS_LIMITS', false);
+        self::assertUserIdList('NUMA_LIMIT_EXEMPT_USER_IDS');
         self::assertInteger('NUMA_DAILY_LIMIT', 5, 1);
         self::assertInteger('NUMA_MONTHLY_LIMIT', 20, self::integerValue('NUMA_DAILY_LIMIT', 5));
         self::assertInteger('NUMA_RESERVATION_TTL_SECONDS', 120, 1);
@@ -159,6 +161,20 @@ final class NumaConfiguration
         $number = (float) $value;
         if (!is_finite($number) || $number < $minimum || $number > $maximum) {
             self::invalid($key);
+        }
+    }
+
+    private static function assertUserIdList(string $key): void
+    {
+        $value = self::value($key, '');
+        if ($value === '') {
+            return;
+        }
+
+        foreach (explode(',', $value) as $userId) {
+            if (preg_match('/\A[1-9][0-9]*\z/', $userId) !== 1) {
+                self::invalid($key);
+            }
         }
     }
 

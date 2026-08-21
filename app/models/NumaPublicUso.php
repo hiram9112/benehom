@@ -86,10 +86,10 @@ final class NumaPublicUso
                     }
                 }
 
-                if ($dailyUsed + $dailyPending >= $this->dailyLimit()) {
+                if (!bh_numa_limits_bypassed() && $dailyUsed + $dailyPending >= $this->dailyLimit()) {
                     throw new NumaUsoLimiteAlcanzado('NUMA_DAILY_LIMIT_REACHED');
                 }
-                if ($monthlyUsed + $monthlyPending >= $this->monthlyLimit()) {
+                if (!bh_numa_limits_bypassed() && $monthlyUsed + $monthlyPending >= $this->monthlyLimit()) {
                     throw new NumaUsoLimiteAlcanzado('NUMA_MONTHLY_LIMIT_REACHED');
                 }
 

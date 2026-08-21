@@ -171,6 +171,34 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         self::assertSame(220, $row['output_tokens']);
     }
 
+    public function testBypassLocalPermiteElReintentoYConservaLaContabilizacionReal(): void
+    {
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '1';
+        $transportCalls = 0;
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: function () use (&$transportCalls): array {
+                ++$transportCalls;
+
+                return $transportCalls === 1
+                    ? ['status' => 503, 'body' => '{}']
+                    : $this->validResponse(120, 35);
+            },
+            consumption: $this->consumo(),
+        );
+
+        $provider->respond(new \NumaRequest('Pregunta'));
+        $row = $this->row();
+
+        self::assertSame(2, $transportCalls);
+        self::assertSame(2, $row['llamadas']);
+        self::assertSame(5120, $row['input_tokens']);
+        self::assertSame(255, $row['output_tokens']);
+    }
+
     public function testMantieneElConteoCuandoLaLlamadaRealFalla(): void
     {
         $consumo = $this->consumo();
@@ -331,6 +359,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
             'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
             'NUMA_MAX_INPUT_TOKENS',
             'NUMA_MAX_OUTPUT_TOKENS',
+            'NUMA_BYPASS_LIMITS',
+            'APP_ENV',
         ];
     }
 }

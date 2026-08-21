@@ -36,10 +36,11 @@ final class NumaGlobalAvailability implements NumaGlobalAvailabilityInterface
             + max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 220));
         $plannedTokens = $calls * $tokensPerCall;
 
-        if ($status['daily_calls'] + $calls > $status['daily_calls_limit']
+        if (!bh_numa_limits_bypassed()
+            && ($status['daily_calls'] + $calls > $status['daily_calls_limit']
             || $status['monthly_calls'] + $calls > $status['monthly_calls_limit']
             || $status['daily_tokens'] + $plannedTokens > $status['daily_tokens_limit']
-            || $status['monthly_tokens'] + $plannedTokens > $status['monthly_tokens_limit']
+            || $status['monthly_tokens'] + $plannedTokens > $status['monthly_tokens_limit'])
         ) {
             throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
         }
@@ -1126,6 +1127,10 @@ final class NumaService
             throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
         }
 
+        if (bh_numa_user_limits_bypassed($authenticatedUserId)) {
+            return;
+        }
+
         $plannedCalls = min($preRoute->plannedPaidCalls(), $this->maxProviderCalls());
         if ($plannedCalls < 1) {
             return;
@@ -1145,6 +1150,10 @@ final class NumaService
     {
         if (!$this->usage instanceof NumaPublicUso) {
             throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
+        }
+
+        if (bh_numa_limits_bypassed()) {
+            return;
         }
 
         $plannedCalls = min($preRoute->plannedPaidCalls(), $this->maxProviderCalls());

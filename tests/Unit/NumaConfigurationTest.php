@@ -79,6 +79,28 @@ final class NumaConfigurationTest extends TestCase
         self::addToAssertionCount(1);
     }
 
+    public function testAceptaElBypassLocalYUsuariosExentosConfigurados(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $_ENV['NUMA_LIMIT_EXEMPT_USER_IDS'] = '12,34';
+
+        \NumaConfiguration::assertRuntime();
+
+        self::addToAssertionCount(1);
+    }
+
+    public function testRechazaUnaListaDeUsuariosExentosInvalida(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_LIMIT_EXEMPT_USER_IDS'] = '12, propietario';
+
+        $this->expectException(\NumaConfigurationException::class);
+        $this->expectExceptionMessage('NUMA_LIMIT_EXEMPT_USER_IDS');
+
+        \NumaConfiguration::assertRuntime();
+    }
+
     public function testElHtaccessRaizProtegeLosRecursosInternosDeNuma(): void
     {
         $configuration = (string) file_get_contents(BASE_PATH . '/.htaccess');

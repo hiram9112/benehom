@@ -396,6 +396,45 @@ final class NumaControllerTest extends TestCase
         self::assertArrayNotHasKey('usage', $response['data']);
     }
 
+    public function testUsuarioExentoNoQuedaBloqueadoPorCuotaNiRafaga(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_LIMIT_EXEMPT_USER_IDS'] = '123';
+        $usage = [
+            'daily_used' => 5,
+            'daily_limit' => 5,
+            'daily_remaining' => 0,
+            'monthly_used' => 20,
+            'monthly_limit' => 20,
+            'monthly_remaining' => 0,
+        ];
+
+        $response = $this->invokeEffectiveStatusWithDependencies(new NumaUsoFake($usage));
+        $controller = new class extends \NumaController {
+            public function chatRateLimited(int $userId): bool
+            {
+                return $this->isChatRateLimited($userId);
+            }
+        };
+
+        self::assertSame('available', $response['data']['availability']);
+        self::assertFalse($controller->chatRateLimited(123));
+    }
+
+    public function testBypassLocalOmiteLaRafagaPublica(): void
+    {
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $controller = new class extends \NumaController {
+            public function publicChatRateLimited(): bool
+            {
+                return $this->isPublicChatRateLimited();
+            }
+        };
+
+        self::assertFalse($controller->publicChatRateLimited());
+    }
+
     public function testStatusInformaElLimiteGlobal(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

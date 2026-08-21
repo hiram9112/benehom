@@ -138,7 +138,7 @@ class NumaController
                 return;
             }
 
-            $data = $this->responseData($result);
+            $data = $this->responseData($result, $authenticatedUserId);
             $conversation->appendExchange(
                 $message,
                 (string) $data['message'],
@@ -395,12 +395,15 @@ class NumaController
     }
 
     /** @return array<string,mixed> */
-    private function responseData(NumaServiceResult $result): array
+    private function responseData(NumaServiceResult $result, ?int $authenticatedUserId = null): array
     {
         $data = $result->toArray();
         $usage = $data['usage'] ?? null;
         unset($data['usage']);
-        $data['availability'] = $this->availabilityFromUsage(is_array($usage) ? $usage : null);
+        $data['availability'] = $this->availabilityFromUsage(
+            is_array($usage) ? $usage : null,
+            $authenticatedUserId,
+        );
 
         return $data;
     }
@@ -819,7 +822,8 @@ class NumaController
 
             $usage = $this->numaUso()->estado($authenticatedUserId);
 
-            if ($usage['daily_remaining'] <= 0 || $usage['monthly_remaining'] <= 0) {
+            if (!bh_numa_user_limits_bypassed($authenticatedUserId)
+                && ($usage['daily_remaining'] <= 0 || $usage['monthly_remaining'] <= 0)) {
                 return $this->statusData(false, self::STATUS_REASON_USER_LIMIT, $usage);
             }
 
@@ -830,7 +834,11 @@ class NumaController
             return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE, $usage);
         }
 
-        return $this->statusData(true, null, $usage);
+        return $this->statusData(
+            true,
+            null,
+            bh_numa_user_limits_bypassed($authenticatedUserId) ? null : $usage,
+        );
     }
 
     /**
@@ -858,14 +866,16 @@ class NumaController
             }
 
             $usage = $this->publicNumaUso()->estado($visitorHash);
-            if ($usage['daily_remaining'] <= 0 || $usage['monthly_remaining'] <= 0) {
+            if (!bh_numa_limits_bypassed()
+                && ($usage['daily_remaining'] <= 0 || $usage['monthly_remaining'] <= 0)) {
                 return $this->statusData(false, self::STATUS_REASON_VISITOR_LIMIT, $usage);
             }
 
             $global = new NumaConsumoGlobal();
             $global->estadoGlobal();
-            if ($global->llamadasPublicasDia() >= max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT', 40))
-                || $global->llamadasPublicasMes() >= max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT', 400))) {
+            if (!bh_numa_limits_bypassed()
+                && ($global->llamadasPublicasDia() >= max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT', 40))
+                || $global->llamadasPublicasMes() >= max(0, bh_env_int('NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT', 400)))) {
                 return $this->statusData(false, self::STATUS_REASON_PUBLIC_GLOBAL_LIMIT, $usage);
             }
 
@@ -876,7 +886,7 @@ class NumaController
             return $this->statusData(false, self::STATUS_REASON_TEMPORARILY_UNAVAILABLE, $usage ?? null);
         }
 
-        return $this->statusData(true, null, $usage);
+        return $this->statusData(true, null, bh_numa_limits_bypassed() ? null : $usage);
     }
 
     protected function statusConnection(): PDO
@@ -924,8 +934,13 @@ class NumaController
     }
 
     /** @param array<string,int>|null $usage */
-    private function availabilityFromUsage(?array $usage): string
+    private function availabilityFromUsage(?array $usage, ?int $authenticatedUserId = null): string
     {
+        if (bh_numa_limits_bypassed()
+            || ($authenticatedUserId !== null && bh_numa_user_limits_bypassed($authenticatedUserId))) {
+            return self::AVAILABILITY_AVAILABLE;
+        }
+
         if ($usage === null) {
             return self::AVAILABILITY_AVAILABLE;
         }
@@ -1063,6 +1078,10 @@ class NumaController
 
     protected function isChatRateLimited(int $authenticatedUserId): bool
     {
+        if (bh_numa_user_limits_bypassed($authenticatedUserId)) {
+            return false;
+        }
+
         $key = IntentoAcceso::claveHash('numa:' . $authenticatedUserId);
         $windowSeconds = max(1, bh_env_int('NUMA_CHAT_BURST_WINDOW_SECONDS', 60));
         $blockSeconds = max(1, bh_env_int('NUMA_CHAT_BURST_BLOCK_SECONDS', 60));
@@ -1084,6 +1103,10 @@ class NumaController
 
     protected function isPublicChatRateLimited(): bool
     {
+        if (bh_numa_limits_bypassed()) {
+            return false;
+        }
+
         try {
             $address = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
             $key = $this->publicIdentity()->hash($address);

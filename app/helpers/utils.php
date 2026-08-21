@@ -356,6 +356,36 @@ function bh_env_bool(string $key, bool $default = false): bool
     return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
 }
 
+function bh_numa_limits_bypassed(): bool
+{
+    return strtolower((string) bh_env_value('APP_ENV', '')) === 'local'
+        && bh_env_bool('NUMA_BYPASS_LIMITS', false);
+}
+
+function bh_numa_user_limits_bypassed(int $userId): bool
+{
+    if (bh_numa_limits_bypassed()) {
+        return true;
+    }
+
+    if ($userId < 1) {
+        return false;
+    }
+
+    $exemptUserIds = bh_env_value('NUMA_LIMIT_EXEMPT_USER_IDS', '');
+    if ($exemptUserIds === null || $exemptUserIds === '') {
+        return false;
+    }
+
+    foreach (explode(',', $exemptUserIds) as $exemptUserId) {
+        if (ctype_digit($exemptUserId) && (int) $exemptUserId === $userId) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function bh_env_int(string $key, int $default): int
 {
     $value = bh_env_value($key);

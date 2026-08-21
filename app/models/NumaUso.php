@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Database.php';
+require_once dirname(__DIR__) . '/helpers/utils.php';
 
 final class NumaUsoLimiteAlcanzado extends RuntimeException
 {
@@ -106,11 +107,13 @@ class NumaUso
                     }
                 }
 
-                if (($dailyUsed + $dailyPending) >= $this->dailyLimit()) {
+                if (!bh_numa_user_limits_bypassed($usuarioId)
+                    && ($dailyUsed + $dailyPending) >= $this->dailyLimit()) {
                     throw new NumaUsoLimiteAlcanzado('NUMA_DAILY_LIMIT_REACHED');
                 }
 
-                if (($monthlyUsed + $monthlyPending) >= $this->monthlyLimit()) {
+                if (!bh_numa_user_limits_bypassed($usuarioId)
+                    && ($monthlyUsed + $monthlyPending) >= $this->monthlyLimit()) {
                     throw new NumaUsoLimiteAlcanzado('NUMA_MONTHLY_LIMIT_REACHED');
                 }
 

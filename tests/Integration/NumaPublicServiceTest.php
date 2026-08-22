@@ -76,6 +76,34 @@ final class NumaPublicServiceTest extends TestCase
         self::assertSame(0, $result->toArray()['usage']['daily_used']);
     }
 
+    public function testRutaAmbiguaPublicaPuedeTerminarConUnaSolaUnidadDisponible(): void
+    {
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '1';
+        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '1';
+        $visitorHash = $this->visitorHash();
+        $usage = new \NumaPublicUso($this->db);
+        $provider = new NumaPublicServiceProvider(new \NumaResponse('clasificacion', [
+            'intent' => 'fuera_de_ambito',
+            'allowed' => false,
+            'reason' => 'general_knowledge',
+        ]));
+        $toolFactoryCalls = 0;
+
+        $result = $this->service($usage, $provider, $toolFactoryCalls)->answerPublic(
+            $visitorHash,
+            'Necesito ayuda con esta consulta.'
+        );
+
+        self::assertSame(
+            'Puedo ayudarte con BeneHom, conceptos de economía familiar y el análisis de los datos que hayas registrado. No respondo preguntas generales ajenas a estas funciones.',
+            $result->toArray()['message']
+        );
+        self::assertSame(1, $result->toArray()['usage']['daily_used']);
+        self::assertSame(0, $result->toArray()['usage']['daily_remaining']);
+        self::assertSame(1, $result->toArray()['usage']['interaction_used']);
+        self::assertSame(0, $toolFactoryCalls);
+    }
+
     public function testSolicitudDeToolInesperadaEsInvalidaSinResolverNiEjecutarTools(): void
     {
         $toolFactoryCalls = 0;

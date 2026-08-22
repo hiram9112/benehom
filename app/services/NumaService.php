@@ -25,22 +25,15 @@ final class NumaGlobalAvailability implements NumaGlobalAvailabilityInterface
 
     public function assertAvailable(): void
     {
-        $this->assertPlannedCallsAvailable(1);
-    }
-
-    public function assertPlannedCallsAvailable(int $calls): void
-    {
-        $calls = max(1, $calls);
         $status = $this->consumoGlobal->estadoGlobal();
         $tokensPerCall = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000))
             + max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 520));
-        $plannedTokens = $calls * $tokensPerCall;
 
         if (!bh_numa_limits_bypassed()
-            && ($status['daily_calls'] + $calls > $status['daily_calls_limit']
-            || $status['monthly_calls'] + $calls > $status['monthly_calls_limit']
-            || $status['daily_tokens'] + $plannedTokens > $status['daily_tokens_limit']
-            || $status['monthly_tokens'] + $plannedTokens > $status['monthly_tokens_limit'])
+            && ($status['daily_calls'] + 1 > $status['daily_calls_limit']
+            || $status['monthly_calls'] + 1 > $status['monthly_calls_limit']
+            || $status['daily_tokens'] + $tokensPerCall > $status['daily_tokens_limit']
+            || $status['monthly_tokens'] + $tokensPerCall > $status['monthly_tokens_limit'])
         ) {
             throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
         }
@@ -392,13 +385,7 @@ final class NumaService
         $budget = null;
 
         try {
-            $this->assertPlannedCapacity($authenticatedUserId, $preRoute);
-            $globalAvailability = $this->globalAvailability();
-            if ($globalAvailability instanceof NumaGlobalAvailability) {
-                $globalAvailability->assertPlannedCallsAvailable($preRoute->plannedPaidCalls());
-            } else {
-                $globalAvailability->assertAvailable();
-            }
+            $this->globalAvailability()->assertAvailable();
         } catch (NumaServiceException $exception) {
             throw $exception;
         } catch (NumaGlobalLimiteAlcanzado $exception) {
@@ -577,13 +564,7 @@ final class NumaService
         $stage = self::STAGE_AVAILABILITY;
 
         try {
-            $this->assertPublicPlannedCapacity($visitorHash, $preRoute);
-            $globalAvailability = $this->globalAvailability();
-            if ($globalAvailability instanceof NumaGlobalAvailability) {
-                $globalAvailability->assertPlannedCallsAvailable($preRoute->plannedPaidCalls());
-            } else {
-                $globalAvailability->assertAvailable();
-            }
+            $this->globalAvailability()->assertAvailable();
 
             $budget = new NumaPaidCallBudget(
                 new NumaPublicUsageBudget($this->usage, $visitorHash),
@@ -1119,56 +1100,6 @@ final class NumaService
     private function requestTimeoutSeconds(): int
     {
         return max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25));
-    }
-
-    private function assertPlannedCapacity(int $authenticatedUserId, NumaPreRoute $preRoute): void
-    {
-        if (!$this->usage instanceof NumaUso) {
-            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
-        }
-
-        if (bh_numa_user_limits_bypassed($authenticatedUserId)) {
-            return;
-        }
-
-        $plannedCalls = min($preRoute->plannedPaidCalls(), $this->maxProviderCalls());
-        if ($plannedCalls < 1) {
-            return;
-        }
-
-        $usage = $this->usage->estado($authenticatedUserId);
-        if ($usage['daily_remaining'] < $plannedCalls) {
-            throw new NumaServiceException('NUMA_DAILY_LIMIT_REACHED', 429);
-        }
-
-        if ($usage['monthly_remaining'] < $plannedCalls) {
-            throw new NumaServiceException('NUMA_MONTHLY_LIMIT_REACHED', 429);
-        }
-    }
-
-    private function assertPublicPlannedCapacity(string $visitorHash, NumaPreRoute $preRoute): void
-    {
-        if (!$this->usage instanceof NumaPublicUso) {
-            throw new NumaServiceException('NUMA_USAGE_ERROR', 503);
-        }
-
-        if (bh_numa_limits_bypassed()) {
-            return;
-        }
-
-        $plannedCalls = min($preRoute->plannedPaidCalls(), $this->maxProviderCalls());
-        if ($plannedCalls < 1) {
-            return;
-        }
-
-        $usage = $this->usage->estado($visitorHash);
-        if ($usage['daily_remaining'] < $plannedCalls) {
-            throw new NumaServiceException('NUMA_DAILY_LIMIT_REACHED', 429);
-        }
-
-        if ($usage['monthly_remaining'] < $plannedCalls) {
-            throw new NumaServiceException('NUMA_MONTHLY_LIMIT_REACHED', 429);
-        }
     }
 
     private function providerStatusCode(NumaProviderError $error): int

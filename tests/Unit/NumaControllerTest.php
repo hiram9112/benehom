@@ -1043,7 +1043,7 @@ final class NumaControllerTest extends TestCase
         self::assertCount(0, $provider->requests());
     }
 
-    public function testChatActivoNoIniciaElFlujoSiLaCuotaNoCubreElPresupuestoPrevisto(): void
+    public function testChatActivoPermiteResolverUnaRutaAmbiguaConUnaSolaUnidadDisponible(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
@@ -1055,20 +1055,28 @@ final class NumaControllerTest extends TestCase
             'monthly_limit' => 20,
             'monthly_remaining' => 16,
         ]);
-        $provider = \FakeNumaProvider::validResponse('No debe invocarse.');
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'fuera_de_ambito',
+            'allowed' => false,
+            'reason' => 'general_knowledge',
+        ]);
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Puedes revisar esta consulta?"}',
             $numaUso,
             $provider,
         );
 
-        self::assertFalse($response['ok']);
-        self::assertSame(429, $response['_status']);
-        self::assertSame('NUMA_LIMIT_REACHED', $response['error']['code']);
-        self::assertSame(0, $numaUso->reservations);
-        self::assertCount(0, $provider->requests());
+        self::assertTrue($response['ok']);
+        self::assertSame(200, $response['_status']);
+        self::assertSame(
+            'Puedo ayudarte con BeneHom, conceptos de economía familiar y el análisis de los datos que hayas registrado. No respondo preguntas generales ajenas a estas funciones.',
+            $response['data']['message']
+        );
+        self::assertSame(1, $numaUso->reservations);
+        self::assertSame(1, $numaUso->confirmations);
+        self::assertCount(1, $provider->requests());
     }
 
     public function testChatActivoAplicaRechazoLocalSinReservarConsumo(): void
@@ -1519,6 +1527,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame(1, $numaUso->confirmations);
         self::assertSame(0, $numaUso->reversions);
         self::assertArrayNotHasKey('data', $response);
+        self::assertArrayNotHasKey('numa_conversation', $_SESSION);
     }
 
     public function testChatActivoEjecutaToolPermitidaYAdjuntaPeriodo(): void

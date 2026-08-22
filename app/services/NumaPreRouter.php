@@ -23,15 +23,10 @@ final class NumaPreRoute
 
     public function __construct(
         private readonly string $route,
-        private readonly int $plannedPaidCalls,
         private readonly ?NumaLocalScopeRejection $localRejection = null,
     ) {
         if (!in_array($route, self::ALL, true)) {
             throw new InvalidArgumentException('Recorrido previo de Numa no soportado.');
-        }
-
-        if ($plannedPaidCalls < 0 || $plannedPaidCalls > 3) {
-            throw new InvalidArgumentException('Presupuesto previo de Numa no valido.');
         }
 
         if (($route === self::RECHAZO_LOCAL) !== ($localRejection !== null)) {
@@ -42,11 +37,6 @@ final class NumaPreRoute
     public function route(): string
     {
         return $this->route;
-    }
-
-    public function plannedPaidCalls(): int
-    {
-        return $this->plannedPaidCalls;
     }
 
     public function localRejection(): ?NumaLocalScopeRejection
@@ -80,7 +70,7 @@ final class NumaPreRouter
     {
         $localRejection = $this->localScopeClassifier->classify($message, $hasConversationContext);
         if ($localRejection !== null) {
-            return new NumaPreRoute(NumaPreRoute::RECHAZO_LOCAL, 0, $localRejection);
+            return new NumaPreRoute(NumaPreRoute::RECHAZO_LOCAL, $localRejection);
         }
 
         $normalized = self::normalize($message);
@@ -88,18 +78,18 @@ final class NumaPreRouter
         $looksFinancial = $this->matchesAny($normalized, self::FINANCIAL_DATA_PATTERNS);
 
         if ($looksDocumentary && $looksFinancial) {
-            return new NumaPreRoute(NumaPreRoute::CONSULTA_COMBINADA, 3);
+            return new NumaPreRoute(NumaPreRoute::CONSULTA_COMBINADA);
         }
 
         if ($looksDocumentary) {
-            return new NumaPreRoute(NumaPreRoute::PRODUCTO, 2);
+            return new NumaPreRoute(NumaPreRoute::PRODUCTO);
         }
 
         if ($looksFinancial) {
-            return new NumaPreRoute(NumaPreRoute::DATOS_FINANCIEROS, 2);
+            return new NumaPreRoute(NumaPreRoute::DATOS_FINANCIEROS);
         }
 
-        return new NumaPreRoute(NumaPreRoute::AMBIGUA, 3);
+        return new NumaPreRoute(NumaPreRoute::AMBIGUA);
     }
 
     /**

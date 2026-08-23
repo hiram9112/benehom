@@ -710,11 +710,12 @@ class NumaController
     protected function publicProvider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface
     {
         if ($consumption === null) {
-            return NumaProviderFactory::fromEnvironment();
+            return NumaProviderFactory::fromEnvironment(publicMode: true);
         }
 
         return NumaProviderFactory::fromEnvironment(
-            consumption: new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forPublicLlm())
+            consumption: new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forPublicLlm()),
+            publicMode: true,
         );
     }
 
@@ -858,7 +859,12 @@ class NumaController
         $usage = null;
 
         try {
-            $signature = $this->statusEmbeddingSignature();
+            $signature = $this->statusEmbeddingSignature(true);
+        } catch (Throwable) {
+            return $this->statusData(false, self::STATUS_REASON_CONFIGURATION_INCOMPLETE);
+        }
+
+        try {
             $connection = $this->statusConnection();
             $this->assertPublicStatusTables($connection);
             if (!$this->hasCompatibleKnowledgeIndex($connection, $signature)) {
@@ -894,10 +900,14 @@ class NumaController
         return Database::getConnection();
     }
 
-    protected function statusEmbeddingSignature(): NumaEmbeddingSignature
+    protected function statusEmbeddingSignature(bool $publicMode = false): NumaEmbeddingSignature
     {
         // Constructing the adapters validates local configuration without sending a request.
-        $this->provider();
+        if ($publicMode) {
+            $this->publicProvider();
+        } else {
+            $this->provider();
+        }
 
         return NumaEmbeddingProviderFactory::fromEnvironment()->signature();
     }

@@ -659,6 +659,33 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(1, $consumption->tokenRegistrations);
     }
 
+    public function testFactoryPrivadaNoExigeConfiguracionPublica(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'corta';
+
+        $provider = \NumaProviderFactory::fromEnvironment();
+
+        self::assertInstanceOf(\NumaProviderInterface::class, $provider);
+    }
+
+    public function testFactoryPublicaRechazaConfiguracionPublicaInvalida(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'corta';
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_CONFIGURATION_ERROR');
+
+        \NumaProviderFactory::fromEnvironment(publicMode: true);
+    }
+
     public function testRechazaClaveOModeloAusente(): void
     {
         $this->expectException(\NumaProviderException::class);
@@ -717,6 +744,8 @@ final class GeminiNumaProviderTest extends TestCase
             'NUMA_MAX_OUTPUT_TOKENS',
             'NUMA_PROVIDER_TIMEOUT_SECONDS',
             'NUMA_MAX_TRANSIENT_RETRIES',
+            'NUMA_PUBLIC_ENABLED',
+            'NUMA_PUBLIC_HASH_KEY',
         ];
     }
 

@@ -43,10 +43,11 @@ final class GeminiNumaProvider implements NumaProviderInterface
     public static function fromEnvironment(
         ?callable $transport = null,
         ?NumaProviderConsumptionInterface $consumption = null,
+        bool $publicMode = false,
     ): self
     {
         try {
-            NumaConfiguration::assertRuntime();
+            NumaConfiguration::assertRuntime($publicMode);
         } catch (NumaConfigurationException) {
             throw self::configurationError();
         }
@@ -826,6 +827,7 @@ final class NumaProviderFactory
     public static function fromEnvironment(
         ?callable $transport = null,
         ?NumaProviderConsumptionInterface $consumption = null,
+        bool $publicMode = false,
     ): NumaProviderInterface
     {
         $provider = strtolower((string) bh_env_value('NUMA_PROVIDER', 'gemini'));
@@ -848,7 +850,8 @@ final class NumaProviderFactory
         return NumaSystemInstructionProvider::fromBasePrompt(new NumaProviderBoundary(
             GeminiNumaProvider::fromEnvironment(
                 $transport,
-                $consumption ?? NumaConsumoGlobal::forLlm()
+                $consumption ?? NumaConsumoGlobal::forLlm(),
+                $publicMode,
             )
         ));
     }

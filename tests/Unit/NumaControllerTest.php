@@ -489,7 +489,7 @@ final class NumaControllerTest extends TestCase
         ];
 
         $controller = new class extends \NumaController {
-            protected function statusEmbeddingSignature(): \NumaEmbeddingSignature
+            protected function statusEmbeddingSignature(bool $publicMode = false): \NumaEmbeddingSignature
             {
                 throw new \LogicException('El status no debe consultar dependencias con una petición activa.');
             }
@@ -507,10 +507,10 @@ final class NumaControllerTest extends TestCase
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
-        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'test-public-hash-key';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = str_repeat('a', 32);
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $token = str_repeat('a', 64);
-        $visitorHash = hash_hmac('sha256', $token, 'test-public-hash-key');
+        $visitorHash = hash_hmac('sha256', $token, str_repeat('a', 32));
         $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = $token;
         $_SESSION['numa_public_chat_request'] = [
             'timestamp' => time(),
@@ -519,7 +519,7 @@ final class NumaControllerTest extends TestCase
         ];
 
         $controller = new class extends \NumaController {
-            protected function statusEmbeddingSignature(): \NumaEmbeddingSignature
+            protected function statusEmbeddingSignature(bool $publicMode = false): \NumaEmbeddingSignature
             {
                 throw new \LogicException('El status público no debe consultar dependencias con una petición activa.');
             }
@@ -531,6 +531,37 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame('unavailable', $response['data']['availability']);
+    }
+
+    public function testStatusPublicoConConfiguracionInvalidaNoConsultaDependencias(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = str_repeat('a', 31);
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_EMBEDDING_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'test-api-key';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_COOKIE[\NumaPublicIdentity::COOKIE_NAME] = str_repeat('b', 64);
+
+        $controller = new class extends \NumaController {
+            public int $statusConnectionCalls = 0;
+
+            protected function statusConnection(): \PDO
+            {
+                ++$this->statusConnectionCalls;
+
+                throw new \LogicException('No se deben consultar dependencias con configuración pública inválida.');
+            }
+        };
+
+        ob_start();
+        $controller->publicStatus();
+        $response = json_decode((string) ob_get_clean(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertTrue($response['ok']);
+        self::assertSame('configuration_required', $response['data']['availability']);
+        self::assertSame(0, $controller->statusConnectionCalls);
     }
 
     public function testStatusPublicoConIdentidadNoDisponibleNoExponeDetallesInternos(): void
@@ -2643,7 +2674,7 @@ final class NumaControllerTest extends TestCase
                 return $this->connection;
             }
 
-            protected function statusEmbeddingSignature(): \NumaEmbeddingSignature
+            protected function statusEmbeddingSignature(bool $publicMode = false): \NumaEmbeddingSignature
             {
                 if (!$this->configurationValid) {
                     throw new \RuntimeException('Configuracion incompleta.');

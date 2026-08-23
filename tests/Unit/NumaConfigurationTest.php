@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/services/NumaConfiguration.php';
@@ -98,6 +99,62 @@ final class NumaConfigurationTest extends TestCase
         $this->expectExceptionMessage('NUMA_PUBLIC_HASH_KEY');
 
         \NumaConfiguration::assertRuntime(true);
+    }
+
+    public function testRuntimePrivadoNoExigeConfiguracionPublica(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '0';
+
+        \NumaConfiguration::assertRuntime();
+
+        self::addToAssertionCount(1);
+    }
+
+    #[DataProvider('configuracionPublicaInvalida')]
+    public function testRechazaConfiguracionPublicaInvalida(string $key, array $configuration): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = str_repeat('a', 32);
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '15';
+        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '60';
+        $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '40';
+        $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '400';
+
+        foreach ($configuration as $name => $value) {
+            $_ENV[$name] = $value;
+        }
+
+        $this->expectException(\NumaConfigurationException::class);
+        $this->expectExceptionMessage($key);
+
+        \NumaConfiguration::assertRuntime(true);
+    }
+
+    /** @return array<string, array{string, array<string, string>}> */
+    public static function configuracionPublicaInvalida(): array
+    {
+        return [
+            'hash corto' => ['NUMA_PUBLIC_HASH_KEY', ['NUMA_PUBLIC_HASH_KEY' => str_repeat('a', 31)]],
+            'limite diario invalido' => ['NUMA_PUBLIC_DAILY_LIMIT', ['NUMA_PUBLIC_DAILY_LIMIT' => '0']],
+            'limite mensual inferior al diario' => [
+                'NUMA_PUBLIC_MONTHLY_LIMIT',
+                ['NUMA_PUBLIC_DAILY_LIMIT' => '15', 'NUMA_PUBLIC_MONTHLY_LIMIT' => '14'],
+            ],
+            'limite global diario invalido' => [
+                'NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT',
+                ['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT' => '0'],
+            ],
+            'limite global mensual inferior al diario' => [
+                'NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT',
+                [
+                    'NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT' => '40',
+                    'NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT' => '39',
+                ],
+            ],
+        ];
     }
 
     public function testLaIndexacionNoExigeActivarElChatNiUnModeloGenerativo(): void

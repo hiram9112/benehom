@@ -104,6 +104,45 @@ final class NumaPublicServiceTest extends TestCase
         self::assertSame(0, $toolFactoryCalls);
     }
 
+    public function testInteraccionConversacionalPublicaUsaGeminiSinRagNiTools(): void
+    {
+        $visitorHash = $this->visitorHash();
+        $usage = new \NumaPublicUso($this->db);
+        $provider = new NumaPublicSequentialServiceProvider(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'interaccion_conversacional',
+                'allowed' => true,
+                'reason' => 'social_greeting',
+            ]),
+            new \NumaResponse('Hola. Puedo acompañarte mientras conoces BeneHom.'),
+        );
+        $knowledgeCalls = 0;
+        $toolFactoryCalls = 0;
+        $service = new \NumaService(
+            $usage,
+            new \NumaLocalScopeClassifier(),
+            static fn (?\NumaProviderConsumptionInterface $consumption = null): \NumaProviderInterface => $provider->withConsumption($consumption),
+            static function () use (&$knowledgeCalls): array {
+                ++$knowledgeCalls;
+                return [];
+            },
+            static function () use (&$toolFactoryCalls): \NumaFinancialToolRegistryInterface {
+                ++$toolFactoryCalls;
+                throw new \LogicException('Las tools no deben resolverse para una interaccion conversacional publica.');
+            },
+            $this->available(),
+        );
+
+        $result = $service->answerPublic($visitorHash, 'Hola, estoy conociendo BeneHom.');
+
+        self::assertSame('Hola. Puedo acompañarte mientras conoces BeneHom.', $result->toArray()['message']);
+        self::assertSame(2, $result->toArray()['usage']['interaction_used']);
+        self::assertSame(0, $knowledgeCalls);
+        self::assertSame(0, $toolFactoryCalls);
+        self::assertSame(2, $provider->calls);
+        self::assertTrue($result->contextual());
+    }
+
     public function testSolicitudDeToolInesperadaEsInvalidaSinResolverNiEjecutarTools(): void
     {
         $toolFactoryCalls = 0;
@@ -320,5 +359,34 @@ final class NumaPublicServiceProvider implements \NumaProviderInterface
         }
 
         return $this->response ?? new \NumaResponse('Respuesta pública.');
+    }
+}
+
+final class NumaPublicSequentialServiceProvider implements \NumaProviderInterface
+{
+    public int $calls = 0;
+
+    /** @var list<\NumaResponse> */
+    private array $responses;
+
+    private ?\NumaProviderConsumptionInterface $consumption = null;
+
+    public function __construct(\NumaResponse ...$responses)
+    {
+        $this->responses = $responses;
+    }
+
+    public function withConsumption(?\NumaProviderConsumptionInterface $consumption): self
+    {
+        $this->consumption = $consumption;
+        return $this;
+    }
+
+    public function respond(\NumaRequest $request): \NumaResponse
+    {
+        ++$this->calls;
+        $this->consumption?->iniciarLlamada();
+
+        return array_shift($this->responses) ?? throw new \LogicException('Falta una respuesta publica de prueba.');
     }
 }

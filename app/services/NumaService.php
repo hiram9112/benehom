@@ -601,6 +601,7 @@ final class NumaService
             if (!in_array($classification->intent(), [
                 NumaClassificationIntent::PRODUCTO,
                 NumaClassificationIntent::EDUCACION_FINANCIERA,
+                NumaClassificationIntent::INTERACCION_CONVERSACIONAL,
             ], true)) {
                 return $this->publicResult(
                     $visitorHash,
@@ -614,7 +615,7 @@ final class NumaService
 
             $stage = self::STAGE_KNOWLEDGE;
             $knowledgeResults = $this->knowledgeResults($classification, $message, $budget);
-            if ($knowledgeResults === []) {
+            if ($this->needsKnowledge($classification) && $knowledgeResults === []) {
                 return $this->publicResult($visitorHash, self::NO_KNOWLEDGE_MESSAGE, interactionUsed: $budget->llamadasIniciadas(), budget: $budget, stage: self::STAGE_KNOWLEDGE);
             }
 
@@ -903,6 +904,11 @@ final class NumaService
                 'La fecha actual y los periodos los controla BeneHom. Para periodos relativos usa solo los valores simbólicos permitidos por la tool; no calcules fechas por tu cuenta.',
                 'Copia importes, porcentajes, fechas y cantidades exactamente de los hechos financieros autorizados; no los recalcules ni introduzcas cifras nuevas.',
                 'Si obtener_movimientos indica seleccion_acotada o resultado_acotado, aclara que el listado completo puede consultarse en BeneHom.',
+                ...($classification->intent() === NumaClassificationIntent::INTERACCION_CONVERSACIONAL ? [
+                    'Manten una conversacion breve y natural usando solo el mensaje actual y el historial controlado.',
+                    'Puedes reconocer el tono o la emocion del usuario sin atribuirte experiencias o sentimientos propios.',
+                    'No aportes hechos, asesoramiento ni conocimiento general que no figure en el contexto; si aparece una peticion sustantiva fuera de ambito, manten los limites de Numa.',
+                ] : []),
                 ...($publicMode ? ['Esta interacción es pública: no tienes acceso a datos privados ni a tools financieras.'] : []),
             ],
         ]];

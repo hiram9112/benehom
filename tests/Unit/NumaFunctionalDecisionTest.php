@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/services/NumaClassification.php';
@@ -71,5 +72,51 @@ final class NumaFunctionalDecisionTest extends TestCase
             'knowledge_query' => null,
             'tool' => null,
         ]);
+    }
+
+    public function testAceptaInteraccionConversacionalSinCapacidades(): void
+    {
+        $decision = \NumaFunctionalDecision::fromStructuredData([
+            'intent' => 'interaccion_conversacional',
+            'allowed' => true,
+            'reason' => 'social_continuity',
+            'needs_clarification' => false,
+            'knowledge_query' => null,
+            'tool' => null,
+        ]);
+
+        self::assertSame('interaccion_conversacional', $decision->classification()->intent());
+        self::assertFalse($decision->needsClarification());
+        self::assertNull($decision->toolRequest());
+    }
+
+    #[DataProvider('decisionesConversacionalesInvalidasProvider')]
+    public function testRechazaCapacidadesEnDecisionConversacional(array $overrides): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        \NumaFunctionalDecision::fromStructuredData([
+            'intent' => 'interaccion_conversacional',
+            'allowed' => true,
+            'reason' => 'social_continuity',
+            'needs_clarification' => false,
+            'knowledge_query' => null,
+            'tool' => null,
+            ...$overrides,
+        ]);
+    }
+
+    public static function decisionesConversacionalesInvalidasProvider(): array
+    {
+        return [
+            'aclaracion estructurada' => [['needs_clarification' => true]],
+            'consulta documental' => [['knowledge_query' => 'BeneHom']],
+            'tool' => [[
+                'tool' => [
+                    'name' => 'obtener_resumen_financiero',
+                    'arguments' => [],
+                ],
+            ]],
+        ];
     }
 }

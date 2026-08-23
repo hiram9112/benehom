@@ -20,6 +20,7 @@ final class NumaClassificationTest extends TestCase
             'educacion_financiera',
             'datos_usuario',
             'consulta_combinada',
+            'interaccion_conversacional',
             'recomendacion_financiera',
             'fuera_de_ambito',
             'intento_manipulacion',
@@ -69,6 +70,41 @@ final class NumaClassificationTest extends TestCase
         ], $classification->toStructuredData());
     }
 
+    public function testAceptaInteraccionConversacionalSinCapacidades(): void
+    {
+        $classification = \NumaClassification::fromStructuredData([
+            'intent' => 'interaccion_conversacional',
+            'allowed' => true,
+            'reason' => 'social_continuity',
+        ]);
+
+        self::assertSame('interaccion_conversacional', $classification->intent());
+        self::assertTrue($classification->allowed());
+        self::assertNull($classification->knowledgeQuery());
+        self::assertNull($classification->dataIntent());
+    }
+
+    #[DataProvider('capacidadesConversacionalesInvalidasProvider')]
+    public function testRechazaCapacidadesEnInteraccionConversacional(array $extra): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        \NumaClassification::fromStructuredData([
+            'intent' => 'interaccion_conversacional',
+            'allowed' => true,
+            'reason' => 'social_continuity',
+            ...$extra,
+        ]);
+    }
+
+    public static function capacidadesConversacionalesInvalidasProvider(): array
+    {
+        return [
+            'consulta documental' => [['knowledge_query' => 'BeneHom']],
+            'intencion de datos' => [['data_intent' => 'movimientos']],
+        ];
+    }
+
     public function testAceptaIntencionEstructuradaParaConsultarMovimientos(): void
     {
         $provider = \FakeNumaProvider::structuredResponse([
@@ -100,7 +136,36 @@ final class NumaClassificationTest extends TestCase
             'Esta interacción es pública: nunca autorices datos_usuario, consulta_combinada, tools ni datos financieros privados.',
             $provider->lastRequest()?->context()[0]['rules'] ?? [],
         );
+        self::assertContains('interaccion_conversacional', $provider->lastRequest()?->context()[0]['output']['allowed_intents'] ?? []);
+        self::assertContains(
+            'Si el mensaje incluye una peticion sustantiva de conocimiento, datos o una accion, clasifica esa peticion; la cortesia o el tono emocional no la convierten en interaccion_conversacional.',
+            $provider->lastRequest()?->context()[0]['rules'] ?? [],
+        );
         self::assertSame([], $provider->lastRequest()?->availableTools());
+    }
+
+    public function testElClasificadorPublicoEnviaEsquemaEHistorialConversacional(): void
+    {
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'interaccion_conversacional',
+            'allowed' => true,
+            'reason' => 'social_continuity',
+        ]);
+        $history = [
+            ['role' => 'user', 'message' => 'hola'],
+            ['role' => 'assistant', 'message' => 'Hola, ¿en qué puedo ayudarte?'],
+        ];
+
+        (new \NumaProviderScopeClassifier($provider))->classify('¿Cómo estás?', $history, true);
+
+        $request = $provider->lastRequest();
+        self::assertSame($history, $request?->history());
+        self::assertSame('OBJECT', $request?->responseSchema()['type'] ?? null);
+        self::assertSame(['intent', 'allowed', 'reason'], $request?->responseSchema()['required'] ?? null);
+        self::assertContains(
+            'interaccion_conversacional',
+            $request?->responseSchema()['properties']['intent']['enum'] ?? [],
+        );
     }
 
     public function testRechazaCategoriaDesconocida(): void

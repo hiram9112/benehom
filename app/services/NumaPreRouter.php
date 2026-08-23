@@ -49,9 +49,8 @@ final class NumaPreRouter
 {
     /** @var array<int, string> */
     private const DOCUMENTATION_PATTERNS = [
-        '/\b(como|donde)\s+(anado|agrego|registro|creo|funciona)\b/u',
-        '/\b(que es|que son|que significa|diferencia entre|para que sirve|como funciona)\b/u',
-        '/\b(benehom|ahorro posible|ahorro real|gasto flexible|gasto esencial)\b/u',
+        '/^(?:por favor\s+)?(como|donde)\s+(anado|agrego|registro|creo|funciona)\b/u',
+        '/^(?:por favor\s+)?(que es|que son|que significa|cual es la diferencia entre|diferencia entre|para que sirve|como funciona)\b/u',
     ];
 
     /** @var array<int, string> */
@@ -59,7 +58,8 @@ final class NumaPreRouter
         '/\b(cuanto|cuantos|cual|cuales|en que mes|que mes|donde)\b.*\b(gaste|gastado|gasto|ingrese|ingresado|ingreso|movimientos?)\b/u',
         '/\b(gaste|gastado|gasto|ingrese|ingresado|ingreso)\b.*\b(este mes|mes pasado|mes anterior|este ano|ano pasado|mas|menos|promedio|total)\b/u',
         '/\b(mes|categoria|gastos?|ingresos?|movimientos?)\b.*\b(mas|menos|promedio|total|compar[ae])\b/u',
-        '/\b(mis|mi)\s+(gastos?|ingresos?|movimientos?|ahorro real)\b/u',
+        '/\b(muestra(?:me)?|ensena(?:me)?|dime|analiza|revisa|consulta|resume|lista|compara)\b.*\b(mis|mi)\s+(gastos?|ingresos?|movimientos?|ahorro real)\b/u',
+        '/\b(quiero|necesito)\s+(ver|consultar|analizar|revisar)\b.*\b(mis|mi)\s+(gastos?|ingresos?|movimientos?|ahorro real)\b/u',
     ];
 
     public function __construct(private readonly NumaLocalScopeClassifier $localScopeClassifier = new NumaLocalScopeClassifier())

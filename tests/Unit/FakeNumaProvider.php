@@ -186,7 +186,12 @@ final class FakeNumaProvider implements NumaProviderInterface
     private function functionalDecisionResponse(NumaRequest $request, NumaResponse $response): NumaResponse
     {
         $data = $response->structuredData();
-        if ($request->responseSchema() === null || $data === null || array_key_exists('needs_clarification', $data)) {
+        $schema = $request->responseSchema();
+        if ($schema === null
+            || !array_key_exists('needs_clarification', $schema['properties'] ?? [])
+            || $data === null
+            || array_key_exists('needs_clarification', $data)
+        ) {
             return $response;
         }
 

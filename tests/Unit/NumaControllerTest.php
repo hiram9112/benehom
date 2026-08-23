@@ -1047,6 +1047,107 @@ final class NumaControllerTest extends TestCase
         self::assertCount(1, $provider->requests());
     }
 
+    public function testChatActivoMantieneInteraccionConversacionalConContextoSinRagNiTools(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $firstUsage = new NumaUsoFake();
+        $firstKnowledgeSpy = new NumaKnowledgeSearchSpy();
+        $firstProvider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'interaccion_conversacional',
+                'allowed' => true,
+                'reason' => 'social_greeting',
+            ]),
+            new \NumaResponse('Hola. Podemos ir paso a paso con BeneHom.'),
+        );
+
+        $firstResponse = $this->invoke(
+            'chat',
+            '{"message":"Hola, estoy empezando con BeneHom y me siento un poco perdido."}',
+            $firstUsage,
+            $firstProvider,
+            financialTools: $tools,
+            knowledgeSearchSpy: $firstKnowledgeSpy,
+        );
+
+        self::assertTrue($firstResponse['ok']);
+        self::assertSame('Hola. Podemos ir paso a paso con BeneHom.', $firstResponse['data']['message']);
+        self::assertSame(0, $firstKnowledgeSpy->calls);
+        self::assertSame(0, $tools->executions);
+        self::assertSame(2, $firstUsage->reservations);
+        self::assertSame(2, $firstUsage->confirmations);
+        self::assertCount(2, $firstProvider->requests());
+        self::assertSame([], $firstProvider->requests()[0]->history());
+        self::assertSame([], $firstProvider->requests()[1]->availableTools());
+        self::assertContains(
+            'interaccion_conversacional',
+            $firstProvider->requests()[0]->responseSchema()['properties']['intent']['enum'] ?? [],
+        );
+
+        $expectedHistory = [
+            ['role' => 'user', 'message' => 'Hola, estoy empezando con BeneHom y me siento un poco perdido.'],
+            ['role' => 'assistant', 'message' => 'Hola. Podemos ir paso a paso con BeneHom.'],
+        ];
+        $secondKnowledgeSpy = new NumaKnowledgeSearchSpy();
+        $secondProvider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'interaccion_conversacional',
+                'allowed' => true,
+                'reason' => 'social_continuity',
+            ]),
+            new \NumaResponse('Me alegra que ahora te resulte más claro.'),
+        );
+
+        $secondResponse = $this->invoke(
+            'chat',
+            '{"message":"Gracias, ahora lo veo más claro."}',
+            new NumaUsoFake(),
+            $secondProvider,
+            financialTools: $tools,
+            knowledgeSearchSpy: $secondKnowledgeSpy,
+        );
+
+        self::assertTrue($secondResponse['ok']);
+        self::assertSame('Me alegra que ahora te resulte más claro.', $secondResponse['data']['message']);
+        self::assertSame(0, $secondKnowledgeSpy->calls);
+        self::assertSame(0, $tools->executions);
+        self::assertSame($expectedHistory, $secondProvider->requests()[0]->history());
+        self::assertSame($expectedHistory, $secondProvider->requests()[1]->history());
+        self::assertCount(4, $secondResponse['data']['conversation']);
+    }
+
+    public function testLaCortesiaNoConvierteConocimientoGeneralEnConversacionPermitida(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $knowledgeSpy = new NumaKnowledgeSearchSpy();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = \FakeNumaProvider::structuredResponse([
+            'intent' => 'fuera_de_ambito',
+            'allowed' => false,
+            'reason' => 'general_knowledge',
+        ]);
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"Hola, ¿puedes explicarme física cuántica?"}',
+            provider: $provider,
+            financialTools: $tools,
+            knowledgeSearchSpy: $knowledgeSpy,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame(
+            'Puedo ayudarte con BeneHom, conceptos de economía familiar y el análisis de los datos que hayas registrado. No respondo preguntas generales ajenas a estas funciones.',
+            $response['data']['message'],
+        );
+        self::assertCount(1, $provider->requests());
+        self::assertSame(0, $knowledgeSpy->calls);
+        self::assertSame(0, $tools->executions);
+    }
+
     public function testChatActivoRechazaLimiteIndividualAntesDeInvocarProveedor(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

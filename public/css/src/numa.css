@@ -190,18 +190,24 @@
     transform: translateY(0.4rem) scale(0.985);
 }
 
-.bh-numa-panel-close{
-    position: absolute;
-    top: 0.6rem;
-    right: 0.6rem;
+.bh-numa-panel-header{
+    position: relative;
     z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 3.9rem;
+    padding: 0.45rem 0.6rem 0.45rem 1rem;
+    border-bottom: 1px solid var(--bh-border-color);
+    border-radius: 22px 22px 0 0;
+    background: var(--bh-surface-card);
+}
+
+.bh-numa-panel-close{
+    flex: 0 0 auto;
 }
 
 .bh-numa-new-conversation{
-    position: absolute;
-    top: 0.72rem;
-    left: 1rem;
-    z-index: 2;
     min-height: 44px;
     padding: 0.4rem 0.55rem;
     border-radius: var(--bh-radius-sm);
@@ -227,11 +233,15 @@
 
 .bh-numa-confirmation{
     position: absolute;
-    top: 3.65rem;
-    left: 50%;
+    inset: 0;
     z-index: 4;
-    width: min(calc(100% - var(--bh-space-5)), 18rem);
-    transform: translateX(-50%);
+    display: grid;
+    place-items: center;
+    padding: var(--bh-space-3);
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--bh-brand-deep) 28%, transparent);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
 }
 
 .bh-numa-confirmation[hidden]{
@@ -239,6 +249,7 @@
 }
 
 .bh-numa-confirmation-dialog{
+    width: min(calc(100% - var(--bh-space-5)), 18rem);
     padding: var(--bh-space-3);
     border: var(--bh-border-subtle);
     border-radius: var(--bh-radius-sm);
@@ -365,7 +376,7 @@
     gap: 0.6rem;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 3rem 0.1rem 0.1rem;
+    padding: 0.1rem;
 }
 
 .bh-numa-message{
@@ -407,7 +418,9 @@
 
 .bh-numa-message.is-assistant .bh-numa-message-content{
     max-width: min(88%, 20rem);
-    color: var(--bh-text-main);
+    color: var(--bh-brand);
+    font-family: var(--bh-font-interface);
+    font-size: 1rem;
 }
 
 .bh-numa-message.is-assistant.is-state .bh-numa-message-content{
@@ -669,6 +682,10 @@
         border-radius: 18px;
     }
 
+    .bh-numa-panel-header{
+        border-radius: 18px 18px 0 0;
+    }
+
     .bh-numa-panel-body{
         gap: 0.6rem;
         padding: 0.6rem var(--bh-space-3) var(--bh-space-3);
@@ -717,17 +734,19 @@
         padding: 0.55rem 0.75rem 0.75rem;
     }
 
+    .bh-numa-panel-header{
+        min-height: 3.4rem;
+        padding: 0.4rem 0.45rem 0.4rem 0.75rem;
+        border-radius: 16px 16px 0 0;
+    }
+
     .bh-numa-new-conversation{
-        top: 0.55rem;
-        left: 0.75rem;
         min-height: 40px;
         padding: 0.32rem 0.55rem;
         font-size: 0.75rem;
     }
 
     .bh-numa-panel-close{
-        top: 0.45rem;
-        right: 0.45rem;
         width: 36px;
         height: 36px;
     }
@@ -744,7 +763,6 @@
 
     .bh-numa-messages{
         gap: 0.5rem;
-        padding-top: 2.5rem;
     }
 
     .bh-numa-message-content{
@@ -797,6 +815,10 @@
         border-radius: 14px;
     }
 
+    .bh-numa-panel-header{
+        border-radius: 14px 14px 0 0;
+    }
+
     .bh-numa-message-content{
         max-width: min(92%, 13rem);
     }
@@ -821,7 +843,7 @@
     }
 
     .bh-numa-messages{
-        padding-top: 2rem;
+        padding-top: 0.1rem;
     }
 
     .bh-numa-panel-initial{

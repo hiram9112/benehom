@@ -128,21 +128,24 @@ function bh_numa_launcher(string $mode = 'private'): void
             aria-label="Chat con Numa"
             data-numa-panel
             hidden>
-            <button
-                type="button"
-                class="bh-btn bh-btn-ghost bh-numa-new-conversation"
-                data-numa-new-conversation
-                aria-expanded="false"
-                aria-controls="bh-numa-confirmation"
-                disabled><i class="ti ti-plus" aria-hidden="true"></i><span>Nueva conversación</span></button>
-            <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost bh-numa-panel-close" aria-label="Cerrar Numa" data-numa-close>
-                <i class="ti ti-x" aria-hidden="true"></i>
-            </button>
+            <div class="bh-numa-panel-header">
+                <button
+                    type="button"
+                    class="bh-btn bh-btn-ghost bh-numa-new-conversation"
+                    data-numa-new-conversation
+                    aria-expanded="false"
+                    aria-controls="bh-numa-confirmation"
+                    disabled><i class="ti ti-plus" aria-hidden="true"></i><span>Nueva conversación</span></button>
+                <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost bh-numa-panel-close" aria-label="Cerrar Numa" data-numa-close>
+                    <i class="ti ti-x" aria-hidden="true"></i>
+                </button>
+            </div>
 
             <div
                 id="bh-numa-confirmation"
                 class="bh-numa-confirmation"
                 role="dialog"
+                aria-modal="true"
                 aria-label="Confirmar nueva conversación"
                 aria-describedby="bh-numa-confirmation-description"
                 aria-hidden="true"

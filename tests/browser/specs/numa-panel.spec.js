@@ -82,6 +82,23 @@ test('mantiene el compositor visible y utilizable mientras el panel esta abierto
     await expect(page.getByRole('button', { name: 'Enviar mensaje' })).toBeEnabled();
 });
 
+test('mantiene los controles de la cabecera fuera del transcript desplazable', async ({ page }) => {
+    await mockAvailableStatus(page, [
+        { role: 'user', message: 'Consulta inicial.' },
+        { role: 'assistant', message: longAnswer() },
+    ]);
+    await page.goto(homeUrl);
+    await openNuma(page);
+
+    const header = page.locator('.bh-numa-panel-header');
+    const messages = page.locator('[data-numa-messages]');
+
+    await expect(header).toBeVisible();
+    await expect(header).toContainText('Nueva conversación');
+    expect(await header.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+    expect(await messages.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
+});
+
 test('envia una consulta, muestra Pensando y revela solo la respuesta nueva progresivamente', async ({ page }) => {
     const question = '¿Cómo añado un movimiento?';
     const answer = 'Esta es una respuesta progresiva de prueba con suficientes palabras para observar su revelado pausado antes de completarse.';
@@ -152,6 +169,47 @@ test('restaura el transcript completo sin revelar progresivamente sus respuestas
     await expect(restoredMessages).toHaveCount(2);
     await expect(restoredMessages.nth(1).locator('.bh-numa-message-content > p')).toHaveText(conversation[1].message);
     await expect(page.locator('[data-numa-messages] .bh-numa-message.is-assistant').last()).toHaveAttribute('data-numa-canonical-message', 'true');
+});
+
+test('lleva el transcript al final aunque se hubiera desplazado hacia arriba', async ({ page }) => {
+    const question = 'Necesito revisar mis gastos.';
+    const answer = longAnswer();
+    const messages = page.locator('[data-numa-messages]');
+
+    await mockAvailableStatus(page, [
+        { role: 'user', message: 'Consulta anterior.' },
+        { role: 'assistant', message: longAnswer() },
+    ]);
+    await page.route(/\/index\.php\?r=numa\/public\/chat$/, (route) => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+            ok: true,
+            data: {
+                message: answer,
+                availability: 'available',
+                conversation: [
+                    { role: 'user', message: 'Consulta anterior.' },
+                    { role: 'assistant', message: longAnswer() },
+                    { role: 'user', message: question },
+                    { role: 'assistant', message: answer },
+                ],
+            },
+        }),
+    }));
+    await page.goto(homeUrl);
+    await openNuma(page);
+    await expect.poll(async () => messages.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+    await messages.evaluate((element) => { element.scrollTop = 0; });
+
+    await page.locator('[data-numa-input]').fill(question);
+    await page.getByRole('button', { name: 'Enviar mensaje' }).click();
+
+    await expect.poll(async () => messages.evaluate((element) => {
+        const maxScrollTop = element.scrollHeight - element.clientHeight;
+
+        return maxScrollTop > 0 && Math.abs(element.scrollTop - maxScrollTop) < 2;
+    })).toBe(true);
 });
 
 test.describe('en un viewport movil', () => {

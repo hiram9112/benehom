@@ -1256,7 +1256,7 @@
 
 .bh-home-top{
     position: fixed;
-    right: clamp(1rem, 3vw, 2rem);
+    left: 50%;
     bottom: clamp(1rem, 3vw, 2rem);
     z-index: 50;
     display: grid;
@@ -1273,7 +1273,7 @@
     box-shadow: none;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(12px);
+    transform: translate(-50%, 12px);
     pointer-events: none;
     transition:
         opacity var(--bh-transition-base),
@@ -1292,13 +1292,13 @@
 .bh-home-top.is-shown{
     opacity: 1;
     visibility: visible;
-    transform: none;
+    transform: translateX(-50%);
     pointer-events: auto;
 }
 
 .bh-home-top:hover{
     background-color: color-mix(in srgb, var(--bh-brand) 85%, transparent);
-    transform: translateY(-2px);
+    transform: translate(-50%, -2px);
 }
 
 .bh-home-top:focus-visible{

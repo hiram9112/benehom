@@ -228,7 +228,9 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('white-space: nowrap', $css);
         self::assertStringContainsString('background: var(--bh-brand)', $css);
         self::assertStringContainsString('border-left-color: var(--bh-negative-ink)', $css);
-        self::assertStringNotContainsString('.bh-numa-panel-header', $css);
+        self::assertStringContainsString('.bh-numa-panel-header{', $css);
+        self::assertStringContainsString('border-bottom: 1px solid var(--bh-border-color)', $css);
+        self::assertStringContainsString('background: var(--bh-surface-card)', $css);
         self::assertStringNotContainsString('.bh-numa-status{', $css);
         self::assertStringNotContainsString('.bh-numa-scope-note', $css);
     }
@@ -319,6 +321,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('Nueva conversación', $html);
         self::assertStringContainsString('data-numa-confirmation', $html);
         self::assertStringContainsString('role="dialog"', $html);
+        self::assertStringContainsString('aria-modal="true"', $html);
         self::assertStringContainsString('aria-label="Confirmar nueva conversación"', $html);
         self::assertStringContainsString('¿Empezar de nuevo?', $html);
         self::assertStringContainsString('Numa olvidará lo hablado hasta ahora. Tu límite de uso no cambia.', $html);
@@ -442,7 +445,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('const statusMessageForAvailability', $javascript);
         self::assertStringContainsString('Te estás acercando al límite de uso.', $javascript);
         self::assertStringContainsString('Has alcanzado el límite de uso. Podrás volver a utilizarlo cuando se renueve.', $javascript);
-        self::assertMatchesRegularExpression('/setProcessing\(false\);\s+loadStatus\(requestFailed\);/', $javascript);
+        self::assertMatchesRegularExpression('/setProcessing\(false\);\s+loadStatus\(requestFailed, true\);/', $javascript);
         self::assertStringContainsString('Conservamos tu borrador', $javascript);
         self::assertStringContainsString('AbortController', $javascript);
         self::assertStringContainsString('podría haberse enviado y haber consumido cuota', $javascript);
@@ -493,6 +496,9 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('.bh-numa-message.is-user .bh-numa-message-content', $css);
         self::assertStringContainsString('justify-content: flex-end', $css);
         self::assertStringContainsString('.bh-numa-message.is-assistant .bh-numa-message-content', $css);
+        self::assertStringContainsString('color: var(--bh-brand)', $css);
+        self::assertStringContainsString('font-family: var(--bh-font-interface)', $css);
+        self::assertStringContainsString('font-size: 1rem', $css);
         self::assertStringContainsString('.bh-numa-message.is-assistant.is-state .bh-numa-message-content', $css);
         self::assertStringNotContainsString('.bh-numa-message.is-assistant .bh-numa-message-bubble', $css);
     }
@@ -521,20 +527,17 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('-webkit-text-fill-color: currentColor', $css);
     }
 
-    public function testClienteSigueElTranscriptSinForzarElScrollDeliberado(): void
+    public function testClienteSigueSiempreElFinalDelTranscript(): void
     {
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
 
         self::assertIsString($javascript);
-        self::assertStringContainsString('const TRANSCRIPT_FOLLOW_THRESHOLD = 48', $javascript);
-        self::assertStringContainsString('const isNearTranscriptEnd', $javascript);
-        self::assertStringContainsString('let followsTranscriptEnd = true', $javascript);
         self::assertStringContainsString('const scheduleTranscriptScroll', $javascript);
         self::assertStringContainsString('window.requestAnimationFrame', $javascript);
-        self::assertStringContainsString("messages.addEventListener('scroll'", $javascript);
-        self::assertStringContainsString('followsTranscriptEnd = isNearTranscriptEnd();', $javascript);
+        self::assertStringContainsString('messages.scrollTop = messages.scrollHeight;', $javascript);
+        self::assertStringContainsString('scheduleTranscriptScroll();', $javascript);
+        self::assertStringContainsString("input.addEventListener('input'", $javascript);
         self::assertStringContainsString('const cancelTranscriptScroll', $javascript);
-        self::assertStringNotContainsString('const scrollMessagesToEnd', $javascript);
     }
 
     public function testNuevaConversacionPideConfirmacionSoloConTranscriptVisibleYNoBorraElBorradorSinElla(): void
@@ -542,17 +545,35 @@ final class NumaLauncherTest extends TestCase
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
 
         self::assertIsString($javascript);
-        self::assertStringContainsString('newConversationButton.disabled = activeRequest || !hasCanonicalConversation', $javascript);
+        self::assertStringContainsString('const enabled = canSend() && !confirmationOpen', $javascript);
+        self::assertStringContainsString('newConversationButton.disabled = confirmationOpen || activeRequest || !hasCanonicalConversation', $javascript);
         self::assertStringContainsString('const openNewConversationConfirmation', $javascript);
         self::assertStringContainsString('const closeNewConversationConfirmation', $javascript);
         self::assertStringContainsString("confirmationConfirmButton.addEventListener('click'", $javascript);
         self::assertStringContainsString("confirmationCancelButton.addEventListener('click'", $javascript);
         self::assertStringContainsString("if (event.key === 'Escape')", $javascript);
+        self::assertStringContainsString("if (event.key === 'Tab')", $javascript);
+        self::assertStringContainsString('panelHeader.inert = true;', $javascript);
+        self::assertStringContainsString('panelContent.inert = true;', $javascript);
+        self::assertStringContainsString('panelHeader.inert = false;', $javascript);
+        self::assertStringContainsString('panelContent.inert = false;', $javascript);
         self::assertStringContainsString("newConversationButton.setAttribute('aria-expanded', 'true')", $javascript);
         self::assertStringNotContainsString('window.confirm', $javascript);
         self::assertStringContainsString('applyServiceStatus(payload);', $javascript);
         self::assertStringContainsString('resetComposer();', $javascript);
         self::assertMatchesRegularExpression('/applyServiceStatus\(payload\);\s+resetComposer\(\);/', $javascript);
+    }
+
+    public function testConfirmacionCubreYDesenfocaSoloElPanel(): void
+    {
+        $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
+
+        self::assertIsString($css);
+        self::assertStringContainsString('.bh-numa-confirmation{', $css);
+        self::assertStringContainsString('inset: 0', $css);
+        self::assertStringContainsString('place-items: center', $css);
+        self::assertStringContainsString('backdrop-filter: blur(6px)', $css);
+        self::assertStringContainsString('width: min(calc(100% - var(--bh-space-5)), 18rem)', $css);
     }
 
     public function testClienteAnunciaSoloContenidoNuevoYSilenciaLaRestauracionDelHistorial(): void
@@ -587,6 +608,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('composerHadFocus = true;', $javascript);
         self::assertStringContainsString('document.activeElement === document.body || document.activeElement === input', $javascript);
         self::assertStringContainsString('input.focus();', $javascript);
+        self::assertStringContainsString('input.focus({ preventScroll: true });', $javascript);
+        self::assertStringContainsString('restoreComposerFocus && panelOpen && canSend()', $javascript);
         self::assertStringContainsString("form.setAttribute('aria-busy', processing ? 'true' : 'false')", $javascript);
     }
 

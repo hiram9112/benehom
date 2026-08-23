@@ -52,10 +52,23 @@ test('inicia una nueva conversacion y restablece el panel', async ({ page }) => 
     await page.locator('[data-numa-new-conversation]').click();
     const confirmation = page.getByRole('dialog', { name: 'Confirmar nueva conversación' });
     await expect(confirmation).toBeVisible();
+    await expect(confirmation).toHaveAttribute('aria-modal', 'true');
+    expect(await confirmation.evaluate((element) => getComputedStyle(element).backdropFilter)).toContain('blur');
+    const panelBox = await page.locator('[data-numa-panel]').boundingBox();
+    const dialogBox = await confirmation.locator('.bh-numa-confirmation-dialog').boundingBox();
+
+    expect(panelBox).not.toBeNull();
+    expect(dialogBox).not.toBeNull();
+    expect(Math.abs((dialogBox.x + dialogBox.width / 2) - (panelBox.x + panelBox.width / 2))).toBeLessThan(2);
+    expect(Math.abs((dialogBox.y + dialogBox.height / 2) - (panelBox.y + panelBox.height / 2))).toBeLessThan(2);
     await expect(page.getByRole('button', { name: 'Cancelar' })).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Continuar' })).toBeFocused();
-    await page.getByRole('button', { name: 'Continuar' }).click();
+    await expect(page.getByRole('button', { name: 'Empezar de nuevo' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+    expect(await page.locator('.bh-numa-panel-header').evaluate((element) => element.inert)).toBe(true);
+    expect(await page.locator('[data-numa-panel-content]').evaluate((element) => element.inert)).toBe(true);
+    await page.getByRole('button', { name: 'Empezar de nuevo' }).click();
 
     await newConversationRequest;
     await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(0);
@@ -169,6 +182,7 @@ test('permite abrir, enviar y cerrar mediante teclado, manteniendo el foco', asy
     await input.fill(question);
     await page.keyboard.press('Enter');
     await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(2);
+    await expect(input).toBeFocused();
 
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-numa-panel]')).toBeHidden();

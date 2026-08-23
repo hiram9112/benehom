@@ -8,7 +8,6 @@
     const CLOSE_LABEL = 'Cerrar Numa';
     const MAX_INPUT_HEIGHT = 120;
     const PANEL_TRANSITION_DURATION_MS = 220;
-    const TRANSCRIPT_FOLLOW_THRESHOLD = 48;
 
     const EMPTY_MESSAGES = [
         '¿Qué quieres revisar hoy?',
@@ -121,6 +120,8 @@
         const submitButton = panel ? panel.querySelector('[data-numa-submit]') : null;
         const submitIcon = panel ? panel.querySelector('[data-numa-submit-icon]') : null;
         const statusRetryButton = panel ? panel.querySelector('[data-numa-status-retry]') : null;
+        const panelHeader = panel ? panel.querySelector('.bh-numa-panel-header') : null;
+        const panelContent = panel ? panel.querySelector('[data-numa-panel-content]') : null;
         const counter = panel ? panel.querySelector('[data-numa-counter]') : null;
         const counterValue = panel ? panel.querySelector('[data-numa-counter-value]') : null;
         const initialState = panel ? panel.querySelector('[data-numa-initial]') : null;
@@ -145,7 +146,7 @@
             ? configuredRequestTimeoutMs
             : 26000;
 
-        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !confirmation || !confirmationCancelButton || !confirmationConfirmButton || !form || !input || !submitButton || !statusRetryButton || !initialState || !emptyMessage || !suggestions || !messages || !status) {
+        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !confirmation || !confirmationCancelButton || !confirmationConfirmButton || !form || !input || !submitButton || !statusRetryButton || !panelHeader || !panelContent || !initialState || !emptyMessage || !suggestions || !messages || !status) {
             return;
         }
 
@@ -170,7 +171,6 @@
         let progressiveResponse = null;
         let responseRevealTimer = 0;
         let transcriptScrollFrame = 0;
-        let followsTranscriptEnd = true;
         let canonicalConversation = [];
         let composerHadFocus = false;
         let confirmationOpen = false;
@@ -275,13 +275,13 @@
         };
 
         const setInteractiveState = () => {
-            const enabled = canSend();
+            const enabled = canSend() && !confirmationOpen;
             input.disabled = !enabled;
             submitButton.disabled = !enabled || normaliseText(input.value) === '';
             suggestions.querySelectorAll('button').forEach((button) => {
                 button.disabled = !enabled;
             });
-            newConversationButton.disabled = activeRequest || !hasCanonicalConversation;
+            newConversationButton.disabled = confirmationOpen || activeRequest || !hasCanonicalConversation;
         };
 
         const setProcessing = (processing) => {
@@ -345,21 +345,13 @@
             suggestions.textContent = '';
         };
 
-        const isNearTranscriptEnd = () => (
-            messages.scrollHeight - messages.clientHeight - messages.scrollTop <= TRANSCRIPT_FOLLOW_THRESHOLD
-        );
-
         const scheduleTranscriptScroll = () => {
-            if (!followsTranscriptEnd || transcriptScrollFrame) {
+            if (transcriptScrollFrame) {
                 return;
             }
 
             transcriptScrollFrame = window.requestAnimationFrame(() => {
                 transcriptScrollFrame = 0;
-
-                if (!followsTranscriptEnd) {
-                    return;
-                }
 
                 messages.scrollTop = messages.scrollHeight;
             });
@@ -657,7 +649,7 @@
             }
         };
 
-        const loadStatus = (preserveConversation = false) => {
+        const loadStatus = (preserveConversation = false, restoreComposerFocus = false) => {
             if (statusLoading) {
                 return;
             }
@@ -723,6 +715,10 @@
 
                     statusLoading = false;
                     statusRetryButton.disabled = false;
+
+                    if (restoreComposerFocus && panelOpen && canSend()) {
+                        input.focus({ preventScroll: true });
+                    }
                 });
         };
 
@@ -953,7 +949,8 @@
                     activeAbortController = null;
                     removeThinkingMessage();
                     setProcessing(false);
-                    loadStatus(requestFailed);
+
+                    loadStatus(requestFailed, true);
                 });
         };
 
@@ -966,6 +963,8 @@
             confirmation.hidden = true;
             confirmation.setAttribute('aria-hidden', 'true');
             newConversationButton.setAttribute('aria-expanded', 'false');
+            panelHeader.inert = false;
+            panelContent.inert = false;
             setInteractiveState();
 
             if (restoreFocus) {
@@ -983,6 +982,8 @@
             confirmation.setAttribute('aria-hidden', 'false');
             newConversationButton.setAttribute('aria-expanded', 'true');
             setInteractiveState();
+            panelHeader.inert = true;
+            panelContent.inert = true;
             confirmationCancelButton.focus();
         };
 
@@ -1161,6 +1162,7 @@
             updateCounter();
             resizeInput();
             setInteractiveState();
+            scheduleTranscriptScroll();
         });
 
         input.addEventListener('keydown', (event) => {
@@ -1170,10 +1172,6 @@
 
             event.preventDefault();
             sendMessage(input.value);
-        });
-
-        messages.addEventListener('scroll', () => {
-            followsTranscriptEnd = isNearTranscriptEnd();
         });
 
         form.addEventListener('submit', (event) => {
@@ -1193,8 +1191,18 @@
                 event.preventDefault();
                 event.stopPropagation();
                 closeNewConversationConfirmation();
+                return;
             }
 
+            if (event.key === 'Tab') {
+                if (event.shiftKey && document.activeElement === confirmationCancelButton) {
+                    event.preventDefault();
+                    confirmationConfirmButton.focus();
+                } else if (!event.shiftKey && document.activeElement === confirmationConfirmButton) {
+                    event.preventDefault();
+                    confirmationCancelButton.focus();
+                }
+            }
         });
 
         document.addEventListener('keydown', (event) => {

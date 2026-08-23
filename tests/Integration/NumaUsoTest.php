@@ -24,8 +24,8 @@ final class NumaUsoTest extends TestCase
 
         $this->db = \Database::getConnection();
         $this->ensureSchemaExists();
-        $_ENV['NUMA_DAILY_LIMIT'] = '5';
-        $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_DAILY_LIMIT'] = '15';
+        $_ENV['NUMA_MONTHLY_LIMIT'] = '60';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
     }
 
@@ -51,14 +51,14 @@ final class NumaUsoTest extends TestCase
 
         self::assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $reservaId);
         self::assertSame(0, $estado['daily_used']);
-        self::assertSame(4, $estado['daily_remaining']);
-        self::assertSame(19, $estado['monthly_remaining']);
+        self::assertSame(14, $estado['daily_remaining']);
+        self::assertSame(59, $estado['monthly_remaining']);
     }
 
-    public function testQuintaLlamadaPagadaPermitidaYSextaRechazada(): void
+    public function testDecimoquintaLlamadaPagadaPermitidaYDecimosextaRechazada(): void
     {
         $usuarioId = $this->crearUsuario();
-        $this->insertUso($usuarioId, '2026-07-21', 4);
+        $this->insertUso($usuarioId, '2026-07-21', 14);
         $repo = $this->repo('2026-07-21 10:00:00');
 
         $reservaId = $repo->reservar($usuarioId);
@@ -72,10 +72,10 @@ final class NumaUsoTest extends TestCase
         $repo->reservar($usuarioId);
     }
 
-    public function testVigesimaLlamadaPagadaMensualPermitidaYLlamada21Rechazada(): void
+    public function testSexagesimaLlamadaPagadaMensualPermitidaYLlamada61Rechazada(): void
     {
         $usuarioId = $this->crearUsuario();
-        $this->insertUso($usuarioId, '2026-07-01', 19);
+        $this->insertUso($usuarioId, '2026-07-01', 59);
         $repo = $this->repo('2026-07-21 10:00:00');
 
         $repo->reservar($usuarioId);
@@ -91,15 +91,15 @@ final class NumaUsoTest extends TestCase
     public function testReinicioDiarioYMensual(): void
     {
         $usuarioId = $this->crearUsuario();
-        $this->insertUso($usuarioId, '2026-06-30', 20);
+        $this->insertUso($usuarioId, '2026-06-30', 60);
         $this->insertUso($usuarioId, '2026-07-20', 5);
         $repo = $this->repo('2026-07-21 10:00:00');
         $estado = $repo->estado($usuarioId);
 
         self::assertSame(0, $estado['daily_used']);
-        self::assertSame(5, $estado['daily_remaining']);
+        self::assertSame(15, $estado['daily_remaining']);
         self::assertSame(5, $estado['monthly_used']);
-        self::assertSame(15, $estado['monthly_remaining']);
+        self::assertSame(55, $estado['monthly_remaining']);
     }
 
     public function testCantidadConfirmadaRepresentaLlamadasPagadasConfirmadas(): void
@@ -123,13 +123,13 @@ final class NumaUsoTest extends TestCase
         $reservaB = $repo->reservar($usuarioB);
 
         self::assertNotSame('', $reservaB);
-        self::assertSame(4, $repo->estado($usuarioB)['daily_remaining']);
+        self::assertSame(14, $repo->estado($usuarioB)['daily_remaining']);
     }
 
     public function testUsuarioExentoSuperaSuCuotaPeroConservaElUsoConfirmado(): void
     {
         $usuarioId = $this->crearUsuario();
-        $this->insertUso($usuarioId, '2026-07-21', 5);
+        $this->insertUso($usuarioId, '2026-07-21', 15);
         $repo = $this->repo('2026-07-21 10:00:00');
         $previousExemptUsers = $_ENV['NUMA_LIMIT_EXEMPT_USER_IDS'] ?? null;
 
@@ -139,7 +139,7 @@ final class NumaUsoTest extends TestCase
             $reservationId = $repo->reservar($usuarioId);
 
             self::assertTrue($repo->confirmar($reservationId));
-            self::assertSame(6, $repo->llamadasPagadasConfirmadasDia($usuarioId));
+            self::assertSame(16, $repo->llamadasPagadasConfirmadasDia($usuarioId));
         } finally {
             if ($previousExemptUsers === null) {
                 unset($_ENV['NUMA_LIMIT_EXEMPT_USER_IDS']);
@@ -152,7 +152,7 @@ final class NumaUsoTest extends TestCase
     public function testReservasConConexionesSeparadasBloqueanElLimite(): void
     {
         $_ENV['NUMA_DAILY_LIMIT'] = '1';
-        $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_MONTHLY_LIMIT'] = '60';
         $usuarioId = $this->crearUsuario();
 
         $repoA = new \NumaUso($this->newConnection(), new DateTimeImmutable('2026-07-21 10:00:00'));
@@ -203,7 +203,7 @@ final class NumaUsoTest extends TestCase
 
     public function testReservasConcurrentesConMesVacioNoSuperanElLimite(): void
     {
-        $_ENV['NUMA_DAILY_LIMIT'] = '5';
+        $_ENV['NUMA_DAILY_LIMIT'] = '15';
         $_ENV['NUMA_MONTHLY_LIMIT'] = '1';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '2678400';
         $usuarioId = $this->crearUsuario();
@@ -260,7 +260,7 @@ final class NumaUsoTest extends TestCase
         self::assertFalse($repo->revertir($reservaId));
         self::assertFalse($repo->confirmar($reservaId));
         self::assertSame(0, $repo->estado($usuarioId)['daily_used']);
-        self::assertSame(5, $repo->estado($usuarioId)['daily_remaining']);
+        self::assertSame(15, $repo->estado($usuarioId)['daily_remaining']);
     }
 
     public function testRevertirDespuesDeConfirmarNoRestaConsumo(): void
@@ -295,17 +295,17 @@ final class NumaUsoTest extends TestCase
 
         self::assertSame([
             'daily_used' => 0,
-            'daily_limit' => 5,
-            'daily_remaining' => 5,
+            'daily_limit' => 15,
+            'daily_remaining' => 15,
             'monthly_used' => 0,
-            'monthly_limit' => 20,
-            'monthly_remaining' => 20,
+            'monthly_limit' => 60,
+            'monthly_remaining' => 60,
         ], $repo->estado($usuarioId));
 
         $repo->reservar($usuarioId);
 
-        self::assertSame(4, $repo->estado($usuarioId)['daily_remaining']);
-        self::assertSame(19, $repo->estado($usuarioId)['monthly_remaining']);
+        self::assertSame(14, $repo->estado($usuarioId)['daily_remaining']);
+        self::assertSame(59, $repo->estado($usuarioId)['monthly_remaining']);
     }
 
     public function testLasTablasNoGuardanMensajesNiRespuestas(): void

@@ -1089,7 +1089,7 @@ final class NumaService
 
     private function maxProviderCalls(): int
     {
-        return max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 3));
+        return max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 5));
     }
 
     private function maxTransientRetries(): int

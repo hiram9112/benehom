@@ -20,7 +20,7 @@ final class NumaMovementConversationTest extends IntegrationTestCase
         }
 
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '3';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = '10000';
     }
 

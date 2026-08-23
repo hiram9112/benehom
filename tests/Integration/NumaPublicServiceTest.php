@@ -25,9 +25,9 @@ final class NumaPublicServiceTest extends TestCase
         $this->ensureSchemaExists();
         $_ENV['NUMA_ENABLED'] = 'true';
         $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
-        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '5';
-        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '20';
-        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '3';
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '15';
+        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '60';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $_ENV['NUMA_MAX_TRANSIENT_RETRIES'] = '1';
         $_ENV['NUMA_REQUEST_TIMEOUT_SECONDS'] = '25';
     }

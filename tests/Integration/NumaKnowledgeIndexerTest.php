@@ -347,8 +347,8 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
 
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
         $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '900';
 
         try {

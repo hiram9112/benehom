@@ -55,13 +55,13 @@ final class NumaConsumoGlobalTest extends TestCase
 
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
         $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '220';
         $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '900';
-        $_ENV['NUMA_DAILY_LIMIT'] = '5';
-        $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_DAILY_LIMIT'] = '15';
+        $_ENV['NUMA_MONTHLY_LIMIT'] = '60';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
     }
 
@@ -108,7 +108,7 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(100, $estado['daily_calls_limit']);
         self::assertSame(1000, $estado['monthly_calls_limit']);
         self::assertSame(10440, $estado['daily_tokens']);
-        self::assertSame(50000, $estado['daily_tokens_limit']);
+        self::assertSame(100000, $estado['daily_tokens_limit']);
     }
 
     public function testReinicioDiarioNoSumaLlamadasDeOtrosDias(): void
@@ -406,8 +406,8 @@ final class NumaConsumoGlobalTest extends TestCase
     {
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
         $dir = sys_get_temp_dir() . '/benehom-numa-global-' . bin2hex(random_bytes(8));
         $locker = $this->newConnection();
 
@@ -465,12 +465,12 @@ final class NumaConsumoGlobalTest extends TestCase
     {
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '50000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
         $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '1';
         $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '400';
-        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '5';
-        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '15';
+        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '60';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
 
         $visitorA = $this->visitorHash();

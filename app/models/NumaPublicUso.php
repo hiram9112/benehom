@@ -327,12 +327,12 @@ final class NumaPublicUso
 
     private function dailyLimit(): int
     {
-        return max(0, bh_env_int('NUMA_PUBLIC_DAILY_LIMIT', 5));
+        return max(0, bh_env_int('NUMA_PUBLIC_DAILY_LIMIT', 15));
     }
 
     private function monthlyLimit(): int
     {
-        return max(0, bh_env_int('NUMA_PUBLIC_MONTHLY_LIMIT', 20));
+        return max(0, bh_env_int('NUMA_PUBLIC_MONTHLY_LIMIT', 60));
     }
 
     private function reservationTtl(): int

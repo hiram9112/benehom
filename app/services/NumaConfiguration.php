@@ -27,8 +27,8 @@ final class NumaConfiguration
         if ($publicMode) {
             self::assertBoolean('NUMA_PUBLIC_ENABLED', false);
             self::assertRequiredString('NUMA_PUBLIC_HASH_KEY', minLength: 32);
-            self::assertInteger('NUMA_PUBLIC_DAILY_LIMIT', 5, 1);
-            self::assertInteger('NUMA_PUBLIC_MONTHLY_LIMIT', 20, self::integerValue('NUMA_PUBLIC_DAILY_LIMIT', 5));
+            self::assertInteger('NUMA_PUBLIC_DAILY_LIMIT', 15, 1);
+            self::assertInteger('NUMA_PUBLIC_MONTHLY_LIMIT', 60, self::integerValue('NUMA_PUBLIC_DAILY_LIMIT', 15));
             self::assertInteger('NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT', 40, 1);
             self::assertInteger(
                 'NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT',
@@ -81,12 +81,12 @@ final class NumaConfiguration
         self::assertInteger('NUMA_CHAT_BURST_BLOCK_SECONDS', 60, 1);
         self::assertBoolean('NUMA_BYPASS_LIMITS', false);
         self::assertUserIdList('NUMA_LIMIT_EXEMPT_USER_IDS');
-        self::assertInteger('NUMA_DAILY_LIMIT', 5, 1);
-        self::assertInteger('NUMA_MONTHLY_LIMIT', 20, self::integerValue('NUMA_DAILY_LIMIT', 5));
+        self::assertInteger('NUMA_DAILY_LIMIT', 15, 1);
+        self::assertInteger('NUMA_MONTHLY_LIMIT', 60, self::integerValue('NUMA_DAILY_LIMIT', 15));
         self::assertInteger('NUMA_RESERVATION_TTL_SECONDS', 120, 1);
         self::assertInteger('NUMA_MAX_INPUT_TOKENS', 5000, 1, 5000);
         self::assertInteger('NUMA_MAX_OUTPUT_TOKENS', 220, 1, 520);
-        self::assertInteger('NUMA_MAX_PROVIDER_CALLS', 3, 1, 3);
+        self::assertInteger('NUMA_MAX_PROVIDER_CALLS', 5, 1, 5);
         self::assertInteger('NUMA_PROVIDER_TIMEOUT_SECONDS', 10, 1, 10);
         self::assertInteger('NUMA_REQUEST_TIMEOUT_SECONDS', 25, 1, 25);
         self::assertInteger('NUMA_MAX_TRANSIENT_RETRIES', 1, 0, 1);
@@ -96,11 +96,11 @@ final class NumaConfiguration
             1000,
             self::integerValue('NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT', 100),
         );
-        self::assertInteger('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 50000, 1);
+        self::assertInteger('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 100000, 1);
         self::assertInteger(
             'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
-            300000,
-            self::integerValue('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 50000),
+            600000,
+            self::integerValue('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 100000),
         );
         self::assertInteger('NUMA_EMBEDDING_DIMENSIONS', 768, 768, 768);
         self::assertInteger('NUMA_MAX_RAG_RESULTS', 3, 1, 3);

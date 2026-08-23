@@ -354,12 +354,12 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
 
     private function dailyTokenLimit(): int
     {
-        return max(0, bh_env_int('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 50000));
+        return max(0, bh_env_int('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 100000));
     }
 
     private function monthlyTokenLimit(): int
     {
-        return max(0, bh_env_int('NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT', 300000));
+        return max(0, bh_env_int('NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT', 600000));
     }
 
     private function ensureRow(string $fecha): void

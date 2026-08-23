@@ -25,8 +25,8 @@ final class NumaPublicUsoTest extends TestCase
         parent::setUp();
         $this->db = \Database::getConnection();
         $this->ensureSchemaExists();
-        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '5';
-        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '15';
+        $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '60';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
     }
 
@@ -51,8 +51,8 @@ final class NumaPublicUsoTest extends TestCase
         $status = $repo->estado($hash);
 
         self::assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $reservation);
-        self::assertSame(4, $status['daily_remaining']);
-        self::assertSame(19, $status['monthly_remaining']);
+        self::assertSame(14, $status['daily_remaining']);
+        self::assertSame(59, $status['monthly_remaining']);
 
         $columns = implode(',', $this->columns('numa_uso_publico')) . ',' . implode(',', $this->columns('numa_reservas_publicas'));
         self::assertStringContainsString('visitante_hash', $columns);
@@ -112,7 +112,7 @@ final class NumaPublicUsoTest extends TestCase
     public function testLimiteMensualPublicoSeAplicaAunqueQuedeCuotaDiaria(): void
     {
         $hash = $this->visitorHash();
-        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '5';
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '15';
         $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '1';
         $repo = $this->repo('2026-08-17 10:00:00');
 
@@ -170,7 +170,7 @@ final class NumaPublicUsoTest extends TestCase
     {
         $hash = $this->visitorHash();
         $repo = $this->repo('2026-08-17 10:00:00');
-        $budget = new \NumaPaidCallBudget(new \NumaPublicUsageBudget($repo, $hash), 3);
+        $budget = new \NumaPaidCallBudget(new \NumaPublicUsageBudget($repo, $hash), 5);
 
         $budget->iniciarLlamada();
 
@@ -180,7 +180,7 @@ final class NumaPublicUsoTest extends TestCase
 
     public function testReservasPublicasConcurrentesConMismoVisitanteNoSuperanElLimite(): void
     {
-        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '5';
+        $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '15';
         $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = '1';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '2678400';
         $hash = $this->visitorHash();

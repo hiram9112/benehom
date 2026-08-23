@@ -79,8 +79,8 @@ final class FrontControllerRoutingTest extends TestCase
             'session' => ['usuario_id' => 123],
             'env' => [
                 'NUMA_ENABLED' => 'false',
-                'NUMA_DAILY_LIMIT' => '5',
-                'NUMA_MONTHLY_LIMIT' => '20',
+                'NUMA_DAILY_LIMIT' => '15',
+                'NUMA_MONTHLY_LIMIT' => '60',
                 'NUMA_RESERVATION_TTL_SECONDS' => '120',
                 'DB_HOST' => $_ENV['DB_HOST'] ?? 'localhost',
                 'DB_PORT' => $_ENV['DB_PORT'] ?? '3307',

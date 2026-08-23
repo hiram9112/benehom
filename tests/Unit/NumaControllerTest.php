@@ -308,8 +308,8 @@ final class NumaControllerTest extends TestCase
         $_ENV['NUMA_CHAT_BURST_MAX_REQUESTS'] = '5';
         $_ENV['NUMA_CHAT_BURST_WINDOW_SECONDS'] = '60';
         $_ENV['NUMA_CHAT_BURST_BLOCK_SECONDS'] = '60';
-        $_ENV['NUMA_DAILY_LIMIT'] = '5';
-        $_ENV['NUMA_MONTHLY_LIMIT'] = '20';
+        $_ENV['NUMA_DAILY_LIMIT'] = '15';
+        $_ENV['NUMA_MONTHLY_LIMIT'] = '60';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
     }
 
@@ -955,7 +955,7 @@ final class NumaControllerTest extends TestCase
     public function testChatActivoDevuelveRechazoClasificadoPorProveedorYConsumeCuotaUsuario(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '3';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $this->configureJsonPost();
         $numaUso = new NumaUsoFake(limitCode: 'NUMA_DAILY_LIMIT_REACHED', limitAfterReservations: 1);
 
@@ -1493,7 +1493,7 @@ final class NumaControllerTest extends TestCase
     public function testChatActivoDetieneElFlujoSiNoHayCuotaParaElEmbeddingNecesario(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '3';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $this->configureJsonPost();
         $numaUso = new NumaUsoFake(
             limitCode: 'NUMA_DAILY_LIMIT_REACHED',

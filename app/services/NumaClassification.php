@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/NumaProvider.php';
+require_once __DIR__ . '/NumaFinancialTools.php';
 
 final class NumaClassificationIntent
 {
@@ -547,17 +548,139 @@ final class NumaFunctionalDecision
                 'reason' => ['type' => 'STRING'],
                 'needs_clarification' => ['type' => 'BOOLEAN'],
                 'knowledge_query' => ['type' => 'STRING', 'nullable' => true],
-                'tool' => [
-                    'type' => 'OBJECT',
-                    'nullable' => true,
-                    'properties' => [
-                        'name' => ['type' => 'STRING', 'enum' => self::TOOL_NAMES],
-                        'arguments' => ['type' => 'OBJECT'],
-                    ],
-                    'required' => ['name', 'arguments'],
-                ],
+                'tool' => self::toolResponseSchema(),
             ],
             'required' => self::REQUIRED_KEYS,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function toolResponseSchema(): array
+    {
+        $variants = [];
+
+        foreach ((new NumaFinancialToolRegistry())->all() as $definition) {
+            $definitionProperties = self::responseSchemaProperties($definition->parameterSchema());
+            $variants[] = [
+                'type' => 'OBJECT',
+                'properties' => [
+                    'name' => ['type' => 'STRING', 'enum' => [$definition->name()]],
+                    'arguments' => self::toolArgumentsSchema(
+                        $definitionProperties,
+                        self::toolArgumentRequirements($definition)
+                    ),
+                ],
+                'required' => ['name', 'arguments'],
+            ];
+        }
+
+        return [
+            'type' => 'OBJECT',
+            'nullable' => true,
+            'anyOf' => $variants,
+        ];
+    }
+
+    /**
+     * Cada variante exige una forma completa de periodo. El validador de la tool
+     * conserva la comprobacion local antes de cualquier consulta a datos.
+     *
+     * @return array<int, array<int, string>>
+     */
+    private static function toolArgumentRequirements(NumaFinancialToolDefinition $definition): array
+    {
+        $required = $definition->requiredParameters();
+
+        if ($definition->name() === 'comparar_periodos') {
+            return [
+                self::requiredKeys([...$required, 'periodo_a', 'periodo_b']),
+                self::requiredKeys([...$required, 'periodo_a', 'fecha_inicio_b', 'fecha_fin_b']),
+                self::requiredKeys([...$required, 'fecha_inicio_a', 'fecha_fin_a', 'periodo_b']),
+                self::requiredKeys([...$required, 'fecha_inicio_a', 'fecha_fin_a', 'fecha_inicio_b', 'fecha_fin_b']),
+            ];
+        }
+
+        return [
+            self::requiredKeys([...$required, 'periodo']),
+            self::requiredKeys([...$required, 'fecha_inicio', 'fecha_fin']),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $schema
+     * @return array<string, array<string, mixed>>
+     */
+    private static function responseSchemaProperties(array $schema): array
+    {
+        $properties = $schema['properties'] ?? [];
+        if (!is_array($properties)) {
+            throw new RuntimeException('Esquema de tool financiera invalido.');
+        }
+
+        $result = [];
+        foreach ($properties as $name => $property) {
+            if (!is_string($name) || !is_array($property) || !is_string($property['type'] ?? null)) {
+                throw new RuntimeException('Propiedad de tool financiera invalida.');
+            }
+
+            $normalized = ['type' => strtoupper($property['type'])];
+            // Gemini's response schema does not accept the registry's OpenAPI
+            // date format; the executor retains its strict date validation.
+            foreach (['enum', 'minimum', 'maximum'] as $key) {
+                if (array_key_exists($key, $property)) {
+                    $normalized[$key] = $property[$key];
+                }
+            }
+
+            $result[$name] = $normalized;
+        }
+
+        return $result;
+    }
+
+    /** @param array<int, string> $keys */
+    private static function requiredKeys(array $keys): array
+    {
+        return array_values(array_unique($keys));
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $properties
+     * @param array<int, string> $required
+     * @return array<string, mixed>
+     */
+    private static function requiredArgumentSchema(array $properties, array $required): array
+    {
+        $requiredProperties = [];
+        foreach ($required as $name) {
+            if (!isset($properties[$name])) {
+                throw new RuntimeException('Argumento obligatorio de tool financiera invalido.');
+            }
+
+            $requiredProperties[$name] = $properties[$name];
+        }
+
+        return [
+            'type' => 'OBJECT',
+            'properties' => $requiredProperties,
+            'required' => $required,
+        ];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $properties
+     * @param array<int, array<int, string>> $requirements
+     * @return array<string, mixed>
+     */
+    private static function toolArgumentsSchema(array $properties, array $requirements): array
+    {
+        return [
+            'type' => 'OBJECT',
+            'properties' => $properties,
+            'anyOf' => array_map(
+                static fn (array $required): array => self::requiredArgumentSchema($properties, $required),
+                $requirements,
+            ),
         ];
     }
 

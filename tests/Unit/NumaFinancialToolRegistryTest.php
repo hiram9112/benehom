@@ -119,6 +119,7 @@ final class NumaFinancialToolRegistryTest extends TestCase
     public static function invalidArgumentCases(): array
     {
         return [
+            'periodo ausente' => ['obtener_resumen_financiero', []],
             'parametro adicional usuario_id' => ['obtener_resumen_financiero', [
                 'fecha_inicio' => '2026-07-01',
                 'fecha_fin' => '2026-07-31',
@@ -137,6 +138,10 @@ final class NumaFinancialToolRegistryTest extends TestCase
             'periodo invertido' => ['obtener_resumen_financiero', [
                 'fecha_inicio' => '2026-07-31',
                 'fecha_fin' => '2026-07-01',
+            ]],
+            'comparacion con un periodo ausente' => ['comparar_periodos', [
+                'periodo_a' => 'mes_actual',
+                'metrica' => 'gastos',
             ]],
             'intervalo excesivo' => ['obtener_resumen_financiero', [
                 'fecha_inicio' => '2024-01-01',

@@ -1062,14 +1062,7 @@ final class NumaService
 
         foreach ($availableTools as $name) {
             $definition = $this->financialTools()->get($name);
-            $definitions[] = [
-                'name' => $definition->name(),
-                'description' => $definition->description(),
-                'schema' => $definition->parameterSchema(),
-                'required' => $definition->requiredParameters(),
-                'allowed_values' => $definition->allowedValues(),
-                'result_limit' => $definition->resultLimit(),
-            ];
+            $definitions[] = $definition->externalContract();
         }
 
         return $definitions;

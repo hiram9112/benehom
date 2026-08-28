@@ -34,6 +34,8 @@ final class NumaFinancialToolRegistryTest extends TestCase
         foreach ($registry->all() as $definition) {
             self::assertNotSame('', $definition->name());
             self::assertNotSame('', $definition->description());
+            self::assertNotSame('', $definition->whenToUse());
+            self::assertNotSame('', $definition->whenNotToUse());
             self::assertSame('object', $definition->parameterSchema()['type']);
             self::assertFalse($definition->parameterSchema()['additionalProperties']);
             self::assertTrue(
@@ -43,6 +45,57 @@ final class NumaFinancialToolRegistryTest extends TestCase
             self::assertNotEmpty($definition->resultLimit());
             self::assertNotSame('', $definition->implementation());
         }
+    }
+
+    public function testLasSeisDeclaracionesGeminiDerivanDelContratoCompleto(): void
+    {
+        $registry = new \NumaFinancialToolRegistry();
+
+        self::assertCount(6, $registry->all());
+        foreach ($registry->all() as $definition) {
+            $declaration = $definition->functionDeclaration();
+            $contract = $definition->externalContract();
+
+            self::assertSame($definition->name(), $declaration['name']);
+            self::assertStringContainsString($definition->description(), $declaration['description']);
+            self::assertStringContainsString($definition->whenToUse(), $declaration['description']);
+            self::assertStringContainsString($definition->whenNotToUse(), $declaration['description']);
+            self::assertSame($definition->parameterSchema(), $declaration['parameters']);
+            self::assertSame($declaration['name'], $contract['name']);
+            self::assertSame($declaration['description'], $contract['description']);
+            self::assertSame($declaration['parameters'], $contract['parameters']);
+            self::assertSame($definition->resultLimit(), $contract['result_limit']);
+            self::assertSame($definition->compatibilityRules(), $contract['compatibility_rules']);
+            self::assertNotEmpty($definition->requiredParameterSets());
+
+            foreach ($declaration['parameters']['properties'] as $parameter) {
+                self::assertNotSame('', $parameter['description'] ?? '');
+            }
+
+            foreach ($definition->allowedValues() as $parameter => $values) {
+                self::assertSame($values, $declaration['parameters']['properties'][$parameter]['enum']);
+            }
+        }
+    }
+
+    public function testDeclaracionesConservanLimitesYAlternativasCompletasDePeriodo(): void
+    {
+        $registry = new \NumaFinancialToolRegistry();
+        $ranking = $registry->get('obtener_ranking_categorias')->functionDeclaration();
+        $comparison = $registry->get('comparar_periodos')->functionDeclaration();
+
+        self::assertSame(1, $ranking['parameters']['properties']['limite']['minimum']);
+        self::assertSame(10, $ranking['parameters']['properties']['limite']['maximum']);
+        self::assertSame(
+            [['periodo'], ['fecha_inicio', 'fecha_fin']],
+            array_column($ranking['parameters']['anyOf'], 'required')
+        );
+        self::assertSame([
+            ['metrica', 'periodo_a', 'periodo_b'],
+            ['metrica', 'periodo_a', 'fecha_inicio_b', 'fecha_fin_b'],
+            ['metrica', 'fecha_inicio_a', 'fecha_fin_a', 'periodo_b'],
+            ['metrica', 'fecha_inicio_a', 'fecha_fin_a', 'fecha_inicio_b', 'fecha_fin_b'],
+        ], array_column($comparison['parameters']['anyOf'], 'required'));
     }
 
     public function testDeclaraEnumsPermitidosSinParametrosDinamicos(): void
@@ -76,6 +129,8 @@ final class NumaFinancialToolRegistryTest extends TestCase
         self::assertArrayHasKey('regalos', gastoCategoriaLabels());
         self::assertSame('nomina', $catalog->resolveCategory('Nómina'));
         self::assertSame('regalos', $catalog->resolveCategory('Regalos'));
+        self::assertSame('electricidad', $catalog->resolveCategory('luz'));
+        self::assertSame('comida_domicilio', $catalog->resolveCategory('comida a domicilio'));
         self::assertSame('compras', $catalog->resolveGroup('Compras'));
 
         $this->expectException(InvalidArgumentException::class);
@@ -120,6 +175,14 @@ final class NumaFinancialToolRegistryTest extends TestCase
     {
         return [
             'periodo ausente' => ['obtener_resumen_financiero', []],
+            'periodo relativo y rango simultaneos' => ['obtener_resumen_financiero', [
+                'periodo' => 'mes_actual',
+                'fecha_inicio' => '2026-07-01',
+                'fecha_fin' => '2026-07-31',
+            ]],
+            'rango con fecha final ausente' => ['obtener_resumen_financiero', [
+                'fecha_inicio' => '2026-07-01',
+            ]],
             'parametro adicional usuario_id' => ['obtener_resumen_financiero', [
                 'fecha_inicio' => '2026-07-01',
                 'fecha_fin' => '2026-07-31',
@@ -141,6 +204,13 @@ final class NumaFinancialToolRegistryTest extends TestCase
             ]],
             'comparacion con un periodo ausente' => ['comparar_periodos', [
                 'periodo_a' => 'mes_actual',
+                'metrica' => 'gastos',
+            ]],
+            'comparacion con forma doble en periodo a' => ['comparar_periodos', [
+                'periodo_a' => 'mes_actual',
+                'fecha_inicio_a' => '2026-07-01',
+                'fecha_fin_a' => '2026-07-31',
+                'periodo_b' => 'mes_anterior',
                 'metrica' => 'gastos',
             ]],
             'intervalo excesivo' => ['obtener_resumen_financiero', [
@@ -173,6 +243,12 @@ final class NumaFinancialToolRegistryTest extends TestCase
                 'metrica' => 'gastos',
                 'categoria' => 'Compras',
             ]],
+            'categoria incompatible con ahorro' => ['comparar_periodos', [
+                'periodo_a' => 'mes_actual',
+                'periodo_b' => 'mes_anterior',
+                'metrica' => 'ahorro_real',
+                'categoria' => 'electricidad',
+            ]],
             'limite fuera de rango' => ['obtener_ranking_categorias', [
                 'fecha_inicio' => '2026-07-01',
                 'fecha_fin' => '2026-07-31',
@@ -202,6 +278,15 @@ final class NumaFinancialToolRegistryTest extends TestCase
                 'fecha_inicio' => '2026-07-01',
                 'fecha_fin' => '2026-07-31',
                 'limite' => 11,
+            ]],
+            'tipo de gasto sin movimiento de gasto' => ['obtener_movimientos', [
+                'periodo' => 'mes_actual',
+                'tipo_gasto' => 'esencial',
+            ]],
+            'grupo y categoria simultaneos' => ['obtener_movimientos', [
+                'periodo' => 'mes_actual',
+                'grupo' => 'suministros',
+                'categoria' => 'electricidad',
             ]],
         ];
     }

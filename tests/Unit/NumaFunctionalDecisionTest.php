@@ -69,6 +69,11 @@ final class NumaFunctionalDecisionTest extends TestCase
             'periodo' => 'mes_actual',
             'metrica' => 'saldo',
         ]));
+        self::assertFalse($this->schemaAllowsArguments('obtener_resumen_financiero', [
+            'periodo' => 'mes_actual',
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ]));
         self::assertSame('OBJECT', $schema['properties']['tool']['type']);
         self::assertTrue($schema['properties']['tool']['nullable']);
     }
@@ -210,9 +215,10 @@ final class NumaFunctionalDecisionTest extends TestCase
 
             foreach ($argumentsSchema['anyOf'] ?? [] as $requirement) {
                 $required = $requirement['required'] ?? [];
-                if (array_diff(array_keys($arguments), array_keys($properties)) === []
+                $variantProperties = $requirement['properties'] ?? $properties;
+                if (array_diff(array_keys($arguments), array_keys($variantProperties)) === []
                     && array_diff($required, array_keys($arguments)) === []
-                    && $this->argumentValuesMatchSchema($arguments, $properties)
+                    && $this->argumentValuesMatchSchema($arguments, $variantProperties)
                 ) {
                     return true;
                 }

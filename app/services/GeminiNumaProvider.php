@@ -589,78 +589,20 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
             $definition = $definitionsByName[$name];
             $description = $definition['description'] ?? null;
-            $schema = $definition['schema'] ?? null;
-            $required = $definition['required'] ?? [];
+            $parameters = $definition['parameters'] ?? null;
 
-            if (!is_string($description) || !is_array($schema) || !is_array($required)) {
+            if (!is_string($description) || trim($description) === '' || !is_array($parameters)) {
                 throw self::invalidResponseError();
             }
 
             $declarations[] = [
                 'name' => $name,
                 'description' => $description,
-                'parameters' => $this->normalizeFunctionSchema($schema, $required),
+                'parameters' => $parameters,
             ];
         }
 
         return $declarations;
-    }
-
-    /**
-     * @param array<string, mixed> $schema
-     * @param array<int, mixed> $required
-     * @return array<string, mixed>
-     */
-    private function normalizeFunctionSchema(array $schema, array $required): array
-    {
-        $normalized = [
-            'type' => isset($schema['type']) && is_string($schema['type']) ? $schema['type'] : 'object',
-        ];
-
-        $properties = $schema['properties'] ?? [];
-        if (is_array($properties) && $properties !== []) {
-            $normalized['properties'] = [];
-
-            foreach ($properties as $name => $property) {
-                if (!is_string($name) || !is_array($property)) {
-                    continue;
-                }
-
-                $normalized['properties'][$name] = $this->normalizeFunctionSchemaProperty($property);
-            }
-        }
-
-        $required = array_values(array_filter($required, static fn (mixed $name): bool => is_string($name) && trim($name) !== ''));
-        if ($required !== []) {
-            $normalized['required'] = $required;
-        }
-
-        return $normalized;
-    }
-
-    /**
-     * @param array<string, mixed> $property
-     * @return array<string, mixed>
-     */
-    private function normalizeFunctionSchemaProperty(array $property): array
-    {
-        $normalized = [];
-
-        foreach (['type', 'format', 'description'] as $key) {
-            if (isset($property[$key]) && is_string($property[$key])) {
-                $normalized[$key] = $property[$key];
-            }
-        }
-
-        if (isset($property['enum']) && is_array($property['enum'])) {
-            $normalized['enum'] = array_values($property['enum']);
-        }
-
-        if (isset($property['items']) && is_array($property['items'])) {
-            $normalized['items'] = $this->normalizeFunctionSchemaProperty($property['items']);
-        }
-
-        return $normalized !== [] ? $normalized : ['type' => 'string'];
     }
 
     /**

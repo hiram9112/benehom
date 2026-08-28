@@ -143,15 +143,19 @@ final class NumaFinancialToolDefinition
     /**
      * @param array<string, mixed> $parameterSchema
      * @param array<int, string> $requiredParameters
-     * @param array<string, array<int, string>> $allowedValues
+     * @param array<int, array<int, array<int, string>>> $requirementGroups
+     * @param array<int, array<string, mixed>> $compatibilityRules
      * @param array<string, int> $resultLimit
      */
     public function __construct(
         private readonly string $name,
         private readonly string $description,
+        private readonly string $whenToUse,
+        private readonly string $whenNotToUse,
         private readonly array $parameterSchema,
         private readonly array $requiredParameters,
-        private readonly array $allowedValues,
+        private readonly array $requirementGroups,
+        private readonly array $compatibilityRules,
         private readonly array $resultLimit,
         private readonly string $implementation,
     ) {
@@ -163,8 +167,36 @@ final class NumaFinancialToolDefinition
             throw new InvalidArgumentException('La tool de Numa debe tener descripcion.');
         }
 
+        if (trim($whenToUse) === '' || trim($whenNotToUse) === '') {
+            throw new InvalidArgumentException('La tool de Numa debe definir cuando usarla y cuando no usarla.');
+        }
+
         if (trim($implementation) === '') {
             throw new InvalidArgumentException('La tool de Numa debe tener implementacion concreta.');
+        }
+
+        $properties = $parameterSchema['properties'] ?? null;
+        if (($parameterSchema['type'] ?? null) !== 'object'
+            || ($parameterSchema['additionalProperties'] ?? null) !== false
+            || !is_array($properties)
+        ) {
+            throw new InvalidArgumentException('La tool de Numa debe tener un esquema de parametros cerrado.');
+        }
+
+        foreach ($properties as $parameter => $schema) {
+            if (!is_string($parameter)
+                || !is_array($schema)
+                || !is_string($schema['type'] ?? null)
+                || trim((string) ($schema['description'] ?? '')) === ''
+            ) {
+                throw new InvalidArgumentException('Los parametros de la tool de Numa deben tener tipo y descripcion.');
+            }
+        }
+
+        foreach ($this->requiredParameterSets() as $requiredSet) {
+            if (array_diff($requiredSet, array_keys($properties)) !== []) {
+                throw new InvalidArgumentException('La tool de Numa declara un parametro obligatorio desconocido.');
+            }
         }
     }
 
@@ -178,12 +210,31 @@ final class NumaFinancialToolDefinition
         return $this->description;
     }
 
+    public function whenToUse(): string
+    {
+        return $this->whenToUse;
+    }
+
+    public function whenNotToUse(): string
+    {
+        return $this->whenNotToUse;
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function parameterSchema(): array
     {
-        return $this->parameterSchema;
+        $schema = $this->parameterSchema;
+        $requiredSets = $this->requiredParameterSets();
+
+        if (count($requiredSets) === 1) {
+            $schema['required'] = $requiredSets[0];
+        } else {
+            $schema['anyOf'] = $this->parameterVariants($requiredSets);
+        }
+
+        return $schema;
     }
 
     /**
@@ -199,7 +250,101 @@ final class NumaFinancialToolDefinition
      */
     public function allowedValues(): array
     {
-        return $this->allowedValues;
+        $allowedValues = [];
+
+        foreach ($this->parameterSchema['properties'] as $name => $schema) {
+            if (is_string($name) && is_array($schema) && isset($schema['enum']) && is_array($schema['enum'])) {
+                $allowedValues[$name] = array_values(array_filter($schema['enum'], 'is_string'));
+            }
+        }
+
+        return $allowedValues;
+    }
+
+    /** @return array<int, array<int, array<int, string>>> */
+    public function requirementGroups(): array
+    {
+        return $this->requirementGroups;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function compatibilityRules(): array
+    {
+        return $this->compatibilityRules;
+    }
+
+    /** @return array<int, array<int, string>> */
+    public function requiredParameterSets(): array
+    {
+        $sets = [$this->requiredParameters];
+
+        foreach ($this->requirementGroups as $alternatives) {
+            $expanded = [];
+            foreach ($sets as $set) {
+                foreach ($alternatives as $alternative) {
+                    $expanded[] = array_values(array_unique([...$set, ...$alternative]));
+                }
+            }
+
+            $sets = $expanded;
+        }
+
+        return $sets;
+    }
+
+    /**
+     * @param array<int, array<int, string>> $requiredSets
+     * @return array<int, array<string, mixed>>
+     */
+    private function parameterVariants(array $requiredSets): array
+    {
+        $alternativeParameters = [];
+        foreach ($this->requirementGroups as $alternatives) {
+            foreach ($alternatives as $alternative) {
+                $alternativeParameters = [...$alternativeParameters, ...$alternative];
+            }
+        }
+
+        $commonProperties = array_diff_key(
+            $this->parameterSchema['properties'],
+            array_flip(array_unique($alternativeParameters)),
+        );
+
+        return array_map(function (array $required) use ($commonProperties): array {
+            $selectedAlternativeProperties = array_intersect_key(
+                $this->parameterSchema['properties'],
+                array_flip($required),
+            );
+
+            return [
+                'type' => 'object',
+                'additionalProperties' => false,
+                'properties' => [...$commonProperties, ...$selectedAlternativeProperties],
+                'required' => $required,
+            ];
+        }, $requiredSets);
+    }
+
+    /** @return array{name:string,description:string,parameters:array<string,mixed>} */
+    public function functionDeclaration(): array
+    {
+        return [
+            'name' => $this->name,
+            'description' => $this->description
+                . ' Usala cuando ' . $this->whenToUse
+                . ' No la uses cuando ' . $this->whenNotToUse,
+            'parameters' => $this->parameterSchema(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function externalContract(): array
+    {
+        return [
+            ...$this->functionDeclaration(),
+            'result_limit' => $this->resultLimit,
+            'compatibility_rules' => $this->compatibilityRules,
+        ];
     }
 
     /**
@@ -218,6 +363,11 @@ final class NumaFinancialToolDefinition
 
 final class NumaFinancialCategoryCatalog
 {
+    /** @var array<string, string> */
+    private const EXPLICIT_CATEGORY_ALIASES = [
+        'luz' => 'electricidad',
+    ];
+
     /** @var array<string, array{kind:string,expense_type:?string,group:string,label:string}> */
     private array $categories = [];
 
@@ -254,6 +404,14 @@ final class NumaFinancialCategoryCatalog
             foreach (($group['conceptos'] ?? []) as $category => $label) {
                 $this->addCategory($category, 'ingreso', null, $groupName, $label);
             }
+        }
+
+        foreach (self::EXPLICIT_CATEGORY_ALIASES as $alias => $category) {
+            if (!isset($this->categories[$category])) {
+                throw new RuntimeException('Alias de categoria financiera de Numa no valido.');
+            }
+
+            $this->addAlias($this->categoryAliases, $this->ambiguousCategoryAliases, $alias, $category);
         }
     }
 
@@ -617,103 +775,136 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
 
         $definitions = [
             self::OBTENER_RESUMEN_FINANCIERO => new NumaFinancialToolDefinition(
-                self::OBTENER_RESUMEN_FINANCIERO,
-                'Devuelve totales agregados de ingresos, gastos, ahorro posible y ahorro real de un periodo.',
-                self::dateRangeSchema(),
-                [],
-                [],
-                ['max_items' => 1],
-                'executeResumenFinanciero'
+                name: self::OBTENER_RESUMEN_FINANCIERO,
+                description: 'Devuelve los totales globales de ingresos, gastos, gastos esenciales, gastos flexibles, ahorro posible y ahorro real de un periodo.',
+                whenToUse: 'el usuario pide un balance o resumen general del periodo.',
+                whenNotToUse: 'pide ordenar categorias, ver una serie temporal, comparar dos periodos, calcular estadisticas de movimientos o listar movimientos concretos.',
+                parameterSchema: self::dateRangeSchema(),
+                requiredParameters: [],
+                requirementGroups: [self::periodRequirementGroup()],
+                compatibilityRules: [],
+                resultLimit: ['max_items' => 1],
+                implementation: 'executeResumenFinanciero'
             ),
             self::OBTENER_RANKING_CATEGORIAS => new NumaFinancialToolDefinition(
-                self::OBTENER_RANKING_CATEGORIAS,
-                'Devuelve un ranking agregado por categoria para una metrica financiera permitida.',
-                self::periodSchema([
-                    'metrica' => ['type' => 'string', 'enum' => ['ingresos', 'gastos', 'gastos_esenciales', 'gastos_flexibles']],
-                    'limite' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 10],
+                name: self::OBTENER_RANKING_CATEGORIAS,
+                description: 'Ordena categorias por su importe agregado y devuelve total y porcentaje para una metrica.',
+                whenToUse: 'el usuario pregunta en que categorias ingreso o gasto mas o menos dentro de un periodo.',
+                whenNotToUse: 'pide un resumen global, una evolucion temporal, comparar periodos, estadisticas agregadas o movimientos individuales.',
+                parameterSchema: self::periodSchema([
+                    'metrica' => self::metricSchema(self::MOVEMENT_METRICS),
+                    'limite' => self::limitSchema(10, 'Numero maximo de categorias del ranking; usa un entero entre 1 y 10.'),
                 ]),
-                [],
-                [
-                    'metrica' => ['ingresos', 'gastos', 'gastos_esenciales', 'gastos_flexibles'],
-                ],
-                ['max_items' => 10],
-                'executeRankingCategorias'
+                requiredParameters: [],
+                requirementGroups: [self::periodRequirementGroup()],
+                compatibilityRules: [],
+                resultLimit: ['max_items' => 10],
+                implementation: 'executeRankingCategorias'
             ),
             self::OBTENER_EVOLUCION_FINANCIERA => new NumaFinancialToolDefinition(
-                self::OBTENER_EVOLUCION_FINANCIERA,
-                'Devuelve una evolucion agregada por mes, categoria o tipo permitido.',
-                self::periodSchema([
-                    'metrica' => ['type' => 'string', 'enum' => self::FINANCIAL_METRICS],
-                    'agrupacion' => ['type' => 'string', 'enum' => self::GROUPINGS],
-                    'limite' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 24],
+                name: self::OBTENER_EVOLUCION_FINANCIERA,
+                description: 'Devuelve una serie o distribucion agregada de una metrica por mes, categoria o tipo.',
+                whenToUse: 'el usuario pide evolucion, tendencia, distribucion o identificar el mes de mayor valor.',
+                whenNotToUse: 'pide solo totales globales, comparar exactamente dos periodos, estadisticas de movimientos o listar movimientos individuales.',
+                parameterSchema: self::periodSchema([
+                    'metrica' => self::metricSchema(self::FINANCIAL_METRICS),
+                    'agrupacion' => [
+                        'type' => 'string',
+                        'enum' => self::GROUPINGS,
+                        'description' => 'mes crea una serie cronologica; categoria distribuye por categoria; tipo separa clases de movimiento o gasto.',
+                    ],
+                    'limite' => self::limitSchema(24, 'Numero maximo de elementos; usa un entero entre 1 y 24.'),
                 ]),
-                ['agrupacion'],
-                [
-                    'metrica' => self::FINANCIAL_METRICS,
-                    'agrupacion' => self::GROUPINGS,
-                ],
-                ['max_items' => 24],
-                'executeEvolucionFinanciera'
+                requiredParameters: ['agrupacion'],
+                requirementGroups: [self::periodRequirementGroup()],
+                compatibilityRules: [],
+                resultLimit: ['max_items' => 24],
+                implementation: 'executeEvolucionFinanciera'
             ),
             self::COMPARAR_PERIODOS => new NumaFinancialToolDefinition(
-                self::COMPARAR_PERIODOS,
-                'Compara una metrica agregada entre dos periodos cerrados.',
-                self::schema([
-                    'fecha_inicio_a' => ['type' => 'string', 'format' => 'date'],
-                    'fecha_fin_a' => ['type' => 'string', 'format' => 'date'],
-                    'periodo_a' => ['type' => 'string', 'enum' => NumaPeriodResolver::relativePeriods()],
-                    'fecha_inicio_b' => ['type' => 'string', 'format' => 'date'],
-                    'fecha_fin_b' => ['type' => 'string', 'format' => 'date'],
-                    'periodo_b' => ['type' => 'string', 'enum' => NumaPeriodResolver::relativePeriods()],
-                    'metrica' => ['type' => 'string', 'enum' => self::FINANCIAL_METRICS],
-                    'categoria' => ['type' => 'string', 'enum' => $categories],
+                name: self::COMPARAR_PERIODOS,
+                description: 'Compara una misma metrica entre dos periodos y devuelve ambos valores, diferencia absoluta y diferencia porcentual cuando procede.',
+                whenToUse: 'el usuario contrasta dos periodos concretos, por ejemplo este mes frente al anterior.',
+                whenNotToUse: 'pide una tendencia de varios meses, un ranking, estadisticas de movimientos o movimientos individuales.',
+                parameterSchema: self::schema([
+                    ...self::periodProperties('_a', 'A'),
+                    ...self::periodProperties('_b', 'B'),
+                    'metrica' => self::metricSchema(self::FINANCIAL_METRICS),
+                    'categoria' => self::categorySchema($categories),
                 ]),
-                ['metrica'],
-                [
-                    'metrica' => self::FINANCIAL_METRICS,
-                    'categoria' => $categories,
-                ],
-                ['max_items' => 1],
-                'executeCompararPeriodos'
+                requiredParameters: ['metrica'],
+                requirementGroups: [self::periodRequirementGroup('_a'), self::periodRequirementGroup('_b')],
+                compatibilityRules: [self::categoryMetricCompatibilityRule()],
+                resultLimit: ['max_items' => 1],
+                implementation: 'executeCompararPeriodos'
             ),
             self::OBTENER_ESTADISTICAS_MOVIMIENTOS => new NumaFinancialToolDefinition(
-                self::OBTENER_ESTADISTICAS_MOVIMIENTOS,
-                'Devuelve promedio, maximo, minimo, total y cantidad de movimientos agregados de un periodo.',
-                self::periodSchema([
-                    'metrica' => ['type' => 'string', 'enum' => self::MOVEMENT_METRICS],
-                    'categoria' => ['type' => 'string', 'enum' => $categories],
+                name: self::OBTENER_ESTADISTICAS_MOVIMIENTOS,
+                description: 'Calcula promedio por movimiento, promedio mensual, maximo, minimo, total y cantidad para una metrica y categoria opcional.',
+                whenToUse: 'el usuario pide promedios, maximos, minimos, totales estadisticos o cantidad de movimientos.',
+                whenNotToUse: 'pide un balance global, un ranking, una evolucion, comparar periodos o ver movimientos concretos.',
+                parameterSchema: self::periodSchema([
+                    'metrica' => self::metricSchema(self::MOVEMENT_METRICS),
+                    'categoria' => self::categorySchema($categories),
                 ]),
-                ['metrica'],
-                [
-                    'metrica' => self::MOVEMENT_METRICS,
-                    'categoria' => $categories,
-                ],
-                ['max_items' => 1],
-                'executeEstadisticasMovimientos'
+                requiredParameters: ['metrica'],
+                requirementGroups: [self::periodRequirementGroup()],
+                compatibilityRules: [self::categoryMetricCompatibilityRule()],
+                resultLimit: ['max_items' => 1],
+                implementation: 'executeEstadisticasMovimientos'
             ),
             self::OBTENER_MOVIMIENTOS => new NumaFinancialToolDefinition(
-                self::OBTENER_MOVIMIENTOS,
-                'Devuelve una seleccion pequena y ordenada de movimientos filtrados de un periodo.',
-                self::periodSchema([
-                    'tipo_movimiento' => ['type' => 'string', 'enum' => ['ingreso', 'gasto']],
-                    'tipo_gasto' => ['type' => 'string', 'enum' => ['esencial', 'flexible']],
-                    'grupo' => ['type' => 'string', 'enum' => $groups],
-                    'categoria' => ['type' => 'string', 'enum' => $categories],
-                    'orden' => ['type' => 'string', 'enum' => ['fecha', 'cantidad']],
-                    'direccion' => ['type' => 'string', 'enum' => ['asc', 'desc']],
-                    'limite' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 10],
+                name: self::OBTENER_MOVIMIENTOS,
+                description: 'Devuelve una seleccion acotada de movimientos individuales con fecha, cantidad y categoria, aplicando filtros y orden.',
+                whenToUse: 'el usuario pide ver, encontrar o enumerar movimientos concretos, recientes, mayores o menores.',
+                whenNotToUse: 'pide solo un total, promedio, ranking, evolucion o comparacion agregada.',
+                parameterSchema: self::periodSchema([
+                    'tipo_movimiento' => [
+                        'type' => 'string',
+                        'enum' => ['ingreso', 'gasto'],
+                        'description' => 'ingreso incluye solo entradas y gasto incluye solo salidas. Es obligatorio usar gasto si se indica tipo_gasto.',
+                    ],
+                    'tipo_gasto' => [
+                        'type' => 'string',
+                        'enum' => ['esencial', 'flexible'],
+                        'description' => 'Clasificacion del gasto: esencial para necesidades basicas o flexible para gasto ajustable. Requiere tipo_movimiento=gasto.',
+                    ],
+                    'grupo' => self::groupSchema($groups),
+                    'categoria' => self::categorySchema($categories),
+                    'orden' => [
+                        'type' => 'string',
+                        'enum' => ['fecha', 'cantidad'],
+                        'description' => 'Criterio de orden: fecha para cronologia o cantidad para importe.',
+                    ],
+                    'direccion' => [
+                        'type' => 'string',
+                        'enum' => ['asc', 'desc'],
+                        'description' => 'asc ordena de menor o mas antiguo a mayor o mas reciente; desc aplica el orden inverso.',
+                    ],
+                    'limite' => self::limitSchema(10, 'Numero maximo de movimientos devueltos; usa un entero entre 1 y 10.'),
                 ]),
-                [],
-                [
-                    'tipo_movimiento' => ['ingreso', 'gasto'],
-                    'tipo_gasto' => ['esencial', 'flexible'],
-                    'grupo' => $groups,
-                    'categoria' => $categories,
-                    'orden' => ['fecha', 'cantidad'],
-                    'direccion' => ['asc', 'desc'],
+                requiredParameters: [],
+                requirementGroups: [self::periodRequirementGroup()],
+                compatibilityRules: [
+                    [
+                        'type' => 'requires_value',
+                        'parameter' => 'tipo_gasto',
+                        'required_parameter' => 'tipo_movimiento',
+                        'required_value' => 'gasto',
+                        'description' => 'tipo_gasto solo se admite cuando tipo_movimiento es gasto.',
+                    ],
+                    [
+                        'type' => 'mutually_exclusive',
+                        'parameters' => ['grupo', 'categoria'],
+                        'description' => 'grupo y categoria son filtros alternativos y no se combinan.',
+                    ],
+                    [
+                        'type' => 'movement_filters_compatible',
+                        'description' => 'La categoria o grupo debe corresponder al tipo de movimiento y, en gastos, al tipo de gasto solicitado.',
+                    ],
                 ],
-                ['max_items' => 10],
-                'executeObtenerMovimientos'
+                resultLimit: ['max_items' => 10],
+                implementation: 'executeObtenerMovimientos'
             ),
         ];
 
@@ -739,11 +930,94 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
     private static function periodSchema(array $properties = []): array
     {
         return self::schema([
-            'fecha_inicio' => ['type' => 'string', 'format' => 'date'],
-            'fecha_fin' => ['type' => 'string', 'format' => 'date'],
-            'periodo' => ['type' => 'string', 'enum' => NumaPeriodResolver::relativePeriods()],
+            ...self::periodProperties(),
             ...$properties,
         ]);
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private static function periodProperties(string $suffix = '', string $label = ''): array
+    {
+        $periodLabel = $label === '' ? 'el periodo' : 'el periodo ' . $label;
+
+        return [
+            'fecha_inicio' . $suffix => [
+                'type' => 'string',
+                'format' => 'date',
+                'description' => 'Primera fecha explicita de ' . $periodLabel . ' en formato YYYY-MM-DD. Debe enviarse junto con fecha_fin' . $suffix . ' y sin periodo' . $suffix . '.',
+            ],
+            'fecha_fin' . $suffix => [
+                'type' => 'string',
+                'format' => 'date',
+                'description' => 'Ultima fecha explicita de ' . $periodLabel . ' en formato YYYY-MM-DD. Debe enviarse junto con fecha_inicio' . $suffix . ' y sin periodo' . $suffix . '.',
+            ],
+            'periodo' . $suffix => [
+                'type' => 'string',
+                'enum' => NumaPeriodResolver::relativePeriods(),
+                'description' => 'Valor simbolico de ' . $periodLabel . '. BeneHom resuelve sus fechas; no calcules fechas relativas. Se usa sin fecha_inicio' . $suffix . ' ni fecha_fin' . $suffix . '.',
+            ],
+        ];
+    }
+
+    /** @return array<int, array<int, string>> */
+    private static function periodRequirementGroup(string $suffix = ''): array
+    {
+        return [
+            ['periodo' . $suffix],
+            ['fecha_inicio' . $suffix, 'fecha_fin' . $suffix],
+        ];
+    }
+
+    /** @param array<int, string> $values */
+    private static function metricSchema(array $values): array
+    {
+        return [
+            'type' => 'string',
+            'enum' => $values,
+            'description' => 'Metrica canonica: ingresos son entradas; gastos son todas las salidas; gastos_esenciales y gastos_flexibles filtran cada clase; ahorro_posible es ingresos menos gastos esenciales; ahorro_real es ingresos menos todos los gastos.',
+        ];
+    }
+
+    /** @param array<int, string> $categories */
+    private static function categorySchema(array $categories): array
+    {
+        return [
+            'type' => 'string',
+            'enum' => $categories,
+            'description' => 'Categoria canonica de BeneHom. Usa el enum que corresponda semanticamente; por ejemplo, luz se interpreta como electricidad y comida a domicilio como comida_domicilio.',
+        ];
+    }
+
+    /** @param array<int, string> $groups */
+    private static function groupSchema(array $groups): array
+    {
+        return [
+            'type' => 'string',
+            'enum' => $groups,
+            'description' => 'Grupo canonico que reune varias categorias de BeneHom. No es una categoria y no puede combinarse con categoria.',
+        ];
+    }
+
+    /** @return array<string, int|string> */
+    private static function limitSchema(int $maximum, string $description): array
+    {
+        return [
+            'type' => 'integer',
+            'minimum' => 1,
+            'maximum' => $maximum,
+            'description' => $description,
+        ];
+    }
+
+    /** @return array<string, string> */
+    private static function categoryMetricCompatibilityRule(): array
+    {
+        return [
+            'type' => 'category_matches_metric',
+            'metric_parameter' => 'metrica',
+            'category_parameter' => 'categoria',
+            'description' => 'La categoria debe pertenecer a la clase de la metrica; las metricas de ahorro no admiten categoria.',
+        ];
     }
 
     /**
@@ -856,7 +1130,99 @@ final class NumaFinancialToolExecutor
             }
         }
 
-        $this->assertPeriodArguments($definition->implementation(), $arguments);
+        $this->assertRequirementGroups($definition, $arguments);
+        $this->assertCompatibilityRules($definition, $arguments);
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private function assertRequirementGroups(NumaFinancialToolDefinition $definition, array $arguments): void
+    {
+        foreach ($definition->requirementGroups() as $alternatives) {
+            $completeAlternatives = 0;
+
+            foreach ($alternatives as $alternative) {
+                $present = array_intersect($alternative, array_keys($arguments));
+                if ($present !== [] && count($present) !== count($alternative)) {
+                    throw new InvalidArgumentException('Combinacion de parametros de Numa incompleta.');
+                }
+
+                if (count($present) === count($alternative)) {
+                    $completeAlternatives++;
+                }
+            }
+
+            if ($completeAlternatives !== 1) {
+                throw new InvalidArgumentException('Combinacion de parametros de Numa no valida.');
+            }
+        }
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private function assertCompatibilityRules(NumaFinancialToolDefinition $definition, array $arguments): void
+    {
+        foreach ($definition->compatibilityRules() as $rule) {
+            $type = $rule['type'] ?? null;
+
+            if ($type === 'category_matches_metric') {
+                $metricParameter = $rule['metric_parameter'] ?? null;
+                $categoryParameter = $rule['category_parameter'] ?? null;
+                if (!is_string($metricParameter) || !is_string($categoryParameter)) {
+                    throw new RuntimeException('Regla de compatibilidad financiera de Numa invalida.');
+                }
+
+                $metric = $this->stringArg($arguments, $metricParameter);
+                $category = isset($arguments[$categoryParameter])
+                    ? $this->stringArg($arguments, $categoryParameter)
+                    : null;
+                $this->assertCategoryCompatibleWithMetric($metric, $category);
+
+                continue;
+            }
+
+            if ($type === 'requires_value') {
+                $parameter = $rule['parameter'] ?? null;
+                $requiredParameter = $rule['required_parameter'] ?? null;
+                $requiredValue = $rule['required_value'] ?? null;
+                if (!is_string($parameter) || !is_string($requiredParameter) || !is_string($requiredValue)) {
+                    throw new RuntimeException('Regla de dependencia financiera de Numa invalida.');
+                }
+
+                if (array_key_exists($parameter, $arguments)
+                    && ($arguments[$requiredParameter] ?? null) !== $requiredValue
+                ) {
+                    throw new InvalidArgumentException('Combinacion de filtros financieros de Numa no valida.');
+                }
+
+                continue;
+            }
+
+            if ($type === 'mutually_exclusive') {
+                $parameters = $rule['parameters'] ?? null;
+                if (!is_array($parameters)
+                    || count(array_intersect($parameters, array_keys($arguments))) > 1
+                ) {
+                    throw new InvalidArgumentException('Filtros financieros de Numa incompatibles.');
+                }
+
+                continue;
+            }
+
+            if ($type === 'movement_filters_compatible') {
+                $movementType = isset($arguments['tipo_movimiento']) ? $this->stringArg($arguments, 'tipo_movimiento') : null;
+                $expenseType = isset($arguments['tipo_gasto']) ? $this->stringArg($arguments, 'tipo_gasto') : null;
+                $group = isset($arguments['grupo']) ? $this->stringArg($arguments, 'grupo') : null;
+                $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
+                $this->assertMovementFiltersAreCompatible(
+                    $movementType,
+                    $expenseType,
+                    $this->movementCategoryFilters($group, $category),
+                );
+
+                continue;
+            }
+
+            throw new RuntimeException('Regla de compatibilidad financiera de Numa no registrada.');
+        }
     }
 
     /**
@@ -998,7 +1364,6 @@ final class NumaFinancialToolExecutor
 
         $metric = $this->stringArg($arguments, 'metrica');
         $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
-        $this->assertCategoryCompatibleWithMetric($metric, $category);
         $valueA = $this->calculateMetricCents($usuarioId, $startA, $endA, $metric, $category);
         $valueB = $this->calculateMetricCents($usuarioId, $startB, $endB, $metric, $category);
         $difference = $valueB - $valueA;
@@ -1025,7 +1390,6 @@ final class NumaFinancialToolExecutor
         [$start, $end] = $this->period($arguments);
         $metric = $this->stringArg($arguments, 'metrica');
         $category = isset($arguments['categoria']) ? $this->stringArg($arguments, 'categoria') : null;
-        $this->assertCategoryCompatibleWithMetric($metric, $category);
         $stats = $this->movementStats($usuarioId, $start, $end, $metric, $category);
 
         return [
@@ -1058,16 +1422,7 @@ final class NumaFinancialToolExecutor
         $direction = strtoupper($this->stringArg($arguments, 'direccion', 'desc'));
         $limit = $this->boundedLimit($arguments['limite'] ?? 10, 1, 10);
 
-        if ($expenseType !== null && $movementType !== 'gasto') {
-            throw new InvalidArgumentException('El tipo de gasto requiere movimientos de gasto.');
-        }
-
-        if ($group !== null && $category !== null) {
-            throw new InvalidArgumentException('Grupo y categoria de movimientos no se pueden combinar.');
-        }
-
         $categoryFilters = $this->movementCategoryFilters($group, $category);
-        $this->assertMovementFiltersAreCompatible($movementType, $expenseType, $categoryFilters);
 
         $params = [];
         $selects = $this->movementSelects(
@@ -1338,28 +1693,6 @@ final class NumaFinancialToolExecutor
         $this->assertPeriodOrder($period['inicio'], $period['fin']);
 
         return [$period['inicio'], $period['fin']];
-    }
-
-    /** @param array<string, mixed> $arguments */
-    private function assertPeriodArguments(string $implementation, array $arguments): void
-    {
-        if ($implementation === 'executeCompararPeriodos') {
-            foreach (['a', 'b'] as $suffix) {
-                $hasRelative = isset($arguments['periodo_' . $suffix]);
-                $hasExplicit = isset($arguments['fecha_inicio_' . $suffix], $arguments['fecha_fin_' . $suffix]);
-                if ($hasRelative === $hasExplicit) {
-                    throw new InvalidArgumentException('Periodo de Numa incompleto.');
-                }
-            }
-
-            return;
-        }
-
-        $hasRelative = isset($arguments['periodo']);
-        $hasExplicit = isset($arguments['fecha_inicio'], $arguments['fecha_fin']);
-        if ($hasRelative === $hasExplicit) {
-            throw new InvalidArgumentException('Periodo de Numa incompleto.');
-        }
     }
 
     /** @param array<string, mixed> $arguments */

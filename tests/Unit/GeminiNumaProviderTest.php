@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
+require_once APP_PATH . '/services/NumaFinancialTools.php';
 
 final class GeminiNumaProviderTest extends TestCase
 {
@@ -79,14 +80,62 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(500, $captured['body']['generationConfig']['maxOutputTokens']);
         self::assertSame('low', $captured['body']['generationConfig']['thinkingConfig']['thinkingLevel']);
         self::assertSame('obtener_resumen_financiero', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
-        self::assertSame(['fecha_inicio', 'fecha_fin'], $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['required']);
-        self::assertArrayNotHasKey('additionalProperties', $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']);
+        self::assertSame(
+            (new \NumaFinancialToolRegistry())->get('obtener_resumen_financiero')->functionDeclaration(),
+            $captured['body']['tools'][0]['functionDeclarations'][0]
+        );
+        self::assertSame(
+            [['periodo'], ['fecha_inicio', 'fecha_fin']],
+            array_column($captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['anyOf'], 'required')
+        );
+        self::assertFalse($captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['additionalProperties']);
         self::assertSame('Instrucciones internas de Numa', $captured['body']['system_instruction']['parts'][0]['text']);
         self::assertStringContainsString('Mensaje actual del usuario:', $captured['body']['contents'][0]['parts'][0]['text']);
         self::assertStringContainsString('¿Cómo añado un movimiento?', $captured['body']['contents'][0]['parts'][0]['text']);
         self::assertSame('Respuesta breve de Numa.', $response->message());
         self::assertSame(120, $response->tokenUsage()->inputTokens());
         self::assertSame(35, $response->tokenUsage()->outputTokens());
+    }
+
+    public function testEnviaLasSeisDeclaracionesSinPerderElContratoDelRegistro(): void
+    {
+        $captured = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => ['parts' => [['text' => 'Respuesta valida.']]],
+                        'finishReason' => 'STOP',
+                    ]],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+        $registry = new \NumaFinancialToolRegistry();
+        $definitions = array_values($registry->all());
+
+        $provider->respond(new \NumaRequest(
+            'Consulta financiera',
+            '',
+            [[
+                'type' => 'available_financial_tools',
+                'items' => array_map(
+                    static fn (\NumaFinancialToolDefinition $definition): array => $definition->externalContract(),
+                    $definitions,
+                ),
+            ]],
+            $registry->names(),
+        ));
+
+        self::assertSame(
+            array_map(
+                static fn (\NumaFinancialToolDefinition $definition): array => $definition->functionDeclaration(),
+                $definitions,
+            ),
+            $captured['tools'][0]['functionDeclarations']
+        );
     }
 
     public function testPermiteRespuestaEstructuradaJson(): void
@@ -755,23 +804,10 @@ final class GeminiNumaProviderTest extends TestCase
      */
     private function toolContext(array $toolResults = []): array
     {
+        $definition = (new \NumaFinancialToolRegistry())->get('obtener_resumen_financiero');
         $context = [[
             'type' => 'available_financial_tools',
-            'items' => [[
-                'name' => 'obtener_resumen_financiero',
-                'description' => 'Devuelve totales agregados de ingresos y gastos de un periodo.',
-                'schema' => [
-                    'type' => 'object',
-                    'additionalProperties' => false,
-                    'properties' => [
-                        'fecha_inicio' => ['type' => 'string', 'format' => 'date'],
-                        'fecha_fin' => ['type' => 'string', 'format' => 'date'],
-                    ],
-                ],
-                'required' => ['fecha_inicio', 'fecha_fin'],
-                'allowed_values' => [],
-                'result_limit' => ['max_items' => 1],
-            ]],
+            'items' => [$definition->externalContract()],
         ]];
 
         if ($toolResults !== []) {

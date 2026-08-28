@@ -560,15 +560,11 @@ final class NumaFunctionalDecision
         $variants = [];
 
         foreach ((new NumaFinancialToolRegistry())->all() as $definition) {
-            $definitionProperties = self::responseSchemaProperties($definition->parameterSchema());
             $variants[] = [
                 'type' => 'OBJECT',
                 'properties' => [
                     'name' => ['type' => 'STRING', 'enum' => [$definition->name()]],
-                    'arguments' => self::toolArgumentsSchema(
-                        $definitionProperties,
-                        self::toolArgumentRequirements($definition)
-                    ),
+                    'arguments' => self::responseParameterSchema($definition->parameterSchema()),
                 ],
                 'required' => ['name', 'arguments'],
             ];
@@ -582,106 +578,62 @@ final class NumaFunctionalDecision
     }
 
     /**
-     * Cada variante exige una forma completa de periodo. El validador de la tool
-     * conserva la comprobacion local antes de cualquier consulta a datos.
-     *
-     * @return array<int, array<int, string>>
-     */
-    private static function toolArgumentRequirements(NumaFinancialToolDefinition $definition): array
-    {
-        $required = $definition->requiredParameters();
-
-        if ($definition->name() === 'comparar_periodos') {
-            return [
-                self::requiredKeys([...$required, 'periodo_a', 'periodo_b']),
-                self::requiredKeys([...$required, 'periodo_a', 'fecha_inicio_b', 'fecha_fin_b']),
-                self::requiredKeys([...$required, 'fecha_inicio_a', 'fecha_fin_a', 'periodo_b']),
-                self::requiredKeys([...$required, 'fecha_inicio_a', 'fecha_fin_a', 'fecha_inicio_b', 'fecha_fin_b']),
-            ];
-        }
-
-        return [
-            self::requiredKeys([...$required, 'periodo']),
-            self::requiredKeys([...$required, 'fecha_inicio', 'fecha_fin']),
-        ];
-    }
-
-    /**
      * @param array<string, mixed> $schema
-     * @return array<string, array<string, mixed>>
+     * @return array<string, mixed>
      */
-    private static function responseSchemaProperties(array $schema): array
+    private static function responseParameterSchema(array $schema): array
     {
-        $properties = $schema['properties'] ?? [];
-        if (!is_array($properties)) {
-            throw new RuntimeException('Esquema de tool financiera invalido.');
-        }
-
         $result = [];
-        foreach ($properties as $name => $property) {
-            if (!is_string($name) || !is_array($property) || !is_string($property['type'] ?? null)) {
-                throw new RuntimeException('Propiedad de tool financiera invalida.');
+        foreach ($schema as $key => $value) {
+            if ($key === 'format') {
+                // Gemini no admite el formato OpenAPI de fecha en responseSchema.
+                continue;
             }
 
-            $normalized = ['type' => strtoupper($property['type'])];
-            // Gemini's response schema does not accept the registry's OpenAPI
-            // date format; the executor retains its strict date validation.
-            foreach (['enum', 'minimum', 'maximum'] as $key) {
-                if (array_key_exists($key, $property)) {
-                    $normalized[$key] = $property[$key];
+            if ($key === 'type') {
+                if (!is_string($value)) {
+                    throw new RuntimeException('Tipo de parametro financiero de Numa invalido.');
                 }
+
+                $result[$key] = strtoupper($value);
+                continue;
             }
 
-            $result[$name] = $normalized;
+            if ($key === 'properties') {
+                if (!is_array($value)) {
+                    throw new RuntimeException('Propiedades financieras de Numa invalidas.');
+                }
+
+                $result[$key] = [];
+                foreach ($value as $name => $property) {
+                    if (!is_string($name) || !is_array($property)) {
+                        throw new RuntimeException('Propiedad financiera de Numa invalida.');
+                    }
+
+                    $result[$key][$name] = self::responseParameterSchema($property);
+                }
+
+                continue;
+            }
+
+            if ($key === 'anyOf') {
+                if (!is_array($value)) {
+                    throw new RuntimeException('Alternativas financieras de Numa invalidas.');
+                }
+
+                $result[$key] = array_map(
+                    static fn (mixed $variant): array => is_array($variant)
+                        ? self::responseParameterSchema($variant)
+                        : throw new RuntimeException('Alternativa financiera de Numa invalida.'),
+                    $value,
+                );
+                continue;
+            }
+
+            $result[$key] = $value;
         }
 
         return $result;
-    }
-
-    /** @param array<int, string> $keys */
-    private static function requiredKeys(array $keys): array
-    {
-        return array_values(array_unique($keys));
-    }
-
-    /**
-     * @param array<string, array<string, mixed>> $properties
-     * @param array<int, string> $required
-     * @return array<string, mixed>
-     */
-    private static function requiredArgumentSchema(array $properties, array $required): array
-    {
-        $requiredProperties = [];
-        foreach ($required as $name) {
-            if (!isset($properties[$name])) {
-                throw new RuntimeException('Argumento obligatorio de tool financiera invalido.');
-            }
-
-            $requiredProperties[$name] = $properties[$name];
-        }
-
-        return [
-            'type' => 'OBJECT',
-            'properties' => $requiredProperties,
-            'required' => $required,
-        ];
-    }
-
-    /**
-     * @param array<string, array<string, mixed>> $properties
-     * @param array<int, array<int, string>> $requirements
-     * @return array<string, mixed>
-     */
-    private static function toolArgumentsSchema(array $properties, array $requirements): array
-    {
-        return [
-            'type' => 'OBJECT',
-            'properties' => $properties,
-            'anyOf' => array_map(
-                static fn (array $required): array => self::requiredArgumentSchema($properties, $required),
-                $requirements,
-            ),
-        ];
     }
 
     private function __construct(

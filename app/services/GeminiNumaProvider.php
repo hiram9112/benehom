@@ -67,7 +67,8 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
     public function respond(NumaRequest $request): NumaResponse
     {
-        $payload = $this->buildPayload($request);
+        $outputTokenLimit = $this->outputTokenLimit($request);
+        $payload = $this->buildPayload($request, $outputTokenLimit);
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $url = rtrim($this->baseUrl, '/') . '/models/' . rawurlencode($this->model) . ':generateContent';
         $headers = [
@@ -77,7 +78,9 @@ final class GeminiNumaProvider implements NumaProviderInterface
         ];
 
         $attempts = 0;
-        $maxAttempts = 1 + min(max($this->maxTransientRetries, 0), 1);
+        $maxAttempts = 1 + ($this->financialToolResults($request) === []
+            ? min(max($this->maxTransientRetries, 0), 1)
+            : 0);
 
         do {
             ++$attempts;
@@ -123,7 +126,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
                 throw $exception;
             }
 
-            $response = $this->parseResponse($responseBody);
+            $response = $this->parseResponse($responseBody, $outputTokenLimit);
             $this->consumption?->registrarTokens($response->tokenUsage());
 
             return $response;
@@ -135,7 +138,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
     /**
      * @return array<string, mixed>
      */
-    private function buildPayload(NumaRequest $request): array
+    private function buildPayload(NumaRequest $request, int $outputTokenLimit): array
     {
         $contents = [];
         foreach ($request->history() as $entry) {
@@ -193,7 +196,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $payload = [
             'contents' => $contents,
             'generationConfig' => [
-                'maxOutputTokens' => $this->maxOutputTokens(),
+                'maxOutputTokens' => $outputTokenLimit,
                 'thinkingConfig' => [
                     'thinkingLevel' => 'low',
                 ],
@@ -223,6 +226,11 @@ final class GeminiNumaProvider implements NumaProviderInterface
             $payload['tools'] = [[
                 'functionDeclarations' => $functionDeclarations,
             ]];
+            $payload['toolConfig'] = [
+                'functionCallingConfig' => [
+                    'mode' => $request->functionCallingMode() ?? NumaRequest::FUNCTION_CALLING_AUTO,
+                ],
+            ];
         }
 
         return $payload;
@@ -231,7 +239,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
     private function buildUserText(NumaRequest $request, bool $excludeToolResults = false): string
     {
         $parts = [];
-        $context = $excludeToolResults ? $this->contextWithoutToolResults($request->context()) : $request->context();
+        $context = $this->contextForUserText($request->context(), $excludeToolResults);
 
         if ($context !== []) {
             $parts[] = 'Contexto controlado de BeneHom:';
@@ -319,7 +327,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         ];
     }
 
-    private function parseResponse(string $responseBody): NumaResponse
+    private function parseResponse(string $responseBody, int $outputTokenLimit): NumaResponse
     {
         $this->assertResponseBodySize($responseBody);
 
@@ -335,7 +343,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         $candidate = $this->candidate($decoded);
         $usage = $this->tokenUsage($decoded);
-        $this->assertOutputWithinLimits($candidate, $usage);
+        $this->assertOutputWithinLimits($candidate, $usage, $outputTokenLimit);
         $toolRequest = $this->extractToolRequest($candidate);
         $message = $this->extractText($candidate);
 
@@ -472,6 +480,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         $candidate = $candidates[0];
         $finishReason = $candidate['finishReason'] ?? null;
+        if ($finishReason === 'MAX_TOKENS') {
+            throw self::outputLimitError();
+        }
+
         if ($finishReason !== 'STOP') {
             throw self::invalidResponseError();
         }
@@ -497,7 +509,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
     /**
      * @param array<string, mixed> $candidate
      */
-    private function assertOutputWithinLimits(array $candidate, NumaTokenUsage $usage): void
+    private function assertOutputWithinLimits(array $candidate, NumaTokenUsage $usage, int $outputTokenLimit): void
     {
         $content = $candidate['content'] ?? null;
         if (!is_array($content)) {
@@ -510,8 +522,8 @@ final class GeminiNumaProvider implements NumaProviderInterface
             throw self::invalidResponseError($exception);
         }
 
-        if ($contentBytes > $this->maxOutputBytes()
-            || ($usage->outputTokens() !== null && $usage->outputTokens() > $this->maxOutputTokens())
+        if ($contentBytes > $this->maxOutputBytes($outputTokenLimit)
+            || ($usage->outputTokens() !== null && $usage->outputTokens() > $outputTokenLimit)
         ) {
             throw self::invalidResponseError();
         }
@@ -522,9 +534,14 @@ final class GeminiNumaProvider implements NumaProviderInterface
         return min(max($this->maxOutputTokens, 1), self::OUTPUT_TOKEN_HARD_LIMIT);
     }
 
-    private function maxOutputBytes(): int
+    private function outputTokenLimit(NumaRequest $request): int
     {
-        return $this->maxOutputTokens() * self::OUTPUT_BYTES_PER_TOKEN_HARD_LIMIT;
+        return min($this->maxOutputTokens(), $request->maxOutputTokens() ?? self::OUTPUT_TOKEN_HARD_LIMIT);
+    }
+
+    private function maxOutputBytes(int $outputTokenLimit): int
+    {
+        return $outputTokenLimit * self::OUTPUT_BYTES_PER_TOKEN_HARD_LIMIT;
     }
 
     private function containsUnsafeText(string $message): bool
@@ -628,11 +645,20 @@ final class GeminiNumaProvider implements NumaProviderInterface
      * @param array<int, array<string, mixed>> $context
      * @return array<int, array<string, mixed>>
      */
-    private function contextWithoutToolResults(array $context): array
+    private function contextForUserText(array $context, bool $excludeToolResults): array
     {
         return array_values(array_filter(
             $context,
-            static fn (mixed $contextItem): bool => !is_array($contextItem) || ($contextItem['type'] ?? null) !== 'financial_tool_results'
+            static function (mixed $contextItem) use ($excludeToolResults): bool {
+                if (!is_array($contextItem)) {
+                    return true;
+                }
+
+                $type = $contextItem['type'] ?? null;
+
+                return $type !== 'available_financial_tools'
+                    && (!$excludeToolResults || $type !== 'financial_tool_results');
+            }
         ));
     }
 
@@ -728,6 +754,14 @@ final class GeminiNumaProvider implements NumaProviderInterface
             NumaProviderError::INVALID_RESPONSE,
             'NUMA_PROVIDER_INVALID_RESPONSE'
         ), $previous);
+    }
+
+    private static function outputLimitError(): NumaProviderException
+    {
+        return new NumaProviderException(new NumaProviderError(
+            NumaProviderError::OUTPUT_LIMIT,
+            'NUMA_PROVIDER_MAX_TOKENS'
+        ));
     }
 
     private function assertResponseBodySize(string $responseBody): void

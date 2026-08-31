@@ -53,7 +53,6 @@ final class NumaTestingProvider implements NumaProviderInterface
                     'reason' => 'product_help',
                     'needs_clarification' => false,
                     'knowledge_query' => $request->message(),
-                    'tool' => null,
                 ], null, $usage);
             }
 

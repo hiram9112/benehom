@@ -27,6 +27,13 @@ final class NumaFinancialToolRegistryTest extends TestCase
         self::assertSame($registry->names(), array_keys($registry->all()));
     }
 
+    public function testRechazaUnLimiteDeToolsSuperiorAlHardCap(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new \NumaFinancialToolRegistry(maxToolCalls: 6);
+    }
+
     public function testCadaToolTieneMetadatosYUnaImplementacionConcreta(): void
     {
         $registry = new \NumaFinancialToolRegistry();

@@ -511,26 +511,27 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(['2026-07-12', '2026-07-11', '2026-07-10'], array_slice(array_column($result['movimientos'], 'fecha'), 0, 3));
     }
 
-    public function testRegistroNoEjecutaMasDeDosToolsPorPregunta(): void
+    public function testRegistroNoEjecutaMasDeCincoToolsPorPregunta(): void
     {
         $usuario = $this->crearUsuario('numa-tools-max-calls@example.test');
         $usuarioId = (int) $usuario['id'];
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 2);
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 5, 5000);
         $arguments = ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'];
 
-        self::assertSame('obtener_resumen_financiero', $registry->execute('obtener_resumen_financiero', $usuarioId, $arguments)['tool']);
-        self::assertSame('obtener_resumen_financiero', $registry->execute('obtener_resumen_financiero', $usuarioId, $arguments)['tool']);
+        for ($call = 0; $call < 5; $call++) {
+            self::assertSame('obtener_resumen_financiero', $registry->execute('obtener_resumen_financiero', $usuarioId, $arguments)['tool']);
+        }
 
         $this->expectException(\NumaFinancialToolLimitExceeded::class);
         $this->expectExceptionMessage('No hemos podido procesar la consulta.');
 
-        $registry->execute('ejecutar_sql', $usuarioId, ['sql' => 'SELECT * FROM gastos']);
+        $registry->execute('obtener_resumen_financiero', $usuarioId, $arguments);
     }
 
     public function testToolsSonSoloLecturaYEjecutanUnicamenteSelect(): void
     {
         $pdo = new RecordingNumaPdo();
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 6, 10000);
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 5, 10000);
 
         $registry->execute('obtener_resumen_financiero', 1, [
             'fecha_inicio' => '2026-07-01',
@@ -559,6 +560,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'fecha_fin' => '2026-07-31',
             'metrica' => 'gastos',
         ]);
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 5, 10000);
         $registry->execute('obtener_movimientos', 1, [
             'fecha_inicio' => '2026-07-01',
             'fecha_fin' => '2026-07-31',

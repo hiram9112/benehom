@@ -80,6 +80,7 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(500, $captured['body']['generationConfig']['maxOutputTokens']);
         self::assertSame('low', $captured['body']['generationConfig']['thinkingConfig']['thinkingLevel']);
         self::assertSame('obtener_resumen_financiero', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
+        self::assertSame('AUTO', $captured['body']['toolConfig']['functionCallingConfig']['mode']);
         self::assertSame(
             (new \NumaFinancialToolRegistry())->get('obtener_resumen_financiero')->functionDeclaration(),
             $captured['body']['tools'][0]['functionDeclarations'][0]
@@ -202,7 +203,12 @@ final class GeminiNumaProviderTest extends TestCase
                 $provider->respond(new \NumaRequest('Pregunta'));
                 self::fail('Se esperaba rechazo de una respuesta no utilizable.');
             } catch (\NumaProviderException $exception) {
-                self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+                self::assertSame(
+                    ($candidate['finishReason'] ?? null) === 'MAX_TOKENS'
+                        ? 'NUMA_PROVIDER_MAX_TOKENS'
+                        : 'NUMA_PROVIDER_INVALID_RESPONSE',
+                    $exception->getMessage(),
+                );
             }
         }
     }
@@ -358,7 +364,8 @@ final class GeminiNumaProviderTest extends TestCase
             '¿Cuál es mi resumen financiero de julio?',
             '',
             $this->toolContext(),
-            ['obtener_resumen_financiero']
+            ['obtener_resumen_financiero'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
         ));
 
         self::assertSame('obtener_resumen_financiero', $toolResponse->toolRequest()?->name());
@@ -376,7 +383,8 @@ final class GeminiNumaProviderTest extends TestCase
                 'ingresos' => 1200.0,
                 'gastos' => 800.0,
             ]]),
-            ['obtener_resumen_financiero']
+            ['obtener_resumen_financiero'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
         ));
 
         self::assertSame('En julio ingresaste 1200 € y gastaste 800 €.', $finalResponse->message());
@@ -387,6 +395,8 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame('obtener_resumen_financiero', $requests[1]['contents'][2]['parts'][0]['functionResponse']['name']);
         self::assertSame(1200, $requests[1]['contents'][2]['parts'][0]['functionResponse']['response']['result']['ingresos']);
         self::assertStringNotContainsString('financial_tool_results', $requests[1]['contents'][0]['parts'][0]['text']);
+        self::assertSame('ANY', $requests[0]['toolConfig']['functionCallingConfig']['mode']);
+        self::assertSame('AUTO', $requests[1]['toolConfig']['functionCallingConfig']['mode']);
     }
 
     public function testPermiteUnaSegundaToolDentroDelMismoIntercambio(): void
@@ -428,12 +438,12 @@ final class GeminiNumaProviderTest extends TestCase
             ];
         });
 
-        $first = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(), ['obtener_resumen_financiero']));
-        $second = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([['tool' => 'obtener_resumen_financiero', 'ingresos' => 1200.0]]), ['obtener_resumen_financiero']));
+        $first = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(), ['obtener_resumen_financiero'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY));
+        $second = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([['tool' => 'obtener_resumen_financiero', 'ingresos' => 1200.0]]), ['obtener_resumen_financiero'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO));
         $final = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([
             ['tool' => 'obtener_resumen_financiero', 'ingresos' => 1200.0],
             ['tool' => 'obtener_resumen_financiero', 'ingresos' => 1300.0],
-        ]), ['obtener_resumen_financiero']));
+        ]), ['obtener_resumen_financiero'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_NONE));
 
         self::assertSame('2026-07-01', $first->toolRequest()?->arguments()['fecha_inicio']);
         self::assertSame('2026-08-01', $second->toolRequest()?->arguments()['fecha_inicio']);
@@ -442,6 +452,55 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame('call-1', $requests[2]['contents'][2]['parts'][0]['functionResponse']['id']);
         self::assertSame('call-2', $requests[2]['contents'][4]['parts'][0]['functionResponse']['id']);
         self::assertSame(1300, $requests[2]['contents'][4]['parts'][0]['functionResponse']['response']['result']['ingresos']);
+        self::assertSame(['ANY', 'AUTO', 'NONE'], array_map(
+            static fn (array $request): string => $request['toolConfig']['functionCallingConfig']['mode'],
+            $requests,
+        ));
+    }
+
+    public function testNoReintentaAutomaticamenteDespuesDeEjecutarUnaTool(): void
+    {
+        $calls = 0;
+        $provider = new \GeminiNumaProvider('key', 'model', maxTransientRetries: 1, transport: function () use (&$calls): array {
+            ++$calls;
+
+            if ($calls === 1) {
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [['functionCall' => [
+                            'name' => 'obtener_resumen_financiero',
+                            'args' => ['periodo' => 'mes_actual'],
+                        ]]]], 'finishReason' => 'STOP']],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            }
+
+            return ['status' => 503, 'body' => '{}'];
+        });
+
+        $provider->respond(new \NumaRequest(
+            '¿Cuánto gasté?',
+            '',
+            $this->toolContext(),
+            ['obtener_resumen_financiero'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
+        ));
+
+        try {
+            $provider->respond(new \NumaRequest(
+                '¿Cuánto gasté?',
+                '',
+                $this->toolContext([['tool' => 'obtener_resumen_financiero', 'gastos' => 800.0]]),
+                ['obtener_resumen_financiero'],
+                functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
+            ));
+            self::fail('Se esperaba un error transitorio sin reintento posterior a la tool.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_UNAVAILABLE', $exception->getMessage());
+        }
+
+        self::assertSame(2, $calls);
     }
 
     public function testRechazaFunctionCallDesconocidoOMalformado(): void

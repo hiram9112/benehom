@@ -84,9 +84,9 @@ final class NumaConfiguration
         self::assertInteger('NUMA_DAILY_LIMIT', 15, 1);
         self::assertInteger('NUMA_MONTHLY_LIMIT', 60, self::integerValue('NUMA_DAILY_LIMIT', 15));
         self::assertInteger('NUMA_RESERVATION_TTL_SECONDS', 120, 1);
-        self::assertInteger('NUMA_MAX_INPUT_TOKENS', 5000, 1, 5000);
+        self::assertInteger('NUMA_MAX_INPUT_TOKENS', 16000, 1, 16000);
         self::assertInteger('NUMA_MAX_OUTPUT_TOKENS', 220, 1, 520);
-        self::assertInteger('NUMA_MAX_PROVIDER_CALLS', 5, 1, 5);
+        self::assertInteger('NUMA_MAX_PROVIDER_CALLS', 9, 1, 9);
         self::assertInteger('NUMA_PROVIDER_TIMEOUT_SECONDS', 10, 1, 10);
         self::assertInteger('NUMA_REQUEST_TIMEOUT_SECONDS', 25, 1, 25);
         self::assertInteger('NUMA_MAX_TRANSIENT_RETRIES', 1, 0, 1);
@@ -106,7 +106,7 @@ final class NumaConfiguration
         self::assertInteger('NUMA_MAX_RAG_RESULTS', 3, 1, 3);
         self::assertInteger('NUMA_MAX_RAG_CHUNK_CHARS', 900, 1, 900);
         self::assertFloat('NUMA_RAG_MIN_SIMILARITY', 0.67, 0.0, 1.0);
-        self::assertInteger('NUMA_MAX_TOOL_CALLS', 2, 1, 2);
+        self::assertInteger('NUMA_MAX_TOOL_CALLS', 5, 1, 5);
         self::assertInteger('NUMA_MAX_TOOL_RESULT_CHARS', 1600, 1, 1600);
         self::assertInteger('NUMA_MAX_TOOL_RANGE_DAYS', 731, 1);
     }

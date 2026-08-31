@@ -144,6 +144,12 @@ final class NumaProviderConsumptionChain implements NumaProviderConsumptionInter
 
 final class NumaRequest
 {
+    public const FUNCTION_CALLING_ANY = 'ANY';
+    public const FUNCTION_CALLING_AUTO = 'AUTO';
+    public const FUNCTION_CALLING_NONE = 'NONE';
+    public const CLASSIFICATION_OUTPUT_TOKENS = 160;
+    public const FUNCTION_CALL_OUTPUT_TOKENS = 320;
+
     /**
      * @param array<int, array<string, mixed>> $context
      * @param array<int, string> $availableTools
@@ -157,6 +163,8 @@ final class NumaRequest
         private readonly array $availableTools = [],
         private readonly array $history = [],
         private readonly ?array $responseSchema = null,
+        private readonly ?string $functionCallingMode = null,
+        private readonly ?int $maxOutputTokens = null,
     ) {
         foreach ($history as $entry) {
             if (!is_array($entry)
@@ -166,6 +174,20 @@ final class NumaRequest
             ) {
                 throw new InvalidArgumentException('Historial conversacional de Numa invalido.');
             }
+        }
+
+        if ($functionCallingMode !== null
+            && (!in_array($functionCallingMode, [
+                self::FUNCTION_CALLING_ANY,
+                self::FUNCTION_CALLING_AUTO,
+                self::FUNCTION_CALLING_NONE,
+            ], true) || $availableTools === [])
+        ) {
+            throw new InvalidArgumentException('Modo de function calling de Numa invalido.');
+        }
+
+        if ($maxOutputTokens !== null && ($maxOutputTokens < 1 || $maxOutputTokens > 520)) {
+            throw new InvalidArgumentException('Presupuesto de salida de Numa invalido.');
         }
     }
 
@@ -208,6 +230,16 @@ final class NumaRequest
     {
         return $this->responseSchema;
     }
+
+    public function functionCallingMode(): ?string
+    {
+        return $this->functionCallingMode;
+    }
+
+    public function maxOutputTokens(): ?int
+    {
+        return $this->maxOutputTokens;
+    }
 }
 
 final class NumaInputLimitExceeded extends RuntimeException
@@ -221,7 +253,7 @@ final class NumaInputBudget
 
     public static function assertFits(NumaRequest $request): void
     {
-        $maxTokens = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000));
+        $maxTokens = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000));
         $maxChars = $maxTokens * self::APPROX_CHARS_PER_TOKEN;
         $estimatedChars = self::STRUCTURAL_OVERHEAD_CHARS
             + self::length($request->systemInstruction())
@@ -378,6 +410,7 @@ final class NumaProviderError
     public const TIMEOUT = 'timeout';
     public const TRANSIENT = 'transient';
     public const INVALID_RESPONSE = 'invalid_response';
+    public const OUTPUT_LIMIT = 'output_limit';
     public const CONFIGURATION = 'configuration';
     public const UNAVAILABLE = 'unavailable';
 
@@ -388,6 +421,7 @@ final class NumaProviderError
         self::TIMEOUT,
         self::TRANSIENT,
         self::INVALID_RESPONSE,
+        self::OUTPUT_LIMIT,
         self::CONFIGURATION,
         self::UNAVAILABLE,
     ];
@@ -725,6 +759,8 @@ final class NumaSystemInstructionProvider implements NumaProviderInterface
             $request->availableTools(),
             $request->history(),
             $request->responseSchema(),
+            $request->functionCallingMode(),
+            $request->maxOutputTokens(),
         );
         NumaInputBudget::assertFits($controlledRequest);
 

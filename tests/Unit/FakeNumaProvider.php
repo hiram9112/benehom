@@ -190,8 +190,11 @@ final class FakeNumaProvider implements NumaProviderInterface
         if ($schema === null
             || !array_key_exists('needs_clarification', $schema['properties'] ?? [])
             || $data === null
-            || array_key_exists('needs_clarification', $data)
         ) {
+            return $response;
+        }
+
+        if (($data['tool'] ?? null) !== null) {
             return $response;
         }
 
@@ -199,9 +202,8 @@ final class FakeNumaProvider implements NumaProviderInterface
             'intent' => $data['intent'] ?? null,
             'allowed' => $data['allowed'] ?? null,
             'reason' => $data['reason'] ?? null,
-            'needs_clarification' => false,
+            'needs_clarification' => $data['needs_clarification'] ?? false,
             'knowledge_query' => $data['knowledge_query'] ?? null,
-            'tool' => null,
         ], $response->toolRequest(), $response->tokenUsage());
     }
 }

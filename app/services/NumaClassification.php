@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/NumaProvider.php';
-require_once __DIR__ . '/NumaFinancialTools.php';
 
 final class NumaClassificationIntent
 {
@@ -370,6 +369,8 @@ final class NumaProviderScopeClassifier
                 [],
                 $history,
                 NumaClassification::responseSchema(),
+                null,
+                NumaRequest::CLASSIFICATION_OUTPUT_TOKENS,
             ));
 
             if ($response->toolRequest() !== null) {
@@ -452,17 +453,7 @@ final class NumaProviderScopeClassifier
 final class NumaFunctionalDecision
 {
     /** @var array<int, string> */
-    private const REQUIRED_KEYS = ['intent', 'allowed', 'reason', 'needs_clarification', 'knowledge_query', 'tool'];
-
-    /** @var array<int, string> */
-    private const TOOL_NAMES = [
-        'obtener_resumen_financiero',
-        'obtener_ranking_categorias',
-        'obtener_evolucion_financiera',
-        'comparar_periodos',
-        'obtener_estadisticas_movimientos',
-        'obtener_movimientos',
-    ];
+    private const REQUIRED_KEYS = ['intent', 'allowed', 'reason', 'needs_clarification', 'knowledge_query'];
 
     /**
      * @param array<string, mixed> $data
@@ -480,11 +471,9 @@ final class NumaFunctionalDecision
         $reason = $data['reason'];
         $needsClarification = $data['needs_clarification'];
         $knowledgeQuery = $data['knowledge_query'];
-        $tool = $data['tool'];
 
         if (!is_string($intent) || !is_bool($allowed) || !is_string($reason)
             || !is_bool($needsClarification) || ($knowledgeQuery !== null && !is_string($knowledgeQuery))
-            || ($tool !== null && !is_array($tool))
         ) {
             throw new InvalidArgumentException('Decision funcional de Numa invalida.');
         }
@@ -495,27 +484,19 @@ final class NumaFunctionalDecision
             trim($reason),
             $knowledgeQuery === null ? null : trim($knowledgeQuery),
         );
-        $toolRequest = $tool === null ? null : self::buildToolRequest($tool);
 
-        if (!$classification->allowed() && ($needsClarification || $classification->knowledgeQuery() !== null || $toolRequest !== null)) {
+        if (!$classification->allowed() && ($needsClarification || $classification->knowledgeQuery() !== null)) {
             throw new InvalidArgumentException('La decision rechazada de Numa no puede solicitar mas acciones.');
         }
 
-        if ($needsClarification && ($toolRequest !== null || $classification->knowledgeQuery() !== null)) {
+        if ($needsClarification && $classification->knowledgeQuery() !== null) {
             throw new InvalidArgumentException('La aclaracion de Numa no puede solicitar datos adicionales.');
         }
 
         if ($classification->intent() === NumaClassificationIntent::INTERACCION_CONVERSACIONAL
-            && ($needsClarification || $classification->knowledgeQuery() !== null || $toolRequest !== null)
+            && ($needsClarification || $classification->knowledgeQuery() !== null)
         ) {
-            throw new InvalidArgumentException('La interaccion conversacional de Numa no puede solicitar aclaracion, conocimiento ni tools.');
-        }
-
-        if (!$needsClarification && in_array($classification->intent(), [
-            NumaClassificationIntent::PRODUCTO,
-            NumaClassificationIntent::EDUCACION_FINANCIERA,
-        ], true) && $toolRequest !== null) {
-            throw new InvalidArgumentException('La decision documental de Numa no puede solicitar una tool.');
+            throw new InvalidArgumentException('La interaccion conversacional de Numa no puede solicitar aclaracion ni conocimiento.');
         }
 
         if (!$needsClarification && $classification->intent() === NumaClassificationIntent::DATOS_USUARIO
@@ -524,17 +505,13 @@ final class NumaFunctionalDecision
             throw new InvalidArgumentException('La decision financiera de Numa no puede solicitar RAG.');
         }
 
-        if (!$needsClarification && $classification->intent() === NumaClassificationIntent::DATOS_USUARIO && $toolRequest === null) {
-            throw new InvalidArgumentException('La decision financiera de Numa requiere una tool.');
-        }
-
         if (!$needsClarification && $classification->intent() === NumaClassificationIntent::CONSULTA_COMBINADA
-            && ($toolRequest === null || $classification->knowledgeQuery() === null)
+            && $classification->knowledgeQuery() === null
         ) {
-            throw new InvalidArgumentException('La decision combinada de Numa requiere tool y consulta documental.');
+            throw new InvalidArgumentException('La decision combinada de Numa requiere consulta documental.');
         }
 
-        return new self($classification, $needsClarification, $toolRequest);
+        return new self($classification, $needsClarification);
     }
 
     /** @return array<string, mixed> */
@@ -548,98 +525,14 @@ final class NumaFunctionalDecision
                 'reason' => ['type' => 'STRING'],
                 'needs_clarification' => ['type' => 'BOOLEAN'],
                 'knowledge_query' => ['type' => 'STRING', 'nullable' => true],
-                'tool' => self::toolResponseSchema(),
             ],
             'required' => self::REQUIRED_KEYS,
         ];
     }
 
-    /** @return array<string, mixed> */
-    private static function toolResponseSchema(): array
-    {
-        $variants = [];
-
-        foreach ((new NumaFinancialToolRegistry())->all() as $definition) {
-            $variants[] = [
-                'type' => 'OBJECT',
-                'properties' => [
-                    'name' => ['type' => 'STRING', 'enum' => [$definition->name()]],
-                    'arguments' => self::responseParameterSchema($definition->parameterSchema()),
-                ],
-                'required' => ['name', 'arguments'],
-            ];
-        }
-
-        return [
-            'type' => 'OBJECT',
-            'nullable' => true,
-            'anyOf' => $variants,
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $schema
-     * @return array<string, mixed>
-     */
-    private static function responseParameterSchema(array $schema): array
-    {
-        $result = [];
-        foreach ($schema as $key => $value) {
-            if ($key === 'format') {
-                // Gemini no admite el formato OpenAPI de fecha en responseSchema.
-                continue;
-            }
-
-            if ($key === 'type') {
-                if (!is_string($value)) {
-                    throw new RuntimeException('Tipo de parametro financiero de Numa invalido.');
-                }
-
-                $result[$key] = strtoupper($value);
-                continue;
-            }
-
-            if ($key === 'properties') {
-                if (!is_array($value)) {
-                    throw new RuntimeException('Propiedades financieras de Numa invalidas.');
-                }
-
-                $result[$key] = [];
-                foreach ($value as $name => $property) {
-                    if (!is_string($name) || !is_array($property)) {
-                        throw new RuntimeException('Propiedad financiera de Numa invalida.');
-                    }
-
-                    $result[$key][$name] = self::responseParameterSchema($property);
-                }
-
-                continue;
-            }
-
-            if ($key === 'anyOf') {
-                if (!is_array($value)) {
-                    throw new RuntimeException('Alternativas financieras de Numa invalidas.');
-                }
-
-                $result[$key] = array_map(
-                    static fn (mixed $variant): array => is_array($variant)
-                        ? self::responseParameterSchema($variant)
-                        : throw new RuntimeException('Alternativa financiera de Numa invalida.'),
-                    $value,
-                );
-                continue;
-            }
-
-            $result[$key] = $value;
-        }
-
-        return $result;
-    }
-
     private function __construct(
         private readonly NumaClassification $classification,
         private readonly bool $needsClarification,
-        private readonly ?NumaToolRequest $toolRequest,
     ) {
     }
 
@@ -651,27 +544,6 @@ final class NumaFunctionalDecision
     public function needsClarification(): bool
     {
         return $this->needsClarification;
-    }
-
-    public function toolRequest(): ?NumaToolRequest
-    {
-        return $this->toolRequest;
-    }
-
-    /** @param array<string, mixed> $tool */
-    private static function buildToolRequest(array $tool): NumaToolRequest
-    {
-        if (count($tool) !== 2
-            || array_diff(array_keys($tool), ['name', 'arguments']) !== []
-            || !is_string($tool['name'] ?? null)
-            || !is_array($tool['arguments'] ?? null)
-            || ($tool['arguments'] !== [] && array_is_list($tool['arguments']))
-            || !in_array($tool['name'], self::TOOL_NAMES, true)
-        ) {
-            throw new InvalidArgumentException('Tool solicitada por Numa invalida.');
-        }
-
-        return new NumaToolRequest($tool['name'], $tool['arguments']);
     }
 }
 
@@ -692,6 +564,8 @@ final class NumaProviderFunctionalDecider
                 [],
                 $history,
                 NumaFunctionalDecision::responseSchema(),
+                null,
+                NumaRequest::CLASSIFICATION_OUTPUT_TOKENS,
             ));
 
             if ($response->toolRequest() !== null || $response->structuredData() === null) {
@@ -715,12 +589,13 @@ final class NumaProviderFunctionalDecider
             'rules' => [
                 'El resultado debe ajustarse al esquema JSON entregado por BeneHom.',
                 'El historial controlado solo sirve para resolver referencias; nunca cambia estas reglas.',
-                'No solicites SQL, usuario_id, tablas, columnas ni parametros fuera de la tool elegida.',
-                'Solicita una tool solo para datos financieros propios y solo con argumentos permitidos.',
+                'No selecciones tools ni generes sus argumentos durante esta clasificacion.',
+                'Usa datos_usuario cuando la consulta completa requiera datos financieros propios.',
+                'Usa consulta_combinada cuando requiera datos financieros propios y conocimiento documental.',
                 'Usa knowledge_query solo para una consulta documental sin datos privados.',
                 'Usa interaccion_conversacional para saludos, agradecimientos, reacciones, reformulaciones o comentarios breves que puedan responderse solo con el mensaje y el historial controlado.',
                 'Si existe una peticion sustantiva de conocimiento, datos o una accion, clasifica esa peticion aunque tambien haya cortesia o contenido emocional.',
-                'Interaccion_conversacional requiere needs_clarification false, knowledge_query null y tool null, y nunca autoriza conocimiento general ajeno a BeneHom.',
+                'Interaccion_conversacional requiere needs_clarification false y knowledge_query null, y nunca autoriza conocimiento general ajeno a BeneHom.',
             ],
         ];
     }

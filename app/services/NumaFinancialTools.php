@@ -562,7 +562,7 @@ interface NumaFinancialToolRegistryInterface
 
 final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterface
 {
-    private const MAX_TOOL_CALLS = 2;
+    private const MAX_TOOL_CALLS = 5;
     private const MAX_AGGREGATE_RESULT_JSON_CHARS = 1600;
 
     public const OBTENER_RESUMEN_FINANCIERO = 'obtener_resumen_financiero';
@@ -624,7 +624,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
         $this->maxAggregateResultJsonChars = $maxAggregateResultJsonChars
             ?? bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', self::MAX_AGGREGATE_RESULT_JSON_CHARS);
 
-        if ($this->maxToolCalls <= 0) {
+        if ($this->maxToolCalls <= 0 || $this->maxToolCalls > self::MAX_TOOL_CALLS) {
             throw new InvalidArgumentException('El limite de llamadas a tools de Numa no es valido.');
         }
 

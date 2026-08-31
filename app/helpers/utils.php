@@ -545,6 +545,7 @@ function bh_numa_error_message(string $code): string
         'NUMA_PROVIDER_RATE_LIMITED' => 'Numa no está disponible en este momento.',
         'NUMA_PROVIDER_QUOTA_EXCEEDED' => 'Numa no está disponible en este momento.',
         'NUMA_PROVIDER_INVALID_RESPONSE' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_MAX_TOKENS' => 'Numa no está disponible en este momento.',
         'NUMA_PROVIDER_TIMEOUT' => 'Numa no está disponible en este momento.',
         'NUMA_CONFIGURATION_ERROR' => 'Numa no está disponible en este momento.',
         'NUMA_GLOBAL_LIMIT_REACHED' => 'Numa no está disponible en este momento.',

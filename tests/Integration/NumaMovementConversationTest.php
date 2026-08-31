@@ -15,11 +15,12 @@ final class NumaMovementConversationTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        foreach (['NUMA_ENABLED', 'NUMA_MAX_PROVIDER_CALLS', 'NUMA_MAX_TOOL_RESULT_CHARS'] as $key) {
+        foreach (['NUMA_ENABLED', 'NUMA_MAX_INPUT_TOKENS', 'NUMA_MAX_PROVIDER_CALLS', 'NUMA_MAX_TOOL_RESULT_CHARS'] as $key) {
             $this->envBackup[$key] = array_key_exists($key, $_ENV) ? (string) $_ENV[$key] : null;
         }
 
         $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '16000';
         $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = '10000';
     }
@@ -57,19 +58,16 @@ final class NumaMovementConversationTest extends IntegrationTestCase
                 'reason' => 'user_movements',
                 'needs_clarification' => false,
                 'knowledge_query' => null,
-                'tool' => [
-                    'name' => 'obtener_movimientos',
-                    'arguments' => [
-                        'periodo' => 'julio',
-                        'tipo_movimiento' => 'gasto',
-                        'tipo_gasto' => 'flexible',
-                        'categoria' => 'regalos',
-                        'orden' => 'cantidad',
-                        'direccion' => 'desc',
-                        'limite' => 10,
-                    ],
-                ],
             ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest('obtener_movimientos', [
+                'periodo' => 'julio',
+                'tipo_movimiento' => 'gasto',
+                'tipo_gasto' => 'flexible',
+                'categoria' => 'regalos',
+                'orden' => 'cantidad',
+                'direccion' => 'desc',
+                'limite' => 10,
+            ])),
             new \NumaResponse('Estos son tus movimientos flexibles de regalos más recientes.'),
         );
         $service = new \NumaService(
@@ -100,10 +98,12 @@ final class NumaMovementConversationTest extends IntegrationTestCase
             "Estos son tus movimientos flexibles de regalos más recientes.\n\nEl listado completo puede consultarse en BeneHom.",
             $result->toArray()['message']
         );
-        self::assertCount(2, $provider->requests());
-        self::assertSame([], $provider->requests()[1]->availableTools());
+        self::assertCount(3, $provider->requests());
+        self::assertSame((new \NumaFinancialToolRegistry())->names(), $provider->requests()[1]->availableTools());
+        self::assertSame(\NumaRequest::FUNCTION_CALLING_ANY, $provider->requests()[1]->functionCallingMode());
+        self::assertSame(\NumaRequest::FUNCTION_CALLING_AUTO, $provider->requests()[2]->functionCallingMode());
 
-        $toolResults = $this->financialToolResults($provider->requests()[1]->context());
+        $toolResults = $this->financialToolResults($provider->requests()[2]->context());
         self::assertCount(1, $toolResults);
         self::assertSame('obtener_movimientos', $toolResults[0]['tool']);
         self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $toolResults[0]['periodo']);

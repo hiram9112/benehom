@@ -252,7 +252,7 @@ final class NumaAdversarialEvaluationTest extends TestCase
             $request->context()[0]['rules']
         );
         self::assertContains(
-            'No solicites SQL, usuario_id, tablas, columnas ni parametros fuera de la tool elegida.',
+            'No selecciones tools ni generes sus argumentos durante esta clasificacion.',
             $request->context()[0]['rules']
         );
         self::assertSame(

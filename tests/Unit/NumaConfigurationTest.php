@@ -58,23 +58,35 @@ final class NumaConfigurationTest extends TestCase
         self::addToAssertionCount(1);
     }
 
-    public function testAceptaElMaximoDeLlamadasPorInteraccionAmpliado(): void
+    public function testAceptaElMaximoDeLlamadasPorInteraccionNecesarioParaCincoTools(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '9';
+        $_ENV['NUMA_MAX_TOOL_CALLS'] = '5';
 
         \NumaConfiguration::assertRuntime();
 
         self::addToAssertionCount(1);
     }
 
-    public function testRechazaMasDeCincoLlamadasPorInteraccion(): void
+    public function testRechazaMasDeNueveLlamadasPorInteraccion(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '6';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '10';
 
         $this->expectException(\NumaConfigurationException::class);
         $this->expectExceptionMessage('NUMA_MAX_PROVIDER_CALLS');
+
+        \NumaConfiguration::assertRuntime();
+    }
+
+    public function testRechazaMasDeCincoToolsPorInteraccion(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_TOOL_CALLS'] = '6';
+
+        $this->expectException(\NumaConfigurationException::class);
+        $this->expectExceptionMessage('NUMA_MAX_TOOL_CALLS');
 
         \NumaConfiguration::assertRuntime();
     }

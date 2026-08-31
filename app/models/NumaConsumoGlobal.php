@@ -464,7 +464,7 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
 
     private function maxInputTokens(): int
     {
-        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000));
+        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000));
     }
 
     private function maxOutputTokens(): int

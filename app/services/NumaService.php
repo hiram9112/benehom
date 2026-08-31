@@ -26,7 +26,7 @@ final class NumaGlobalAvailability implements NumaGlobalAvailabilityInterface
     public function assertAvailable(): void
     {
         $status = $this->consumoGlobal->estadoGlobal();
-        $tokensPerCall = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000))
+        $tokensPerCall = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000))
             + max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 520));
 
         if (!bh_numa_limits_bypassed()
@@ -462,7 +462,6 @@ final class NumaService
                 $knowledgeResults,
                 $providerHistory,
                 $provider,
-                $decision?->toolRequest(),
             );
 
             return $this->result(
@@ -627,7 +626,6 @@ final class NumaService
                 $knowledgeResults,
                 $providerHistory,
                 $provider,
-                null,
                 true,
             );
 
@@ -729,27 +727,36 @@ final class NumaService
         array $knowledgeResults,
         array $history,
         NumaProviderInterface $provider,
-        ?NumaToolRequest $initialToolRequest,
         bool $publicMode = false,
     ): array {
-        $availableTools = $this->availableToolNames($classification, $initialToolRequest);
+        $availableTools = $this->availableToolNames($classification);
         $toolResults = [];
         $remainingFinalCalls = max(0, $this->maxProviderCalls() - 1);
-
-        if ($initialToolRequest !== null) {
-            $toolResults[] = $this->executeToolRequest($initialToolRequest, $authenticatedUserId, $history);
-        }
-
-        // La decisión estructurada ya eligió la tool: la llamada final solo redacta con su resultado.
-        $finalAvailableTools = $toolResults === [] ? $availableTools : [];
+        $maxToolCalls = $this->maxToolCalls();
 
         for ($call = 0; $call < $remainingFinalCalls; $call++) {
+            $functionCallingMode = null;
+            $outputTokenLimit = $this->maxOutputTokens();
+            if ($availableTools !== []) {
+                $functionCallingMode = match (true) {
+                    $toolResults === [] => NumaRequest::FUNCTION_CALLING_ANY,
+                    count($toolResults) < $maxToolCalls => NumaRequest::FUNCTION_CALLING_AUTO,
+                    default => NumaRequest::FUNCTION_CALLING_NONE,
+                };
+                $outputTokenLimit = $functionCallingMode === NumaRequest::FUNCTION_CALLING_NONE
+                    ? $this->maxOutputTokens()
+                    : min(NumaRequest::FUNCTION_CALL_OUTPUT_TOKENS, $this->maxOutputTokens());
+            }
+
             $response = $provider->respond(new NumaRequest(
                 $message,
                 '',
-                $this->finalContext($message, $classification, $knowledgeResults, $finalAvailableTools, $toolResults, $history, $publicMode),
-                $finalAvailableTools,
+                $this->finalContext($message, $classification, $knowledgeResults, $availableTools, $toolResults, $history, $publicMode),
+                $availableTools,
                 $history,
+                null,
+                $functionCallingMode,
+                $outputTokenLimit,
             ));
 
             $toolRequest = $response->toolRequest();
@@ -772,7 +779,9 @@ final class NumaService
                 return [$this->withBoundedMovementSelectionNotice($finalMessage, $toolResults), $toolResults];
             }
 
-            if (!in_array($toolRequest->name(), $finalAvailableTools, true)) {
+            if (!in_array($toolRequest->name(), $availableTools, true)
+                || count($toolResults) >= $maxToolCalls
+            ) {
                 throw new InvalidArgumentException('Tool de Numa no permitida para esta consulta.');
             }
 
@@ -837,23 +846,13 @@ final class NumaService
     /**
      * @return array<int, string>
      */
-    private function availableToolNames(NumaClassification $classification, ?NumaToolRequest $toolRequest): array
+    private function availableToolNames(NumaClassification $classification): array
     {
         if (!$this->needsTools($classification)) {
             return [];
         }
 
-        if ($toolRequest === null) {
-            throw new InvalidArgumentException('La decision de Numa no incluye una tool permitida.');
-        }
-
-        $toolName = $toolRequest->name();
-
-        if (!in_array($toolName, $this->financialTools()->names(), true)) {
-            throw new InvalidArgumentException('La tool de Numa autorizada no esta registrada.');
-        }
-
-        return [$toolName];
+        return $this->financialTools()->names();
     }
 
     /**
@@ -1088,7 +1087,17 @@ final class NumaService
 
     private function maxProviderCalls(): int
     {
-        return max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 5));
+        return max(1, bh_env_int('NUMA_MAX_PROVIDER_CALLS', 9));
+    }
+
+    private function maxToolCalls(): int
+    {
+        return max(1, min(5, bh_env_int('NUMA_MAX_TOOL_CALLS', 5)));
+    }
+
+    private function maxOutputTokens(): int
+    {
+        return max(1, min(520, bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220)));
     }
 
     private function maxTransientRetries(): int
@@ -1229,7 +1238,7 @@ final class NumaService
 
     private function maxInputChars(): int
     {
-        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 5000)) * self::APPROX_CHARS_PER_TOKEN;
+        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000)) * self::APPROX_CHARS_PER_TOKEN;
     }
 
     private function textLength(string $text): int

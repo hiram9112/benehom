@@ -148,11 +148,16 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             $this->apiKey,
             $this->model,
             $this->dimensions,
-            max(1, min($timeoutSeconds, 10)),
+            min($this->timeoutSeconds(), max(1, min($timeoutSeconds, 10))),
             $this->transport,
             $this->baseUrl,
             $this->maxResponseBodyBytes,
         );
+    }
+
+    public function timeoutSeconds(): int
+    {
+        return $this->safeTimeoutSeconds();
     }
 
     /**

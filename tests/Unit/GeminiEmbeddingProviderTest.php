@@ -344,6 +344,153 @@ final class GeminiEmbeddingProviderTest extends TestCase
         self::assertSame(2, $consumption->tokenRegistrations);
     }
 
+    public function testEmbeddingMedidoConservaElTimeoutConfiguradoAunqueElPresupuestoSeaMayor(): void
+    {
+        $timeout = null;
+        $configuredTimeout = null;
+        $transportCalls = 0;
+        $provider = new \GeminiEmbeddingProvider(
+            'key',
+            'model',
+            2,
+            3,
+            function (string $url, array $headers, string $body, int $effectiveTimeout) use (&$timeout, &$transportCalls): array {
+                ++$transportCalls;
+                $timeout = $effectiveTimeout;
+
+                return $this->embeddingResponse(2);
+            },
+        );
+        $consumption = new class($configuredTimeout) implements \NumaProviderConsumptionInterface, \NumaInteractionBudgetInterface {
+            public int $calls = 0;
+
+            public function __construct(public ?int &$configuredTimeout)
+            {
+            }
+
+            public function iniciarLlamada(): void
+            {
+                ++$this->calls;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+
+            public function timeoutForCall(int $configuredTimeoutSeconds): int
+            {
+                $this->configuredTimeout = $configuredTimeoutSeconds;
+
+                return 8;
+            }
+
+            public function allowTransientRetry(): bool
+            {
+                return false;
+            }
+        };
+
+        (new \NumaMeteredEmbeddingProvider($provider, $consumption))->embed('Texto publico de BeneHom');
+
+        self::assertSame(3, $configuredTimeout);
+        self::assertSame(3, $timeout);
+        self::assertSame(1, $transportCalls);
+        self::assertSame(1, $consumption->calls);
+    }
+
+    public function testEmbeddingMedidoReduceElTimeoutAlTiempoRestante(): void
+    {
+        $timeout = null;
+        $provider = new \GeminiEmbeddingProvider(
+            'key',
+            'model',
+            2,
+            8,
+            function (string $url, array $headers, string $body, int $effectiveTimeout) use (&$timeout): array {
+                $timeout = $effectiveTimeout;
+
+                return $this->embeddingResponse(2);
+            },
+        );
+        $consumption = new class implements \NumaProviderConsumptionInterface, \NumaInteractionBudgetInterface {
+            public int $calls = 0;
+
+            public function iniciarLlamada(): void
+            {
+                ++$this->calls;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+
+            public function timeoutForCall(int $configuredTimeoutSeconds): int
+            {
+                return 2;
+            }
+
+            public function allowTransientRetry(): bool
+            {
+                return false;
+            }
+        };
+
+        (new \NumaMeteredEmbeddingProvider($provider, $consumption))->embed('Texto publico de BeneHom');
+
+        self::assertSame(2, $timeout);
+        self::assertSame(1, $consumption->calls);
+    }
+
+    public function testEmbeddingMedidoNoReservaNiIniciaElTransporteConDeadlineAgotado(): void
+    {
+        $transportCalls = 0;
+        $provider = new \GeminiEmbeddingProvider(
+            'key',
+            'model',
+            2,
+            8,
+            function () use (&$transportCalls): array {
+                ++$transportCalls;
+
+                return $this->embeddingResponse(2);
+            },
+        );
+        $consumption = new class implements \NumaProviderConsumptionInterface, \NumaInteractionBudgetInterface {
+            public int $calls = 0;
+
+            public function iniciarLlamada(): void
+            {
+                ++$this->calls;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+
+            public function timeoutForCall(int $configuredTimeoutSeconds): int
+            {
+                throw new \NumaProviderException(new \NumaProviderError(
+                    \NumaProviderError::TIMEOUT,
+                    'NUMA_PROVIDER_TIMEOUT'
+                ));
+            }
+
+            public function allowTransientRetry(): bool
+            {
+                return false;
+            }
+        };
+
+        try {
+            (new \NumaMeteredEmbeddingProvider($provider, $consumption))->embed('Texto publico de BeneHom');
+            self::fail('Se esperaba un timeout antes de reservar el embedding.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_TIMEOUT', $exception->getMessage());
+            self::assertSame(0, $consumption->calls);
+            self::assertSame(0, $transportCalls);
+        }
+    }
+
     public function testEmbeddingMedidoNoConsumeSiElTextoEsInvalido(): void
     {
         $provider = new class implements \NumaEmbeddingProviderInterface {
@@ -401,6 +548,17 @@ final class GeminiEmbeddingProviderTest extends TestCase
             'NUMA_EMBEDDING_MODEL',
             'NUMA_EMBEDDING_DIMENSIONS',
             'NUMA_PROVIDER_TIMEOUT_SECONDS',
+        ];
+    }
+
+    /**
+     * @return array{status:int, body:string}
+     */
+    private function embeddingResponse(int $dimensions): array
+    {
+        return [
+            'status' => 200,
+            'body' => json_encode(['embedding' => ['values' => array_fill(0, $dimensions, 1.0)]]),
         ];
     }
 }

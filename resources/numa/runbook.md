@@ -141,3 +141,11 @@ El `.htaccess` de raiz rechaza `bin`, `knowledge`, `resources`, `tests`, `.git` 
 demas directorios internos incluso si se configura por error el DocumentRoot en la raiz
 del repositorio. El DocumentRoot correcto sigue siendo `public/`; esta proteccion es una
 defensa adicional, no un sustituto de esa configuracion.
+
+## Validacion local con Apache
+
+Para una validacion manual local, acceder mediante `http://benehom.local`, cuyo
+VirtualHost debe servir `public/`, y observar
+`/var/log/apache2/benehom.local-error.log`. Confirmar el host efectivo con
+`apache2ctl -S`. Las peticiones al host por defecto, como
+`http://localhost/benehom/public`, se registran en `/var/log/apache2/error.log`.

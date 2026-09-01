@@ -71,6 +71,8 @@ interface NumaEmbeddingProviderUsageInterface extends NumaEmbeddingProviderInter
 
 interface NumaEmbeddingTimeoutProviderInterface extends NumaEmbeddingProviderInterface
 {
+    public function timeoutSeconds(): int;
+
     public function withTimeoutSeconds(int $timeoutSeconds): NumaEmbeddingProviderInterface;
 }
 
@@ -108,7 +110,10 @@ final class NumaMeteredEmbeddingProvider implements NumaEmbeddingTaskProviderInt
 
         $provider = $this->provider;
         if ($this->consumption instanceof NumaInteractionBudgetInterface) {
-            $timeoutSeconds = $this->consumption->timeoutForCall(10);
+            $configuredTimeoutSeconds = $provider instanceof NumaEmbeddingTimeoutProviderInterface
+                ? $provider->timeoutSeconds()
+                : 10;
+            $timeoutSeconds = $this->consumption->timeoutForCall($configuredTimeoutSeconds);
             if ($provider instanceof NumaEmbeddingTimeoutProviderInterface) {
                 $provider = $provider->withTimeoutSeconds($timeoutSeconds);
             }

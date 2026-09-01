@@ -10,7 +10,6 @@ require_once dirname(__DIR__) . '/models/NumaConsumoGlobal.php';
 final class GeminiNumaProvider implements NumaProviderInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-    private const OUTPUT_TOKEN_HARD_LIMIT = 520;
     private const OUTPUT_BYTES_PER_TOKEN_HARD_LIMIT = 16;
 
     /** @var callable */
@@ -25,7 +24,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
     public function __construct(
         private readonly string $apiKey,
         private readonly string $model,
-        private readonly int $maxOutputTokens = self::OUTPUT_TOKEN_HARD_LIMIT,
+        private readonly int $maxOutputTokens = NumaConfiguration::DEFAULT_MAX_OUTPUT_TOKENS,
         private readonly int $timeoutSeconds = 10,
         private readonly int $maxTransientRetries = 1,
         ?callable $transport = null,
@@ -55,7 +54,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         return new self(
             (string) bh_env_value('NUMA_API_KEY', ''),
             (string) bh_env_value('NUMA_MODEL', 'gemini-3.1-flash-lite'),
-            bh_env_int('NUMA_MAX_OUTPUT_TOKENS', self::OUTPUT_TOKEN_HARD_LIMIT),
+            NumaConfiguration::maxOutputTokens(),
             bh_env_int('NUMA_PROVIDER_TIMEOUT_SECONDS', 10),
             bh_env_int('NUMA_MAX_TRANSIENT_RETRIES', 1),
             $transport,
@@ -531,12 +530,12 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
     private function maxOutputTokens(): int
     {
-        return min(max($this->maxOutputTokens, 1), self::OUTPUT_TOKEN_HARD_LIMIT);
+        return max($this->maxOutputTokens, 1);
     }
 
     private function outputTokenLimit(NumaRequest $request): int
     {
-        return min($this->maxOutputTokens(), $request->maxOutputTokens() ?? self::OUTPUT_TOKEN_HARD_LIMIT);
+        return $request->maxOutputTokens() ?? $this->maxOutputTokens();
     }
 
     private function maxOutputBytes(int $outputTokenLimit): int

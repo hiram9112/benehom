@@ -54,7 +54,7 @@ final class NumaAdversarialEvaluationTest extends TestCase
         $_ENV['NUMA_ENABLED'] = 'true';
         $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
-        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '220';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
         $_ENV['NUMA_MAX_TRANSIENT_RETRIES'] = '1';
         $_ENV['NUMA_REQUEST_TIMEOUT_SECONDS'] = '25';
         $_ENV['NUMA_DAILY_LIMIT'] = '15';

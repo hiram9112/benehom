@@ -66,7 +66,7 @@ final class GeminiNumaProviderTest extends TestCase
             ];
         };
 
-        $provider = new \GeminiNumaProvider('server-api-key', 'gemini-model', 500, 20, 1, $transport);
+        $provider = new \GeminiNumaProvider('server-api-key', 'gemini-model', 1000, 20, 1, $transport);
         $response = $provider->respond(new \NumaRequest(
             '¿Cómo añado un movimiento?',
             'Instrucciones internas de Numa',
@@ -77,7 +77,7 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertStringEndsWith('/models/gemini-model:generateContent', $captured['url']);
         self::assertContains('x-goog-api-key: server-api-key', $captured['headers']);
         self::assertSame(10, $captured['timeout']);
-        self::assertSame(500, $captured['body']['generationConfig']['maxOutputTokens']);
+        self::assertSame(1000, $captured['body']['generationConfig']['maxOutputTokens']);
         self::assertSame('low', $captured['body']['generationConfig']['thinkingConfig']['thinkingLevel']);
         self::assertSame('obtener_resumen_financiero', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
         self::assertSame('AUTO', $captured['body']['toolConfig']['functionCallingConfig']['mode']);
@@ -244,7 +244,7 @@ final class GeminiNumaProviderTest extends TestCase
             ],
             [
                 'candidates' => [
-                    ['content' => ['parts' => [['text' => str_repeat('a', 9000)]]], 'finishReason' => 'STOP'],
+                    ['content' => ['parts' => [['text' => str_repeat('a', 17000)]]], 'finishReason' => 'STOP'],
                 ],
             ],
             [
@@ -280,7 +280,7 @@ final class GeminiNumaProviderTest extends TestCase
             'status' => 200,
             'body' => json_encode([
                 'candidates' => [['content' => ['parts' => [['text' => 'Respuesta.']]], 'finishReason' => 'STOP']],
-                'usageMetadata' => ['candidatesTokenCount' => 521],
+                'usageMetadata' => ['candidatesTokenCount' => 1001],
             ], JSON_THROW_ON_ERROR),
         ]);
 

@@ -58,7 +58,7 @@ final class NumaConsumoGlobalTest extends TestCase
         $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
         $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
-        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '220';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
         $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '900';
         $_ENV['NUMA_DAILY_LIMIT'] = '15';
         $_ENV['NUMA_MONTHLY_LIMIT'] = '60';
@@ -107,7 +107,7 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(2, $estado['monthly_calls']);
         self::assertSame(100, $estado['daily_calls_limit']);
         self::assertSame(1000, $estado['monthly_calls_limit']);
-        self::assertSame(10440, $estado['daily_tokens']);
+        self::assertSame(12000, $estado['daily_tokens']);
         self::assertSame(100000, $estado['daily_tokens_limit']);
     }
 
@@ -280,7 +280,7 @@ final class NumaConsumoGlobalTest extends TestCase
         $row = $this->row('2026-07-25');
 
         self::assertSame(5000, $row['input_tokens']);
-        self::assertSame(220, $row['output_tokens']);
+        self::assertSame(1000, $row['output_tokens']);
     }
 
     public function testEmbeddingReservaLlamadaGlobalYTokensConservadoresDeEntrada(): void
@@ -661,7 +661,7 @@ final class NumaConsumoGlobalTest extends TestCase
             'public_monthly_limit' => '20',
             'reservation_ttl' => '120',
             'max_input_tokens' => '5000',
-            'max_output_tokens' => '220',
+            'max_output_tokens' => '1000',
             'ready_file' => $readyFile,
             'attempt_file' => $attemptFile,
             'start_file' => $dir . '/start',
@@ -846,7 +846,7 @@ PHP;
             'daily_token_limit' => '50000',
             'monthly_token_limit' => '300000',
             'max_input_tokens' => '5000',
-            'max_output_tokens' => '220',
+            'max_output_tokens' => '1000',
             'ready_file' => $readyFile,
             'attempt_file' => $attemptFile,
             'start_file' => $dir . '/start',

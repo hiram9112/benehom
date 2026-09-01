@@ -27,7 +27,7 @@ final class NumaGlobalAvailability implements NumaGlobalAvailabilityInterface
     {
         $status = $this->consumoGlobal->estadoGlobal();
         $tokensPerCall = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000))
-            + max(1, min(bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220), 520));
+            + NumaConfiguration::maxOutputTokens();
 
         if (!bh_numa_limits_bypassed()
             && ($status['daily_calls'] + 1 > $status['daily_calls_limit']
@@ -743,9 +743,6 @@ final class NumaService
                     count($toolResults) < $maxToolCalls => NumaRequest::FUNCTION_CALLING_AUTO,
                     default => NumaRequest::FUNCTION_CALLING_NONE,
                 };
-                $outputTokenLimit = $functionCallingMode === NumaRequest::FUNCTION_CALLING_NONE
-                    ? $this->maxOutputTokens()
-                    : min(NumaRequest::FUNCTION_CALL_OUTPUT_TOKENS, $this->maxOutputTokens());
             }
 
             $response = $provider->respond(new NumaRequest(
@@ -1097,7 +1094,7 @@ final class NumaService
 
     private function maxOutputTokens(): int
     {
-        return max(1, min(520, bh_env_int('NUMA_MAX_OUTPUT_TOKENS', 220)));
+        return NumaConfiguration::maxOutputTokens();
     }
 
     private function maxTransientRetries(): int

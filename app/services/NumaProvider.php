@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/helpers/utils.php';
+require_once __DIR__ . '/NumaConfiguration.php';
 
 interface NumaProviderInterface
 {
@@ -147,8 +148,6 @@ final class NumaRequest
     public const FUNCTION_CALLING_ANY = 'ANY';
     public const FUNCTION_CALLING_AUTO = 'AUTO';
     public const FUNCTION_CALLING_NONE = 'NONE';
-    public const CLASSIFICATION_OUTPUT_TOKENS = 160;
-    public const FUNCTION_CALL_OUTPUT_TOKENS = 320;
 
     /**
      * @param array<int, array<string, mixed>> $context
@@ -186,7 +185,7 @@ final class NumaRequest
             throw new InvalidArgumentException('Modo de function calling de Numa invalido.');
         }
 
-        if ($maxOutputTokens !== null && ($maxOutputTokens < 1 || $maxOutputTokens > 520)) {
+        if ($maxOutputTokens !== null && $maxOutputTokens < 1) {
             throw new InvalidArgumentException('Presupuesto de salida de Numa invalido.');
         }
     }

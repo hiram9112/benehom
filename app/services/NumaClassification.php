@@ -370,7 +370,7 @@ final class NumaProviderScopeClassifier
                 $history,
                 NumaClassification::responseSchema(),
                 null,
-                NumaRequest::CLASSIFICATION_OUTPUT_TOKENS,
+                NumaConfiguration::maxOutputTokens(),
             ));
 
             if ($response->toolRequest() !== null) {
@@ -565,7 +565,7 @@ final class NumaProviderFunctionalDecider
                 $history,
                 NumaFunctionalDecision::responseSchema(),
                 null,
-                NumaRequest::CLASSIFICATION_OUTPUT_TOKENS,
+                NumaConfiguration::maxOutputTokens(),
             ));
 
             if ($response->toolRequest() !== null || $response->structuredData() === null) {

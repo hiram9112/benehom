@@ -48,10 +48,20 @@ final class NumaConfigurationTest extends TestCase
         self::addToAssertionCount(1);
     }
 
-    public function testAceptaElMaximoDeSalidaAmpliado(): void
+    public function testAceptaElPresupuestoDeSalidaDocumentado(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '520';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
+
+        \NumaConfiguration::assertRuntime();
+
+        self::addToAssertionCount(1);
+    }
+
+    public function testElPresupuestoDeSalidaNoTieneUnTopeInterno(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1001';
 
         \NumaConfiguration::assertRuntime();
 

@@ -39,7 +39,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
         $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
-        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '220';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
     }
 
     protected function tearDown(): void
@@ -137,7 +137,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         self::assertSame(2, $transportCalls);
         self::assertSame(2, $row['llamadas']);
         self::assertSame(5120, $row['input_tokens']);
-        self::assertSame(255, $row['output_tokens']);
+        self::assertSame(1035, $row['output_tokens']);
     }
 
     public function testElLimiteBloqueaElReintentoAntesDeLaSegundaLlamadaReal(): void
@@ -168,7 +168,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         self::assertSame(1, $transportCalls);
         self::assertSame(1, $row['llamadas']);
         self::assertSame(5000, $row['input_tokens']);
-        self::assertSame(220, $row['output_tokens']);
+        self::assertSame(1000, $row['output_tokens']);
     }
 
     public function testBypassLocalPermiteElReintentoYConservaLaContabilizacionReal(): void
@@ -196,7 +196,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         self::assertSame(2, $transportCalls);
         self::assertSame(2, $row['llamadas']);
         self::assertSame(5120, $row['input_tokens']);
-        self::assertSame(255, $row['output_tokens']);
+        self::assertSame(1035, $row['output_tokens']);
     }
 
     public function testMantieneElConteoCuandoLaLlamadaRealFalla(): void
@@ -220,7 +220,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         self::assertSame(1, $row['llamadas']);
         self::assertSame(5000, $row['input_tokens']);
-        self::assertSame(220, $row['output_tokens']);
+        self::assertSame(1000, $row['output_tokens']);
     }
 
     public function testMantieneReservaConservadoraCuandoElProveedorNoInformaTokens(): void
@@ -238,7 +238,7 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         self::assertSame(1, $row['llamadas']);
         self::assertSame(5000, $row['input_tokens']);
-        self::assertSame(220, $row['output_tokens']);
+        self::assertSame(1000, $row['output_tokens']);
     }
 
     public function testUsaTotalTokenCountComoUsoFacturableCuandoExiste(): void

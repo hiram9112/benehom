@@ -29,7 +29,7 @@ admite con `APP_ENV=testing`; nunca es una alternativa de produccion.
 Los limites seguros iniciales son: 300 caracteres, 16.000 tokens de entrada para alojar
 las seis declaraciones financieras completas, hasta 9 llamadas pagadas por interaccion
 (clasificacion, embedding RAG, cinco tools, redaccion final y un reintento transitorio),
-220 tokens de salida, 10 segundos por llamada, 25 segundos por peticion, 15 llamadas
+1.000 tokens de salida, 10 segundos por llamada, 25 segundos por peticion, 15 llamadas
 diarias y 60 mensuales por identidad privada o publica. Los limites globales iniciales
 estan en `.env.example` y deben ajustarse antes de activar cada entorno.
 

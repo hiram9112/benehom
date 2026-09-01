@@ -11,6 +11,13 @@ final class NumaConfigurationException extends RuntimeException
 /** Validates the effective Numa configuration before a paid flow can start. */
 final class NumaConfiguration
 {
+    public const DEFAULT_MAX_OUTPUT_TOKENS = 1000;
+
+    public static function maxOutputTokens(): int
+    {
+        return max(1, bh_env_int('NUMA_MAX_OUTPUT_TOKENS', self::DEFAULT_MAX_OUTPUT_TOKENS));
+    }
+
     public static function assertRuntime(bool $publicMode = false): void
     {
         self::assertSharedLimits();
@@ -85,7 +92,7 @@ final class NumaConfiguration
         self::assertInteger('NUMA_MONTHLY_LIMIT', 60, self::integerValue('NUMA_DAILY_LIMIT', 15));
         self::assertInteger('NUMA_RESERVATION_TTL_SECONDS', 120, 1);
         self::assertInteger('NUMA_MAX_INPUT_TOKENS', 16000, 1, 16000);
-        self::assertInteger('NUMA_MAX_OUTPUT_TOKENS', 220, 1, 520);
+        self::assertInteger('NUMA_MAX_OUTPUT_TOKENS', self::DEFAULT_MAX_OUTPUT_TOKENS, 1);
         self::assertInteger('NUMA_MAX_PROVIDER_CALLS', 9, 1, 9);
         self::assertInteger('NUMA_PROVIDER_TIMEOUT_SECONDS', 10, 1, 10);
         self::assertInteger('NUMA_REQUEST_TIMEOUT_SECONDS', 25, 1, 25);

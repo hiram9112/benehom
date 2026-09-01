@@ -15,12 +15,13 @@ final class NumaMovementConversationTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        foreach (['NUMA_ENABLED', 'NUMA_MAX_INPUT_TOKENS', 'NUMA_MAX_PROVIDER_CALLS', 'NUMA_MAX_TOOL_RESULT_CHARS'] as $key) {
+        foreach (['NUMA_ENABLED', 'NUMA_MAX_INPUT_TOKENS', 'NUMA_MAX_OUTPUT_TOKENS', 'NUMA_MAX_PROVIDER_CALLS', 'NUMA_MAX_TOOL_RESULT_CHARS'] as $key) {
             $this->envBackup[$key] = array_key_exists($key, $_ENV) ? (string) $_ENV[$key] : null;
         }
 
         $_ENV['NUMA_ENABLED'] = 'true';
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '16000';
+        $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
         $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = '10000';
     }
@@ -99,6 +100,10 @@ final class NumaMovementConversationTest extends IntegrationTestCase
             $result->toArray()['message']
         );
         self::assertCount(3, $provider->requests());
+        self::assertSame([1000, 1000, 1000], array_map(
+            static fn (\NumaRequest $request): ?int => $request->maxOutputTokens(),
+            $provider->requests(),
+        ));
         self::assertSame((new \NumaFinancialToolRegistry())->names(), $provider->requests()[1]->availableTools());
         self::assertSame(\NumaRequest::FUNCTION_CALLING_ANY, $provider->requests()[1]->functionCallingMode());
         self::assertSame(\NumaRequest::FUNCTION_CALLING_AUTO, $provider->requests()[2]->functionCallingMode());

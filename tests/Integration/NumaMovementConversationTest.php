@@ -23,7 +23,7 @@ final class NumaMovementConversationTest extends IntegrationTestCase
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '16000';
         $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
         $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
-        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = '10000';
+        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = (string) \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS;
     }
 
     protected function tearDown(): void
@@ -76,7 +76,11 @@ final class NumaMovementConversationTest extends IntegrationTestCase
             new \NumaLocalScopeClassifier(),
             static fn (?\NumaProviderConsumptionInterface $consumption): \NumaProviderInterface => $provider,
             static fn (): array => [],
-            new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 2, 10000),
+            new \NumaFinancialToolRegistry(
+                new \NumaFinancialToolExecutor($this->db),
+                2,
+                \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+            ),
             new class implements \NumaGlobalAvailabilityInterface {
                 public function assertAvailable(): void
                 {
@@ -118,10 +122,12 @@ final class NumaMovementConversationTest extends IntegrationTestCase
         self::assertSame(12, $toolResults[0]['cantidad_total']);
         self::assertSame('78.00', $toolResults[0]['importe_total']);
         self::assertTrue($toolResults[0]['seleccion_acotada']);
-        self::assertCount(10, $toolResults[0]['movimientos']);
-        self::assertGreaterThan(1600, strlen(json_encode($toolResults, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)));
+        self::assertLessThanOrEqual(10, count($toolResults[0]['movimientos']));
+        self::assertLessThanOrEqual(
+            \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+            strlen(json_encode($toolResults, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+        );
         self::assertSame('12.00', $toolResults[0]['movimientos'][0]['cantidad']);
-        self::assertSame('3.00', $toolResults[0]['movimientos'][9]['cantidad']);
     }
 
     private function insertGasto(int $usuarioId, string $tipo, string $categoria, float $cantidad, string $fecha): void

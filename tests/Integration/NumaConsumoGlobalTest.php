@@ -349,7 +349,7 @@ final class NumaConsumoGlobalTest extends TestCase
 
     public function testEmbeddingReservaElMaximoDelModeloSinDependerDeLimitesEnCaracteresNiSalida(): void
     {
-        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '1200';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = (string) \NumaKnowledgeFragmenter::MAX_CONTENT_CHARS;
         $_ENV['NUMA_MAX_MESSAGE_LENGTH'] = '1600';
         $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1';
         $provider = new class implements \NumaEmbeddingProviderInterface {

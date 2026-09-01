@@ -78,6 +78,20 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         self::assertSame([], $searcher->search('consulta sin resultado'));
     }
 
+    public function testElUmbralPredeterminadoCalibradoEs067(): void
+    {
+        $this->insertKnowledge('umbral:aceptado', 'umbral.md', 'Umbral', 'Aceptado', 'Coincide.', [0.68, 0.733212111]);
+        $this->insertKnowledge('umbral:rechazado', 'umbral.md', 'Umbral', 'Rechazado', 'No coincide.', [0.66, 0.751265598]);
+        $provider = FakeNumaEmbeddingProvider::withVectors(['consulta de umbral' => [1.0, 0.0]], 2);
+
+        $results = (new \NumaKnowledgeSearcher($this->db, $provider, 2))->search('consulta de umbral');
+
+        self::assertSame(['umbral:aceptado'], array_map(
+            static fn (\NumaKnowledgeSearchResult $result): string => $result->fragmentId(),
+            $results,
+        ));
+    }
+
     public function testRechazaConsultaDocumentalVacia(): void
     {
         $searcher = new \NumaKnowledgeSearcher(

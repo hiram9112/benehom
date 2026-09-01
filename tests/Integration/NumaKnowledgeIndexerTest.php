@@ -464,7 +464,7 @@ final class NumaKnowledgeIndexerTest extends IntegrationTestCase
         return new \NumaKnowledgeIndexer(
             $this->db,
             $provider,
-            new \NumaKnowledgeFragmenter($routeMap, 900),
+            new \NumaKnowledgeFragmenter($routeMap, \NumaKnowledgeFragmenter::MAX_CONTENT_CHARS),
             4
         );
     }

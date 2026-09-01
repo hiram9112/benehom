@@ -759,8 +759,8 @@ class NumaController
             Database::getConnection(),
             $embeddingProvider,
             bh_env_int('NUMA_EMBEDDING_DIMENSIONS', 768),
-            bh_env_int('NUMA_MAX_RAG_RESULTS', 3),
-            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.67'),
+            bh_env_int('NUMA_MAX_RAG_RESULTS', NumaKnowledgeSearcher::MAX_RESULTS),
+            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', (string) NumaKnowledgeSearcher::DEFAULT_MIN_SIMILARITY),
             $embeddingProvider->signature()
         );
     }
@@ -780,8 +780,8 @@ class NumaController
             Database::getConnection(),
             $embeddingProvider,
             bh_env_int('NUMA_EMBEDDING_DIMENSIONS', 768),
-            bh_env_int('NUMA_MAX_RAG_RESULTS', 3),
-            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', '0.67'),
+            bh_env_int('NUMA_MAX_RAG_RESULTS', NumaKnowledgeSearcher::MAX_RESULTS),
+            (float) bh_env_value('NUMA_RAG_MIN_SIMILARITY', (string) NumaKnowledgeSearcher::DEFAULT_MIN_SIMILARITY),
             $embeddingProvider->signature()
         );
     }

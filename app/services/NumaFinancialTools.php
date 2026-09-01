@@ -562,8 +562,8 @@ interface NumaFinancialToolRegistryInterface
 
 final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterface
 {
-    private const MAX_TOOL_CALLS = 5;
-    private const MAX_AGGREGATE_RESULT_JSON_CHARS = 1600;
+    public const MAX_TOOL_CALLS = 5;
+    public const MAX_AGGREGATE_RESULT_JSON_CHARS = 1600;
 
     public const OBTENER_RESUMEN_FINANCIERO = 'obtener_resumen_financiero';
     public const OBTENER_RANKING_CATEGORIAS = 'obtener_ranking_categorias';
@@ -628,7 +628,9 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             throw new InvalidArgumentException('El limite de llamadas a tools de Numa no es valido.');
         }
 
-        if ($this->maxAggregateResultJsonChars <= 0) {
+        if ($this->maxAggregateResultJsonChars <= 0
+            || $this->maxAggregateResultJsonChars > self::MAX_AGGREGATE_RESULT_JSON_CHARS
+        ) {
             throw new InvalidArgumentException('El limite agregado de resultado de tools de Numa no es valido.');
         }
 
@@ -1036,7 +1038,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
 
 final class NumaFinancialToolExecutor
 {
-    private const MAX_TOOL_RANGE_DAYS = 731;
+    public const MAX_TOOL_RANGE_DAYS = 731;
 
     private readonly int $maxToolRangeDays;
 
@@ -1049,7 +1051,7 @@ final class NumaFinancialToolExecutor
         $this->maxToolRangeDays = $maxToolRangeDays
             ?? bh_env_int('NUMA_MAX_TOOL_RANGE_DAYS', self::MAX_TOOL_RANGE_DAYS);
 
-        if ($this->maxToolRangeDays <= 0) {
+        if ($this->maxToolRangeDays <= 0 || $this->maxToolRangeDays > self::MAX_TOOL_RANGE_DAYS) {
             throw new InvalidArgumentException('El limite de rango de fechas de tools de Numa no es valido.');
         }
     }

@@ -969,7 +969,10 @@ final class NumaService
             );
 
             if (count($toolItems) !== count($toolResults)) {
-                if ($this->jsonLength($toolResults) <= bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', 1600)) {
+                if ($this->jsonLength($toolResults) <= bh_env_int(
+                    'NUMA_MAX_TOOL_RESULT_CHARS',
+                    NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+                )) {
                     throw new NumaInputLimitExceeded();
                 }
 
@@ -994,7 +997,7 @@ final class NumaService
     private function knowledgeItemsForContext(array $knowledgeResults, int $remainingBudget): array
     {
         $items = [];
-        $maxChunkChars = bh_env_int('NUMA_MAX_RAG_CHUNK_CHARS', 900);
+        $maxChunkChars = bh_env_int('NUMA_MAX_RAG_CHUNK_CHARS', NumaKnowledgeFragmenter::MAX_CONTENT_CHARS);
 
         foreach (array_slice($knowledgeResults, 0, $this->maxRagResults()) as $result) {
             $item = [
@@ -1023,7 +1026,7 @@ final class NumaService
     private function toolResultsForContext(array $toolResults, int $remainingBudget): array
     {
         $maxChars = min(
-            bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', 1600),
+            bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS),
             max(0, $remainingBudget)
         );
 
@@ -1079,7 +1082,10 @@ final class NumaService
 
     private function maxRagResults(): int
     {
-        return max(1, min(3, bh_env_int('NUMA_MAX_RAG_RESULTS', 3)));
+        return max(1, min(
+            NumaKnowledgeSearcher::MAX_RESULTS,
+            bh_env_int('NUMA_MAX_RAG_RESULTS', NumaKnowledgeSearcher::MAX_RESULTS),
+        ));
     }
 
     private function maxProviderCalls(): int
@@ -1089,7 +1095,10 @@ final class NumaService
 
     private function maxToolCalls(): int
     {
-        return max(1, min(5, bh_env_int('NUMA_MAX_TOOL_CALLS', 5)));
+        return max(1, min(
+            NumaFinancialToolRegistry::MAX_TOOL_CALLS,
+            bh_env_int('NUMA_MAX_TOOL_CALLS', NumaFinancialToolRegistry::MAX_TOOL_CALLS),
+        ));
     }
 
     private function maxOutputTokens(): int

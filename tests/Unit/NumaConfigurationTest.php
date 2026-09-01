@@ -101,6 +101,47 @@ final class NumaConfigurationTest extends TestCase
         \NumaConfiguration::assertRuntime();
     }
 
+    #[DataProvider('limitesDeFragmentosValidos')]
+    public function testAceptaLosLimitesEstructuralesDeFragmentos(string $maxChunkChars): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = $maxChunkChars;
+
+        \NumaConfiguration::assertRuntime();
+
+        self::addToAssertionCount(1);
+    }
+
+    /** @return array<string, array{string}> */
+    public static function limitesDeFragmentosValidos(): array
+    {
+        return [
+            'minimo del fragmentador' => [(string) \NumaKnowledgeFragmenter::MIN_CONTENT_CHARS],
+            'maximo del fragmentador' => [(string) \NumaKnowledgeFragmenter::MAX_CONTENT_CHARS],
+        ];
+    }
+
+    #[DataProvider('limitesDeFragmentosInvalidos')]
+    public function testRechazaLimitesDeFragmentosFueraDelContrato(string $maxChunkChars): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = $maxChunkChars;
+
+        $this->expectException(\NumaConfigurationException::class);
+        $this->expectExceptionMessage('NUMA_MAX_RAG_CHUNK_CHARS');
+
+        \NumaConfiguration::assertRuntime();
+    }
+
+    /** @return array<string, array{string}> */
+    public static function limitesDeFragmentosInvalidos(): array
+    {
+        return [
+            'inferior al minimo del fragmentador' => [(string) (\NumaKnowledgeFragmenter::MIN_CONTENT_CHARS - 1)],
+            'superior al maximo del fragmentador' => [(string) (\NumaKnowledgeFragmenter::MAX_CONTENT_CHARS + 1)],
+        ];
+    }
+
     public function testRechazaUnBodyQueNoPuedeContenerElMensajeUnicodeMaximo(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

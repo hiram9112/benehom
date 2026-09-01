@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/helpers/utils.php';
+require_once __DIR__ . '/NumaFinancialTools.php';
+require_once __DIR__ . '/NumaKnowledge.php';
 
 final class NumaConfigurationException extends RuntimeException
 {
@@ -110,12 +112,22 @@ final class NumaConfiguration
             self::integerValue('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 100000),
         );
         self::assertInteger('NUMA_EMBEDDING_DIMENSIONS', 768, 768, 768);
-        self::assertInteger('NUMA_MAX_RAG_RESULTS', 3, 1, 3);
-        self::assertInteger('NUMA_MAX_RAG_CHUNK_CHARS', 900, 1, 900);
-        self::assertFloat('NUMA_RAG_MIN_SIMILARITY', 0.67, 0.0, 1.0);
-        self::assertInteger('NUMA_MAX_TOOL_CALLS', 5, 1, 5);
-        self::assertInteger('NUMA_MAX_TOOL_RESULT_CHARS', 1600, 1, 1600);
-        self::assertInteger('NUMA_MAX_TOOL_RANGE_DAYS', 731, 1);
+        self::assertInteger('NUMA_MAX_RAG_RESULTS', NumaKnowledgeSearcher::MAX_RESULTS, 1, NumaKnowledgeSearcher::MAX_RESULTS);
+        self::assertInteger(
+            'NUMA_MAX_RAG_CHUNK_CHARS',
+            NumaKnowledgeFragmenter::MAX_CONTENT_CHARS,
+            NumaKnowledgeFragmenter::MIN_CONTENT_CHARS,
+            NumaKnowledgeFragmenter::MAX_CONTENT_CHARS,
+        );
+        self::assertFloat('NUMA_RAG_MIN_SIMILARITY', NumaKnowledgeSearcher::DEFAULT_MIN_SIMILARITY, 0.0, 1.0);
+        self::assertInteger('NUMA_MAX_TOOL_CALLS', NumaFinancialToolRegistry::MAX_TOOL_CALLS, 1, NumaFinancialToolRegistry::MAX_TOOL_CALLS);
+        self::assertInteger(
+            'NUMA_MAX_TOOL_RESULT_CHARS',
+            NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+            1,
+            NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+        );
+        self::assertInteger('NUMA_MAX_TOOL_RANGE_DAYS', NumaFinancialToolExecutor::MAX_TOOL_RANGE_DAYS, 1, NumaFinancialToolExecutor::MAX_TOOL_RANGE_DAYS);
     }
 
     private static function assertEmbeddingProvider(): void

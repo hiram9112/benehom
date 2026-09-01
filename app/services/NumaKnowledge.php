@@ -81,6 +81,7 @@ final class NumaKnowledgeFragment
 
 final class NumaKnowledgeFragmenter
 {
+    public const MIN_CONTENT_CHARS = 200;
     public const MAX_CONTENT_CHARS = 900;
 
     /** @var array<string, string> */
@@ -106,8 +107,8 @@ final class NumaKnowledgeFragmenter
         array $routeMap = self::DEFAULT_ROUTE_MAP,
         private readonly int $maxContentChars = self::MAX_CONTENT_CHARS,
     ) {
-        if ($maxContentChars < 200) {
-            throw new InvalidArgumentException('El limite de caracteres de fragmentos de Numa es demasiado bajo.');
+        if ($maxContentChars < self::MIN_CONTENT_CHARS || $maxContentChars > self::MAX_CONTENT_CHARS) {
+            throw new InvalidArgumentException('El limite de caracteres de fragmentos de Numa no es valido.');
         }
 
         foreach ($routeMap as $document => $route) {
@@ -756,17 +757,21 @@ final class NumaVectorSimilarity
 
 final class NumaKnowledgeSearcher
 {
+    public const MAX_RESULTS = 3;
+    public const DEFAULT_MIN_SIMILARITY = 0.67;
+
     public function __construct(
         private readonly PDO $connection,
         private readonly NumaEmbeddingProviderInterface $embeddingProvider,
         private readonly int $dimensions = 768,
-        private readonly int $maxResults = 3,
-        private readonly float $minSimilarity = 0.65,
+        private readonly int $maxResults = self::MAX_RESULTS,
+        private readonly float $minSimilarity = self::DEFAULT_MIN_SIMILARITY,
         private readonly ?NumaEmbeddingSignature $signature = null,
     ) {
         if (
             $dimensions <= 0
             || $maxResults <= 0
+            || $maxResults > self::MAX_RESULTS
             || $minSimilarity < -1.0
             || $minSimilarity > 1.0
             || ($signature !== null && $signature->dimensions() !== $dimensions)

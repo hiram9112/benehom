@@ -34,6 +34,22 @@ final class NumaFinancialToolRegistryTest extends TestCase
         new \NumaFinancialToolRegistry(maxToolCalls: 6);
     }
 
+    public function testRechazaUnLimiteAgregadoDeResultadosSuperiorAlHardCap(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new \NumaFinancialToolRegistry(
+            maxAggregateResultJsonChars: \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS + 1,
+        );
+    }
+
+    public function testRechazaUnRangoTemporalSuperiorAlHardCap(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new \NumaFinancialToolExecutor(maxToolRangeDays: \NumaFinancialToolExecutor::MAX_TOOL_RANGE_DAYS + 1);
+    }
+
     public function testCadaToolTieneMetadatosYUnaImplementacionConcreta(): void
     {
         $registry = new \NumaFinancialToolRegistry();

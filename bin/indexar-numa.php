@@ -67,7 +67,10 @@ try {
     $indexer = new NumaKnowledgeIndexer(
         Database::getConnection(),
         $embeddingProvider,
-        new NumaKnowledgeFragmenter(maxContentChars: bh_env_int('NUMA_MAX_RAG_CHUNK_CHARS', 900)),
+        new NumaKnowledgeFragmenter(maxContentChars: bh_env_int(
+            'NUMA_MAX_RAG_CHUNK_CHARS',
+            NumaKnowledgeFragmenter::MAX_CONTENT_CHARS,
+        )),
         $dimensions,
         $signature
     );

@@ -86,7 +86,7 @@ final class NumaRagEvaluationTest extends IntegrationTestCase
         $indexer = new \NumaKnowledgeIndexer(
             $this->db,
             $provider,
-            new \NumaKnowledgeFragmenter(maxContentChars: 900),
+            new \NumaKnowledgeFragmenter(maxContentChars: \NumaKnowledgeFragmenter::MAX_CONTENT_CHARS),
             $provider->dimensions()
         );
         $summary = $indexer->indexCorpus(
@@ -101,7 +101,7 @@ final class NumaRagEvaluationTest extends IntegrationTestCase
             $this->db,
             $provider,
             $provider->dimensions(),
-            3,
+            \NumaKnowledgeSearcher::MAX_RESULTS,
             $evaluation['ci_min_similarity']
         );
         $classifier = new \NumaLocalScopeClassifier();

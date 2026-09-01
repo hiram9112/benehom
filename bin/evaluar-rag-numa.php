@@ -117,7 +117,10 @@ try {
         NumaConsumoGlobal::forEmbedding($connection)
     );
     $signature = $provider->signature();
-    $fragmenter = new NumaKnowledgeFragmenter(maxContentChars: bh_env_int('NUMA_MAX_RAG_CHUNK_CHARS', 900));
+    $fragmenter = new NumaKnowledgeFragmenter(maxContentChars: bh_env_int(
+        'NUMA_MAX_RAG_CHUNK_CHARS',
+        NumaKnowledgeFragmenter::MAX_CONTENT_CHARS,
+    ));
     $fragments = array_merge(
         $fragmenter->fragmentDirectory($knowledgeDirectory),
         $fragmenter->fragmentArticles($articles)
@@ -137,7 +140,7 @@ try {
         $connection,
         $provider,
         $dimensions,
-        count($fragments),
+        NumaKnowledgeSearcher::MAX_RESULTS,
         -1.0,
         $signature
     );

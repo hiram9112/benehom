@@ -84,6 +84,28 @@ final class NumaKnowledgeFragmenterTest extends TestCase
         self::assertStringContainsString('Conexion con BeneHom: conexion', $fragments[0]->content());
     }
 
+    public function testAceptaLosLimitesEstructuralesDeContenido(): void
+    {
+        new \NumaKnowledgeFragmenter(maxContentChars: \NumaKnowledgeFragmenter::MIN_CONTENT_CHARS);
+        new \NumaKnowledgeFragmenter(maxContentChars: \NumaKnowledgeFragmenter::MAX_CONTENT_CHARS);
+
+        self::addToAssertionCount(2);
+    }
+
+    public function testRechazaLimitesDeContenidoFueraDelContrato(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new \NumaKnowledgeFragmenter(maxContentChars: \NumaKnowledgeFragmenter::MAX_CONTENT_CHARS + 1);
+    }
+
+    public function testRechazaUnLimiteDeContenidoInferiorAlMinimo(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new \NumaKnowledgeFragmenter(maxContentChars: \NumaKnowledgeFragmenter::MIN_CONTENT_CHARS - 1);
+    }
+
     public function testRechazaArticuloSinCamposPublicosDeContexto(): void
     {
         $this->expectException(InvalidArgumentException::class);

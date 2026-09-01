@@ -489,7 +489,11 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto((int) $otroUsuario['id'], 'flexible', 'regalos', 999, '2026-07-31');
         $this->insertGasto($usuarioId, 'flexible', 'regalos', 999, '2026-08-01');
 
-        $result = (new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 2, 10000))->execute(
+        $result = (new \NumaFinancialToolRegistry(
+            new \NumaFinancialToolExecutor($this->db),
+            2,
+            \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+        ))->execute(
             'obtener_movimientos',
             $usuarioId,
             [
@@ -505,9 +509,8 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame(12, $result['cantidad_total']);
         self::assertSame('78.00', $result['importe_total']);
         self::assertTrue($result['seleccion_acotada']);
-        self::assertCount(10, $result['movimientos']);
+        self::assertLessThan(10, count($result['movimientos']));
         self::assertSame('12.00', $result['movimientos'][0]['cantidad']);
-        self::assertSame('3.00', $result['movimientos'][9]['cantidad']);
         self::assertSame(['2026-07-12', '2026-07-11', '2026-07-10'], array_slice(array_column($result['movimientos'], 'fecha'), 0, 3));
     }
 
@@ -515,7 +518,11 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
     {
         $usuario = $this->crearUsuario('numa-tools-max-calls@example.test');
         $usuarioId = (int) $usuario['id'];
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db), 5, 5000);
+        $registry = new \NumaFinancialToolRegistry(
+            new \NumaFinancialToolExecutor($this->db),
+            5,
+            \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+        );
         $arguments = ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'];
 
         for ($call = 0; $call < 5; $call++) {
@@ -531,7 +538,11 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
     public function testToolsSonSoloLecturaYEjecutanUnicamenteSelect(): void
     {
         $pdo = new RecordingNumaPdo();
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 5, 10000);
+        $registry = new \NumaFinancialToolRegistry(
+            new \NumaFinancialToolExecutor($pdo),
+            5,
+            \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+        );
 
         $registry->execute('obtener_resumen_financiero', 1, [
             'fecha_inicio' => '2026-07-01',
@@ -560,7 +571,11 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'fecha_fin' => '2026-07-31',
             'metrica' => 'gastos',
         ]);
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo), 5, 10000);
+        $registry = new \NumaFinancialToolRegistry(
+            new \NumaFinancialToolExecutor($pdo),
+            5,
+            \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+        );
         $registry->execute('obtener_movimientos', 1, [
             'fecha_inicio' => '2026-07-01',
             'fecha_fin' => '2026-07-31',

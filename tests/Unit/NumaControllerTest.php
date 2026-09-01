@@ -2244,7 +2244,7 @@ final class NumaControllerTest extends TestCase
     public function testChatActivoLimitaRagATresFragmentosYRecortaContenido(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '20';
+        $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = (string) \NumaKnowledgeFragmenter::MIN_CONTENT_CHARS;
         $this->configureJsonPost();
         $provider = new SequentialNumaProviderFake(
             new \NumaResponse('clasificacion', [
@@ -2256,9 +2256,9 @@ final class NumaControllerTest extends TestCase
             new \NumaResponse('Respuesta fundamentada con fuentes.')
         );
         $knowledgeResults = [
-            new \NumaKnowledgeSearchResult('frag-1', 'doc.md', 'Uno', 'A', '/dashboard', 'Contenido largo del primer fragmento.', 0.99),
-            new \NumaKnowledgeSearchResult('frag-2', 'doc.md', 'Dos', 'B', '/dashboard', 'Contenido largo del segundo fragmento.', 0.98),
-            new \NumaKnowledgeSearchResult('frag-3', 'doc.md', 'Tres', 'C', '/dashboard', 'Contenido largo del tercer fragmento.', 0.97),
+            new \NumaKnowledgeSearchResult('frag-1', 'doc.md', 'Uno', 'A', '/dashboard', str_repeat('a', 220), 0.99),
+            new \NumaKnowledgeSearchResult('frag-2', 'doc.md', 'Dos', 'B', '/dashboard', str_repeat('b', 220), 0.98),
+            new \NumaKnowledgeSearchResult('frag-3', 'doc.md', 'Tres', 'C', '/dashboard', str_repeat('c', 220), 0.97),
             new \NumaKnowledgeSearchResult('frag-4', 'doc.md', 'Cuatro', 'D', '/dashboard', 'Contenido que no debe enviarse.', 0.96),
         ];
 
@@ -2282,7 +2282,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame(['Uno', 'Dos', 'Tres'], array_column($knowledgeContext['items'], 'title'));
 
         foreach ($knowledgeContext['items'] as $item) {
-            self::assertLessThanOrEqual(20, strlen($item['content']));
+            self::assertLessThanOrEqual(\NumaKnowledgeFragmenter::MIN_CONTENT_CHARS, strlen($item['content']));
         }
     }
 

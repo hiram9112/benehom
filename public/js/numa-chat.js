@@ -70,29 +70,6 @@
 
     const normaliseText = (value) => String(value || '').trim();
 
-    const formatSpanishDate = (value) => {
-        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
-
-        if (!match) {
-            return '';
-        }
-
-        const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-        if (
-            date.getFullYear() !== Number(match[1])
-            || date.getMonth() !== Number(match[2]) - 1
-            || date.getDate() !== Number(match[3])
-        ) {
-            return '';
-        }
-
-        return new Intl.DateTimeFormat('es-ES', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-        }).format(date);
-    };
-
     const createTextNode = (tagName, className, text) => {
         const element = document.createElement(tagName);
 
@@ -395,21 +372,6 @@
             ));
         };
 
-        const appendPeriod = (bubble, period) => {
-            if (!period || typeof period !== 'object' || !period.start || !period.end) {
-                return;
-            }
-
-            const start = formatSpanishDate(period.start);
-            const end = formatSpanishDate(period.end);
-            if (start === '' || end === '') {
-                return;
-            }
-
-            const label = start === end ? `Periodo: ${start}` : `Periodo: ${start} a ${end}`;
-            bubble.appendChild(createTextNode('p', 'bh-numa-message-meta', label));
-        };
-
         const addMessage = (role, text, metadata) => {
             markConversationStarted();
 
@@ -439,10 +401,6 @@
             speakerPrefix.textContent = canonicalRole === 'user' ? 'Tú: ' : 'Numa: ';
             content.appendChild(speakerPrefix);
             content.appendChild(createTextNode('p', '', text));
-
-            if (canonicalRole === 'assistant' && metadata) {
-                appendPeriod(content, metadata.period);
-            }
 
             item.appendChild(content);
             messages.appendChild(item);

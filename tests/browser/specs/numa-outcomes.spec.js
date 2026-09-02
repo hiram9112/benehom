@@ -103,6 +103,30 @@ test('presenta los mensajes de usuario y Numa con sus roles, alineacion y estilo
     await expect(page.locator('[data-numa-new-conversation]')).toBeEnabled();
 });
 
+test('oculta el periodo estructurado y conserva los saltos de linea de Numa', async ({ page }) => {
+    const answer = 'En junio gastaste 204,80 € en suministros.\n\n• Electricidad: 97,00 €\n• Agua: 33,10 €';
+    const conversation = [
+        { role: 'user', message: '¿Cuánto gasté en suministros en junio?' },
+        {
+            role: 'assistant',
+            message: answer,
+            period: { start: '2026-06-01', end: '2026-06-30' },
+        },
+    ];
+
+    await openAvailableNuma(page, 'available', conversation);
+
+    const assistantMessage = messages(page).locator('[data-numa-role="assistant"][data-numa-canonical-message="true"]').last();
+    const rendered = await assistantMessage.locator('.bh-numa-message-content > p').evaluate((element) => ({
+        text: element.textContent,
+        whiteSpace: window.getComputedStyle(element).whiteSpace,
+    }));
+
+    expect(rendered).toEqual({ text: answer, whiteSpace: 'pre-line' });
+    await expect(assistantMessage).not.toContainText('Periodo:');
+    await expect(assistantMessage.locator('.bh-numa-message-meta')).toHaveCount(0);
+});
+
 test('retira Pensando y muestra un estado de error seguro cuando falla la consulta', async ({ page }) => {
     await openAvailableNuma(page, 'unavailable');
     const fulfillChat = await mockDeferredChat(page, {

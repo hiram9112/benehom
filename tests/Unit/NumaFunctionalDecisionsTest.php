@@ -21,7 +21,12 @@ final class NumaFunctionalDecisionsTest extends TestCase
         self::assertStringContainsString('Europe/Madrid', $prompt);
         self::assertStringContainsString('promedio mensual', $prompt);
         self::assertStringContainsString('solo meses con datos', $prompt);
-        self::assertStringContainsString('Las respuestas financieras deben ser solo texto', $prompt);
+        self::assertStringContainsString('texto plano estructurado, sin Markdown', $prompt);
+        self::assertStringContainsString('saltos de linea, lineas en blanco', $prompt);
+        self::assertStringContainsString('listas breves con •', $prompt);
+        self::assertStringContainsString('Nombre: valor', $prompt);
+        self::assertStringContainsString('No uses negritas con asteriscos', $prompt);
+        self::assertStringContainsString('tablas Markdown, backticks, bloques de codigo', $prompt);
         self::assertStringContainsString('Las fuentes documentales son metadatos internos', $prompt);
     }
 

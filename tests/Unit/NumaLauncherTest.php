@@ -465,20 +465,22 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('usuario_id', $javascript);
     }
 
-    public function testClienteMuestraSoloTextoSeguroYPeriodosEnEspanol(): void
+    public function testClienteMuestraSoloTextoSeguroSinExponerElPeriodoEstructurado(): void
     {
         $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+        $css = file_get_contents(BASE_PATH . '/public/css/src/numa.css');
 
         self::assertIsString($javascript);
-        self::assertStringContainsString('const formatSpanishDate', $javascript);
-        self::assertStringContainsString("new Intl.DateTimeFormat('es-ES'", $javascript);
-        self::assertStringContainsString('const start = formatSpanishDate(period.start)', $javascript);
-        self::assertStringContainsString('const end = formatSpanishDate(period.end)', $javascript);
-        self::assertStringContainsString("createTextNode('p', 'bh-numa-message-meta', label)", $javascript);
+        self::assertIsString($css);
         self::assertStringContainsString('element.textContent = text', $javascript);
+        self::assertStringContainsString('entries.push({ role, message, period: entry.period })', $javascript);
+        self::assertStringNotContainsString('const appendPeriod', $javascript);
+        self::assertStringNotContainsString('formatSpanishDate', $javascript);
+        self::assertStringNotContainsString('bh-numa-message-meta', $javascript);
         self::assertStringNotContainsString('innerHTML', $javascript);
         self::assertStringNotContainsString('data-numa-sources', $javascript);
         self::assertStringNotContainsString('metadata.sources', $javascript);
+        self::assertStringContainsString('white-space: pre-line', $css);
     }
 
     public function testClienteDistingueMensajesPorSuRolCanonico(): void

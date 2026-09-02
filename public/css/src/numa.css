@@ -402,6 +402,7 @@
 
 .bh-numa-message-content > p{
     margin: 0;
+    white-space: pre-line;
 }
 
 .bh-numa-message.is-user .bh-numa-message-content{
@@ -452,12 +453,6 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: bh-numa-thinking-shimmer 1500ms ease-in-out infinite;
-}
-
-.bh-numa-message-meta{
-    margin-top: 0.45rem !important;
-    color: var(--bh-text-muted);
-    font-size: var(--bh-text-xs);
 }
 
 .bh-numa-form{

@@ -121,6 +121,10 @@ final class FrontControllerRoutingTest extends TestCase
         self::assertSame(401, $response['status']);
         self::assertJsonError($response['body'], 'UNAUTHENTICATED');
         self::assertStringNotContainsString('"msg"', $response['body']);
+        $payload = json_decode($response['body'], true);
+        self::assertIsArray($payload);
+        self::assertSame('Tu sesión se ha cerrado por inactividad. Vuelve a iniciar sesión para continuar.', $payload['error']['message']);
+        self::assertSame('Tu sesión se ha cerrado por inactividad. Vuelve a iniciar sesión para continuar.', $response['session']['mensaje_error']);
     }
 
     public function testCsrfGlobalInvalidoDevuelveErrorJsonGeneralDesdeRouterReal(): void
@@ -175,7 +179,7 @@ final class FrontControllerRoutingTest extends TestCase
 
     /**
      * @param array<string, mixed> $options
-     * @return array{status:int, headers:array<int, string>, body:string, stderr:string, exit_code:int}
+     * @return array{status:int, headers:array<int, string>, session:array<string, mixed>, body:string, stderr:string, exit_code:int}
      */
     private function runFrontController(array $options): array
     {
@@ -277,6 +281,7 @@ register_shutdown_function(static function () use ($sessionFile): void {
     fwrite(STDERR, "\n__BH_META__" . json_encode([
         'status' => $status,
         'headers' => headers_list(),
+        'session' => $_SESSION,
     ]) . "__BH_END__\n");
 
     if (is_file($sessionFile)) {
@@ -320,6 +325,7 @@ PHP;
         return [
             'status' => (int) ($meta['status'] ?? 0),
             'headers' => is_array($meta['headers'] ?? null) ? $meta['headers'] : [],
+            'session' => is_array($meta['session'] ?? null) ? $meta['session'] : [],
             'body' => $body === false ? '' : $body,
             'stderr' => $stderr === false ? '' : $stderr,
             'exit_code' => $exitCode,

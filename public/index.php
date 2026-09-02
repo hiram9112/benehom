@@ -113,6 +113,9 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
         }
 
         session_destroy();
+        session_id('');
+        session_start();
+        $_SESSION['mensaje_error'] = $sessionIdleMessage;
 
         if ($isAjaxTimeout) {
             if ($isNumaTimeout) {
@@ -123,9 +126,6 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
             exit;
         }
 
-        session_start();
-
-        $_SESSION['mensaje_error'] = $sessionIdleMessage;
         header("Location: " . BASE_URL . "index.php?r=auth/login");
         exit;
     }

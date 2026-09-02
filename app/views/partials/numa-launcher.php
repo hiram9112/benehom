@@ -77,6 +77,7 @@ function bh_numa_launcher(string $mode = 'private'): void
         data-numa-status-url="<?= htmlspecialchars($endpoints['status'], ENT_QUOTES, 'UTF-8') ?>"
         data-numa-chat-url="<?= htmlspecialchars($endpoints['chat'], ENT_QUOTES, 'UTF-8') ?>"
         data-numa-new-conversation-url="<?= htmlspecialchars($endpoints['conversation'], ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-login-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=auth/login', ENT_QUOTES, 'UTF-8') ?>"
         data-numa-csrf="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>"
         data-numa-max-message-length="<?= $maxMessageLength ?>"
         data-numa-request-timeout-ms="<?= $requestTimeoutMs ?>"

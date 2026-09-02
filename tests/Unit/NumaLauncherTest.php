@@ -68,6 +68,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-status-url="/index.php?r=numa/status"', $html);
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/chat"', $html);
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/conversation/new"', $html);
+        self::assertStringContainsString('data-numa-login-url="/index.php?r=auth/login"', $html);
         self::assertStringContainsString('data-numa-csrf="', $html);
         self::assertStringContainsString('data-numa-max-message-length="300"', $html);
         self::assertStringContainsString('data-numa-request-timeout-ms="26000"', $html);
@@ -163,6 +164,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-status-url="/index.php?r=numa/public/status"', $html);
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/public/chat"', $html);
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/public/conversation/new"', $html);
+        self::assertStringContainsString('data-numa-login-url="/index.php?r=auth/login"', $html);
         self::assertStringContainsString('data-numa-empty-messages=', $html);
         self::assertStringContainsString('data-numa-suggestions=', $html);
         self::assertStringContainsString('¿Qué quieres revisar hoy?', $html);
@@ -402,6 +404,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("widget.getAttribute('data-numa-status-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-chat-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-new-conversation-url')", $javascript);
+        self::assertStringContainsString("widget.getAttribute('data-numa-login-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-csrf')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-request-timeout-ms')", $javascript);
         self::assertStringContainsString('let initialTooltipDismissed = !shouldShowInitialTooltip', $javascript);
@@ -445,11 +448,14 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('const statusMessageForAvailability', $javascript);
         self::assertStringContainsString('Te estás acercando al límite de uso.', $javascript);
         self::assertStringContainsString('Has alcanzado el límite de uso. Podrás volver a utilizarlo cuando se renueve.', $javascript);
-        self::assertMatchesRegularExpression('/setProcessing\(false\);\s+loadStatus\(requestFailed, true\);/', $javascript);
+        self::assertMatchesRegularExpression('/setProcessing\(false\);\s+if \(!sessionRedirecting\) \{\s+loadStatus\(requestFailed, true\);/', $javascript);
         self::assertStringContainsString('Conservamos tu borrador', $javascript);
         self::assertStringContainsString('AbortController', $javascript);
         self::assertStringContainsString('podría haberse enviado y haber consumido cuota', $javascript);
         self::assertStringContainsString("code === 'NUMA_INVALID_CSRF'", $javascript);
+        self::assertStringContainsString('const redirectToLoginWhenSessionExpired', $javascript);
+        self::assertStringContainsString("response.status !== 401 || errorCode !== 'UNAUTHENTICATED'", $javascript);
+        self::assertStringContainsString("window.location.assign(loginUrl || 'index.php?r=auth/login')", $javascript);
         self::assertStringNotContainsString('daily_remaining', $javascript);
         self::assertStringNotContainsString('monthly_remaining', $javascript);
         self::assertStringNotContainsString('user_limit', $javascript);

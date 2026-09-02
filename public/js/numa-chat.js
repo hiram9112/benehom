@@ -110,6 +110,7 @@
         const statusUrl = widget.getAttribute('data-numa-status-url') || '';
         const chatUrl = widget.getAttribute('data-numa-chat-url') || '';
         const newConversationUrl = widget.getAttribute('data-numa-new-conversation-url') || '';
+        const loginUrl = widget.getAttribute('data-numa-login-url') || '';
         const csrfToken = widget.getAttribute('data-numa-csrf') || '';
         const isPublicMode = widget.getAttribute('data-numa-mode') === 'public';
         const emptyMessages = configuredTextList(widget, 'data-numa-empty-messages', EMPTY_MESSAGES);
@@ -151,6 +152,21 @@
         let canonicalConversation = [];
         let composerHadFocus = false;
         let confirmationOpen = false;
+        let sessionRedirecting = false;
+
+        const redirectToLoginWhenSessionExpired = (response, payload) => {
+            const errorCode = payload && payload.error && typeof payload.error.code === 'string'
+                ? payload.error.code
+                : '';
+
+            if (isPublicMode || sessionRedirecting || !response || response.status !== 401 || errorCode !== 'UNAUTHENTICATED') {
+                return false;
+            }
+
+            sessionRedirecting = true;
+            window.location.assign(loginUrl || 'index.php?r=auth/login');
+            return true;
+        };
 
         const prefersReducedMotion = () => window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -639,6 +655,10 @@
                         return;
                     }
 
+                    if (redirectToLoginWhenSessionExpired(response, payload)) {
+                        return;
+                    }
+
                     if (!response.ok || !payload || payload.ok !== true) {
                         setAvailability('unavailable');
                         addStateMessage(
@@ -847,6 +867,10 @@
                         return null;
                     }
 
+                    if (redirectToLoginWhenSessionExpired(response, payload)) {
+                        return null;
+                    }
+
                     if (
                         !response.ok
                         || !payload
@@ -908,7 +932,9 @@
                     removeThinkingMessage();
                     setProcessing(false);
 
-                    loadStatus(requestFailed, true);
+                    if (!sessionRedirecting) {
+                        loadStatus(requestFailed, true);
+                    }
                 });
         };
 
@@ -967,6 +993,10 @@
             })
                 .then((response) => response.json().catch(() => null).then((payload) => ({ response, payload })))
                 .then(({ response, payload }) => {
+                    if (redirectToLoginWhenSessionExpired(response, payload)) {
+                        return;
+                    }
+
                     if (!response.ok || !payload || payload.ok !== true || !payload.data) {
                         addStateMessage(safeErrorMessage(payload, response.status), 'error');
                         return;
@@ -980,6 +1010,10 @@
                     addStateMessage('No he podido iniciar una nueva conversación.', 'error');
                 })
                 .finally(() => {
+                    if (sessionRedirecting) {
+                        return;
+                    }
+
                     activeRequest = false;
                     newConversationButton.removeAttribute('aria-busy');
                     setInteractiveState();

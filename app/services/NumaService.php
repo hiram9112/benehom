@@ -304,7 +304,7 @@ final class NumaService
     private const STAGE_KNOWLEDGE = 'knowledge';
     private const STAGE_RESPONSE = 'response';
     private const NO_KNOWLEDGE_MESSAGE = 'No encuentro información suficiente sobre esa función dentro de BeneHom.';
-    private const CLARIFICATION_MESSAGE = '¿Podrías concretar qué quieres consultar en BeneHom?';
+    private const CLARIFICATION_MESSAGE = 'Necesito que concretes un poco más la consulta para poder ayudarte.';
     private const APPROX_CHARS_PER_TOKEN = 4;
     private const SYSTEM_INSTRUCTION_BUDGET_CHARS = 3000;
     private const REQUEST_STRUCTURE_BUDGET_CHARS = 1500;
@@ -462,6 +462,7 @@ final class NumaService
                 $knowledgeResults,
                 $providerHistory,
                 $provider,
+                referencePeriod: $this->latestConversationPeriod($history),
             );
 
             return $this->result(
@@ -728,6 +729,7 @@ final class NumaService
         array $history,
         NumaProviderInterface $provider,
         bool $publicMode = false,
+        ?array $referencePeriod = null,
     ): array {
         $availableTools = $this->availableToolNames($classification);
         $toolResults = [];
@@ -756,8 +758,8 @@ final class NumaService
                 $outputTokenLimit,
             ));
 
-            $toolRequest = $response->toolRequest();
-            if ($toolRequest === null) {
+            $toolRequests = $response->toolRequests();
+            if ($toolRequests === []) {
                 $finalMessage = trim($response->message());
 
                 if ($finalMessage === '') {
@@ -776,13 +778,37 @@ final class NumaService
                 return [$this->withBoundedMovementSelectionNotice($finalMessage, $toolResults), $toolResults];
             }
 
-            if (!in_array($toolRequest->name(), $availableTools, true)
-                || count($toolResults) >= $maxToolCalls
-            ) {
+            if (count($toolRequests) > $maxToolCalls - count($toolResults)) {
                 throw new InvalidArgumentException('Tool de Numa no permitida para esta consulta.');
             }
 
-            $toolResults[] = $this->executeToolRequest($toolRequest, $authenticatedUserId, $history);
+            $validatedToolRequests = [];
+            try {
+                foreach ($toolRequests as $toolRequest) {
+                    if (!in_array($toolRequest->name(), $availableTools, true)) {
+                        throw new InvalidArgumentException('Tool de Numa no permitida para esta consulta.');
+                    }
+
+                    if ($authenticatedUserId === null) {
+                        throw new InvalidArgumentException('Las tools no estan disponibles en el modo publico.');
+                    }
+
+                    $validatedToolRequests[] = new NumaToolRequest(
+                        $toolRequest->name(),
+                        $this->financialTools()->validate(
+                            $toolRequest->name(),
+                            $authenticatedUserId,
+                            $this->resolveToolPeriods($toolRequest->name(), $toolRequest->arguments(), $message, $referencePeriod),
+                        ),
+                    );
+                }
+            } catch (NumaFinancialToolInputIncomplete) {
+                return [self::CLARIFICATION_MESSAGE, []];
+            }
+
+            foreach ($validatedToolRequests as $toolRequest) {
+                $toolResults[] = $this->executeToolRequest($toolRequest, $authenticatedUserId, $history);
+            }
         }
 
         throw new NumaProviderException(new NumaProviderError(
@@ -865,7 +891,7 @@ final class NumaService
         return $this->financialTools()->execute(
             $toolRequest->name(),
             $authenticatedUserId,
-            $this->resolveToolPeriods($toolRequest->arguments(), $history)
+            $toolRequest->arguments(),
         );
     }
 
@@ -1293,31 +1319,60 @@ final class NumaService
 
     /**
      * @param array<string, mixed> $arguments
-     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
      * @return array<string, mixed>
      */
-    private function resolveToolPeriods(array $arguments, array $history): array
+    private function resolveToolPeriods(string $toolName, array $arguments, string $message, ?array $referencePeriod): array
     {
-        $referencePeriod = $this->latestConversationPeriod($history);
+        $messagePeriods = $this->periodResolver->periodsMentionedInMessage($message, $referencePeriod);
 
-        foreach (['periodo', 'periodo_a', 'periodo_b'] as $key) {
-            if (!is_string($arguments[$key] ?? null)) {
-                continue;
+        if ($toolName === NumaFinancialToolRegistry::COMPARAR_PERIODOS) {
+            if (count($messagePeriods) >= 2) {
+                $arguments = $this->withResolvedPeriod($arguments, '_a', $messagePeriods[0]);
+
+                return $this->withResolvedPeriod($arguments, '_b', $messagePeriods[1]);
             }
 
-            $resolved = $this->periodResolver->resolveForFollowUp($arguments[$key], $referencePeriod);
-            unset($arguments[$key]);
+            if (count($messagePeriods) === 1 && $referencePeriod !== null) {
+                $arguments = $this->withResolvedPeriod($arguments, '_a', [
+                    'inicio' => $referencePeriod['start'],
+                    'fin' => $referencePeriod['end'],
+                ]);
 
-            if ($key === 'periodo') {
-                $arguments['fecha_inicio'] = $resolved['inicio'];
-                $arguments['fecha_fin'] = $resolved['fin'];
-                continue;
+                return $this->withResolvedPeriod($arguments, '_b', $messagePeriods[0]);
             }
 
-            $suffix = substr($key, -1);
-            $arguments['fecha_inicio_' . $suffix] = $resolved['inicio'];
-            $arguments['fecha_fin_' . $suffix] = $resolved['fin'];
+            throw new NumaFinancialToolInputIncomplete('La comparacion requiere dos periodos autorizados.');
         }
+
+        if (count($messagePeriods) > 1) {
+            throw new NumaFinancialToolInputIncomplete('La consulta requiere un unico periodo autorizado.');
+        }
+
+        $period = $messagePeriods[0] ?? ($referencePeriod === null ? null : [
+            'inicio' => $referencePeriod['start'],
+            'fin' => $referencePeriod['end'],
+        ]);
+        if ($period === null) {
+            throw new NumaFinancialToolInputIncomplete('La consulta requiere un periodo autorizado.');
+        }
+
+        return $this->withResolvedPeriod($arguments, '', $period);
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @param array{inicio:string,fin:string} $period
+     * @return array<string, mixed>
+     */
+    private function withResolvedPeriod(array $arguments, string $suffix, array $period): array
+    {
+        unset(
+            $arguments['periodo' . $suffix],
+            $arguments['fecha_inicio' . $suffix],
+            $arguments['fecha_fin' . $suffix],
+        );
+        $arguments['fecha_inicio' . $suffix] = $period['inicio'];
+        $arguments['fecha_fin' . $suffix] = $period['fin'];
 
         return $arguments;
     }

@@ -140,6 +140,8 @@ final class NumaPublicServiceTest extends TestCase
         self::assertSame(0, $knowledgeCalls);
         self::assertSame(0, $toolFactoryCalls);
         self::assertSame(2, $provider->calls);
+        self::assertSame([], $provider->requests[0]->availableTools());
+        self::assertSame([], $provider->requests[1]->availableTools());
         self::assertTrue($result->contextual());
     }
 
@@ -366,6 +368,9 @@ final class NumaPublicSequentialServiceProvider implements \NumaProviderInterfac
 {
     public int $calls = 0;
 
+    /** @var list<\NumaRequest> */
+    public array $requests = [];
+
     /** @var list<\NumaResponse> */
     private array $responses;
 
@@ -385,6 +390,7 @@ final class NumaPublicSequentialServiceProvider implements \NumaProviderInterfac
     public function respond(\NumaRequest $request): \NumaResponse
     {
         ++$this->calls;
+        $this->requests[] = $request;
         $this->consumption?->iniciarLlamada();
 
         return array_shift($this->responses) ?? throw new \LogicException('Falta una respuesta publica de prueba.');

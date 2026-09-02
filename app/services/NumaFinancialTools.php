@@ -87,6 +87,58 @@ final class NumaPeriodResolver
             : $this->year($referenceStart->modify('first day of January last year'));
     }
 
+    /**
+     * @param array{start:string,end:string}|null $referencePeriod
+     * @return list<array{inicio:string,fin:string}>
+     */
+    public function periodsMentionedInMessage(string $message, ?array $referencePeriod = null): array
+    {
+        if (preg_match_all('/\b(20\d{2}-\d{2}-\d{2})\b/', $message, $dateMatches) > 0) {
+            $dates = $dateMatches[1];
+            if (count($dates) === 1) {
+                return [$this->normalize($dates[0], $dates[0])];
+            }
+
+            return [$this->normalize($dates[0], $dates[count($dates) - 1])];
+        }
+
+        $months = implode('|', array_keys(self::NAMED_MONTHS));
+        if (preg_match_all('/\b(' . $months . ')(?:\s+de\s+(20\d{2}))?\b/iu', $message, $monthMatches) > 0) {
+            $periods = [];
+            foreach ($monthMatches[1] as $index => $monthName) {
+                $month = self::NAMED_MONTHS[strtolower($monthName)];
+                $year = isset($monthMatches[2][$index]) && $monthMatches[2][$index] !== ''
+                    ? (int) $monthMatches[2][$index]
+                    : (int) $this->now()->format('Y');
+                $period = $this->month($this->now()->setDate($year, $month, 1));
+
+                if (!in_array($period, $periods, true)) {
+                    $periods[] = $period;
+                }
+            }
+
+            return $periods;
+        }
+
+        $relativePeriods = [
+            '/\b(?:mes actual|este mes)\b/iu' => self::CURRENT_MONTH,
+            '/\b(?:mes anterior|mes pasado|el mes pasado)\b/iu' => self::PREVIOUS_MONTH,
+            '/\b(?:ano actual|año actual|este año)\b/iu' => self::CURRENT_YEAR,
+            '/\b(?:ano anterior|año anterior|año pasado|el año pasado)\b/iu' => self::PREVIOUS_YEAR,
+        ];
+        foreach ($relativePeriods as $pattern => $period) {
+            if (preg_match($pattern, $message) === 1) {
+                return [$this->resolveForFollowUp($period, $referencePeriod)];
+            }
+        }
+
+        if (preg_match('/\b(20\d{2})\b/', $message, $yearMatch) === 1) {
+            return [$this->year($this->now()->setDate((int) $yearMatch[1], 1, 1))];
+        }
+
+        return [];
+    }
+
     /** @return array{inicio:string,fin:string} */
     public function normalize(string $start, string $end): array
     {
@@ -546,12 +598,22 @@ final class NumaFinancialToolLimitExceeded extends RuntimeException
     }
 }
 
+final class NumaFinancialToolInputIncomplete extends InvalidArgumentException
+{
+}
+
 interface NumaFinancialToolRegistryInterface
 {
     /** @return array<int, string> */
     public function names(): array;
 
     public function get(string $name): NumaFinancialToolDefinition;
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    public function validate(string $name, int $authenticatedUserId, array $arguments): array;
 
     /**
      * @param array<string, mixed> $arguments
@@ -665,6 +727,15 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
         }
 
         return $this->definitions[$name];
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    public function validate(string $name, int $authenticatedUserId, array $arguments): array
+    {
+        return $this->executor->validate($this->get($name), $authenticatedUserId, $arguments);
     }
 
     /**
@@ -1062,12 +1133,7 @@ final class NumaFinancialToolExecutor
      */
     public function execute(NumaFinancialToolDefinition $definition, int $authenticatedUserId, array $arguments): array
     {
-        if ($authenticatedUserId <= 0) {
-            throw new InvalidArgumentException('Usuario de Numa no valido.');
-        }
-
-        $arguments = $this->normaliseCategoryArguments($arguments);
-        $this->validateArguments($definition, $arguments);
+        $arguments = $this->validate($definition, $authenticatedUserId, $arguments);
 
         $result = match ($definition->implementation()) {
             'executeResumenFinanciero' => $this->executeResumenFinanciero($authenticatedUserId, $arguments),
@@ -1080,6 +1146,22 @@ final class NumaFinancialToolExecutor
         };
 
         return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    public function validate(NumaFinancialToolDefinition $definition, int $authenticatedUserId, array $arguments): array
+    {
+        if ($authenticatedUserId <= 0) {
+            throw new InvalidArgumentException('Usuario de Numa no valido.');
+        }
+
+        $arguments = $this->normaliseCategoryArguments($arguments);
+        $this->validateArguments($definition, $arguments);
+
+        return $arguments;
     }
 
     /** @param array<string, mixed> $arguments */
@@ -1100,7 +1182,7 @@ final class NumaFinancialToolExecutor
 
         foreach ($definition->requiredParameters() as $key) {
             if (!array_key_exists($key, $arguments)) {
-                throw new InvalidArgumentException('Parametro obligatorio de Numa ausente.');
+                throw new NumaFinancialToolInputIncomplete('Parametro obligatorio de Numa ausente.');
             }
         }
 
@@ -1141,11 +1223,12 @@ final class NumaFinancialToolExecutor
     {
         foreach ($definition->requirementGroups() as $alternatives) {
             $completeAlternatives = 0;
+            $hasPartialAlternative = false;
 
             foreach ($alternatives as $alternative) {
                 $present = array_intersect($alternative, array_keys($arguments));
                 if ($present !== [] && count($present) !== count($alternative)) {
-                    throw new InvalidArgumentException('Combinacion de parametros de Numa incompleta.');
+                    $hasPartialAlternative = true;
                 }
 
                 if (count($present) === count($alternative)) {
@@ -1153,9 +1236,15 @@ final class NumaFinancialToolExecutor
                 }
             }
 
-            if ($completeAlternatives !== 1) {
-                throw new InvalidArgumentException('Combinacion de parametros de Numa no valida.');
+            if ($completeAlternatives === 1 && !$hasPartialAlternative) {
+                continue;
             }
+
+            if ($completeAlternatives === 0) {
+                throw new NumaFinancialToolInputIncomplete('Combinacion de parametros de Numa incompleta.');
+            }
+
+            throw new InvalidArgumentException('Combinacion de parametros de Numa no valida.');
         }
     }
 

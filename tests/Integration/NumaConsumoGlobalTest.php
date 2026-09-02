@@ -475,22 +475,27 @@ final class NumaConsumoGlobalTest extends TestCase
 
         $visitorA = $this->visitorHash();
         $visitorB = $this->visitorHash();
-        $this->fechasCreadas[] = '2026-09-18';
+        $month = (new DateTimeImmutable('first day of next month'))->setTime(0, 0);
+        $monthStart = $month->format('Y-m-d');
+        $nextMonthStart = $month->modify('first day of next month')->format('Y-m-d');
+        $testDate = $month->modify('+17 days')->format('Y-m-d');
+        $this->limpiarMesDePrueba($monthStart, $nextMonthStart);
+        $this->fechasCreadas[] = $testDate;
         $dir = sys_get_temp_dir() . '/benehom-numa-publico-global-' . bin2hex(random_bytes(8));
         $locker = $this->newConnection();
 
-        $this->insertRow('2026-09-01', 0, 0, 0);
+        $this->insertRow($monthStart, 0, 0, 0);
         self::assertTrue(mkdir($dir, 0700));
 
         $locker->beginTransaction();
 
         try {
             $stmt = $locker->prepare('SELECT fecha FROM numa_uso_proveedor WHERE fecha = :fecha FOR UPDATE');
-            $stmt->execute([':fecha' => '2026-09-01']);
-            self::assertSame('2026-09-01', $stmt->fetchColumn());
+            $stmt->execute([':fecha' => $monthStart]);
+            self::assertSame($monthStart, $stmt->fetchColumn());
 
-            $processA = $this->startConcurrentPublicGlobalCallProcess($visitorA, $dir, 'a', '2026-09-18 10:00:00');
-            $processB = $this->startConcurrentPublicGlobalCallProcess($visitorB, $dir, 'b', '2026-09-18 10:00:00');
+            $processA = $this->startConcurrentPublicGlobalCallProcess($visitorA, $dir, 'a', $testDate . ' 10:00:00');
+            $processB = $this->startConcurrentPublicGlobalCallProcess($visitorB, $dir, 'b', $testDate . ' 10:00:00');
 
             $this->waitForFiles([$processA['ready_file'], $processB['ready_file']]);
             file_put_contents($dir . '/start', '1');
@@ -524,7 +529,7 @@ final class NumaConsumoGlobalTest extends TestCase
         sort($statuses);
 
         self::assertSame(['limit', 'started'], $statuses);
-        self::assertSame(1, $this->llamadasPublicasDia('2026-09-18'));
+        self::assertSame(1, $this->llamadasPublicasDia($testDate));
         self::assertSame(1, $this->confirmadasPublicas($visitorA) + $this->confirmadasPublicas($visitorB));
         self::assertSame(0, $this->pendientesPublicas($visitorA) + $this->pendientesPublicas($visitorB));
     }
@@ -1050,6 +1055,17 @@ PHP;
             $fechas = implode(',', array_map([$this->db, 'quote'], array_unique($this->fechasCreadas)));
             $this->db->exec("DELETE FROM numa_uso_proveedor WHERE fecha IN ($fechas)");
         }
+    }
+
+    private function limpiarMesDePrueba(string $monthStart, string $nextMonthStart): void
+    {
+        $stmt = $this->db->prepare(
+            'DELETE FROM numa_uso_proveedor WHERE fecha >= :month_start AND fecha < :next_month_start'
+        );
+        $stmt->execute([
+            ':month_start' => $monthStart,
+            ':next_month_start' => $nextMonthStart,
+        ]);
     }
 
     private function ensureSchemaExists(): void

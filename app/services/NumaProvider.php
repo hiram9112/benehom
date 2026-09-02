@@ -281,12 +281,14 @@ final class NumaResponse
 {
     /**
      * @param array<string, mixed>|null $structuredData
+     * @param list<NumaToolRequest> $toolRequests
      */
     public function __construct(
         private readonly string $message,
         private readonly ?array $structuredData = null,
         private readonly ?NumaToolRequest $toolRequest = null,
         private readonly ?NumaTokenUsage $tokenUsage = null,
+        private readonly array $toolRequests = [],
     ) {
     }
 
@@ -306,6 +308,14 @@ final class NumaResponse
     public function toolRequest(): ?NumaToolRequest
     {
         return $this->toolRequest;
+    }
+
+    /** @return list<NumaToolRequest> */
+    public function toolRequests(): array
+    {
+        return $this->toolRequests !== []
+            ? $this->toolRequests
+            : ($this->toolRequest === null ? [] : [$this->toolRequest]);
     }
 
     public function tokenUsage(): NumaTokenUsage

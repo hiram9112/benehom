@@ -503,6 +503,11 @@ final class NumaAdversarialToolRegistryFake implements \NumaFinancialToolRegistr
         throw new \LogicException('No se esperaban definiciones de tool en esta prueba.');
     }
 
+    public function validate(string $name, int $authenticatedUserId, array $arguments): array
+    {
+        throw new \LogicException('La evaluacion adversarial no debe validar tools.');
+    }
+
     /**
      * @param array<string, mixed> $arguments
      * @return array<string, mixed>

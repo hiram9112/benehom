@@ -15,8 +15,13 @@ final class GeminiNumaProvider implements NumaProviderInterface
     /** @var callable */
     private $transport;
 
-    /** @var array<int, array{content:array<string,mixed>,name:string,id:string|null}> */
+    /** @var list<array{content:array<string,mixed>,calls:list<array{name:string,id:string|null}>}> */
     private array $functionCallTurns = [];
+
+    /** @var Closure(array<string, mixed>):void */
+    private readonly Closure $diagnosticLogger;
+
+    private int $responseTurn = 0;
 
     /** @var array<int, string> */
     private array $declaredFunctionNames = [];
@@ -31,12 +36,16 @@ final class GeminiNumaProvider implements NumaProviderInterface
         private readonly string $baseUrl = self::API_BASE_URL,
         private readonly ?NumaProviderConsumptionInterface $consumption = null,
         private readonly int $maxResponseBodyBytes = 65536,
+        ?callable $diagnosticLogger = null,
     ) {
         if (trim($apiKey) === '' || trim($model) === '' || $maxResponseBodyBytes <= 0) {
             throw self::configurationError();
         }
 
         $this->transport = $transport ?? [$this, 'curlTransport'];
+        $this->diagnosticLogger = Closure::fromCallable($diagnosticLogger ?? static function (array $diagnostic): void {
+            error_log('numa_provider_response_diagnostic ' . json_encode($diagnostic, JSON_THROW_ON_ERROR));
+        });
     }
 
     public static function fromEnvironment(
@@ -165,29 +174,41 @@ final class GeminiNumaProvider implements NumaProviderInterface
         ];
 
         if ($toolResults !== [] && $this->functionCallTurns !== []) {
-            if (count($toolResults) > count($this->functionCallTurns)) {
+            $expectedToolResults = array_sum(array_map(
+                static fn (array $turn): int => count($turn['calls']),
+                $this->functionCallTurns,
+            ));
+            if (count($toolResults) !== $expectedToolResults) {
                 throw self::invalidResponseError();
             }
 
-            foreach (array_values($toolResults) as $index => $result) {
-                $turn = $this->functionCallTurns[$index];
-                $functionResponse = [
-                    'name' => $turn['name'],
-                    'response' => [
-                        'result' => $result,
-                    ],
-                ];
+            $resultIndex = 0;
+            foreach ($this->functionCallTurns as $turn) {
+                $functionResponses = [];
+                foreach ($turn['calls'] as $call) {
+                    if (!array_key_exists($resultIndex, $toolResults)) {
+                        break 2;
+                    }
 
-                if ($turn['id'] !== null) {
-                    $functionResponse['id'] = $turn['id'];
+                    $functionResponse = [
+                        'name' => $call['name'],
+                        'response' => [
+                            'result' => $toolResults[$resultIndex],
+                        ],
+                    ];
+
+                    if ($call['id'] !== null) {
+                        $functionResponse['id'] = $call['id'];
+                    }
+
+                    $functionResponses[] = ['functionResponse' => $functionResponse];
+                    ++$resultIndex;
                 }
 
                 $contents[] = $turn['content'];
                 $contents[] = [
                     'role' => 'user',
-                    'parts' => [[
-                        'functionResponse' => $functionResponse,
-                    ]],
+                    'parts' => $functionResponses,
                 ];
             }
         }
@@ -215,7 +236,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
             ];
         }
 
-        $functionDeclarations = $this->functionDeclarations($request);
+        $functionDeclarations = array_map(
+            static fn (array $declaration): array => self::geminiFunctionDeclaration($declaration),
+            $this->functionDeclarations($request),
+        );
         $this->declaredFunctionNames = array_map(
             static fn (array $declaration): string => (string) $declaration['name'],
             $functionDeclarations
@@ -343,10 +367,11 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $candidate = $this->candidate($decoded);
         $usage = $this->tokenUsage($decoded);
         $this->assertOutputWithinLimits($candidate, $usage, $outputTokenLimit);
-        $toolRequest = $this->extractToolRequest($candidate);
+        $this->recordResponseDiagnostics($candidate);
+        $toolRequests = $this->extractToolRequests($candidate);
         $message = $this->extractText($candidate);
 
-        if ($toolRequest !== null) {
+        if ($toolRequests !== []) {
             // Una llamada a function no puede venir acompañada de una respuesta final.
             if ($message !== '') {
                 throw self::invalidResponseError();
@@ -355,8 +380,9 @@ final class GeminiNumaProvider implements NumaProviderInterface
             return new NumaResponse(
                 'Solicitud de tool de Numa.',
                 null,
-                $toolRequest,
-                $usage
+                $toolRequests[0],
+                $usage,
+                $toolRequests,
             );
         }
 
@@ -377,52 +403,61 @@ final class GeminiNumaProvider implements NumaProviderInterface
     /**
      * @param array<string, mixed> $candidate
      */
-    private function extractToolRequest(array $candidate): ?NumaToolRequest
+    private function extractToolRequests(array $candidate): array
     {
         $content = $candidate['content'] ?? null;
         $parts = is_array($content) ? ($content['parts'] ?? null) : null;
 
         if (!is_array($content) || !is_array($parts)) {
-            return null;
+            return [];
         }
 
-        $functionCallPart = null;
+        $functionCalls = [];
         foreach ($parts as $part) {
-            if (!is_array($part) || !isset($part['functionCall'])) {
+            if (!is_array($part) || !array_key_exists('functionCall', $part)) {
                 continue;
             }
 
-            if ($functionCallPart !== null || !is_array($part['functionCall'])) {
+            if (!is_array($part['functionCall'])) {
                 throw self::invalidResponseError();
             }
 
-            $functionCallPart = $part;
+            $functionCalls[] = $part['functionCall'];
         }
 
-        if ($functionCallPart === null) {
-            return null;
+        if ($functionCalls === []) {
+            return [];
         }
 
-        $functionCall = $functionCallPart['functionCall'];
-        $name = $functionCall['name'] ?? null;
+        $toolRequests = [];
+        $turnCalls = [];
+        foreach ($functionCalls as $functionCall) {
+            $name = $functionCall['name'] ?? null;
 
-        if (!is_string($name) || trim($name) === '') {
-            throw self::invalidResponseError();
-        }
+            if (!is_string($name) || trim($name) === '') {
+                throw self::invalidResponseError();
+            }
 
-        $name = trim($name);
-        if ($this->declaredFunctionNames === [] || !in_array($name, $this->declaredFunctionNames, true)) {
-            throw self::invalidResponseError();
-        }
+            $name = trim($name);
+            if ($this->declaredFunctionNames === [] || !in_array($name, $this->declaredFunctionNames, true)) {
+                throw self::invalidResponseError();
+            }
 
-        $args = $functionCall['args'] ?? [];
-        if (!is_array($args) || ($args !== [] && array_is_list($args))) {
-            throw self::invalidResponseError();
-        }
+            $args = $functionCall['args'] ?? [];
+            if (!is_array($args) || ($args !== [] && array_is_list($args))) {
+                throw self::invalidResponseError();
+            }
 
-        $id = $functionCall['id'] ?? null;
-        if ($id !== null && !is_string($id)) {
-            throw self::invalidResponseError();
+            $id = $functionCall['id'] ?? null;
+            if ($id !== null && !is_string($id)) {
+                throw self::invalidResponseError();
+            }
+
+            $toolRequests[] = new NumaToolRequest($name, $args);
+            $turnCalls[] = [
+                'name' => $name,
+                'id' => $id,
+            ];
         }
 
         $modelContent = $content;
@@ -430,11 +465,57 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         $this->functionCallTurns[] = [
             'content' => $modelContent,
-            'name' => $name,
-            'id' => $id,
+            'calls' => $turnCalls,
         ];
 
-        return new NumaToolRequest($name, $args);
+        return $toolRequests;
+    }
+
+    /** @param array<string, mixed> $candidate */
+    private function recordResponseDiagnostics(array $candidate): void
+    {
+        ++$this->responseTurn;
+
+        if (!bh_env_bool('NUMA_PROVIDER_RESPONSE_DIAGNOSTICS', false)) {
+            return;
+        }
+
+        $parts = $candidate['content']['parts'] ?? null;
+        if (!is_array($parts)) {
+            return;
+        }
+
+        $functionCalls = [];
+        $partShapes = [];
+        foreach ($parts as $part) {
+            if (!is_array($part)) {
+                $partShapes[] = ['invalid'];
+                continue;
+            }
+
+            $partShapes[] = array_values(array_filter(array_keys($part), 'is_string'));
+            $functionCall = $part['functionCall'] ?? null;
+            if (!is_array($functionCall)) {
+                continue;
+            }
+
+            $functionCalls[] = [
+                'name' => is_string($functionCall['name'] ?? null) ? $functionCall['name'] : null,
+                'id' => is_string($functionCall['id'] ?? null) ? $functionCall['id'] : null,
+            ];
+        }
+
+        try {
+            ($this->diagnosticLogger)([
+                'provider_turn' => $this->responseTurn,
+                'function_call_count' => count($functionCalls),
+                'function_calls' => $functionCalls,
+                'finish_reason' => is_string($candidate['finishReason'] ?? null) ? $candidate['finishReason'] : null,
+                'part_shapes' => $partShapes,
+            ]);
+        } catch (Throwable) {
+            // El diagnóstico no puede alterar el resultado del proveedor.
+        }
     }
 
     /**
@@ -619,6 +700,42 @@ final class GeminiNumaProvider implements NumaProviderInterface
         }
 
         return $declarations;
+    }
+
+    /**
+     * Gemini function declarations use an OpenAPI subset that excludes
+     * additionalProperties. The internal contract remains closed and is still
+     * enforced before a tool can execute.
+     *
+     * @param array<string, mixed> $declaration
+     * @return array<string, mixed>
+     */
+    private static function geminiFunctionDeclaration(array $declaration): array
+    {
+        $parameters = $declaration['parameters'] ?? null;
+
+        if (is_array($parameters)) {
+            $declaration['parameters'] = self::geminiParameterSchema($parameters);
+        }
+
+        return $declaration;
+    }
+
+    /**
+     * @param array<array-key, mixed> $schema
+     * @return array<array-key, mixed>
+     */
+    private static function geminiParameterSchema(array $schema): array
+    {
+        unset($schema['additionalProperties']);
+
+        foreach ($schema as $key => $value) {
+            if (is_array($value)) {
+                $schema[$key] = self::geminiParameterSchema($value);
+            }
+        }
+
+        return $schema;
     }
 
     /**

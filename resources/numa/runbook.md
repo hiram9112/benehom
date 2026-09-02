@@ -149,3 +149,103 @@ VirtualHost debe servir `public/`, y observar
 `/var/log/apache2/benehom.local-error.log`. Confirmar el host efectivo con
 `apache2ctl -S`. Las peticiones al host por defecto, como
 `http://localhost/benehom/public`, se registran en `/var/log/apache2/error.log`.
+
+## Validacion financiera controlada
+
+Antes de continuar con la aceptacion general, ejecutar fuera de CI una validacion con
+Gemini real, una cuenta de prueba y movimientos sinteticos. No guardar mensajes,
+respuestas, importes ni payloads completos: conservar solo una ficha tecnica por caso
+con la tool elegida, nombres de argumentos, `finishReason`, numero de llamadas,
+unidades consumidas y si la respuesta final coincidió con el resultado autorizado.
+
+Los casos minimos son una consulta de `electricidad` y su expresion "luz", una de
+`comida_domicilio` y "comida a domicilio", un filtro por grupo, una metrica, un periodo
+simbolico y un rango explicito. Para cada uno, comprobar que `tools.functionDeclarations`
+incluye las seis declaraciones completas, que la clasificacion no contiene el antiguo
+arbol financiero de `responseSchema` y que el intercambio conserva exactamente
+`functionCall` (nombre e identificador), `functionResponse` y el turno del modelo.
+
+Registrar por separado los rechazos de `MAX_TOKENS`, tool desconocida, argumentos
+adicionales, enums invalidos, periodos incompletos y combinaciones incompatibles. Ningun
+caso rechazado puede ejecutar una consulta financiera ni devolver un resultado parcial.
+Confirmar tambien que el usuario procede de la sesion, las tools son solo lectura y el
+modo publico no recibe declaraciones financieras.
+
+Para investigar de forma temporal una respuesta de Gemini, activar
+`NUMA_PROVIDER_RESPONSE_DIAGNOSTICS=true`. El log estructurado incluye solo el turno
+del proveedor, el numero de `functionCall`, sus nombres e IDs, `finishReason` y las
+claves de cada `part`; nunca incluye el prompt, argumentos, resultados ni credenciales.
+Desactivarlo tras obtener la evidencia necesaria.
+
+### Cierre controlado 17.3.3
+
+Este registro cierra la validacion financiera controlada de 17.3.3. La evidencia de
+Gemini real procede de una ejecucion manual externa con cuenta de prueba y datos
+sinteticos. No se realizaron llamadas reales adicionales para redactar este cierre.
+Los argumentos completos de Gemini, IDs, payloads completos, tokens y unidades no
+indicados a continuacion son **no registrados**.
+
+#### Comprobado con Gemini real
+
+| Caso | Resultado y evidencia registrada | Llamadas y detalle no registrado |
+| --- | --- | --- |
+| `cuanto gasté en luz en junio` | PASS. NUMA devolvio 97,00 EUR de electricidad, coincidente con BeneHom. La ejecucion final registro `outcome=success` y `error_code=null`. | `calls=3`. `finishReason`, argumentos e IDs: no registrados. |
+| `cuanto gasté en comida a domicilio en junio?` | PASS. NUMA devolvio 52,40 EUR, coincidente con BeneHom, y conservo `comida_domicilio`; no se degrado a un resumen de gastos flexibles. | Llamadas, `finishReason`, argumentos e IDs: no registrados. |
+| `cuánto gasté en suministros en junio?` | PASS. NUMA devolvio 204,80 EUR y el desglose autorizado: electricidad 97,00 EUR; internet y telefonia basica 44,90 EUR; agua 33,10 EUR; gas 29,80 EUR. Se valido el grupo `suministros`. | Llamadas, `finishReason`, argumentos e IDs: no registrados. |
+| `Compara cuánto gasté en electricidad y comida a domicilio en junio` | PASS tras correccion. Resultado final: electricidad 97,00 EUR y comida a domicilio 52,40 EUR. | La ejecucion inicial fallo con `NUMA_PROVIDER_INVALID_RESPONSE` y `calls=2`; las llamadas de la repeticion final, `finishReason`, argumentos e IDs: no registrados. |
+| `¿Cuánto gasté en electricidad?` en una conversacion nueva sin periodo | PASS tras correccion. La respuesta final fue: `Necesito que concretes un poco más la consulta para poder ayudarte.` No se ejecutaron tools ni consultas financieras cuando no habia un periodo autorizado. | La ejecucion inicial con HTTP 503 registro `calls=2`; las llamadas de la repeticion final, tokens, argumentos e IDs: no registrados. |
+| Continuacion con `en junio` | PASS. NUMA reutilizo la intencion financiera anterior y devolvio electricidad de junio: 97,00 EUR, con periodo del 1 al 30 de junio de 2026. No fue necesario repetir la consulta completa. | Llamadas, `finishReason`, argumentos e IDs: no registrados. |
+
+#### Observado en logs
+
+Para una de las ejecuciones sin periodo se registro esta secuencia diagnostica, sin
+argumentos, IDs ni payloads completos:
+
+| Turno | `function_call_count` | Tool | `finishReason` | Resultado observado |
+| --- | --- | --- | --- | --- |
+| 1 | 0 | No aplicable | `STOP` | Respuesta de texto. |
+| 2 | 1 | `obtener_estadisticas_movimientos` | `STOP` | Gemini solicito una tool. |
+| 3 | 0 | No aplicable | `STOP` | Respuesta final de texto. |
+
+El resto de `finishReason`, argumentos e IDs de la validacion real son no registrados.
+
+#### Incidencias descubiertas y estado final
+
+| Incidencia | Evidencia y causa confirmada | Estado final |
+| --- | --- | --- |
+| `additionalProperties` incompatible con Gemini | Antes del primer PASS se observo HTTP 400 porque las `functionDeclarations` incluian ese campo, no admitido por Gemini. | Corregida: se proyecta para Gemini un schema compatible sin `additionalProperties`; la validacion estricta interna de BeneHom se conserva. |
+| Rechazo inicial de varios `functionCall` | La comparacion inicial fallo con `NUMA_PROVIDER_INVALID_RESPONSE` y `calls=2`: Gemini devolvio varias llamadas en un turno y el backend rechazo la segunda. | Corregida y validada con Gemini real: se admiten lotes de `functionCall`, con un `functionResponse` por llamada y conservacion de nombre e ID. |
+| Falta de atomicidad del lote | Se identifico como requisito de seguridad al corregir los lotes. | Corregida y cubierta por pruebas automatizadas: el lote se valida completo antes de ejecutar tools; si una llamada es invalida, se ejecutan 0 tools y 0 consultas financieras. No hay un payload real de este caso registrado. |
+| Periodo ausente convertido inicialmente en 503 | En conversacion nueva se observo `NUMA_PROVIDER_INVALID_RESPONSE`, HTTP 503 y `calls=2`. | Corregida: sin periodo autorizado se devuelve aclaracion y se ejecutan 0 tools y 0 consultas financieras. La repeticion real fue PASS. |
+| Periodo inventado o asumido por Gemini | Gemini asumio septiembre y NUMA ejecuto la consulta sin que el usuario hubiera dado periodo. La causa confirmada fue aceptar el periodo propuesto por Gemini y resolverlo contra la fecha actual sin verificar su procedencia. | Corregida y validada con Gemini real: el periodo solo puede venir del mensaje actual o de un periodo estructurado e inequivoco del contexto conversacional; no hay fallback al mes actual ni al mes del dashboard. |
+| Fallback generico de aclaracion | La ausencia de periodo requeria una respuesta segura y consistente. | Corregido y validado con Gemini real: `Necesito que concretes un poco más la consulta para poder ayudarte.` |
+
+#### Cubierto unicamente por pruebas automatizadas
+
+Las pruebas de esta seccion usan transportes fake/mocks, fakes de proveedor o base de
+datos de prueba; no constituyen nuevas llamadas a Gemini real. La cobertura relevante
+de 17.3.3 queda en `GeminiNumaProviderTest`,
+`NumaFinancialFunctionCallingTest`, `NumaFinancialToolRegistryTest`,
+`NumaFinancialToolsTest`, `NumaProviderContractTest`, `NumaControllerTest` y
+`NumaPublicServiceTest`.
+
+| Defensa | Cobertura automatizada |
+| --- | --- |
+| Declaraciones y schema | Verifica la presencia de `tools.functionDeclarations`, las seis declaraciones completas, sus nombres, descripciones, enums, alternativas de periodo y schemas. Verifica ademas que Gemini recibe la proyeccion compatible sin `additionalProperties`, mientras el contrato interno mantiene su prohibicion. |
+| Separacion clasificacion/tools | Verifica que el antiguo arbol de seleccion financiera no aparece en `responseSchema`; la clasificacion permanece estructurada y las tools se declaran en la solicitud posterior. |
+| Protocolo function calling | Verifica la secuencia `functionCall -> validacion PHP -> tool -> functionResponse -> respuesta`, la correspondencia de nombre e ID, y la conservacion del turno `model` del proveedor, incluida su `thoughtSignature` cuando existe. |
+| Llamadas sucesivas y en lote | Verifica una segunda tool secuencial, varios `functionCall` en un mismo turno y un `functionResponse` emparejado por llamada. Tambien verifica el rechazo de un lote que excede el presupuesto maximo de tools. |
+| Atomicidad y rechazos | Verifica que un lote con una llamada invalida ejecuta 0 tools, prepara 0 consultas financieras y no devuelve resultados parciales. Cubre tool desconocida, argumentos adicionales, enums invalidos, periodos ausentes o incompletos, rangos incompatibles y combinaciones incompatibles. |
+| Truncado y limites de proveedor | Verifica `MAX_TOKENS`, respuestas truncadas o no utilizables, respuestas sin `finishReason`, salida por encima del limite y rechazo antes de consultar tools. |
+| Periodos autorizados | Verifica aclaracion y 0 tools/0 consultas para una consulta sin periodo o con un periodo inventado por Gemini sin contexto. Verifica tambien que un seguimiento reutiliza un periodo estructurado autorizado y no el periodo propuesto por Gemini. |
+| Integridad de la respuesta | Verifica que una cifra final no respaldada por `functionResponse` se sustituye por un fallback determinista basado en los hechos autorizados. |
+| Aislamiento y autorizacion | Verifica que las tools usan el usuario autenticado procedente del backend/sesion, rechazan `usuario_id` en argumentos y no exponen datos de otro usuario. Las tools financieras estan restringidas al catalogo de solo lectura y a resultados agregados o acotados. |
+| Modo publico | Verifica que el modo publico no resuelve el registro de tools ni recibe declaraciones financieras. |
+| Limites agregados y consumo | Verifica los hard caps de tools, rango temporal y resultado agregado, ademas del consumo de llamadas/unidades en recorridos correctos, rechazados y secuenciales. Los valores de consumo de Gemini real fuera de los `calls` indicados arriba son no registrados. |
+
+#### Riesgos residuales
+
+No hay riesgos residuales abiertos registrados para 17.3.3: las incidencias halladas
+tienen correccion, regresion automatizada y validacion real satisfactoria en los casos
+indicados. La evidencia real no incluye los campos expresamente marcados como no
+registrados; no se infiere su contenido ni su consumo.

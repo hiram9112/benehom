@@ -82,14 +82,16 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame('obtener_resumen_financiero', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
         self::assertSame('AUTO', $captured['body']['toolConfig']['functionCallingConfig']['mode']);
         self::assertSame(
-            (new \NumaFinancialToolRegistry())->get('obtener_resumen_financiero')->functionDeclaration(),
+            $this->geminiFunctionDeclaration(
+                (new \NumaFinancialToolRegistry())->get('obtener_resumen_financiero')->functionDeclaration(),
+            ),
             $captured['body']['tools'][0]['functionDeclarations'][0]
         );
         self::assertSame(
             [['periodo'], ['fecha_inicio', 'fecha_fin']],
             array_column($captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['anyOf'], 'required')
         );
-        self::assertFalse($captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['additionalProperties']);
+        self::assertArrayNotHasKey('additionalProperties', $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']);
         self::assertSame('Instrucciones internas de Numa', $captured['body']['system_instruction']['parts'][0]['text']);
         self::assertStringContainsString('Mensaje actual del usuario:', $captured['body']['contents'][0]['parts'][0]['text']);
         self::assertStringContainsString('¿Cómo añado un movimiento?', $captured['body']['contents'][0]['parts'][0]['text']);
@@ -132,11 +134,55 @@ final class GeminiNumaProviderTest extends TestCase
 
         self::assertSame(
             array_map(
-                static fn (\NumaFinancialToolDefinition $definition): array => $definition->functionDeclaration(),
+                fn (\NumaFinancialToolDefinition $definition): array => $this->geminiFunctionDeclaration($definition->functionDeclaration()),
                 $definitions,
             ),
             $captured['tools'][0]['functionDeclarations']
         );
+    }
+
+    public function testOmiteAdditionalPropertiesQueGeminiRechazaEnLasDeclaracionesFinancieras(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static function (string $url, array $headers, string $body): array {
+            if (str_contains($body, '"additionalProperties"')) {
+                return [
+                    'status' => 400,
+                    'body' => json_encode([
+                        'error' => [
+                            'code' => 400,
+                            'status' => 'INVALID_ARGUMENT',
+                            'message' => 'Unknown name "additionalProperties" at function declaration parameters.',
+                        ],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            }
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => ['parts' => [['text' => 'Declaraciones compatibles.']]],
+                        'finishReason' => 'STOP',
+                    ]],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+        $registry = new \NumaFinancialToolRegistry();
+
+        $response = $provider->respond(new \NumaRequest(
+            'Consulta financiera',
+            '',
+            [[
+                'type' => 'available_financial_tools',
+                'items' => array_map(
+                    static fn (\NumaFinancialToolDefinition $definition): array => $definition->externalContract(),
+                    array_values($registry->all()),
+                ),
+            ]],
+            $registry->names(),
+        ));
+
+        self::assertSame('Declaraciones compatibles.', $response->message());
     }
 
     public function testPermiteRespuestaEstructuradaJson(): void
@@ -272,6 +318,64 @@ final class GeminiNumaProviderTest extends TestCase
                 self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
             }
         }
+    }
+
+    public function testDiagnosticoDeFunctionCallsNoRegistraContenidoNiArgumentos(): void
+    {
+        $_ENV['NUMA_PROVIDER_RESPONSE_DIAGNOSTICS'] = 'true';
+        $diagnostics = [];
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: static fn (): array => [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => ['parts' => [
+                            ['functionCall' => [
+                                'id' => 'parallel-electricity',
+                                'name' => 'obtener_resumen_financiero',
+                                'args' => ['periodo' => 'junio', 'categoria' => 'electricidad'],
+                            ], 'thoughtSignature' => 'never-log-this'],
+                            ['functionCall' => [
+                                'id' => 'parallel-delivery',
+                                'name' => 'obtener_resumen_financiero',
+                                'args' => ['periodo' => 'junio', 'categoria' => 'comida_domicilio'],
+                            ]],
+                        ]],
+                        'finishReason' => 'STOP',
+                    ]],
+                ], JSON_THROW_ON_ERROR),
+            ],
+            diagnosticLogger: static function (array $diagnostic) use (&$diagnostics): void {
+                $diagnostics[] = $diagnostic;
+            },
+        );
+
+        $response = $provider->respond(new \NumaRequest(
+            'Consulta de prueba',
+            '',
+            $this->toolContext(),
+            ['obtener_resumen_financiero'],
+        ));
+
+        self::assertCount(2, $response->toolRequests());
+        self::assertSame([[
+            'provider_turn' => 1,
+            'function_call_count' => 2,
+            'function_calls' => [
+                ['name' => 'obtener_resumen_financiero', 'id' => 'parallel-electricity'],
+                ['name' => 'obtener_resumen_financiero', 'id' => 'parallel-delivery'],
+            ],
+            'finish_reason' => 'STOP',
+            'part_shapes' => [
+                ['functionCall', 'thoughtSignature'],
+                ['functionCall'],
+            ],
+        ]], $diagnostics);
+        self::assertStringNotContainsString('junio', json_encode($diagnostics, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('electricidad', json_encode($diagnostics, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('never-log-this', json_encode($diagnostics, JSON_THROW_ON_ERROR));
     }
 
     public function testRechazaUsoDeSalidaPorEncimaDelLimite(): void
@@ -852,6 +956,7 @@ final class GeminiNumaProviderTest extends TestCase
             'NUMA_MAX_OUTPUT_TOKENS',
             'NUMA_PROVIDER_TIMEOUT_SECONDS',
             'NUMA_MAX_TRANSIENT_RETRIES',
+            'NUMA_PROVIDER_RESPONSE_DIAGNOSTICS',
             'NUMA_PUBLIC_ENABLED',
             'NUMA_PUBLIC_HASH_KEY',
         ];
@@ -877,5 +982,33 @@ final class GeminiNumaProviderTest extends TestCase
         }
 
         return $context;
+    }
+
+    /**
+     * @param array<string, mixed> $declaration
+     * @return array<string, mixed>
+     */
+    private function geminiFunctionDeclaration(array $declaration): array
+    {
+        $declaration['parameters'] = $this->withoutAdditionalProperties($declaration['parameters']);
+
+        return $declaration;
+    }
+
+    /**
+     * @param array<array-key, mixed> $schema
+     * @return array<array-key, mixed>
+     */
+    private function withoutAdditionalProperties(array $schema): array
+    {
+        unset($schema['additionalProperties']);
+
+        foreach ($schema as $key => $value) {
+            if (is_array($value)) {
+                $schema[$key] = $this->withoutAdditionalProperties($value);
+            }
+        }
+
+        return $schema;
     }
 }

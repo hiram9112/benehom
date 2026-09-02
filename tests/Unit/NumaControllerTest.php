@@ -133,6 +133,17 @@ final class NumaFinancialToolRegistryFake implements \NumaFinancialToolRegistryI
         );
     }
 
+    public function validate(string $name, int $authenticatedUserId, array $arguments): array
+    {
+        $this->get($name);
+
+        if ($authenticatedUserId < 1) {
+            throw new \InvalidArgumentException('Usuario no valido en fake.');
+        }
+
+        return $arguments;
+    }
+
     public function execute(string $name, int $authenticatedUserId, array $arguments): array
     {
         $this->executions++;
@@ -1033,7 +1044,7 @@ final class NumaControllerTest extends TestCase
         );
 
         self::assertTrue($response['ok']);
-        self::assertSame('¿Podrías concretar qué quieres consultar en BeneHom?', $response['data']['message']);
+        self::assertSame('Necesito que concretes un poco más la consulta para poder ayudarte.', $response['data']['message']);
         self::assertSame('available', $response['data']['availability']);
         self::assertSame(0, $knowledgeSearchSpy->calls);
         self::assertSame(0, $tools->executions);

@@ -1672,6 +1672,13 @@ final class NumaControllerTest extends TestCase
         $this->configureJsonPost();
         $numaUso = new NumaUsoFake();
         $tools = new NumaFinancialToolRegistryFake();
+        $entries = [];
+        $logger = new \NumaMinimalLogger(
+            static function (string $entry) use (&$entries): void {
+                $entries[] = $entry;
+            },
+            detailedDiagnostics: true,
+        );
         $provider = new SequentialNumaProviderFake(
             new \NumaResponse('clasificacion', [
                 'intent' => 'datos_usuario',
@@ -1696,7 +1703,8 @@ final class NumaControllerTest extends TestCase
             $numaUso,
             $provider,
             [],
-            $tools
+            $tools,
+            logger: $logger,
         );
 
         self::assertTrue($response['ok']);
@@ -1711,6 +1719,10 @@ final class NumaControllerTest extends TestCase
         self::assertSame(3, $numaUso->reservations);
         self::assertSame(3, $numaUso->confirmations);
         self::assertFalse($numaUso->reverted);
+        self::assertArrayNotHasKey('tools', $response['data']);
+        self::assertCount(1, $entries);
+        $log = json_decode(substr($entries[0], 5), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $log['tools']);
     }
 
     public function testChatActivoUsaFallbackSiElProveedorInventaUnaCifraFinanciera(): void

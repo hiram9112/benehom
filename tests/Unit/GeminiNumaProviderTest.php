@@ -350,6 +350,7 @@ final class GeminiNumaProviderTest extends TestCase
             diagnosticLogger: static function (array $diagnostic) use (&$diagnostics): void {
                 $diagnostics[] = $diagnostic;
             },
+            correlationId: '0123456789abcdef0123456789abcdef',
         );
 
         $response = $provider->respond(new \NumaRequest(
@@ -361,6 +362,7 @@ final class GeminiNumaProviderTest extends TestCase
 
         self::assertCount(2, $response->toolRequests());
         self::assertSame([[
+            'correlation_id' => '0123456789abcdef0123456789abcdef',
             'provider_turn' => 1,
             'function_call_count' => 2,
             'function_calls' => [

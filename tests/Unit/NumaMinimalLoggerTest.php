@@ -40,6 +40,26 @@ final class NumaMinimalLoggerTest extends TestCase
         self::assertSame('NUMA_PROVIDER_TIMEOUT', $payload['error_code']);
     }
 
+    public function testRegistraSoloToolsEjecutadasConNombreTecnicoSeguro(): void
+    {
+        $entries = [];
+        $logger = new \NumaMinimalLogger(
+            static function (string $entry) use (&$entries): void {
+                $entries[] = $entry;
+            },
+            detailedDiagnostics: true,
+        );
+
+        $logger->recordExecutedTool('obtener_estadisticas_movimientos');
+        $logger->recordExecutedTool('contenido privado');
+        $logger->record('response', hrtime(true), 3, null, true);
+
+        $payload = json_decode(substr($entries[0], 5), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(['obtener_estadisticas_movimientos'], $payload['tools']);
+        self::assertStringNotContainsString('contenido privado', $entries[0]);
+    }
+
     public function testNoPermiteQueUnCodigoTecnicoNoSeguroLlegueAlLog(): void
     {
         $entries = [];

@@ -173,9 +173,14 @@ modo publico no recibe declaraciones financieras.
 
 Para investigar de forma temporal una respuesta de Gemini, activar
 `NUMA_PROVIDER_RESPONSE_DIAGNOSTICS=true`. El log estructurado incluye solo el turno
-del proveedor, el numero de `functionCall`, sus nombres e IDs, `finishReason` y las
-claves de cada `part`; nunca incluye el prompt, argumentos, resultados ni credenciales.
-Desactivarlo tras obtener la evidencia necesaria.
+del proveedor, el `correlation_id`, el numero de `functionCall`, sus nombres e IDs,
+`finishReason` y las claves de cada `part`; nunca incluye el prompt, argumentos,
+resultados ni credenciales. Con el diagnostico activo, el log final `numa` añade
+`tools` para las tools ejecutadas con exito por el backend; este campo tampoco se
+muestra en el panel. El campo `calls` cuenta unidades de proveedor realmente iniciadas.
+`tokens` solo contiene la suma si todas esas unidades informaron una metrica real; se
+mantiene en `null` si alguna respuesta, como puede ocurrir con `embedContent`, no la
+incluye. Desactivarlo tras obtener la evidencia necesaria.
 
 ### Cierre controlado 17.3.3
 

@@ -321,6 +321,7 @@ final class NumaService
         NumaGlobalAvailabilityInterface|Closure $globalAvailability,
         private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
         private readonly NumaFinancialFactValidator $financialFacts = new NumaFinancialFactValidator(),
+        ?callable $toolExecutionObserver = null,
     ) {
         $this->providerFactory = $provider instanceof NumaProviderInterface
             ? static fn (?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface => $provider
@@ -332,6 +333,9 @@ final class NumaService
         $this->globalAvailabilityFactory = $globalAvailability instanceof NumaGlobalAvailabilityInterface
             ? static fn (): NumaGlobalAvailabilityInterface => $globalAvailability
             : $globalAvailability;
+        $this->toolExecutionObserver = $toolExecutionObserver === null
+            ? null
+            : Closure::fromCallable($toolExecutionObserver);
     }
 
     /** @var Closure(?NumaProviderConsumptionInterface): NumaProviderInterface */
@@ -345,6 +349,9 @@ final class NumaService
 
     /** @var Closure(): NumaGlobalAvailabilityInterface */
     private readonly Closure $globalAvailabilityFactory;
+
+    /** @var Closure(string):void|null */
+    private readonly ?Closure $toolExecutionObserver;
 
     private ?NumaProviderInterface $resolvedProvider = null;
 
@@ -888,11 +895,19 @@ final class NumaService
             throw new InvalidArgumentException('Las tools no estan disponibles en el modo publico.');
         }
 
-        return $this->financialTools()->execute(
+        $result = $this->financialTools()->execute(
             $toolRequest->name(),
             $authenticatedUserId,
             $toolRequest->arguments(),
         );
+
+        try {
+            ($this->toolExecutionObserver)?->__invoke($toolRequest->name());
+        } catch (Throwable) {
+            // La observabilidad no puede alterar una ejecución financiera correcta.
+        }
+
+        return $result;
     }
 
     /**

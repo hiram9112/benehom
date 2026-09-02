@@ -21,6 +21,8 @@ final class GeminiNumaProvider implements NumaProviderInterface
     /** @var Closure(array<string, mixed>):void */
     private readonly Closure $diagnosticLogger;
 
+    private readonly string $correlationId;
+
     private int $responseTurn = 0;
 
     /** @var array<int, string> */
@@ -37,6 +39,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         private readonly ?NumaProviderConsumptionInterface $consumption = null,
         private readonly int $maxResponseBodyBytes = 65536,
         ?callable $diagnosticLogger = null,
+        ?string $correlationId = null,
     ) {
         if (trim($apiKey) === '' || trim($model) === '' || $maxResponseBodyBytes <= 0) {
             throw self::configurationError();
@@ -46,12 +49,16 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $this->diagnosticLogger = Closure::fromCallable($diagnosticLogger ?? static function (array $diagnostic): void {
             error_log('numa_provider_response_diagnostic ' . json_encode($diagnostic, JSON_THROW_ON_ERROR));
         });
+        $this->correlationId = $correlationId !== null && preg_match('/\A[a-f0-9]{32}\z/', $correlationId) === 1
+            ? $correlationId
+            : bin2hex(random_bytes(16));
     }
 
     public static function fromEnvironment(
         ?callable $transport = null,
         ?NumaProviderConsumptionInterface $consumption = null,
         bool $publicMode = false,
+        ?string $correlationId = null,
     ): self
     {
         try {
@@ -70,6 +77,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
             self::API_BASE_URL,
             $consumption,
             bh_numa_max_provider_response_body_bytes(),
+            correlationId: $correlationId,
         );
     }
 
@@ -507,6 +515,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         try {
             ($this->diagnosticLogger)([
+                'correlation_id' => $this->correlationId,
                 'provider_turn' => $this->responseTurn,
                 'function_call_count' => count($functionCalls),
                 'function_calls' => $functionCalls,
@@ -920,6 +929,7 @@ final class NumaProviderFactory
         ?callable $transport = null,
         ?NumaProviderConsumptionInterface $consumption = null,
         bool $publicMode = false,
+        ?string $correlationId = null,
     ): NumaProviderInterface
     {
         $provider = strtolower((string) bh_env_value('NUMA_PROVIDER', 'gemini'));
@@ -944,6 +954,7 @@ final class NumaProviderFactory
                 $transport,
                 $consumption ?? NumaConsumoGlobal::forLlm(),
                 $publicMode,
+                $correlationId,
             )
         ));
     }

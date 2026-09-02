@@ -79,6 +79,8 @@ class NumaController
 
     private ?NumaPublicIdentity $resolvedPublicIdentity = null;
 
+    private ?NumaMinimalLogger $interactionLogger = null;
+
     public function chat(): void
     {
         if (!$this->beginJsonRequest('POST')) {
@@ -108,6 +110,7 @@ class NumaController
         }
 
         $logger = $this->numaLogger();
+        $this->interactionLogger = $logger;
         $startedAt = hrtime(true);
         $chatRequest = null;
 
@@ -163,6 +166,7 @@ class NumaController
             if ($chatRequest !== null) {
                 $this->clearChatRequest($chatRequest);
             }
+            $this->interactionLogger = null;
         }
     }
 
@@ -230,6 +234,7 @@ class NumaController
         }
 
         $logger = $this->numaLogger();
+        $this->interactionLogger = $logger;
         $startedAt = hrtime(true);
         $chatRequest = null;
 
@@ -275,6 +280,7 @@ class NumaController
             if ($chatRequest !== null) {
                 $this->clearPublicChatRequest($chatRequest);
             }
+            $this->interactionLogger = null;
         }
     }
 
@@ -333,7 +339,9 @@ class NumaController
 
     protected function numaLogger(): NumaMinimalLogger
     {
-        return new NumaMinimalLogger();
+        return new NumaMinimalLogger(
+            detailedDiagnostics: bh_env_bool('NUMA_PROVIDER_RESPONSE_DIAGNOSTICS', false),
+        );
     }
 
     protected function publicIdentity(): NumaPublicIdentity
@@ -650,11 +658,14 @@ class NumaController
     protected function provider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface
     {
         if ($consumption === null) {
-            return NumaProviderFactory::fromEnvironment();
+            return NumaProviderFactory::fromEnvironment(
+                correlationId: $this->interactionLogger?->correlationId(),
+            );
         }
 
         return NumaProviderFactory::fromEnvironment(
-            consumption: new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forLlm())
+            consumption: new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forLlm()),
+            correlationId: $this->interactionLogger?->correlationId(),
         );
     }
 
@@ -683,6 +694,9 @@ class NumaController
             fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),
             fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability(),
             $this->periodResolver(),
+            toolExecutionObserver: function (string $tool): void {
+                $this->interactionLogger?->recordExecutedTool($tool);
+            },
         );
     }
 
@@ -696,6 +710,9 @@ class NumaController
             fn (): NumaFinancialToolRegistryInterface => $this->financialTools(),
             fn (): NumaGlobalAvailabilityInterface => $this->globalAvailability(),
             $this->periodResolver(),
+            toolExecutionObserver: function (string $tool): void {
+                $this->interactionLogger?->recordExecutedTool($tool);
+            },
         );
     }
 
@@ -710,12 +727,16 @@ class NumaController
     protected function publicProvider(?NumaProviderConsumptionInterface $consumption = null): NumaProviderInterface
     {
         if ($consumption === null) {
-            return NumaProviderFactory::fromEnvironment(publicMode: true);
+            return NumaProviderFactory::fromEnvironment(
+                publicMode: true,
+                correlationId: $this->interactionLogger?->correlationId(),
+            );
         }
 
         return NumaProviderFactory::fromEnvironment(
             consumption: new NumaProviderConsumptionChain($consumption, NumaConsumoGlobal::forPublicLlm()),
             publicMode: true,
+            correlationId: $this->interactionLogger?->correlationId(),
         );
     }
 

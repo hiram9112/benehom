@@ -108,6 +108,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         $this->insertGasto($usuarioId, 'flexible', 'comida_domicilio', 20, '2026-07-12');
 
         $payloads = [];
+        $executedTools = [];
         $result = $this->service($payloads, [
             $this->classificationResponse(),
             $this->functionCallResponse('first-call', 'obtener_estadisticas_movimientos', [
@@ -123,7 +124,9 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
                 'direccion' => 'asc',
             ]),
             $this->textResponse('He procesado los dos resultados autorizados.'),
-        ])->answer($usuarioId, 'Compara mis gastos de luz y comida a domicilio de julio.');
+        ], toolExecutionObserver: static function (string $tool) use (&$executedTools): void {
+            $executedTools[] = $tool;
+        })->answer($usuarioId, 'Compara mis gastos de luz y comida a domicilio de julio.');
 
         self::assertSame('He procesado los dos resultados autorizados.', $result->toArray()['message']);
         self::assertSame(4, $result->toArray()['usage']['daily_used']);
@@ -138,6 +141,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         self::assertSame('second-call', $payloads[3]['contents'][4]['parts'][0]['functionResponse']['id']);
         self::assertSame('obtener_estadisticas_movimientos', $payloads[3]['contents'][2]['parts'][0]['functionResponse']['name']);
         self::assertSame('obtener_movimientos', $payloads[3]['contents'][4]['parts'][0]['functionResponse']['name']);
+        self::assertSame(['obtener_estadisticas_movimientos', 'obtener_movimientos'], $executedTools);
     }
 
     public function testProcesaLlamadasParalelasConRespuestasEmparejadas(): void
@@ -489,6 +493,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         array &$payloads,
         array $responses,
         ?\NumaFinancialToolRegistryInterface $financialTools = null,
+        ?callable $toolExecutionObserver = null,
     ): \NumaService
     {
         $responseIndex = 0;
@@ -523,6 +528,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
                 }
             },
             new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
+            toolExecutionObserver: $toolExecutionObserver,
         );
     }
 

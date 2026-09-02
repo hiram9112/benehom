@@ -17,13 +17,30 @@ final class NumaMinimalLogger
     /** @var Closure(string):void */
     private readonly Closure $writer;
 
-    public function __construct(?Closure $writer = null)
-    {
+    /** @var list<string> */
+    private array $executedTools = [];
+
+    public function __construct(
+        ?Closure $writer = null,
+        private readonly bool $detailedDiagnostics = false,
+    ) {
         $this->correlationId = bin2hex(random_bytes(16));
         $this->writer = $writer ?? $this->defaultWriter();
     }
 
     private readonly string $correlationId;
+
+    public function correlationId(): string
+    {
+        return $this->correlationId;
+    }
+
+    public function recordExecutedTool(string $tool): void
+    {
+        if ($this->detailedDiagnostics && preg_match('/\A[a-z][a-z0-9_]{0,63}\z/', $tool) === 1) {
+            $this->executedTools[] = $tool;
+        }
+    }
 
     /** @return Closure(string):void */
     private function defaultWriter(): Closure
@@ -53,6 +70,7 @@ final class NumaMinimalLogger
                 'duration_ms' => max(0, (int) floor((hrtime(true) - $startedAt) / 1_000_000)),
                 'calls' => max(0, $calls),
                 'tokens' => $tokens === null ? null : max(0, $tokens),
+                ...($this->detailedDiagnostics ? ['tools' => $this->executedTools] : []),
                 'outcome' => $successful ? 'success' : 'error',
                 'error_code' => $successful ? null : $this->safeErrorCode($errorCode),
             ];

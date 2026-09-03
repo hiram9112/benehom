@@ -95,9 +95,9 @@ bh_document_begin([
             <nav aria-label="Navegación principal móvil">
                 <ul class="nav flex-column">
                     <li class="nav-item"><a class="nav-link" href="#como-funciona"><i class="ti ti-map" aria-hidden="true"></i><span>Cómo funciona</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#funciones"><i class="ti ti-sparkles" aria-hidden="true"></i><span>Funciones</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#funciones"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i><span>Funciones</span></a></li>
                     <li class="nav-item"><a class="nav-link" href="#blog"><i class="ti ti-notebook" aria-hidden="true"></i><span>Blog</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#faq"><i class="ti ti-help-circle" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faq"><i class="ti ti-lifebuoy" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
                 </ul>
             </nav>
 

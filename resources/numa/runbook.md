@@ -26,6 +26,11 @@ Los modelos iniciales son `gemini-3.1-flash-lite` para generacion y
 `gemini-embedding-001` con 768 dimensiones para embeddings. El modo `fake` solo se
 admite con `APP_ENV=testing`; nunca es una alternativa de produccion.
 
+`NUMA_MAX_TOOL_RESULT_CHARS` tiene un maximo de 2.500 bytes para el JSON agregado de
+resultados de tools enviado al proveedor. Aunque el nombre historico de la variable
+incluye `CHARS`, el limite efectivo se calcula con `strlen()` sobre el JSON UTF-8
+codificado; por tanto, mide bytes, incluidos los de caracteres no ASCII.
+
 Los limites seguros iniciales son: 300 caracteres, 16.000 tokens de entrada para alojar
 las seis declaraciones financieras completas, hasta 9 llamadas pagadas por interaccion
 (clasificacion, embedding RAG, cinco tools, redaccion final y un reintento transitorio),

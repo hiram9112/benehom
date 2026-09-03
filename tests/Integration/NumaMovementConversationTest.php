@@ -46,8 +46,9 @@ final class NumaMovementConversationTest extends IntegrationTestCase
         $otroUsuario = $this->crearUsuario('numa-movimientos-conversacion-otro@example.test');
         $usuarioId = (int) $usuario['id'];
 
+        $months = ['2026-05-01', '2026-06-01', '2026-07-01'];
         for ($day = 1; $day <= 12; $day++) {
-            $this->insertGasto($usuarioId, 'flexible', 'regalos', $day, sprintf('2026-07-%02d', $day));
+            $this->insertGasto($usuarioId, 'flexible', 'regalos', $day, $months[($day - 1) % count($months)]);
         }
         $this->insertGasto((int) $otroUsuario['id'], 'flexible', 'regalos', 999, '2026-07-31');
         $this->insertGasto($usuarioId, 'flexible', 'regalos', 999, '2026-08-01');
@@ -61,15 +62,15 @@ final class NumaMovementConversationTest extends IntegrationTestCase
                 'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest('obtener_movimientos', [
-                'periodo' => 'julio',
+                'periodo' => 'mayo a julio de 2026',
                 'tipo_movimiento' => 'gasto',
                 'tipo_gasto' => 'flexible',
                 'categoria' => 'regalos',
                 'orden' => 'cantidad',
                 'direccion' => 'desc',
-                'limite' => 10,
+                'limite' => 5,
             ])),
-            new \NumaResponse('Estos son tus movimientos flexibles de regalos más recientes.'),
+            new \NumaResponse('Estos son los movimientos seleccionados de mayo, junio y julio de 2026. Este listado es una selección acotada; puedes consultar el registro completo en BeneHom.'),
         );
         $service = new \NumaService(
             new \NumaUso($this->db, new \DateTimeImmutable('2026-08-12')),
@@ -89,20 +90,21 @@ final class NumaMovementConversationTest extends IntegrationTestCase
             new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
         );
 
-        $result = $service->answer($usuarioId, 'Muéstrame mis últimos movimientos de regalos.', [[
+        $result = $service->answer($usuarioId, 'Muéstrame mis movimientos de regalos entre mayo y julio de 2026.', [[
             'role' => 'assistant',
             'message' => 'En julio registraste varios regalos.',
             'period' => ['start' => '2026-07-01', 'end' => '2026-07-31'],
         ]]);
 
         self::assertSame([
-            'start' => '2026-07-01',
+            'start' => '2026-05-01',
             'end' => '2026-07-31',
         ], $result->toArray()['period']);
         self::assertSame(
-            "Estos son tus movimientos flexibles de regalos más recientes.\n\nEl listado completo puede consultarse en BeneHom.",
+            'Estos son los movimientos seleccionados de mayo, junio y julio de 2026. Este listado es una selección acotada; puedes consultar el registro completo en BeneHom.',
             $result->toArray()['message']
         );
+        self::assertSame(1, substr_count($result->toArray()['message'], 'BeneHom'));
         self::assertCount(3, $provider->requests());
         self::assertSame([1000, 1000, 1000], array_map(
             static fn (\NumaRequest $request): ?int => $request->maxOutputTokens(),
@@ -115,14 +117,19 @@ final class NumaMovementConversationTest extends IntegrationTestCase
         $toolResults = $this->financialToolResults($provider->requests()[2]->context());
         self::assertCount(1, $toolResults);
         self::assertSame('obtener_movimientos', $toolResults[0]['tool']);
-        self::assertSame(['inicio' => '2026-07-01', 'fin' => '2026-07-31'], $toolResults[0]['periodo']);
+        self::assertSame(['inicio' => '2026-05-01', 'fin' => '2026-07-31'], $toolResults[0]['periodo']);
         self::assertSame('gasto', $toolResults[0]['tipo_movimiento']);
         self::assertSame('flexible', $toolResults[0]['tipo_gasto']);
         self::assertSame('regalos', $toolResults[0]['categoria']);
         self::assertSame(12, $toolResults[0]['cantidad_total']);
         self::assertSame('78.00', $toolResults[0]['importe_total']);
         self::assertTrue($toolResults[0]['seleccion_acotada']);
-        self::assertLessThanOrEqual(10, count($toolResults[0]['movimientos']));
+        self::assertCount(5, $toolResults[0]['movimientos']);
+        self::assertSame('julio de 2026', $toolResults[0]['movimientos'][0]['fecha']);
+        self::assertContains('junio de 2026', array_column($toolResults[0]['movimientos'], 'fecha'));
+        self::assertContains('mayo de 2026', array_column($toolResults[0]['movimientos'], 'fecha'));
+        self::assertNotContains('2026-06-01', array_column($toolResults[0]['movimientos'], 'fecha'));
+        self::assertArrayNotHasKey('categoria', $toolResults[0]['movimientos'][0]);
         self::assertLessThanOrEqual(
             \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
             strlen(json_encode($toolResults, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),

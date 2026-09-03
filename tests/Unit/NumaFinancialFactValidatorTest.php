@@ -81,12 +81,13 @@ final class NumaFinancialFactValidatorTest extends TestCase
         $results = [[
             'tool' => \NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS,
             'movimientos' => [[
-                'fecha' => '2026-07-15',
+                'fecha' => '2026-06-01',
                 'cantidad' => '78.25',
             ]],
         ]];
 
-        self::assertTrue($validator->validates('El 2026-07-15 hay un movimiento de 78.25 EUR.', $results));
+        self::assertTrue($validator->validates('En junio de 2026 hay un movimiento de 78.25 EUR.', $results));
+        self::assertFalse($validator->validates('El 2026-06-01 hay un movimiento de 78.25 EUR.', $results));
     }
 
     public function testRechazaEtiquetasTecnicasAunqueLosHechosEstanAutorizados(): void

@@ -18,14 +18,16 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        foreach (['NUMA_ENABLED', 'NUMA_MAX_OUTPUT_TOKENS', 'NUMA_MAX_PROVIDER_CALLS', 'NUMA_MAX_TOOL_CALLS'] as $key) {
+        foreach (['NUMA_ENABLED', 'NUMA_MAX_INPUT_TOKENS', 'NUMA_MAX_OUTPUT_TOKENS', 'NUMA_MAX_PROVIDER_CALLS', 'NUMA_MAX_TOOL_CALLS', 'NUMA_MAX_TOOL_RESULT_CHARS'] as $key) {
             $this->envBackup[$key] = array_key_exists($key, $_ENV) ? (string) $_ENV[$key] : null;
         }
 
         $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '16000';
         $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
         $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
         $_ENV['NUMA_MAX_TOOL_CALLS'] = '5';
+        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = (string) \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS;
     }
 
     protected function tearDown(): void
@@ -169,6 +171,60 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         self::assertSame('obtener_estadisticas_movimientos', $payloads[2]['contents'][2]['parts'][1]['functionResponse']['name']);
         self::assertSame('40.00', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['total']);
         self::assertSame('20.00', $payloads[2]['contents'][2]['parts'][1]['functionResponse']['response']['result']['total']);
+    }
+
+    public function testListadoAcotadoConTresToolsAlcanzaLaRespuestaFinalDentroDelPresupuesto(): void
+    {
+        $usuario = $this->crearUsuario('numa-function-bounded-list@example.test');
+        $usuarioId = (int) $usuario['id'];
+
+        foreach (['2026-06-01', '2026-05-01', '2026-04-01', '2026-03-01', '2026-02-01'] as $date) {
+            $this->insertGasto($usuarioId, 'esencial', 'alquiler_hipoteca', 720, $date);
+        }
+        for ($index = 0; $index < 82; $index++) {
+            $this->insertGasto($usuarioId, 'flexible', 'ocio', 90, sprintf('2026-%02d-01', ($index % 6) + 1));
+        }
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 76.98, '2026-01-01');
+
+        $payloads = [];
+        $executedTools = [];
+        $result = $this->service($payloads, [
+            $this->classificationResponse(),
+            $this->threeFinancialCallsResponse(),
+            $this->textResponse('He preparado los datos solicitados.'),
+        ], toolExecutionObserver: static function (string $tool) use (&$executedTools): void {
+            $executedTools[] = $tool;
+        })->answer(
+            $usuarioId,
+            'Quiero revisar mis gastos entre enero y junio de 2026. Dime cuántos movimientos hubo, cuánto gasté en total y muéstrame solo los 5 movimientos de mayor importe, sin listar el resto.',
+        );
+
+        self::assertSame(
+            "He preparado los datos solicitados.\n\nEl listado es parcial; puedes consultar el completo en BeneHom.",
+            $result->toArray()['message'],
+        );
+        self::assertSame([
+            'obtener_resumen_financiero',
+            'obtener_estadisticas_movimientos',
+            'obtener_movimientos',
+        ], $executedTools);
+        self::assertCount(3, $payloads);
+
+        $toolResults = array_map(
+            static fn (array $part): array => $part['functionResponse']['response']['result'],
+            $payloads[2]['contents'][2]['parts'],
+        );
+        self::assertLessThanOrEqual(
+            \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+            strlen(json_encode($toolResults, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+        );
+        self::assertSame(88, $toolResults[2]['cantidad_total']);
+        self::assertSame('11056.98', $toolResults[2]['importe_total']);
+        self::assertCount(5, $toolResults[2]['movimientos']);
+        self::assertSame('junio de 2026', $toolResults[2]['movimientos'][0]['fecha']);
+        self::assertSame('Alquiler o hipoteca', $toolResults[2]['movimientos'][0]['label']);
+        self::assertSame('720.00', $toolResults[2]['movimientos'][0]['cantidad']);
+        self::assertArrayNotHasKey('categoria', $toolResults[2]['movimientos'][0]);
     }
 
     public function testConsultaFinancieraSinPeriodoPideAclaracionSinEjecutarTools(): void
@@ -644,6 +700,47 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
                                 'periodo' => 'junio',
                                 'metrica' => $invalidSecond ? 'saldo' : 'gastos',
                                 'categoria' => 'comida_domicilio',
+                            ],
+                        ]],
+                    ],
+                ],
+                'finishReason' => 'STOP',
+            ]],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function threeFinancialCallsResponse(): array
+    {
+        return [
+            'candidates' => [[
+                'content' => [
+                    'role' => 'model',
+                    'parts' => [
+                        ['functionCall' => [
+                            'id' => 'summary-call',
+                            'name' => 'obtener_resumen_financiero',
+                            'args' => ['fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-06-30'],
+                        ]],
+                        ['functionCall' => [
+                            'id' => 'statistics-call',
+                            'name' => 'obtener_estadisticas_movimientos',
+                            'args' => [
+                                'fecha_inicio' => '2026-01-01',
+                                'fecha_fin' => '2026-06-30',
+                                'metrica' => 'gastos',
+                            ],
+                        ]],
+                        ['functionCall' => [
+                            'id' => 'movements-call',
+                            'name' => 'obtener_movimientos',
+                            'args' => [
+                                'fecha_inicio' => '2026-01-01',
+                                'fecha_fin' => '2026-06-30',
+                                'tipo_movimiento' => 'gasto',
+                                'orden' => 'cantidad',
+                                'direccion' => 'desc',
+                                'limite' => 5,
                             ],
                         ]],
                     ],

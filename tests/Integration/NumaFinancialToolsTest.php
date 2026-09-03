@@ -489,10 +489,11 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto((int) $otroUsuario['id'], 'flexible', 'regalos', 999, '2026-07-31');
         $this->insertGasto($usuarioId, 'flexible', 'regalos', 999, '2026-08-01');
 
+        $maxAggregateChars = 1600;
         $result = (new \NumaFinancialToolRegistry(
             new \NumaFinancialToolExecutor($this->db),
             2,
-            \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+            $maxAggregateChars,
         ))->execute(
             'obtener_movimientos',
             $usuarioId,
@@ -511,6 +512,8 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertTrue($result['seleccion_acotada']);
         self::assertLessThan(10, count($result['movimientos']));
         self::assertSame('12.00', $result['movimientos'][0]['cantidad']);
+        self::assertSame('regalos', $result['movimientos'][0]['categoria']);
+        self::assertSame('Regalos', $result['movimientos'][0]['label']);
         self::assertSame(['2026-07-12', '2026-07-11', '2026-07-10'], array_slice(array_column($result['movimientos'], 'fecha'), 0, 3));
     }
 

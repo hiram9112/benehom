@@ -638,7 +638,7 @@ interface NumaFinancialToolRegistryInterface
 final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterface
 {
     public const MAX_TOOL_CALLS = 5;
-    public const MAX_AGGREGATE_RESULT_JSON_CHARS = 1600;
+    public const MAX_AGGREGATE_RESULT_JSON_CHARS = 2500;
 
     public const OBTENER_RESUMEN_FINANCIERO = 'obtener_resumen_financiero';
     public const OBTENER_RANKING_CATEGORIAS = 'obtener_ranking_categorias';

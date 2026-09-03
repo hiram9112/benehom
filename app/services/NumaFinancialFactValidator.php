@@ -15,7 +15,7 @@ final class NumaFinancialFactValidator
     ];
 
     private const PERCENTAGE_KEYS = ['porcentaje', 'diferencia_porcentual'];
-    private const DATE_KEYS = ['inicio', 'fin', 'fecha'];
+    private const DATE_KEYS = ['inicio', 'fin'];
     private const MONTH_KEYS = ['mes'];
     private const COUNT_KEYS = ['cantidad_movimientos', 'meses_con_datos', 'cantidad_total'];
     private const TECHNICAL_LABEL_PATTERN = '/\b(?:periodo_[ab]|valor_[ab]|diferencia_(?:absoluta|porcentual)|cantidad_movimientos|cantidad_total|importe_total|promedio_mensual|meses_con_datos|mes_mayor_valor|periodo_solicitado|tipo_movimiento|tipo_gasto|seleccion_acotada|resultado_acotado|obtener_[a-z_]+)\b|\b(?:per[ií]odo|valor)\s+[ab]\b/iu';
@@ -89,6 +89,24 @@ final class NumaFinancialFactValidator
         }
 
         $remaining = preg_replace_callback(
+            '/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})\b/ui',
+            function (array $matches) use ($allowed): string {
+                $monthNumbers = [
+                    'enero' => '01', 'febrero' => '02', 'marzo' => '03', 'abril' => '04', 'mayo' => '05', 'junio' => '06',
+                    'julio' => '07', 'agosto' => '08', 'septiembre' => '09', 'octubre' => '10', 'noviembre' => '11', 'diciembre' => '12',
+                ];
+                $month = $matches[2] . '-' . $monthNumbers[strtolower($matches[1])];
+
+                return isset($allowed['month'][$month]) ? str_repeat(' ', strlen($matches[0])) : $matches[0];
+            },
+            $remaining
+        );
+
+        if ($remaining === null) {
+            return false;
+        }
+
+        $remaining = preg_replace_callback(
             '/(?<![\d.,])-?\d+(?:[.,]\d{1,2})?\s*(?:%|€|euros?\b|eur\b)/ui',
             function (array $matches) use ($allowed): string {
                 $literal = $matches[0];
@@ -157,6 +175,13 @@ final class NumaFinancialFactValidator
             }
 
             if (!is_string($key)) {
+                continue;
+            }
+
+            if ($key === 'fecha' && is_string($item)
+                && preg_match('/^\d{4}-(0[1-9]|1[0-2])-\d{2}(?:\s.*)?$/', $item) === 1
+            ) {
+                $facts[] = ['kind' => 'month', 'value' => substr($item, 0, 7)];
                 continue;
             }
 

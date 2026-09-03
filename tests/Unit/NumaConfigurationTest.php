@@ -101,6 +101,27 @@ final class NumaConfigurationTest extends TestCase
         \NumaConfiguration::assertRuntime();
     }
 
+    public function testAceptaElMaximoDeBytesParaResultadosDeTools(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = (string) \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS;
+
+        \NumaConfiguration::assertRuntime();
+
+        self::addToAssertionCount(1);
+    }
+
+    public function testRechazaMasBytesDeLosPermitidosParaResultadosDeTools(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = (string) (\NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS + 1);
+
+        $this->expectException(\NumaConfigurationException::class);
+        $this->expectExceptionMessage('NUMA_MAX_TOOL_RESULT_CHARS');
+
+        \NumaConfiguration::assertRuntime();
+    }
+
     #[DataProvider('limitesDeFragmentosValidos')]
     public function testAceptaLosLimitesEstructuralesDeFragmentos(string $maxChunkChars): void
     {

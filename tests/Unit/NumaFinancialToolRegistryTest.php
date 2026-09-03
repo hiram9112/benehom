@@ -43,6 +43,11 @@ final class NumaFinancialToolRegistryTest extends TestCase
         );
     }
 
+    public function testElHardCapDeResultadosAgregadosEsDeDosMilQuinientosBytes(): void
+    {
+        self::assertSame(2500, \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS);
+    }
+
     public function testRechazaUnRangoTemporalSuperiorAlHardCap(): void
     {
         $this->expectException(InvalidArgumentException::class);

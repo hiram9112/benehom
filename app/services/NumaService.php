@@ -831,7 +831,11 @@ final class NumaService
             if (($result['tool'] ?? null) === NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS
                 && ($result['seleccion_acotada'] ?? false) === true
             ) {
-                return $message . "\n\nEl listado completo puede consultarse en BeneHom.";
+                if (preg_match('/selecci[oó]n acotada|(?:listado|registro) completo.*BeneHom/iu', $message) === 1) {
+                    return $message;
+                }
+
+                return $message . "\n\nEl listado es parcial; puedes consultar el completo en BeneHom.";
             }
         }
 
@@ -941,8 +945,8 @@ final class NumaService
                 'Redacta los resultados de tools en lenguaje natural: no muestres nombres de tools, claves de campos, etiquetas como Periodo A o Periodo B, estructuras JSON ni otros detalles de backend.',
                 'Cuando un periodo sea un mes natural completo, nómbralo como mes y año; al comparar valores, explica si hay un aumento, una disminución o ninguna variación sin añadir interpretación financiera.',
                 'La fecha actual y los periodos los controla BeneHom. Para periodos relativos usa solo los valores simbólicos permitidos por la tool; no calcules fechas por tu cuenta.',
-                'Copia importes, porcentajes, fechas y cantidades exactamente de los hechos financieros autorizados; no los recalcules ni introduzcas cifras nuevas.',
-                'Si obtener_movimientos indica seleccion_acotada o resultado_acotado, aclara que el listado completo puede consultarse en BeneHom.',
+                'Copia importes, porcentajes y cantidades exactamente de los hechos financieros autorizados; no los recalcules ni introduzcas cifras nuevas.',
+                'La fecha de cada movimiento expresa solo el mes disponible en BeneHom. Usa la etiqueta mensual natural entregada y no la presentes como una fecha diaria.',
                 ...($classification->intent() === NumaClassificationIntent::INTERACCION_CONVERSACIONAL ? [
                     'Manten una conversacion breve y natural usando solo el mensaje actual y el historial controlado.',
                     'Puedes reconocer el tono o la emocion del usuario sin atribuirte experiencias o sentimientos propios.',
@@ -1007,7 +1011,7 @@ final class NumaService
             ];
             $toolResultContextOverhead = $this->jsonLength($toolResultContext) - $this->jsonLength([]);
             $toolItems = $this->toolResultsForContext(
-                $toolResults,
+                $this->movementResultsForPresentation($toolResults),
                 max(0, $remainingBudget - $toolResultContextOverhead)
             );
 
@@ -1092,6 +1096,55 @@ final class NumaService
         }
 
         return $limited;
+    }
+
+    /**
+     * Conserva el resultado canonico de la tool y adapta solo su copia para la respuesta al usuario.
+     *
+     * @param array<int, array<string, mixed>> $toolResults
+     * @return array<int, array<string, mixed>>
+     */
+    private function movementResultsForPresentation(array $toolResults): array
+    {
+        foreach ($toolResults as $resultIndex => $result) {
+            if (($result['tool'] ?? null) !== NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS
+                || !is_array($result['movimientos'] ?? null)
+            ) {
+                continue;
+            }
+
+            foreach ($result['movimientos'] as $movementIndex => $movement) {
+                if (!is_array($movement)) {
+                    continue;
+                }
+
+                // El label conserva la categoría para el usuario; el código interno no aporta información adicional.
+                unset($result['movimientos'][$movementIndex]['categoria']);
+
+                if (is_string($movement['fecha'] ?? null)) {
+                    $month = $this->movementMonthLabel($movement['fecha']);
+                    if ($month !== null) {
+                        $result['movimientos'][$movementIndex]['fecha'] = $month;
+                    }
+                }
+            }
+
+            $toolResults[$resultIndex] = $result;
+        }
+
+        return $toolResults;
+    }
+
+    private function movementMonthLabel(string $date): ?string
+    {
+        if (preg_match('/^(\d{4})-(0[1-9]|1[0-2])-\d{2}(?:\s.*)?$/', $date, $matches) !== 1) {
+            return null;
+        }
+
+        return [
+            '01' => 'enero', '02' => 'febrero', '03' => 'marzo', '04' => 'abril', '05' => 'mayo', '06' => 'junio',
+            '07' => 'julio', '08' => 'agosto', '09' => 'septiembre', '10' => 'octubre', '11' => 'noviembre', '12' => 'diciembre',
+        ][$matches[2]] . ' de ' . $matches[1];
     }
 
     /**

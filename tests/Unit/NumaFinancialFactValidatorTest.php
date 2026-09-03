@@ -89,6 +89,41 @@ final class NumaFinancialFactValidatorTest extends TestCase
         self::assertTrue($validator->validates('El 2026-07-15 hay un movimiento de 78.25 EUR.', $results));
     }
 
+    public function testRechazaEtiquetasTecnicasAunqueLosHechosEstanAutorizados(): void
+    {
+        $results = [[
+            'tool' => \NumaFinancialToolRegistry::COMPARAR_PERIODOS,
+            'periodo_a' => ['inicio' => '2026-05-01', 'fin' => '2026-05-31'],
+            'periodo_b' => ['inicio' => '2026-06-01', 'fin' => '2026-06-30'],
+            'valor_a' => '1854.58',
+            'valor_b' => '2304.28',
+            'diferencia_absoluta' => '449.70',
+        ]];
+
+        self::assertFalse((new \NumaFinancialFactValidator())->validates(
+            'Periodo A: 2026-05-01 al 2026-05-31, 1854.58 EUR. Periodo B: 2026-06-01 al 2026-06-30, 2304.28 EUR. Diferencia: 449.70 EUR.',
+            $results,
+        ));
+    }
+
+    public function testFallbackDeComparacionExplicaUnaDisminucion(): void
+    {
+        $message = (new \NumaFinancialFactValidator())->fallback([[
+            'tool' => \NumaFinancialToolRegistry::COMPARAR_PERIODOS,
+            'metrica' => 'gastos',
+            'periodo_a' => ['inicio' => '2026-06-01', 'fin' => '2026-06-30'],
+            'periodo_b' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+            'valor_a' => '800.00',
+            'valor_b' => '700.00',
+            'diferencia_absoluta' => '-100.00',
+        ]]);
+
+        self::assertSame(
+            'En junio de 2026 gastaste 800.00 EUR, mientras que en julio de 2026 gastaste 700.00 EUR. Esto supone una disminución de 100.00 EUR en julio de 2026 respecto a junio de 2026.',
+            $message,
+        );
+    }
+
     #[DataProvider('toolFallbacks')]
     public function testGeneraUnFallbackDeterministaParaCadaTool(array $result, string $expected): void
     {
@@ -103,33 +138,34 @@ final class NumaFinancialFactValidatorTest extends TestCase
                 'tool' => \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
                 'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'ingresos' => '1200.00', 'gastos' => '800.00', 'ahorro_real' => '400.00',
-            ], 'Del 2026-07-01 al 2026-07-31: Ingresos: 1200.00 EUR. Gastos: 800.00 EUR. Ahorro real: 400.00 EUR.'],
+            ], 'En julio de 2026, tus ingresos fueron 1200.00 EUR. Tus gastos fueron 800.00 EUR. Tu ahorro real fue 400.00 EUR.'],
             'ranking' => [[
                 'tool' => \NumaFinancialToolRegistry::OBTENER_RANKING_CATEGORIAS,
                 'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'categorias' => [['label' => 'Alimentación', 'total' => '200.00', 'porcentaje' => 50.0]],
-            ], 'Del 2026-07-01 al 2026-07-31: La primera categoría es Alimentación: 200.00 EUR (50.00%).'],
+            ], 'En julio de 2026, la categoría con mayor importe fue Alimentación, con 200.00 EUR (50.00%).'],
             'evolucion' => [[
                 'tool' => \NumaFinancialToolRegistry::OBTENER_EVOLUCION_FINANCIERA,
                 'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'evolucion' => [['mes' => '2026-07', 'valor' => '800.00']],
-            ], 'Del 2026-07-01 al 2026-07-31: 2026-07: 800.00 EUR.'],
+            ], 'En julio de 2026, el valor fue 800.00 EUR.'],
             'comparacion' => [[
                 'tool' => \NumaFinancialToolRegistry::COMPARAR_PERIODOS,
+                'metrica' => 'gastos',
                 'periodo_a' => ['inicio' => '2026-06-01', 'fin' => '2026-06-30'],
                 'periodo_b' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'valor_a' => '700.00', 'valor_b' => '800.00', 'diferencia_absoluta' => '100.00',
-            ], 'Periodo A: 2026-06-01 al 2026-06-30, 700.00 EUR. Periodo B: 2026-07-01 al 2026-07-31, 800.00 EUR. Diferencia: 100.00 EUR.'],
+            ], 'En junio de 2026 gastaste 700.00 EUR, mientras que en julio de 2026 gastaste 800.00 EUR. Esto supone un aumento de 100.00 EUR en julio de 2026 respecto a junio de 2026.'],
             'estadisticas' => [[
                 'tool' => \NumaFinancialToolRegistry::OBTENER_ESTADISTICAS_MOVIMIENTOS,
                 'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'cantidad_movimientos' => 2, 'total' => '800.00',
-            ], 'Del 2026-07-01 al 2026-07-31: Movimientos: 2. Total: 800.00 EUR.'],
+            ], 'En julio de 2026, se registraron 2 movimientos, por un total de 800.00 EUR.'],
             'movimientos' => [[
                 'tool' => \NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS,
                 'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'cantidad_total' => 2, 'importe_total' => '800.00',
-            ], 'Del 2026-07-01 al 2026-07-31: Movimientos encontrados: 2. Importe total: 800.00 EUR.'],
+            ], 'En julio de 2026, se encontraron 2 movimientos, con un importe total de 800.00 EUR.'],
         ];
     }
 }

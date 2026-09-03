@@ -103,6 +103,19 @@ final class NumaPeriodResolver
         }
 
         $months = implode('|', array_keys(self::NAMED_MONTHS));
+        if (preg_match('/\bentre\s+(' . $months . ')\s+y\s+(' . $months . ')(?:\s+de\s+(20\d{2}))?\b/iu', $message, $rangeMatch) === 1) {
+            $year = isset($rangeMatch[3]) && $rangeMatch[3] !== ''
+                ? (int) $rangeMatch[3]
+                : (int) $this->now()->format('Y');
+            $startMonth = self::NAMED_MONTHS[strtolower($rangeMatch[1])];
+            $endMonth = self::NAMED_MONTHS[strtolower($rangeMatch[2])];
+
+            return [$this->normalize(
+                $this->now()->setDate($year, $startMonth, 1)->format('Y-m-d'),
+                $this->now()->setDate($year, $endMonth, 1)->format('Y-m-d'),
+            )];
+        }
+
         if (preg_match_all('/\b(' . $months . ')(?:\s+de\s+(20\d{2}))?\b/iu', $message, $monthMatches) > 0) {
             $periods = [];
             foreach ($monthMatches[1] as $index => $monthName) {

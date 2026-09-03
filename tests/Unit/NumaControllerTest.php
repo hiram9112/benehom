@@ -1755,7 +1755,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame(
-            'Del 2026-07-01 al 2026-07-31: Ingresos: 1200.00 EUR. Gastos: 800.00 EUR.',
+            'En julio de 2026, tus ingresos fueron 1200.00 EUR. Tus gastos fueron 800.00 EUR.',
             $response['data']['message']
         );
 

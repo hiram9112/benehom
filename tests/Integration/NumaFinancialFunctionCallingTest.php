@@ -198,6 +198,36 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         self::assertSame(1, $this->countGastos($usuarioId));
     }
 
+    public function testPromedioMensualDeGastosEnRangoExplicitoDeVariosMesesEjecutaEstadisticas(): void
+    {
+        $usuario = $this->crearUsuario('numa-function-monthly-average-range@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertGasto($usuarioId, 'esencial', 'alimentacion', 100.10, '2026-01-03');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 200.20, '2026-06-04');
+        $payloads = [];
+        $executedTools = [];
+
+        $result = $this->service($payloads, [
+            $this->classificationResponse(),
+            $this->functionCallResponse('monthly-average-range', 'obtener_estadisticas_movimientos', [
+                'periodo' => 'junio',
+                'metrica' => 'gastos',
+            ]),
+            $this->textResponse('Tu promedio mensual de gastos fue 150.15 EUR.'),
+        ], toolExecutionObserver: static function (string $tool) use (&$executedTools): void {
+            $executedTools[] = $tool;
+        })->answer($usuarioId, '¿Cuál fue mi promedio mensual de gastos entre enero y junio de 2026?');
+
+        self::assertSame('Tu promedio mensual de gastos fue 150.15 EUR.', $result->toArray()['message']);
+        self::assertNotSame('Necesito que concretes un poco más la consulta para poder ayudarte.', $result->toArray()['message']);
+        self::assertSame(['start' => '2026-01-01', 'end' => '2026-06-30'], $result->toArray()['period']);
+        self::assertSame(['obtener_estadisticas_movimientos'], $executedTools);
+        self::assertSame('2026-01-01', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['periodo']['inicio']);
+        self::assertSame('2026-06-30', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['periodo']['fin']);
+        self::assertSame('300.30', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['total']);
+        self::assertSame('150.15', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['promedio_mensual']);
+    }
+
     public function testSeguimientoSinPeriodoReutilizaElPeriodoEstructuradoDeJunio(): void
     {
         $usuario = $this->crearUsuario('numa-function-follow-up-period@example.test');
@@ -360,10 +390,39 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         ])->answer($usuarioId, '¿Cuánto gasté en electricidad en julio?');
 
         self::assertSame(
-            'Del 2026-07-01 al 2026-07-31: Movimientos: 2. Total: 100.00 EUR.',
+            'En julio de 2026, se registraron 2 movimientos, por un total de 100.00 EUR.',
             $result->toArray()['message'],
         );
         self::assertSame('100.00', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['total']);
+    }
+
+    public function testComparacionConEtiquetasTecnicasSeReescribeComoRespuestaNatural(): void
+    {
+        $usuario = $this->crearUsuario('numa-function-natural-comparison@example.test');
+        $usuarioId = (int) $usuario['id'];
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 1854.58, '2026-05-15');
+        $this->insertGasto($usuarioId, 'flexible', 'ocio', 2304.28, '2026-06-15');
+
+        $payloads = [];
+        $result = $this->service($payloads, [
+            $this->classificationResponse(),
+            $this->functionCallResponse('comparison-call', 'comparar_periodos', [
+                'fecha_inicio_a' => '2026-05-01',
+                'fecha_fin_a' => '2026-05-31',
+                'fecha_inicio_b' => '2026-06-01',
+                'fecha_fin_b' => '2026-06-30',
+                'metrica' => 'gastos',
+            ]),
+            $this->textResponse('Periodo A: 2026-05-01 al 2026-05-31, 1854.58 EUR. Periodo B: 2026-06-01 al 2026-06-30, 2304.28 EUR. Diferencia: 449.70 EUR.'),
+        ])->answer($usuarioId, 'Compara mis gastos de mayo y junio de 2026.');
+
+        self::assertSame(
+            'En mayo de 2026 gastaste 1854.58 EUR, mientras que en junio de 2026 gastaste 2304.28 EUR. Esto supone un aumento de 449.70 EUR en junio de 2026 respecto a mayo de 2026.',
+            $result->toArray()['message'],
+        );
+        self::assertSame('1854.58', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['valor_a']);
+        self::assertSame('2304.28', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['valor_b']);
+        self::assertSame('449.70', $payloads[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['diferencia_absoluta']);
     }
 
     /**

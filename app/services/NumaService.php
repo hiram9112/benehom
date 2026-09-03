@@ -938,6 +938,8 @@ final class NumaService
                 'Usa solo el contexto de BeneHom y los resultados de tools entregados por el backend.',
                 'No inventes datos si falta informacion.',
                 'Devuelve una respuesta breve en español para el usuario final.',
+                'Redacta los resultados de tools en lenguaje natural: no muestres nombres de tools, claves de campos, etiquetas como Periodo A o Periodo B, estructuras JSON ni otros detalles de backend.',
+                'Cuando un periodo sea un mes natural completo, nómbralo como mes y año; al comparar valores, explica si hay un aumento, una disminución o ninguna variación sin añadir interpretación financiera.',
                 'La fecha actual y los periodos los controla BeneHom. Para periodos relativos usa solo los valores simbólicos permitidos por la tool; no calcules fechas por tu cuenta.',
                 'Copia importes, porcentajes, fechas y cantidades exactamente de los hechos financieros autorizados; no los recalcules ni introduzcas cifras nuevas.',
                 'Si obtener_movimientos indica seleccion_acotada o resultado_acotado, aclara que el listado completo puede consultarse en BeneHom.',

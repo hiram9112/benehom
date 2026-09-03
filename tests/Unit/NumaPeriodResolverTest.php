@@ -36,6 +36,18 @@ final class NumaPeriodResolverTest extends TestCase
         );
     }
 
+    public function testResuelveRangoExplicitoDeMesesConElAnoIndicado(): void
+    {
+        $resolver = new \NumaPeriodResolver(
+            new DateTimeImmutable('2027-08-12', new DateTimeZone('Europe/Madrid'))
+        );
+
+        self::assertSame(
+            [['inicio' => '2026-01-01', 'fin' => '2026-06-30']],
+            $resolver->periodsMentionedInMessage('¿Cuál fue mi promedio mensual de gastos entre enero y junio de 2026?')
+        );
+    }
+
     public function testResuelveMesAnteriorDesdeElPeriodoDeSeguimientoYNoDesdeGemini(): void
     {
         $resolver = new \NumaPeriodResolver(

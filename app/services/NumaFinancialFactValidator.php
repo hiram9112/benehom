@@ -18,6 +18,7 @@ final class NumaFinancialFactValidator
     private const DATE_KEYS = ['inicio', 'fin', 'fecha'];
     private const MONTH_KEYS = ['mes'];
     private const COUNT_KEYS = ['cantidad_movimientos', 'meses_con_datos', 'cantidad_total'];
+    private const TECHNICAL_LABEL_PATTERN = '/\b(?:periodo_[ab]|valor_[ab]|diferencia_(?:absoluta|porcentual)|cantidad_movimientos|cantidad_total|importe_total|promedio_mensual|meses_con_datos|mes_mayor_valor|periodo_solicitado|tipo_movimiento|tipo_gasto|seleccion_acotada|resultado_acotado|obtener_[a-z_]+)\b|\b(?:per[ií]odo|valor)\s+[ab]\b/iu';
 
     /**
      * @param array<int, array<string, mixed>> $toolResults
@@ -44,6 +45,10 @@ final class NumaFinancialFactValidator
      */
     public function validates(string $message, array $toolResults): bool
     {
+        if (preg_match(self::TECHNICAL_LABEL_PATTERN, $message) === 1) {
+            return false;
+        }
+
         $allowed = ['amount' => [], 'percentage' => [], 'date' => [], 'month' => [], 'count' => []];
         foreach ($this->facts($toolResults) as $fact) {
             $allowed[$fact['kind']][$fact['value']] = true;
@@ -215,9 +220,19 @@ final class NumaFinancialFactValidator
     /** @param array<string, mixed> $result */
     private function summaryFallback(array $result): string
     {
-        return $this->periodPrefix($result) . $this->factsSentence($result, [
-            'ingresos' => 'Ingresos', 'gastos' => 'Gastos', 'ahorro_real' => 'Ahorro real',
-        ]);
+        $sentences = [];
+        foreach ([
+            'ingresos' => 'Tus ingresos fueron',
+            'gastos' => 'Tus gastos fueron',
+            'ahorro_real' => 'Tu ahorro real fue',
+        ] as $key => $label) {
+            if (array_key_exists($key, $result)) {
+                $sentences[] = ($sentences === [] ? lcfirst($label) : $label) . ' '
+                    . $this->amountText($result[$key]) . '.';
+            }
+        }
+
+        return $this->periodPrefix($result) . ($sentences === [] ? 'No hay datos financieros.' : implode(' ', $sentences));
     }
 
     /** @param array<string, mixed> $result */
@@ -233,8 +248,8 @@ final class NumaFinancialFactValidator
             return $this->periodPrefix($result) . 'No hay categorías con datos para ese periodo.';
         }
 
-        return $this->periodPrefix($result) . 'La primera categoría es ' . ($first['label'] ?? $first['categoria'] ?? 'sin nombre')
-            . ': ' . $this->amountText($first['total'] ?? null) . ' (' . $this->percentageText($first['porcentaje'] ?? null) . ').';
+        return $this->periodPrefix($result) . 'la categoría con mayor importe fue ' . ($first['label'] ?? $first['categoria'] ?? 'sin nombre')
+            . ', con ' . $this->amountText($first['total'] ?? null) . ' (' . $this->percentageText($first['porcentaje'] ?? null) . ').';
     }
 
     /** @param array<string, mixed> $result */
@@ -250,17 +265,26 @@ final class NumaFinancialFactValidator
             return $this->periodPrefix($result) . 'No hay evolución registrada para ese periodo.';
         }
 
-        $label = $first['mes'] ?? $first['label'] ?? $first['categoria'] ?? $first['tipo'] ?? 'El primer resultado';
+        $month = $first['mes'] ?? null;
+        if (is_string($month)) {
+            return 'En ' . $this->monthText($month) . ', el valor fue ' . $this->amountText($first['valor'] ?? null) . '.';
+        }
 
-        return $this->periodPrefix($result) . $label . ': ' . $this->amountText($first['valor'] ?? null) . '.';
+        $label = $first['label'] ?? $first['categoria'] ?? $first['tipo'] ?? 'El primer resultado';
+
+        return $this->periodPrefix($result) . $label . ' fue ' . $this->amountText($first['valor'] ?? null) . '.';
     }
 
     /** @param array<string, mixed> $result */
     private function comparisonFallback(array $result): string
     {
-        return 'Periodo A: ' . $this->periodText($result['periodo_a'] ?? null) . ', ' . $this->amountText($result['valor_a'] ?? null)
-            . '. Periodo B: ' . $this->periodText($result['periodo_b'] ?? null) . ', ' . $this->amountText($result['valor_b'] ?? null)
-            . '. Diferencia: ' . $this->amountText($result['diferencia_absoluta'] ?? null) . '.';
+        $metric = is_string($result['metrica'] ?? null) ? $result['metrica'] : '';
+        $periodA = $this->periodText($result['periodo_a'] ?? null);
+        $periodB = $this->periodText($result['periodo_b'] ?? null);
+
+        return $this->comparisonValueText($periodA, $metric, $result['valor_a'] ?? null)
+            . ', mientras que ' . $this->comparisonValueText($periodB, $metric, $result['valor_b'] ?? null, false)
+            . '. ' . $this->comparisonDifferenceText($result['diferencia_absoluta'] ?? null, $periodA, $periodB);
     }
 
     /** @param array<string, mixed> $result */
@@ -268,7 +292,8 @@ final class NumaFinancialFactValidator
     {
         $count = is_int($result['cantidad_movimientos'] ?? null) ? (string) $result['cantidad_movimientos'] : '0';
 
-        return $this->periodPrefix($result) . 'Movimientos: ' . $count . '. Total: ' . $this->amountText($result['total'] ?? null) . '.';
+        return $this->periodPrefix($result) . 'se registraron ' . $count . ' movimientos, por un total de '
+            . $this->amountText($result['total'] ?? null) . '.';
     }
 
     /** @param array<string, mixed> $result */
@@ -276,36 +301,108 @@ final class NumaFinancialFactValidator
     {
         $count = is_int($result['cantidad_total'] ?? null) ? (string) $result['cantidad_total'] : '0';
 
-        return $this->periodPrefix($result) . 'Movimientos encontrados: ' . $count
-            . '. Importe total: ' . $this->amountText($result['importe_total'] ?? null) . '.';
+        return $this->periodPrefix($result) . 'se encontraron ' . $count . ' movimientos, con un importe total de '
+            . $this->amountText($result['importe_total'] ?? null) . '.';
     }
 
     /** @param array<string, mixed> $result */
     private function periodPrefix(array $result): string
     {
-        return 'Del ' . $this->periodText($result['periodo'] ?? null) . ': ';
+        return 'En ' . $this->periodText($result['periodo'] ?? null) . ', ';
     }
 
     private function periodText(mixed $period): string
     {
         if (!is_array($period) || !is_string($period['inicio'] ?? null) || !is_string($period['fin'] ?? null)) {
-            return 'periodo consultado';
+            return 'el periodo consultado';
         }
 
-        return $period['inicio'] . ' al ' . $period['fin'];
+        $start = $period['inicio'];
+        $end = $period['fin'];
+        $startDate = $this->date($start);
+        if ($startDate !== null
+            && $startDate->format('d') === '01'
+            && $startDate->modify('last day of this month')->format('Y-m-d') === $end
+        ) {
+            return $this->monthText(substr($start, 0, 7));
+        }
+
+        return 'del ' . $this->dateText($start) . ' al ' . $this->dateText($end);
     }
 
-    /** @param array<string, mixed> $result @param array<string, string> $labels */
-    private function factsSentence(array $result, array $labels): string
+    private function comparisonValueText(string $period, string $metric, mixed $value, bool $capitalize = true): string
     {
-        $facts = [];
-        foreach ($labels as $key => $label) {
-            if (array_key_exists($key, $result)) {
-                $facts[] = $label . ': ' . $this->amountText($result[$key]);
-            }
+        $prefix = $capitalize ? 'En ' : 'en ';
+        $amount = $this->amountText($value);
+
+        return match ($metric) {
+            'gastos' => $prefix . $period . ' gastaste ' . $amount,
+            'ingresos' => $prefix . $period . ' tus ingresos fueron ' . $amount,
+            'gastos_esenciales' => $prefix . $period . ' tus gastos esenciales fueron ' . $amount,
+            'gastos_flexibles' => $prefix . $period . ' tus gastos flexibles fueron ' . $amount,
+            'ahorro_posible' => $prefix . $period . ' tu ahorro posible fue ' . $amount,
+            'ahorro_real' => $prefix . $period . ' tu ahorro real fue ' . $amount,
+            default => $prefix . $period . ' el valor fue ' . $amount,
+        };
+    }
+
+    private function comparisonDifferenceText(mixed $difference, string $periodA, string $periodB): string
+    {
+        $normalisedDifference = $this->normaliseDecimal($difference);
+        if ($normalisedDifference === null) {
+            return 'La diferencia entre ambos periodos fue ' . $this->amountText($difference) . '.';
         }
 
-        return implode('. ', $facts) . ($facts === [] ? 'No hay datos financieros para ese periodo.' : '.');
+        $amount = ltrim($normalisedDifference, '-') . ' EUR';
+        if (str_starts_with($normalisedDifference, '-')) {
+            return 'Esto supone una disminución de ' . $amount . ' en ' . $periodB . ' respecto a ' . $periodA . '.';
+        }
+
+        if ($normalisedDifference !== '0.00') {
+            return 'Esto supone un aumento de ' . $amount . ' en ' . $periodB . ' respecto a ' . $periodA . '.';
+        }
+
+        return 'No hubo variación entre ' . $periodA . ' y ' . $periodB . ': la diferencia fue ' . $amount . '.';
+    }
+
+    private function date(mixed $value): ?DateTimeImmutable
+    {
+        if (!is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+        return $date !== false && $date->format('Y-m-d') === $value ? $date : null;
+    }
+
+    private function dateText(string $date): string
+    {
+        $parsed = $this->date($date);
+
+        return $parsed === null ? 'la fecha consultada' : $parsed->format('j') . ' de '
+            . $this->monthName((int) $parsed->format('n')) . ' de ' . $parsed->format('Y');
+    }
+
+    private function monthText(string $month): string
+    {
+        if (preg_match('/^(\d{4})-(\d{2})$/', $month, $matches) !== 1) {
+            return 'el periodo consultado';
+        }
+
+        $monthNumber = (int) $matches[2];
+
+        return $monthNumber >= 1 && $monthNumber <= 12
+            ? $this->monthName($monthNumber) . ' de ' . $matches[1]
+            : 'el periodo consultado';
+    }
+
+    private function monthName(int $month): string
+    {
+        return [
+            1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril', 5 => 'mayo', 6 => 'junio',
+            7 => 'julio', 8 => 'agosto', 9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre',
+        ][$month];
     }
 
     private function amountText(mixed $value): string

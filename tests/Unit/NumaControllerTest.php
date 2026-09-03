@@ -1382,6 +1382,8 @@ final class NumaControllerTest extends TestCase
 
     public function testChatActivoCompruebaLimiteGlobalAntesDeReservar(): void
     {
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
         $numaUso = new NumaUsoFake();
@@ -1390,22 +1392,51 @@ final class NumaControllerTest extends TestCase
             'allowed' => true,
             'reason' => 'product_help',
         ]);
+        $tools = new NumaFinancialToolRegistryFake();
+        $entries = [];
+        $logger = new \NumaMinimalLogger(
+            static function (string $entry) use (&$entries): void {
+                $entries[] = $entry;
+            },
+            true,
+        );
+        $startedAt = hrtime(true);
 
         $response = $this->invoke(
             'chat',
-            '{"message":"¿Cómo añado un movimiento?"}',
+            '{"message":"¿Cuánto gasté este mes?"}',
             $numaUso,
             $provider,
             [],
-            null,
-            new NumaGlobalAvailabilityFake(false)
+            $tools,
+            new NumaGlobalAvailabilityFake(false),
+            logger: $logger,
         );
+        $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
 
         self::assertFalse($response['ok']);
         self::assertSame(503, $response['_status']);
         self::assertSame('NUMA_NOT_AVAILABLE', $response['error']['code']);
+        self::assertSame('Numa no está disponible en este momento.', $response['error']['message']);
+        self::assertArrayNotHasKey('data', $response);
         self::assertSame(0, $numaUso->reservations);
+        self::assertSame(0, $numaUso->confirmations);
         self::assertCount(0, $provider->requests());
+        self::assertSame(0, $tools->executions);
+        self::assertLessThan(1000.0, $durationMs);
+
+        self::assertCount(1, $entries);
+        $payload = json_decode(substr($entries[0], 5), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('availability', $payload['stage']);
+        self::assertSame(0, $payload['calls']);
+        self::assertSame(0, $payload['tokens']);
+        self::assertSame([], $payload['tools']);
+        self::assertSame('NUMA_GLOBAL_LIMIT_REACHED', $payload['error_code']);
+
+        $visibleResponse = json_encode($response, JSON_THROW_ON_ERROR);
+        self::assertStringNotContainsString('NUMA_GLOBAL_LIMIT_REACHED', $visibleResponse);
+        self::assertStringNotContainsString('Gemini', $visibleResponse);
+        self::assertStringNotContainsString('token', $visibleResponse);
     }
 
     public function testChatActivoGeneraRespuestaFinalConRagYFuentes(): void
@@ -1624,6 +1655,131 @@ final class NumaControllerTest extends TestCase
         self::assertStringNotContainsString($technicalDetails, $jsonResponse);
         self::assertStringNotContainsString('secret-provider-key', $jsonResponse);
         self::assertStringNotContainsString('internal-system-prompt', $jsonResponse);
+    }
+
+    public function testChatActivoTimeoutSimuladoReintentaUnaVezSinEjecutarTools(): void
+    {
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
+        $_ENV['NUMA_MAX_TRANSIENT_RETRIES'] = '1';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake(countConfirmationsInEstado: true);
+        $tools = new NumaFinancialToolRegistryFake();
+        $transportCalls = 0;
+        $entries = [];
+        $technicalDetails = 'cURL 28: provider.internal api_key=secret-provider-key';
+        $logger = new \NumaMinimalLogger(
+            static function (string $entry) use (&$entries): void {
+                $entries[] = $entry;
+            },
+            true,
+        );
+        $providerFactory = static function (?\NumaProviderConsumptionInterface $consumption = null) use (&$transportCalls, $technicalDetails): \NumaProviderInterface {
+            return new \GeminiNumaProvider(
+                'fake-key',
+                'fake-model',
+                timeoutSeconds: 10,
+                maxTransientRetries: 1,
+                transport: static function () use (&$transportCalls, $technicalDetails): array {
+                    ++$transportCalls;
+
+                    throw new \NumaProviderException(
+                        new \NumaProviderError(
+                            \NumaProviderError::TIMEOUT,
+                            'NUMA_PROVIDER_TIMEOUT',
+                            true,
+                        ),
+                        new \RuntimeException($technicalDetails),
+                    );
+                },
+                consumption: $consumption,
+            );
+        };
+        $startedAt = hrtime(true);
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Puedes revisar esta consulta financiera?"}',
+            $numaUso,
+            financialTools: $tools,
+            logger: $logger,
+            providerFactory: $providerFactory,
+        );
+        $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_TIMEOUT', $response['error']['code']);
+        self::assertSame('Numa no está disponible en este momento.', $response['error']['message']);
+        self::assertArrayNotHasKey('data', $response);
+        self::assertSame(2, $transportCalls);
+        self::assertSame(2, $numaUso->reservations);
+        self::assertSame(2, $numaUso->confirmations);
+        self::assertSame(0, $numaUso->reversions);
+        self::assertSame(0, $tools->executions);
+        self::assertLessThan(1000.0, $durationMs);
+
+        self::assertCount(1, $entries);
+        $payload = json_decode(substr($entries[0], 5), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('classification', $payload['stage']);
+        self::assertSame(2, $payload['calls']);
+        self::assertNull($payload['tokens']);
+        self::assertSame([], $payload['tools']);
+        self::assertSame('NUMA_PROVIDER_TIMEOUT', $payload['error_code']);
+
+        $visibleResponse = json_encode($response, JSON_THROW_ON_ERROR);
+        self::assertStringNotContainsString($technicalDetails, $visibleResponse);
+        self::assertStringNotContainsString('secret-provider-key', $visibleResponse);
+        self::assertStringNotContainsString('cURL', $visibleResponse);
+    }
+
+    public function testPresupuestoTotalVencidoNoReservaNiInvocaElTransporte(): void
+    {
+        $clockCalls = 0;
+        $clock = static function () use (&$clockCalls): float {
+            ++$clockCalls;
+
+            return $clockCalls === 1 ? 100.0 : 101.1;
+        };
+        $numaUso = new NumaUsoFake();
+        $budget = new \NumaPaidCallBudget(
+            new \NumaPrivateUsageBudget($numaUso, 123),
+            5,
+            1,
+            1,
+            $clock,
+        );
+        $transportCalls = 0;
+        $provider = new \GeminiNumaProvider(
+            'fake-key',
+            'fake-model',
+            timeoutSeconds: 10,
+            maxTransientRetries: 1,
+            transport: static function () use (&$transportCalls): array {
+                ++$transportCalls;
+
+                return ['status' => 503, 'body' => '{}'];
+            },
+            consumption: $budget,
+        );
+        $startedAt = hrtime(true);
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta controlada.'));
+            self::fail('El presupuesto total vencido debe abortar antes del transporte.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_TIMEOUT', $exception->providerError()->safeCode());
+            self::assertSame(\NumaProviderError::TIMEOUT, $exception->providerError()->type());
+        }
+
+        self::assertSame(0, $transportCalls);
+        self::assertSame(0, $numaUso->reservations);
+        self::assertSame(0, $numaUso->confirmations);
+        self::assertSame(0, $budget->llamadasIniciadas());
+        self::assertSame(0, $budget->tokensInformados());
+        self::assertLessThan(1000.0, (hrtime(true) - $startedAt) / 1_000_000);
     }
 
     public function testChatActivoDetieneElFlujoSiNoHayCuotaParaElEmbeddingNecesario(): void
@@ -2663,6 +2819,7 @@ final class NumaControllerTest extends TestCase
         ?NumaSessionReleaseSpy $sessionReleaseSpy = null,
         ?\NumaMinimalLogger $logger = null,
         bool $consumeTransientRetry = false,
+        ?\Closure $providerFactory = null,
     ): array
     {
         http_response_code(200);
@@ -2676,7 +2833,7 @@ final class NumaControllerTest extends TestCase
         $financialTools ??= new NumaFinancialToolRegistryFake();
         $globalAvailability ??= new NumaGlobalAvailabilityFake();
 
-        $controller = new class($rawBody, $numaUso, $provider, $knowledgeResults, $financialTools, $globalAvailability, $providerFailsOnResolve, $meterKnowledge, $knowledgeSearchSpy, $sessionReleaseSpy, $logger, $consumeTransientRetry) extends \NumaController {
+        $controller = new class($rawBody, $numaUso, $provider, $knowledgeResults, $financialTools, $globalAvailability, $providerFailsOnResolve, $meterKnowledge, $knowledgeSearchSpy, $sessionReleaseSpy, $logger, $consumeTransientRetry, $providerFactory) extends \NumaController {
             public function __construct(
                 private readonly string $body,
                 private readonly NumaUsoFake $fakeNumaUso,
@@ -2690,6 +2847,7 @@ final class NumaControllerTest extends TestCase
                 private readonly ?NumaSessionReleaseSpy $sessionReleaseSpy,
                 private readonly ?\NumaMinimalLogger $logger,
                 private readonly bool $consumeTransientRetry,
+                private readonly ?\Closure $providerFactory,
             )
             {
             }
@@ -2742,6 +2900,10 @@ final class NumaControllerTest extends TestCase
                         \NumaProviderError::CONFIGURATION,
                         'NUMA_CONFIGURATION_ERROR'
                     ));
+                }
+
+                if ($this->providerFactory !== null) {
+                    return ($this->providerFactory)($consumption);
                 }
 
                 if ($consumption !== null) {

@@ -140,6 +140,40 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         self::assertSame(1035, $row['output_tokens']);
     }
 
+    public function testTimeoutSimuladoReintentaUnaVezYConservaLasReservasDeTokens(): void
+    {
+        $transportCalls = 0;
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: static function () use (&$transportCalls): array {
+                ++$transportCalls;
+
+                throw new \NumaProviderException(new \NumaProviderError(
+                    \NumaProviderError::TIMEOUT,
+                    'NUMA_PROVIDER_TIMEOUT',
+                    true,
+                ));
+            },
+            consumption: $this->consumo(),
+        );
+        $startedAt = hrtime(true);
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta'));
+            self::fail('Se esperaba el timeout simulado del proveedor.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_TIMEOUT', $exception->providerError()->safeCode());
+        }
+
+        $row = $this->row();
+        self::assertSame(2, $transportCalls);
+        self::assertSame(2, $row['llamadas']);
+        self::assertSame(10000, $row['input_tokens']);
+        self::assertSame(2000, $row['output_tokens']);
+        self::assertLessThan(1000.0, (hrtime(true) - $startedAt) / 1_000_000);
+    }
+
     public function testElLimiteBloqueaElReintentoAntesDeLaSegundaLlamadaReal(): void
     {
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '1';

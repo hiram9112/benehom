@@ -8,6 +8,13 @@
     const CLOSE_LABEL = 'Cerrar Numa';
     const MAX_INPUT_HEIGHT = 120;
     const PANEL_TRANSITION_DURATION_MS = 220;
+    const RESPONSE_REVEAL = {
+        wordDelayMs: 80,
+        punctuationDelayMs: 120,
+        sentenceDelayMs: 180,
+        minDelayMs: 12,
+        maxTotalDelayMs: 6000,
+    };
 
     const EMPTY_MESSAGES = [
         '¿Qué quieres revisar hoy?',
@@ -455,11 +462,19 @@
 
         const showThinkingMessage = () => {
             removeThinkingMessage();
-            thinkingMessage = addMessage('assistant', 'Pensando…', {
+            thinkingMessage = addMessage('assistant', 'Pensando', {
                 state: true,
                 tone: 'thinking',
             });
             thinkingMessage.classList.add('is-thinking');
+
+            const paragraph = thinkingMessage.querySelector('.bh-numa-message-content > p');
+            if (!paragraph) {
+                return;
+            }
+
+            paragraph.classList.add('bh-numa-thinking-word');
+            paragraph.dataset.numaThinkingText = 'Pensando';
         };
 
         const cancelProgressiveResponse = (complete) => {
@@ -494,13 +509,17 @@
             const words = text.match(/\S+\s*/g) || [text];
             const delays = words.map((word) => {
                 if (/[.!?…]$/.test(word.trim())) {
-                    return 100;
+                    return RESPONSE_REVEAL.sentenceDelayMs;
                 }
 
-                return /[,;:]$/.test(word.trim()) ? 55 : 35;
+                return /[,;:]$/.test(word.trim())
+                    ? RESPONSE_REVEAL.punctuationDelayMs
+                    : RESPONSE_REVEAL.wordDelayMs;
             });
             const totalDelay = delays.reduce((total, delay) => total + delay, 0);
-            const acceleration = totalDelay > 2750 ? 2750 / totalDelay : 1;
+            const acceleration = totalDelay > RESPONSE_REVEAL.maxTotalDelayMs
+                ? RESPONSE_REVEAL.maxTotalDelayMs / totalDelay
+                : 1;
             let wordIndex = 0;
 
             return new Promise((resolve) => {
@@ -536,7 +555,7 @@
 
                     responseRevealTimer = window.setTimeout(
                         revealNextWord,
-                        Math.max(8, Math.round(delays[wordIndex - 1] * acceleration))
+                        Math.max(RESPONSE_REVEAL.minDelayMs, Math.round(delays[wordIndex - 1] * acceleration))
                     );
                 };
 

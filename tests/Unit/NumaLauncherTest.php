@@ -519,20 +519,28 @@ final class NumaLauncherTest extends TestCase
         self::assertIsString($javascript);
         self::assertIsString($css);
         self::assertStringContainsString("showThinkingMessage();", $javascript);
-        self::assertStringContainsString("'Pensando…'", $javascript);
+        self::assertStringContainsString("'Pensando'", $javascript);
         self::assertStringContainsString('removeThinkingMessage();', $javascript);
         self::assertStringContainsString('const revealAssistantResponse', $javascript);
         self::assertStringContainsString('const words = text.match(/\\S+\\s*/g)', $javascript);
-        self::assertStringContainsString('const acceleration = totalDelay > 2750 ? 2750 / totalDelay : 1', $javascript);
+        self::assertStringContainsString('const RESPONSE_REVEAL = {', $javascript);
+        self::assertStringContainsString('wordDelayMs: 80', $javascript);
+        self::assertStringContainsString('punctuationDelayMs: 120', $javascript);
+        self::assertStringContainsString('sentenceDelayMs: 180', $javascript);
+        self::assertStringContainsString('maxTotalDelayMs: 6000', $javascript);
+        self::assertStringContainsString('RESPONSE_REVEAL.maxTotalDelayMs / totalDelay', $javascript);
         self::assertStringContainsString('if (prefersReducedMotion()) {', $javascript);
         self::assertStringContainsString('cancelProgressiveResponse(false);', $javascript);
         self::assertStringContainsString('const invalidateChatRequest', $javascript);
         self::assertStringContainsString('invalidateChatRequest(true);', $javascript);
         self::assertStringContainsString('if (!preserveConversation && (!conversationsMatch(conversation, canonicalConversation) || !renderedConversationMatches(conversation)))', $javascript);
         self::assertStringContainsString('.bh-numa-message.is-assistant.is-thinking .bh-numa-message-content', $css);
-        self::assertStringContainsString('animation: bh-numa-thinking-shimmer', $css);
-        self::assertStringContainsString('@keyframes bh-numa-thinking-shimmer', $css);
-        self::assertStringContainsString('-webkit-text-fill-color: currentColor', $css);
+        self::assertStringContainsString("paragraph.classList.add('bh-numa-thinking-word')", $javascript);
+        self::assertStringContainsString('.bh-numa-thinking-word::after', $css);
+        self::assertStringContainsString('background-size: 220% 100%', $css);
+        self::assertStringContainsString('animation: bh-numa-thinking-wash 3200ms', $css);
+        self::assertStringContainsString('@keyframes bh-numa-thinking-wash', $css);
+        self::assertStringContainsString('.bh-numa-thinking-word::after{', $css);
     }
 
     public function testClienteSigueSiempreElFinalDelTranscript(): void

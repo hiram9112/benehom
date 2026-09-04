@@ -32,7 +32,7 @@ async function submitMessage(page, message, expectThinking = true) {
     await page.getByRole('button', { name: 'Enviar mensaje' }).click();
 
     if (expectThinking) {
-        await expect(messages(page)).toContainText('Pensando…');
+        await expect(messages(page)).toContainText('Pensando');
     }
 }
 
@@ -145,7 +145,7 @@ test('retira Pensando y muestra un estado de error seguro cuando falla la consul
     await expect(error).toBeVisible();
     await expect(error).toHaveClass(/is-assistant/);
     await expect(error).toHaveClass(/is-error/);
-    await expect(messages(page)).not.toContainText('Pensando…');
+    await expect(messages(page)).not.toContainText('Pensando');
     await expect(page.locator('[data-numa-input]')).toBeDisabled();
 });
 
@@ -169,7 +169,7 @@ test('retira Pensando y explica el timeout sin revelar detalles del proveedor', 
     await expect(timeout).toBeVisible();
     await expect(timeout).toHaveClass(/is-assistant/);
     await expect(timeout).toHaveClass(/is-error/);
-    await expect(messages(page)).not.toContainText('Pensando…');
+    await expect(messages(page)).not.toContainText('Pensando');
     await expect(timeout).not.toContainText('timeout interno');
 });
 
@@ -193,7 +193,7 @@ test('retira Pensando, comunica el limite y bloquea el compositor', async ({ pag
     await expect(limit).toBeVisible();
     await expect(limit).toHaveClass(/is-assistant/);
     await expect(limit).toHaveClass(/is-warning/);
-    await expect(messages(page)).not.toContainText('Pensando…');
+    await expect(messages(page)).not.toContainText('Pensando');
     await expect(page.locator('[data-numa-input]')).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Enviar mensaje' })).toBeDisabled();
 });

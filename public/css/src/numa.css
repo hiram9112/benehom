@@ -446,13 +446,27 @@
 
 .bh-numa-message.is-assistant.is-thinking .bh-numa-message-content > p{
     display: inline-block;
-    background: linear-gradient(90deg, var(--bh-text-muted) 0%, var(--bh-text-main) 50%, var(--bh-text-muted) 100%);
+    color: var(--bh-text-muted);
+}
+
+.bh-numa-thinking-word{
+    position: relative;
+    display: inline-block;
+}
+
+.bh-numa-thinking-word::after{
+    content: attr(data-numa-thinking-text);
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, transparent 40%, var(--bh-surface-card) 47%, var(--bh-surface-card) 53%, transparent 60%, transparent 100%);
     background-clip: text;
-    background-size: 200% 100%;
+    background-size: 220% 100%;
+    background-position: 100% 0;
     color: transparent;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: bh-numa-thinking-shimmer 1500ms ease-in-out infinite;
+    animation: bh-numa-thinking-wash 3200ms linear infinite;
 }
 
 .bh-numa-form{
@@ -613,7 +627,7 @@
     }
 }
 
-@keyframes bh-numa-thinking-shimmer{
+@keyframes bh-numa-thinking-wash{
     from{
         background-position: 100% 0;
     }
@@ -860,9 +874,11 @@
     }
 
     .bh-numa-message.is-assistant.is-thinking .bh-numa-message-content > p{
-        background: none;
         color: var(--bh-text-muted);
-        -webkit-text-fill-color: currentColor;
-        animation: none;
     }
+
+    .bh-numa-thinking-word::after{
+        display: none;
+    }
+
 }

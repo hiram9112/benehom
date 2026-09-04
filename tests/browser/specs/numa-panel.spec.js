@@ -144,15 +144,55 @@ test('envia una consulta, muestra Pensando y revela solo la respuesta nueva prog
     const request = await chatRequest;
     expect(request.postDataJSON()).toEqual({ message: question });
     await expect(page.locator('[data-numa-messages]')).toContainText(question);
-    await expect(page.locator('[data-numa-messages]')).toContainText('Pensando…');
+    await expect(page.locator('[data-numa-messages]')).toContainText('Pensando');
+    const thinkingMessage = page.locator('.bh-numa-message.is-thinking');
+    await expect(thinkingMessage.locator('.bh-numa-message-content > p')).toHaveText('Pensando');
+    await expect(thinkingMessage.locator('.bh-numa-thinking-word')).toHaveCount(1);
+    expect(await thinkingMessage.locator('.bh-numa-thinking-word').evaluate((element) => (
+        getComputedStyle(element, '::after').animationName
+    ))).toBe('bh-numa-thinking-wash');
 
     await fulfillChat();
 
     const progressiveMessage = page.locator('[data-numa-messages] .bh-numa-message.is-assistant').last();
-    await expect(page.locator('[data-numa-messages]')).not.toContainText('Pensando…');
+    await expect(page.locator('[data-numa-messages]')).not.toContainText('Pensando');
     await expect(progressiveMessage.locator('.bh-numa-message-content > p')).toContainText('Esta es una respuesta progresiva');
     await expect(progressiveMessage.locator('.bh-numa-message-content > p')).not.toHaveText(answer);
     await expect(page.locator('[data-numa-messages] .bh-numa-message.is-assistant').last().locator('.bh-numa-message-content > p')).toHaveText(answer);
+});
+
+test('mantiene Pensando comprensible sin animacion cuando se reduce el movimiento', async ({ page }) => {
+    const question = '¿Cómo añado un movimiento?';
+    let fulfillChat;
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await mockAvailableStatus(page);
+    await page.route(/\/index\.php\?r=numa\/public\/chat$/, (route) => new Promise((resolve) => {
+        fulfillChat = async () => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ok: true,
+                    data: { message: 'Respuesta de prueba.', availability: 'available', conversation: [] },
+                }),
+            });
+            resolve();
+        };
+    }));
+    await page.goto(homeUrl);
+    await openNuma(page);
+
+    await page.locator('[data-numa-input]').fill(question);
+    await page.getByRole('button', { name: 'Enviar mensaje' }).click();
+
+    await expect(page.locator('[data-numa-messages]')).toContainText('Pensando');
+    await expect(page.locator('.bh-numa-message.is-thinking .bh-numa-thinking-word')).toHaveText('Pensando');
+    expect(await page.locator('.bh-numa-message.is-thinking .bh-numa-thinking-word').evaluate((element) => (
+        getComputedStyle(element, '::after').display
+    ))).toBe('none');
+
+    await fulfillChat();
 });
 
 test('restaura el transcript completo sin revelar progresivamente sus respuestas', async ({ page }) => {

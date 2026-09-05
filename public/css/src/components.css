@@ -378,6 +378,15 @@
     padding: 30px 40px;
 }
 
+/* El bloqueo vive en la raíz para no convertir body en el contenedor del sidebar sticky. */
+html.bh-modal-scroll-locked{
+    overflow: hidden !important;
+}
+
+body.modal-open{
+    overflow: visible !important;
+}
+
 #proximamente-titulo{
     font-size: 32px;
     font-weight: 600;

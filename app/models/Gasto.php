@@ -219,6 +219,39 @@ class Gasto{
 
     }
 
+    // Devuelve el último mes con al menos una categoría reducible hasta la fecha indicada.
+    public static function ultimoMesConGastosPorCategoriaHasta($usuario_id,$fechaFin,$tipo){
+
+        try{
+
+            $db=Database::getConnection();
+
+            $sql="SELECT DATE_FORMAT(fecha, '%Y-%m') AS mes
+                  FROM gastos
+                  WHERE usuario_id= :usuario_id
+                  AND tipo= :tipo
+                  AND fecha <= :fecha_fin
+                  GROUP BY DATE_FORMAT(fecha, '%Y-%m'), categoria
+                  HAVING SUM(cantidad) > 0
+                  ORDER BY mes DESC
+                  LIMIT 1";
+
+            $stmt=$db->prepare($sql);
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+            $stmt->bindParam(':tipo',$tipo,PDO::PARAM_STR);
+            $stmt->bindParam(':fecha_fin',$fechaFin);
+            $stmt->execute();
+
+            $resultado=$stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $resultado['mes'] ?? null;
+        }catch (Exception $e){
+
+            return false;
+        }
+
+    }
+
     //Método para contar meses con movimientos de un tipo en un rango
     public static function mesesConMovimientosPorRango($usuario_id,$fechaInicio,$fechaFin,$tipo){
 

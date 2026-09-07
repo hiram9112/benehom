@@ -126,11 +126,20 @@ final class NumaFinancialFactValidator
             return false;
         }
 
-        preg_match_all('/(?<![\d.,])-?\d+(?![\d.,])/u', $remaining, $matches);
+        preg_match_all('/(?<![\d.,])-?\d+(?:[.,]\d{1,2})?(?![\d,]|[.,]\d)/u', $remaining, $matches);
         foreach ($matches[0] as $literal) {
-            if (!isset($allowed['count'][(string) (int) $literal])) {
-                return false;
+            $amount = $this->normaliseDecimal($literal);
+            if ($amount !== null && isset($allowed['amount'][$amount])) {
+                continue;
             }
+
+            if (!str_contains($literal, '.') && !str_contains($literal, ',')
+                && isset($allowed['count'][(string) (int) $literal])
+            ) {
+                continue;
+            }
+
+            return false;
         }
 
         return true;

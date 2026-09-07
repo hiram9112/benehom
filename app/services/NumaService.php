@@ -432,6 +432,8 @@ final class NumaService
                 $classification = $decision->classification();
             }
 
+            $classification = $this->enforceFinancialPreRoute($classification, $preRoute, $message);
+
             if (!$classification->allowed()) {
                 $fixedMessage = NumaFixedScopeResponse::forIntent($classification->intent(), $classification->reason());
 
@@ -857,6 +859,31 @@ final class NumaService
             NumaClassificationIntent::DATOS_USUARIO,
             NumaClassificationIntent::CONSULTA_COMBINADA,
         ], true);
+    }
+
+    private function enforceFinancialPreRoute(
+        NumaClassification $classification,
+        NumaPreRoute $preRoute,
+        string $message,
+    ): NumaClassification {
+        if (!$classification->allowed() || $this->needsTools($classification)) {
+            return $classification;
+        }
+
+        return match ($preRoute->route()) {
+            NumaPreRoute::DATOS_FINANCIEROS => new NumaClassification(
+                NumaClassificationIntent::DATOS_USUARIO,
+                true,
+                'local_financial_route',
+            ),
+            NumaPreRoute::CONSULTA_COMBINADA => new NumaClassification(
+                NumaClassificationIntent::CONSULTA_COMBINADA,
+                true,
+                'local_combined_route',
+                $message,
+            ),
+            default => $classification,
+        };
     }
 
     /**

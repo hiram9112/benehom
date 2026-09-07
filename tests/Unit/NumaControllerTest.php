@@ -2493,6 +2493,78 @@ final class NumaControllerTest extends TestCase
         self::assertCount(2, $provider->requests());
     }
 
+    public function testChatActivoNoDegradaUnaRutaFinancieraAInteraccionConversacionalSinTool(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $usage = new NumaUsoFake();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'interaccion_conversacional',
+                'allowed' => true,
+                'reason' => 'social_continuity',
+            ]),
+            new \NumaResponse('El mes con más gasto fue julio: 999.99 EUR.'),
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿En qué mes gasté más?"}',
+            $usage,
+            $provider,
+            [],
+            $tools,
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertSame(0, $tools->executions);
+        self::assertCount(2, $provider->requests());
+        self::assertSame([
+            \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+        ], $provider->requests()[1]->availableTools());
+        self::assertSame(2, $usage->confirmations);
+    }
+
+    public function testChatActivoConservaUnaRutaFinancieraDegradadaCuandoEjecutaTool(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'interaccion_conversacional',
+                'allowed' => true,
+                'reason' => 'social_continuity',
+            ]),
+            new \NumaResponse(
+                'Consulto los datos agregados.',
+                null,
+                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                    'fecha_inicio' => '2026-07-01',
+                    'fecha_fin' => '2026-07-31',
+                ]),
+            ),
+            new \NumaResponse('En julio ingresaste 1200 EUR y gastaste 800 EUR.'),
+        );
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuánto gasté en julio?"}',
+            new NumaUsoFake(),
+            $provider,
+            [],
+            $tools,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame('En julio ingresaste 1200 EUR y gastaste 800 EUR.', $response['data']['message']);
+        self::assertSame(1, $tools->executions);
+        self::assertCount(3, $provider->requests());
+    }
+
     public function testChatActivoRespetaMaximoDeLlamadasAlProveedor(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';

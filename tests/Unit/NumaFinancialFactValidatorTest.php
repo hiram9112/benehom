@@ -47,6 +47,23 @@ final class NumaFinancialFactValidatorTest extends TestCase
         self::assertFalse($validator->validates('Los ingresos fueron 1200,51 EUR.', $results));
     }
 
+    public function testRechazaCifrasSinUnidadNoAutorizadasYAceptaLasAutorizadas(): void
+    {
+        $validator = new \NumaFinancialFactValidator();
+        $results = [[
+            'tool' => \NumaFinancialToolRegistry::OBTENER_ESTADISTICAS_MOVIMIENTOS,
+            'total' => '1200.50',
+            'cantidad_movimientos' => 2,
+        ]];
+
+        self::assertTrue($validator->validates('El total fue 1200.50 y hubo 2 movimientos.', $results));
+        self::assertTrue($validator->validates('El total fue 1200,50 y hubo 2 movimientos.', $results));
+        self::assertFalse($validator->validates('El total fue 999.99.', $results));
+        self::assertFalse($validator->validates('El total fue 999,99.', $results));
+        self::assertFalse($validator->validates('El total fue 1201.', $results));
+        self::assertFalse($validator->validates('Hubo 3 movimientos.', $results));
+    }
+
     public function testExtraeHechosDeCategoriaAnidada(): void
     {
         $validator = new \NumaFinancialFactValidator();

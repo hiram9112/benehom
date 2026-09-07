@@ -1,12 +1,12 @@
 # Resultado de evaluacion RAG real de Numa
 
-- Fecha: 2026-08-13T22:25:00+02:00
+- Fecha: 2026-09-07T15:46:05+02:00
 - Conjunto: `2026-08-13.2`
 - Firma: `{"provider":"gemini","model":"gemini-embedding-001","task_type":"RETRIEVAL_DOCUMENT","dimensions":768,"format_version":"3"}`
 - Fuentes: 23
 - Fragmentos: 96
 - Estado: calibrado
-- Umbral aprobado: 0.67
+- Umbral candidato: 0.67
 - Menor similitud positiva de calibracion: 0.715134
 - Mayor similitud no_result de calibracion: 0.615370
 - Menor similitud positiva de validacion: 0.771816
@@ -183,3 +183,4 @@ El informe no contiene claves, vectores ni datos privados. Las consultas pertene
 - 1. `knowledge:preguntas-frecuentes:que-hago-si-no-hay-datos-suficientes` (0.649816)
 - 2. `knowledge:movimientos:como-anadir-un-movimiento` (0.644050)
 - 3. `knowledge:preguntas-frecuentes:como-anado-un-movimiento` (0.642661)
+

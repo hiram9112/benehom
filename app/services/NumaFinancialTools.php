@@ -55,15 +55,29 @@ final class NumaPeriodResolver
     }
 
     /** @return array{inicio:string,fin:string} */
-    public function resolve(string $period): array
+    public function referencePeriodForMonth(string $month): array
     {
+        if (preg_match('/^20\d{2}-(?:0[1-9]|1[0-2])$/', $month) !== 1) {
+            throw new InvalidArgumentException('Mes de referencia de Numa no valido.');
+        }
+
+        return $this->month($this->date($month . '-01'));
+    }
+
+    /**
+     * @param array{start:string,end:string}|null $referencePeriod
+     * @return array{inicio:string,fin:string}
+     */
+    public function resolve(string $period, ?array $referencePeriod = null): array
+    {
+        $referenceDate = $this->referenceDate($referencePeriod);
         $now = $this->now();
 
         return match ($period) {
-            self::CURRENT_MONTH => $this->month($now),
-            self::PREVIOUS_MONTH => $this->month($now->modify('first day of last month')),
-            self::CURRENT_YEAR => $this->year($now),
-            self::PREVIOUS_YEAR => $this->year($now->modify('first day of January last year')),
+            self::CURRENT_MONTH => $this->month($referenceDate),
+            self::PREVIOUS_MONTH => $this->month($referenceDate->modify('first day of last month')),
+            self::CURRENT_YEAR => $this->year($referenceDate),
+            self::PREVIOUS_YEAR => $this->year($referenceDate->modify('first day of January last year')),
             default => isset(self::NAMED_MONTHS[$period])
                 ? $this->month($now->setDate((int) $now->format('Y'), self::NAMED_MONTHS[$period], 1))
                 : throw new InvalidArgumentException('Periodo relativo de Numa no permitido.'),
@@ -80,11 +94,7 @@ final class NumaPeriodResolver
             return $this->resolve($period);
         }
 
-        $referenceStart = $this->date($referencePeriod['start']);
-
-        return $period === self::PREVIOUS_MONTH
-            ? $this->month($referenceStart->modify('first day of last month'))
-            : $this->year($referenceStart->modify('first day of January last year'));
+        return $this->resolve($period, $referencePeriod);
     }
 
     /**
@@ -103,16 +113,17 @@ final class NumaPeriodResolver
         }
 
         $months = implode('|', array_keys(self::NAMED_MONTHS));
+        $referenceDate = $this->referenceDate($referencePeriod);
         if (preg_match('/\bentre\s+(' . $months . ')\s+y\s+(' . $months . ')(?:\s+de\s+(20\d{2}))?\b/iu', $message, $rangeMatch) === 1) {
             $year = isset($rangeMatch[3]) && $rangeMatch[3] !== ''
                 ? (int) $rangeMatch[3]
-                : (int) $this->now()->format('Y');
+                : (int) $referenceDate->format('Y');
             $startMonth = self::NAMED_MONTHS[strtolower($rangeMatch[1])];
             $endMonth = self::NAMED_MONTHS[strtolower($rangeMatch[2])];
 
             return [$this->normalize(
-                $this->now()->setDate($year, $startMonth, 1)->format('Y-m-d'),
-                $this->now()->setDate($year, $endMonth, 1)->format('Y-m-d'),
+                $referenceDate->setDate($year, $startMonth, 1)->format('Y-m-d'),
+                $referenceDate->setDate($year, $endMonth, 1)->format('Y-m-d'),
             )];
         }
 
@@ -122,8 +133,8 @@ final class NumaPeriodResolver
                 $month = self::NAMED_MONTHS[strtolower($monthName)];
                 $year = isset($monthMatches[2][$index]) && $monthMatches[2][$index] !== ''
                     ? (int) $monthMatches[2][$index]
-                    : (int) $this->now()->format('Y');
-                $period = $this->month($this->now()->setDate($year, $month, 1));
+                    : (int) $referenceDate->format('Y');
+                $period = $this->month($referenceDate->setDate($year, $month, 1));
 
                 if (!in_array($period, $periods, true)) {
                     $periods[] = $period;
@@ -133,15 +144,24 @@ final class NumaPeriodResolver
             return $periods;
         }
 
+        if (preg_match('/\b(?:los?\s+)?(?:ultimos|últimos)\s+([1-9]\d?)\s+mes(?:es)?\b/iu', $message, $match) === 1) {
+            $months = (int) $match[1];
+            $referenceDate = $this->referenceDate($referencePeriod);
+            return [$this->normalize(
+                $referenceDate->modify('first day of this month')->modify(sprintf('-%d months', $months - 1))->format('Y-m-d'),
+                $referenceDate->modify('last day of this month')->format('Y-m-d'),
+            )];
+        }
+
         $relativePeriods = [
-            '/\b(?:mes actual|este mes)\b/iu' => self::CURRENT_MONTH,
+            '/\b(?:mes actual|este(?: mismo)? mes)\b/iu' => self::CURRENT_MONTH,
             '/\b(?:mes anterior|mes pasado|el mes pasado)\b/iu' => self::PREVIOUS_MONTH,
             '/\b(?:ano actual|año actual|este año)\b/iu' => self::CURRENT_YEAR,
             '/\b(?:ano anterior|año anterior|año pasado|el año pasado)\b/iu' => self::PREVIOUS_YEAR,
         ];
         foreach ($relativePeriods as $pattern => $period) {
             if (preg_match($pattern, $message) === 1) {
-                return [$this->resolveForFollowUp($period, $referencePeriod)];
+                return [$this->resolve($period, $referencePeriod)];
             }
         }
 
@@ -150,6 +170,17 @@ final class NumaPeriodResolver
         }
 
         return [];
+    }
+
+    public function hasAmbiguousPeriodMention(string $message): bool
+    {
+        if (preg_match('/\b(?:mes|año|ano)\b/iu', $message) === 1) {
+            return true;
+        }
+
+        $months = implode('|', array_keys(self::NAMED_MONTHS));
+
+        return preg_match('/\b(?:entre|desde|hasta)\s+(?:' . $months . '|este|ese|aquel)\b/iu', $message) === 1;
     }
 
     /** @return array{inicio:string,fin:string} */
@@ -171,6 +202,12 @@ final class NumaPeriodResolver
     private function now(): DateTimeImmutable
     {
         return ($this->now ?? new DateTimeImmutable('now', $this->timezone))->setTimezone($this->timezone);
+    }
+
+    /** @param array{start:string,end:string}|null $referencePeriod */
+    private function referenceDate(?array $referencePeriod): DateTimeImmutable
+    {
+        return $referencePeriod === null ? $this->now() : $this->date($referencePeriod['start']);
     }
 
     /** @return array{inicio:string,fin:string} */

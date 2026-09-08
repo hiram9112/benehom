@@ -488,7 +488,9 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("fetch(chatUrl", $javascript);
         self::assertStringContainsString("statusRetryButton.addEventListener('click', loadStatus)", $javascript);
         self::assertStringContainsString("'X-CSRF-Token': csrfToken", $javascript);
-        self::assertStringContainsString('JSON.stringify({ message })', $javascript);
+        self::assertStringContainsString("document.getElementById('mes')", $javascript);
+        self::assertStringContainsString('dashboard_month: dashboardMonthInput.value', $javascript);
+        self::assertStringContainsString('JSON.stringify({', $javascript);
         self::assertStringContainsString('presentChatResponse(payload.data, requestId)', $javascript);
         self::assertStringContainsString("newConversationButton.addEventListener('click', () => {", $javascript);
         self::assertStringContainsString("submitButton.classList.toggle('is-processing', processing)", $javascript);

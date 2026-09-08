@@ -39,7 +39,7 @@ class NumaController
         'permisos',
     ];
 
-    private const ALLOWED_CLIENT_KEYS = ['message'];
+    private const ALLOWED_CLIENT_KEYS = ['message', 'dashboard_month'];
 
     private const CHAT_RATE_LIMIT_ACTION = 'numa_chat';
     private const PUBLIC_CHAT_RATE_LIMIT_ACTION = 'numa_public_chat_ip';
@@ -81,6 +81,9 @@ class NumaController
 
     private ?NumaMinimalLogger $interactionLogger = null;
 
+    /** @var array{start:string,end:string}|null */
+    private ?array $dashboardReferencePeriod = null;
+
     public function chat(): void
     {
         if (!$this->beginJsonRequest('POST')) {
@@ -92,10 +95,11 @@ class NumaController
             return;
         }
 
-        $message = $this->validatedMessage();
+        $message = $this->validatedMessage(allowDashboardMonth: true);
         if ($message === null) {
             return;
         }
+        $referencePeriod = $this->dashboardReferencePeriod;
 
         if (!bh_env_bool('NUMA_ENABLED', false)) {
             bh_numa_error('NUMA_NOT_AVAILABLE', 503);
@@ -132,6 +136,7 @@ class NumaController
                     $authenticatedUserId,
                     $message,
                     $context,
+                    $referencePeriod,
                 ),
             );
 
@@ -1167,9 +1172,10 @@ class NumaController
         return bh_env_bool('NUMA_ENABLED', false) && bh_env_bool('NUMA_PUBLIC_ENABLED', false);
     }
 
-    private function validatedMessage(): ?string
+    private function validatedMessage(bool $allowDashboardMonth = false): ?string
     {
         $this->requestBodyTooLarge = false;
+        $this->dashboardReferencePeriod = null;
 
         if (!$this->hasJsonContentType()) {
             bh_numa_error('NUMA_INVALID_MESSAGE', 400);
@@ -1195,10 +1201,33 @@ class NumaController
         }
 
         foreach (array_keys($payload) as $key) {
-            if (!is_string($key) || !in_array($key, self::ALLOWED_CLIENT_KEYS, true)) {
+            if (!is_string($key)
+                || !in_array($key, self::ALLOWED_CLIENT_KEYS, true)
+                || ($key === 'dashboard_month' && !$allowDashboardMonth)
+            ) {
                 bh_numa_error('NUMA_INVALID_MESSAGE', 400);
                 return null;
             }
+        }
+
+        if (array_key_exists('dashboard_month', $payload)) {
+            $dashboardMonth = $payload['dashboard_month'];
+            if (!is_string($dashboardMonth)) {
+                bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+                return null;
+            }
+
+            try {
+                $period = $this->periodResolver()->referencePeriodForMonth($dashboardMonth);
+            } catch (InvalidArgumentException) {
+                bh_numa_error('NUMA_INVALID_MESSAGE', 400);
+                return null;
+            }
+
+            $this->dashboardReferencePeriod = [
+                'start' => $period['inicio'],
+                'end' => $period['fin'],
+            ];
         }
 
         $message = $payload['message'] ?? null;

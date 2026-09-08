@@ -120,6 +120,7 @@
         const loginUrl = widget.getAttribute('data-numa-login-url') || '';
         const csrfToken = widget.getAttribute('data-numa-csrf') || '';
         const isPublicMode = widget.getAttribute('data-numa-mode') === 'public';
+        const dashboardMonthInput = isPublicMode ? null : document.getElementById('mes');
         const emptyMessages = configuredTextList(widget, 'data-numa-empty-messages', EMPTY_MESSAGES);
         const configuredSuggestions = configuredTextList(widget, 'data-numa-suggestions', SUGGESTIONS);
         const configuredMaxMessageLength = Number(widget.getAttribute('data-numa-max-message-length'));
@@ -867,7 +868,12 @@
                         'X-CSRF-Token': csrfToken,
                     },
                     signal: abortController ? abortController.signal : undefined,
-                    body: JSON.stringify({ message }),
+                    body: JSON.stringify({
+                        message,
+                        ...(dashboardMonthInput && dashboardMonthInput.value !== ''
+                            ? { dashboard_month: dashboardMonthInput.value }
+                            : {}),
+                    }),
                 });
             } catch {
                 window.clearTimeout(activeRequestTimeout);

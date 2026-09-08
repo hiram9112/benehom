@@ -1963,6 +1963,118 @@ final class NumaControllerTest extends TestCase
         self::assertSame('2026-08-12', $provider->requests()[1]->context()[0]['server_date']);
     }
 
+    public function testChatUsaElMesValidadoDelDashboardComoReferenciaTemporal(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(
+                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                ['periodo' => 'mes_actual'],
+            )),
+            new \NumaResponse('En junio gastaste 800 euros.')
+        );
+
+        $this->invokeWithPeriodResolver(
+            'chat',
+            '{"message":"¿Cuánto gasté este mes?","dashboard_month":"2026-06"}',
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-09-12', new \DateTimeZone('Europe/Madrid'))),
+            $provider,
+            $tools,
+        );
+
+        self::assertSame([
+            'fecha_inicio' => '2026-06-01',
+            'fecha_fin' => '2026-06-30',
+        ], $tools->calls[0]['arguments']);
+    }
+
+    public function testChatUsaElMesDelDashboardCuandoElMensajeNoIndicaPeriodo(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(
+                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                ['periodo' => 'mes_actual'],
+            )),
+            new \NumaResponse('En junio gastaste 800 euros.')
+        );
+
+        $this->invokeWithPeriodResolver(
+            'chat',
+            '{"message":"¿Cuánto gasté?","dashboard_month":"2026-06"}',
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-09-12', new \DateTimeZone('Europe/Madrid'))),
+            $provider,
+            $tools,
+        );
+
+        self::assertSame([
+            'fecha_inicio' => '2026-06-01',
+            'fecha_fin' => '2026-06-30',
+        ], $tools->calls[0]['arguments']);
+    }
+
+    public function testChatPideAclaracionAnteUnaReferenciaTemporalAmbiguaEnElDashboard(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new SequentialNumaProviderFake(
+            new \NumaResponse('clasificacion', [
+                'intent' => 'datos_usuario',
+                'allowed' => true,
+                'reason' => 'user_data',
+                'data_intent' => 'resumen_financiero',
+            ]),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(
+                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                ['periodo' => 'mes_actual'],
+            )),
+        );
+
+        $response = $this->invokeWithPeriodResolver(
+            'chat',
+            '{"message":"¿Cuánto gasté el otro mes?","dashboard_month":"2026-06"}',
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-09-12', new \DateTimeZone('Europe/Madrid'))),
+            $provider,
+            $tools,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame('Necesito que concretes un poco más la consulta para poder ayudarte.', $response['data']['message']);
+        self::assertSame([], $tools->calls);
+    }
+
+    public function testChatRechazaUnMesDeDashboardConFormatoInvalido(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuánto gasté este mes?","dashboard_month":"2026-13"}',
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(400, $response['_status']);
+        self::assertSame('NUMA_INVALID_MESSAGE', $response['error']['code']);
+    }
+
     public function testSeguimientoResuelveMesAnteriorDesdeElPeriodoEstructuradoDeSesion(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
@@ -3089,9 +3201,9 @@ final class NumaControllerTest extends TestCase
 
         ob_start();
         $controller->{$method}();
-        ob_end_clean();
+        $output = (string) ob_get_clean();
 
-        return [];
+        return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
     private function invokeWithUnreadableBody(): array

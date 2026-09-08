@@ -363,8 +363,11 @@ final class NumaService
 
     private ?NumaGlobalAvailabilityInterface $resolvedGlobalAvailability = null;
 
-    /** @param array<int, array{role:string,message:string,period?:array<string,string>}> $history */
-    public function answer(int $authenticatedUserId, string $message, array $history = []): NumaServiceResult
+    /**
+     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
+     * @param array{start:string,end:string}|null $referencePeriod
+     */
+    public function answer(int $authenticatedUserId, string $message, array $history = [], ?array $referencePeriod = null): NumaServiceResult
     {
         if (!bh_env_bool('NUMA_ENABLED', false)) {
             throw new NumaServiceException('NUMA_NOT_AVAILABLE', 503, stage: self::STAGE_AVAILABILITY);
@@ -471,7 +474,7 @@ final class NumaService
                 $knowledgeResults,
                 $providerHistory,
                 $provider,
-                referencePeriod: $this->latestConversationPeriod($history),
+                referencePeriod: $referencePeriod ?? $this->latestConversationPeriod($history),
             );
 
             return $this->result(
@@ -1421,6 +1424,10 @@ final class NumaService
     private function resolveToolPeriods(string $toolName, array $arguments, string $message, ?array $referencePeriod): array
     {
         $messagePeriods = $this->periodResolver->periodsMentionedInMessage($message, $referencePeriod);
+
+        if ($messagePeriods === [] && $this->periodResolver->hasAmbiguousPeriodMention($message)) {
+            throw new NumaFinancialToolInputIncomplete('La consulta incluye una referencia temporal ambigua.');
+        }
 
         if ($toolName === NumaFinancialToolRegistry::COMPARAR_PERIODOS) {
             if (count($messagePeriods) >= 2) {

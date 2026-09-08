@@ -26,7 +26,7 @@ Las respuestas de Numa deben entenderse como orientacion sobre BeneHom y educaci
 
 Las fuentes documentales recuperadas por RAG se mantienen como metadatos internos y no se muestran al usuario final.
 
-Numa esta prevista para zonas autenticadas de BeneHom. No debe aparecer ni funcionar en paginas publicas.
+Numa esta disponible tanto en zonas autenticadas como en paginas publicas seleccionadas de BeneHom. En el acceso publico puede explicar el funcionamiento del producto y conceptos de economia familiar documentados por BeneHom, pero no accede a datos financieros privados. El analisis de ingresos, gastos y movimientos registrados solo esta disponible cuando la persona ha iniciado sesion.
 
 ## Datos y privacidad
 

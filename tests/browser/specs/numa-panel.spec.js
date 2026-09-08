@@ -41,6 +41,26 @@ test('abre el panel y lo cierra al pulsar su control', async ({ page }) => {
     await expect(numaPanel(page)).toBeHidden();
 });
 
+test('abre el panel real desde el CTA de la Home y devuelve el foco al cerrarlo', async ({ page }) => {
+    await mockAvailableStatus(page);
+    await page.goto(homeUrl);
+
+    const homeCta = page.getByRole('button', { name: 'Probar Numa' });
+    await homeCta.click();
+
+    await expect(numaPanel(page)).toBeVisible();
+    await expect(homeCta).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('[data-numa-launcher]')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('[data-numa-launcher]')).toHaveCSS('visibility', 'visible');
+    await expect(page.locator('[data-numa-input]')).toBeFocused();
+
+    await page.locator('[data-numa-close]').click();
+
+    await expect(numaPanel(page)).toBeHidden();
+    await expect(homeCta).toHaveAttribute('aria-expanded', 'false');
+    await expect(homeCta).toBeFocused();
+});
+
 test('aplica la animacion de entrada cuando no se reduce el movimiento', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(homeUrl);
@@ -254,6 +274,26 @@ test('lleva el transcript al final aunque se hubiera desplazado hacia arriba', a
 
 test.describe('en un viewport movil', () => {
     test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+    test('presenta la seccion de Numa sin desbordamiento horizontal', async ({ page }) => {
+        await page.goto(homeUrl);
+
+        const section = page.locator('#numa');
+        await section.scrollIntoViewIfNeeded();
+        await expect(section.getByRole('heading', { name: 'Pregúntale a Numa y entiende mejor tus números.' })).toBeVisible();
+        await expect(section.getByRole('button', { name: 'Probar Numa' })).toBeVisible();
+        await expect(page.locator('[data-numa-launcher]')).toHaveCSS('visibility', 'visible');
+
+        const sectionBox = await section.boundingBox();
+        const stageBox = await section.locator('.bh-home-numa-stage').boundingBox();
+
+        expect(sectionBox).not.toBeNull();
+        expect(stageBox).not.toBeNull();
+        expect(sectionBox.x).toBeGreaterThanOrEqual(0);
+        expect(sectionBox.x + sectionBox.width).toBeLessThanOrEqual(390);
+        expect(stageBox.x).toBeGreaterThanOrEqual(0);
+        expect(stageBox.x + stageBox.width).toBeLessThanOrEqual(390);
+    });
 
     test('mantiene el panel y compositor usables y sigue el crecimiento progresivo de la respuesta', async ({ page }) => {
         const question = '¿Cómo organizo mis gastos?';

@@ -153,6 +153,53 @@ final class NumaLauncherTest extends TestCase
         self::assertNull(bh_numa_widget_mode());
     }
 
+    public function testHomeIntegraNumaEnLaJerarquiaYEnLaNavegacion(): void
+    {
+        $home = file_get_contents(APP_PATH . '/views/home.php');
+        $homeCss = file_get_contents(BASE_PATH . '/public/css/src/home.css');
+        $homeJavascript = file_get_contents(BASE_PATH . '/public/js/home.js');
+
+        self::assertIsString($home);
+        self::assertIsString($homeCss);
+        self::assertIsString($homeJavascript);
+        self::assertStringContainsString('id="numa"', $home);
+        self::assertStringContainsString('aria-labelledby="numa-title"', $home);
+        self::assertStringContainsString('data-numa-open', $home);
+        self::assertStringContainsString('aria-controls="bh-numa-panel"', $home);
+        self::assertStringContainsString('aria-expanded="false">Probar Numa</button>', $home);
+        self::assertStringContainsString("bh_asset('img/numa/numa-static-sm.webp')", $home);
+        self::assertStringContainsString('En beta y con uso limitado.', $home);
+        self::assertStringContainsString('Septiembre de 2026 · Datos sintéticos', $home);
+        self::assertSame(3, substr_count($home, 'class="bh-home-numa-benefit bh-reveal"'));
+        self::assertStringContainsString('¿Qué puede hacer Numa y qué límites tiene?', $home);
+        self::assertGreaterThanOrEqual(3, substr_count($home, 'href="#numa"'));
+        self::assertStringContainsString('.bh-home-numa-layout', $homeCss);
+        self::assertStringNotContainsString('.bh-home-numa-shell', $homeCss);
+        self::assertStringNotContainsString('is-numa-section-visible', $homeCss);
+        self::assertStringNotContainsString("document.querySelector('.bh-home-numa')", $homeJavascript);
+        self::assertStringNotContainsString("classList.toggle('is-numa-section-visible'", $homeJavascript);
+
+        $methodPosition = strpos($home, 'id="como-funciona"');
+        $numaPosition = strpos($home, 'id="numa"');
+        $featuresPosition = strpos($home, 'id="funciones"');
+
+        self::assertIsInt($methodPosition);
+        self::assertIsInt($numaPosition);
+        self::assertIsInt($featuresPosition);
+        self::assertTrue($methodPosition < $numaPosition && $numaPosition < $featuresPosition);
+    }
+
+    public function testConocimientoDescribeElAlcancePublicoActualDeNuma(): void
+    {
+        $knowledge = file_get_contents(BASE_PATH . '/knowledge/numa/introduccion.md');
+
+        self::assertIsString($knowledge);
+        self::assertStringContainsString('Numa esta disponible tanto en zonas autenticadas como en paginas publicas seleccionadas', $knowledge);
+        self::assertStringContainsString('En el acceso publico puede explicar el funcionamiento del producto', $knowledge);
+        self::assertStringContainsString('no accede a datos financieros privados', $knowledge);
+        self::assertStringNotContainsString('No debe aparecer ni funcionar en paginas publicas.', $knowledge);
+    }
+
     public function testConfiguraElWidgetPublicoSinPermitirQueElClienteElijaElModo(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
@@ -411,6 +458,13 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('let defaultTooltipSuppressed = false', $javascript);
         self::assertStringContainsString('if (shouldShowInitialTooltip) {', $javascript);
         self::assertStringContainsString("document.querySelectorAll('[data-numa-widget]')", $javascript);
+        self::assertStringContainsString("document.querySelectorAll('[data-numa-open]')", $javascript);
+        self::assertStringContainsString("button.getAttribute('aria-controls') === panel.id", $javascript);
+        self::assertStringContainsString('syncExternalOpenButtons(true)', $javascript);
+        self::assertStringContainsString('syncExternalOpenButtons(false)', $javascript);
+        self::assertStringContainsString('openPanel(button)', $javascript);
+        self::assertStringContainsString('returnFocusTarget.isConnected', $javascript);
+        self::assertStringContainsString('focusTarget.focus()', $javascript);
         self::assertStringContainsString("launcher.setAttribute('aria-expanded', 'true')", $javascript);
         self::assertStringContainsString("launcher.setAttribute('aria-expanded', 'false')", $javascript);
         self::assertStringContainsString("launcher.setAttribute('aria-label', CLOSE_LABEL)", $javascript);
@@ -427,7 +481,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('if (panelOpen || !initialTooltipDismissed || defaultTooltipSuppressed)', $javascript);
         self::assertStringContainsString("event.key === 'Escape'", $javascript);
         self::assertStringContainsString('focusFirstPanelTarget(panel, closeButton)', $javascript);
-        self::assertStringContainsString('launcher.focus()', $javascript);
+        self::assertStringContainsString('focusTarget.focus()', $javascript);
         self::assertStringContainsString("form.addEventListener('submit'", $javascript);
         self::assertStringContainsString("button.addEventListener('click', () => sendMessage(suggestion))", $javascript);
         self::assertStringContainsString("fetch(statusUrl", $javascript);

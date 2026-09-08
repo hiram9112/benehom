@@ -135,6 +135,9 @@
             return;
         }
 
+        const externalOpenButtons = Array.from(document.querySelectorAll('[data-numa-open]'))
+            .filter((button) => button.getAttribute('aria-controls') === panel.id);
+
         let panelOpen = false;
         let hovering = false;
         let focusing = false;
@@ -160,6 +163,7 @@
         let composerHadFocus = false;
         let confirmationOpen = false;
         let sessionRedirecting = false;
+        let returnFocusTarget = launcher;
 
         const redirectToLoginWhenSessionExpired = (response, payload) => {
             const errorCode = payload && payload.error && typeof payload.error.code === 'string'
@@ -1043,11 +1047,19 @@
                 });
         };
 
-        const openPanel = () => {
+        const syncExternalOpenButtons = (open) => {
+            externalOpenButtons.forEach((button) => {
+                button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+        };
+
+        const openPanel = (opener = launcher) => {
             if (panelOpen) {
+                focusFirstPanelTarget(panel, closeButton);
                 return;
             }
 
+            returnFocusTarget = opener && typeof opener.focus === 'function' ? opener : launcher;
             panelOpen = true;
             clearPanelTransitions();
             hideTooltip(true);
@@ -1056,6 +1068,7 @@
             panel.classList.remove('is-numa-leaving');
             launcher.setAttribute('aria-expanded', 'true');
             launcher.setAttribute('aria-label', CLOSE_LABEL);
+            syncExternalOpenButtons(true);
             widget.classList.add('is-numa-open');
 
             if (!prefersReducedMotion()) {
@@ -1092,6 +1105,7 @@
             panel.inert = true;
             launcher.setAttribute('aria-expanded', 'false');
             launcher.setAttribute('aria-label', OPEN_LABEL);
+            syncExternalOpenButtons(false);
             widget.classList.remove('is-numa-open');
 
             if (prefersReducedMotion()) {
@@ -1102,7 +1116,10 @@
             }
 
             if (returnFocus) {
-                launcher.focus();
+                const focusTarget = returnFocusTarget && returnFocusTarget.isConnected
+                    ? returnFocusTarget
+                    : launcher;
+                focusTarget.focus();
             }
 
             syncDefaultTooltip();
@@ -1114,7 +1131,11 @@
                 return;
             }
 
-            openPanel();
+            openPanel(launcher);
+        });
+
+        externalOpenButtons.forEach((button) => {
+            button.addEventListener('click', () => openPanel(button));
         });
 
         closeButton.addEventListener('click', () => closePanel(true));

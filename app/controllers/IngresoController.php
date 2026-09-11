@@ -55,6 +55,61 @@ class IngresoController{
             return;
         }
 
+        $ingresoExistente=Ingreso::obtenerIngresoMensual($usuario_id,$categoria,$fecha);
+
+        if($ingresoExistente===false){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Error al consultar la base de datos"
+            ]);
+            return;
+        }
+
+        if($ingresoExistente!==null){
+            if(($_POST['confirmar_acumulacion']??'')!=='1'){
+                echo json_encode([
+                    "ok"=>false,
+                    "requiere_confirmacion"=>true,
+                    "confirmacion"=>[
+                        "categoria"=>$categoria,
+                        "cantidad_actual"=>$ingresoExistente['cantidad'],
+                        "mes"=>$mesSeleccionado,
+                        "cantidad_nueva"=>$cantidad
+                    ]
+                ]);
+                return;
+            }
+
+            $ingresoAcumulado=Ingreso::acumularIngresoMensual($usuario_id,$categoria,$cantidad,$fecha);
+
+            if(!is_array($ingresoAcumulado)){
+                echo json_encode([
+                    "ok"=>false,
+                    "msg"=>"El ingreso mensual ya no está disponible para acumularlo"
+                ]);
+                return;
+            }
+
+            echo json_encode([
+                "ok"=>true,
+                "acumulado"=>true,
+                "ingreso"=>[
+                    "id"=>$ingresoAcumulado['id'],
+                    "categoria"=>$categoria,
+                    "cantidad"=>$ingresoAcumulado['cantidad']
+                ]
+            ]);
+            return;
+        }
+
+        if(($_POST['confirmar_acumulacion']??'')==='1'){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"El ingreso mensual ya no está disponible para acumularlo"
+            ]);
+            return;
+        }
+
         //Insertamos en la base de datos el nuevo ingreso(devolverá el ID del recién creado ingreso)
         $nuevoID=Ingreso::agregarIngreso($usuario_id,$categoria,$cantidad,$fecha);
 

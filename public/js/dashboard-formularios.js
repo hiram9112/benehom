@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
       categoria: "categoria_ingreso",
       respuesta: "ingreso",
       agregar: agregarIngresoAlDOM,
+      actualizar: (ingreso) => actualizarCantidadMovimientoEnDOM(ingreso, "lista_ingresos", "ingreso"),
       foco: "#movimiento_area",
     },
     esencial: {
@@ -27,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
       categoria: "categoria_gasto_esencial",
       respuesta: "gasto_esencial",
       agregar: agregarGastoEsencialAlDOM,
+      actualizar: (gasto) => actualizarCantidadMovimientoEnDOM(gasto, "lista_gastos_esenciales", "gasto"),
       foco: "#movimiento_area",
     },
     flexible: {
@@ -35,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
       categoria: "categoria_gasto_flexible",
       respuesta: "gasto_flexible",
       agregar: agregarGastoFlexibleAlDOM,
+      actualizar: (gasto) => actualizarCantidadMovimientoEnDOM(gasto, "lista_gastos_flexibles", "gasto"),
       foco: "#movimiento_area",
     },
   };
@@ -117,6 +120,65 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarGraficoEscalaHabitos();
   }
 
+  function completarAlta(data, config, tipo) {
+    if (data.acumulado) {
+      config.actualizar(data[config.respuesta]);
+    } else {
+      config.agregar(data[config.respuesta]);
+    }
+
+    refrescarDashboard();
+    formMovimiento.reset();
+    if (tipoSelect) tipoSelect.value = tipo;
+    actualizarFormularioMovimiento(tipo);
+  }
+
+  function textoMes(mes) {
+    const [anio, numeroMes] = mes.split("-");
+    const meses = [
+      "enero", "febrero", "marzo", "abril", "mayo", "junio",
+      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+    ];
+
+    return `${meses[Number(numeroMes) - 1]} de ${anio}`;
+  }
+
+  function solicitarAcumulacion(datos, data, config, tipo) {
+    const confirmacion = data.confirmacion;
+    const categoria = formatearCategoriaJS(confirmacion.categoria);
+    const mensaje = `Ya tienes registrados ${formatearCantidad(confirmacion.cantidad_actual)} € en ${categoria} en ${textoMes(confirmacion.mes)}. ¿Deseas añadir ${formatearCantidad(confirmacion.cantidad_nueva)} € al importe existente?`;
+
+    abrirModalConfirmacion({
+      titulo: "Añadir al importe mensual",
+      mensaje,
+      onConfirm: async () => {
+        datos.append("confirmar_acumulacion", "1");
+
+        try {
+          const respuesta = await fetch(config.endpoint, {
+            method: "POST",
+            body: datos,
+          });
+          const confirmado = await respuesta.json();
+
+          if (confirmado.ok) {
+            completarAlta(confirmado, config, tipo);
+          } else {
+            abrirModalInfo({
+              titulo: "No se pudo completar la operación",
+              mensaje: confirmado.msg || "La operación no pudo completarse. Inténtalo de nuevo.",
+            });
+          }
+        } catch (error) {
+          abrirModalInfo({
+            titulo: "Problema de conexión",
+            mensaje: "No se pudo contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+          });
+        }
+      },
+    });
+  }
+
   function enfocarPrimerCampo(tipo) {
     const config = configuracion[tipo] || configuracion.ingreso;
     const foco = formMovimiento.querySelector(config.foco) || cantidadInput;
@@ -176,12 +238,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await respuesta.json();
 
       if (data.ok) {
-        config.agregar(data[config.respuesta]);
-        refrescarDashboard();
-
-        formMovimiento.reset();
-        if (tipoSelect) tipoSelect.value = tipo;
-        actualizarFormularioMovimiento(tipo);
+        completarAlta(data, config, tipo);
+      } else if (data.requiere_confirmacion) {
+        solicitarAcumulacion(datos, data, config, tipo);
       } else {
         abrirModalInfo({
           titulo: "No se pudo completar la operación",

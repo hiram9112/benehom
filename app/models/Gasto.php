@@ -66,6 +66,78 @@ class Gasto{
 
     }
 
+    // Busca la única entrada de una categoría y tipo dentro del mes indicado.
+    public static function obtenerGastoMensual($usuario_id,$tipo,$categoria,$fecha){
+        try{
+            $db=Database::getConnection();
+            $fechaFin=date('Y-m-d',strtotime($fecha.' +1 month'));
+
+            $stmt=$db->prepare(
+                "SELECT id, tipo, categoria, cantidad, fecha FROM gastos
+                 WHERE usuario_id= :usuario_id
+                 AND tipo= :tipo
+                 AND categoria= :categoria
+                 AND fecha >= :fecha_inicio
+                 AND fecha < :fecha_fin
+                 ORDER BY id ASC
+                 LIMIT 1"
+            );
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+            $stmt->bindParam(':tipo',$tipo,PDO::PARAM_STR);
+            $stmt->bindParam(':categoria',$categoria,PDO::PARAM_STR);
+            $stmt->bindParam(':fecha_inicio',$fecha);
+            $stmt->bindParam(':fecha_fin',$fechaFin);
+            $stmt->execute();
+
+            $gasto=$stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $gasto===false ? null : $gasto;
+        }catch(PDOException $e){
+            return false;
+        }
+    }
+
+    // Vuelve a comprobar la identidad mensual antes de sumar el importe confirmado.
+    public static function acumularGastoMensual($usuario_id,$tipo,$categoria,$cantidad,$fecha){
+        $gasto=self::obtenerGastoMensual($usuario_id,$tipo,$categoria,$fecha);
+
+        if($gasto===false || $gasto===null){
+            return $gasto;
+        }
+
+        try{
+            $db=Database::getConnection();
+            $fechaFin=date('Y-m-d',strtotime($fecha.' +1 month'));
+
+            $stmt=$db->prepare(
+                "UPDATE gastos
+                 SET cantidad= cantidad + :cantidad
+                 WHERE id= :id
+                 AND usuario_id= :usuario_id
+                 AND tipo= :tipo
+                 AND categoria= :categoria
+                 AND fecha >= :fecha_inicio
+                 AND fecha < :fecha_fin"
+            );
+            $stmt->bindParam(':cantidad',$cantidad);
+            $stmt->bindParam(':id',$gasto['id'],PDO::PARAM_INT);
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+            $stmt->bindParam(':tipo',$tipo,PDO::PARAM_STR);
+            $stmt->bindParam(':categoria',$categoria,PDO::PARAM_STR);
+            $stmt->bindParam(':fecha_inicio',$fecha);
+            $stmt->bindParam(':fecha_fin',$fechaFin);
+            $stmt->execute();
+
+            if($stmt->rowCount()!==1){
+                return null;
+            }
+
+            return self::obtenerGastoMensual($usuario_id,$tipo,$categoria,$fecha);
+        }catch(PDOException $e){
+            return false;
+        }
+    }
+
     //Método para eliminar un gasto propio del usuario (mitiga IDOR)
     public static function eliminarGasto($id,$usuario_id){
 

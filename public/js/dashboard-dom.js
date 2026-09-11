@@ -56,6 +56,23 @@ function ordenarMovimientosPorCantidadDesc(contenedorId) {
     .forEach((li) => lista.appendChild(li));
 }
 
+function actualizarCantidadMovimientoEnDOM(movimiento, contenedorId, prefijoId) {
+  const li = document.getElementById(`${prefijoId}-${movimiento.id}`);
+
+  if (!li) {
+    return;
+  }
+
+  li.dataset.cantidad = movimiento.cantidad;
+  const cantidad = li.querySelector(".bh-movement-amount");
+
+  if (cantidad) {
+    cantidad.textContent = formatearCantidad(movimiento.cantidad);
+  }
+
+  ordenarMovimientosPorCantidadDesc(contenedorId);
+}
+
 function eliminarEstadoVacioDashboard(contenedorId) {
   document
     .querySelectorAll(`#${contenedorId} .bh-empty-state, #${contenedorId} .bh-form-empty-state`)

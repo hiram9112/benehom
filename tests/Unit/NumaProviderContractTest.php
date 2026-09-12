@@ -207,23 +207,20 @@ final class NumaProviderContractTest extends TestCase
             ['type' => 'numa_final_response', 'classification' => ['intent' => 'producto', 'allowed' => true, 'reason' => 'product_help']],
             ['type' => 'knowledge_fragments', 'items' => [['title' => 'Movimientos', 'section' => 'Anadir', 'url' => '/dashboard', 'content' => 'Contenido publico.']]],
             ['type' => 'available_financial_tools', 'items' => [[
-                'name' => 'obtener_evolucion_financiera',
-                'description' => 'Evolucion agregada.',
-                'schema' => ['type' => 'object', 'properties' => ['fecha_inicio' => ['type' => 'string'], 'fecha_fin' => ['type' => 'string'], 'agrupacion' => ['type' => 'string']]],
-                'required' => ['fecha_inicio', 'fecha_fin'],
-                'allowed_values' => ['metrica' => ['gastos'], 'agrupacion' => ['mes']],
-                'result_limit' => ['max_items' => 24],
+                'name' => 'consultar_datos_financieros',
+                'description' => 'Consulta hechos financieros canónicos.',
+                'parameters' => ['type' => 'object'],
             ]]],
             ['type' => 'financial_tool_results', 'items' => [[
-                'tool' => 'obtener_evolucion_financiera',
-                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
-                'metrica' => 'gastos',
-                'agrupacion' => 'mes',
-                'limite' => 3,
-                'evolucion' => [
-                    ['mes' => '2026-07', 'valor' => 800.0],
-                    ['mes' => '2026-08', 'valor' => 900.0],
-                ],
+                'tool' => 'consultar_datos_financieros',
+                'meses' => [[
+                    'mes' => '2026-07',
+                    'gastos' => [
+                        'importe' => '800.00',
+                        'cobertura' => ['completa' => false, 'tipos_consultados' => 1, 'tipos_totales' => 2],
+                        'tipos' => [],
+                    ],
+                ]],
             ]]],
         ];
 
@@ -231,14 +228,14 @@ final class NumaProviderContractTest extends TestCase
             'Como anado un movimiento?',
             '',
             $context,
-            ['obtener_resumen_financiero'],
+            ['consultar_datos_financieros'],
             [['role' => 'user', 'message' => 'Pregunta anterior']],
         ));
 
         self::assertSame('Respuesta valida de Numa.', $response->message());
         self::assertSame('Como anado un movimiento?', $inner->lastRequest?->message());
         self::assertSame($context, $inner->lastRequest?->context());
-        self::assertSame(['obtener_resumen_financiero'], $inner->lastRequest?->availableTools());
+        self::assertSame(['consultar_datos_financieros'], $inner->lastRequest?->availableTools());
         self::assertSame([['role' => 'user', 'message' => 'Pregunta anterior']], $inner->lastRequest?->history());
     }
 
@@ -266,52 +263,21 @@ final class NumaProviderContractTest extends TestCase
     public static function resultadosFinancierosPermitidosProvider(): array
     {
         return [
-            'resumen' => [[
-                'tool' => 'obtener_resumen_financiero',
-                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
-                'ingresos' => 1200.0,
-                'gastos' => 800.0,
-                'gastos_esenciales' => 500.0,
-                'gastos_flexibles' => 300.0,
-                'ahorro_posible' => 700.0,
-                'ahorro_real' => 400.0,
-            ]],
-            'ranking' => [[
-                'tool' => 'obtener_ranking_categorias',
-                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
-                'metrica' => 'gastos',
-                'limite' => 2,
-                'categorias' => [['categoria' => 'alimentacion', 'label' => 'Alimentacion', 'total' => 100.0, 'porcentaje' => 50.0]],
-            ]],
-            'evolucion' => [[
-                'tool' => 'obtener_evolucion_financiera',
-                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
-                'metrica' => 'gastos',
-                'agrupacion' => 'tipo',
-                'limite' => 2,
-                'evolucion' => [['tipo' => 'flexible', 'valor' => 300.0]],
-            ]],
-            'comparacion' => [[
-                'tool' => 'comparar_periodos',
-                'metrica' => 'gastos',
-                'categoria' => 'alimentacion',
-                'periodo_a' => ['inicio' => '2026-06-01', 'fin' => '2026-06-30'],
-                'periodo_b' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
-                'valor_a' => 90.0,
-                'valor_b' => 100.0,
-                'diferencia_absoluta' => 10.0,
-                'diferencia_porcentual' => 11.11,
-            ]],
-            'estadisticas' => [[
-                'tool' => 'obtener_estadisticas_movimientos',
-                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
-                'metrica' => 'gastos',
-                'categoria' => 'alimentacion',
-                'promedio' => 50.0,
-                'maximo' => 80.0,
-                'minimo' => 20.0,
-                'total' => 100.0,
-                'cantidad_movimientos' => 2,
+            'jerarquia' => [[
+                'tool' => 'consultar_datos_financieros',
+                'meses' => [[
+                    'mes' => '2026-07',
+                    'ingresos' => [
+                        'importe' => '1200.00',
+                        'cobertura' => ['completa' => false, 'areas_consultadas' => 1, 'areas_totales' => 5],
+                        'areas' => [[
+                            'area' => 'trabajo',
+                            'importe' => '1200.00',
+                            'cobertura' => ['completa' => false, 'categorias_consultadas' => 1, 'categorias_totales' => 4],
+                            'categorias' => [['categoria' => 'nomina', 'importe' => '1200.00']],
+                        ]],
+                    ],
+                ]],
             ]],
         ];
     }

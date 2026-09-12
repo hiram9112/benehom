@@ -41,6 +41,7 @@ final class NumaFinancialDataToolContract
             'description' => 'Consulta hechos financieros mensuales canónicos. Selecciona los períodos y ramas necesarias; la respuesta incluye solo importes, cobertura y sumas estructurales.',
             'parameters' => [
                 'type' => 'object',
+                'additionalProperties' => false,
                 'properties' => [
                     'periodos' => $this->periodsSchema(),
                     'selectores' => $this->selectorsSchema(),

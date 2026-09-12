@@ -71,7 +71,7 @@ final class GeminiNumaProviderTest extends TestCase
             '¿Cómo añado un movimiento?',
             'Instrucciones internas de Numa',
             $this->toolContext(),
-            ['obtener_resumen_financiero']
+            ['consultar_datos_financieros']
         ));
 
         self::assertStringEndsWith('/models/gemini-model:generateContent', $captured['url']);
@@ -79,18 +79,15 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(10, $captured['timeout']);
         self::assertSame(1000, $captured['body']['generationConfig']['maxOutputTokens']);
         self::assertSame('low', $captured['body']['generationConfig']['thinkingConfig']['thinkingLevel']);
-        self::assertSame('obtener_resumen_financiero', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
+        self::assertSame('consultar_datos_financieros', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
         self::assertSame('AUTO', $captured['body']['toolConfig']['functionCallingConfig']['mode']);
         self::assertSame(
             $this->geminiFunctionDeclaration(
-                (new \NumaFinancialToolRegistry())->get('obtener_resumen_financiero')->functionDeclaration(),
+                (new \NumaFinancialToolRegistry())->get('consultar_datos_financieros')->functionDeclaration(),
             ),
             $captured['body']['tools'][0]['functionDeclarations'][0]
         );
-        self::assertSame(
-            [['periodo'], ['fecha_inicio', 'fecha_fin']],
-            array_column($captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['anyOf'], 'required')
-        );
+        self::assertSame(['periodos'], $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['required']);
         self::assertArrayNotHasKey('additionalProperties', $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']);
         self::assertSame('Instrucciones internas de Numa', $captured['body']['system_instruction']['parts'][0]['text']);
         self::assertStringContainsString('Mensaje actual del usuario:', $captured['body']['contents'][0]['parts'][0]['text']);
@@ -283,7 +280,7 @@ final class GeminiNumaProviderTest extends TestCase
                 'candidates' => [[
                     'content' => ['parts' => [
                         ['text' => 'Ya tengo la respuesta final.'],
-                        ['functionCall' => ['name' => 'obtener_resumen_financiero', 'args' => []]],
+                        ['functionCall' => ['name' => 'consultar_datos_financieros', 'args' => []]],
                     ]],
                     'finishReason' => 'STOP',
                 ]],
@@ -312,7 +309,7 @@ final class GeminiNumaProviderTest extends TestCase
             ]);
 
             try {
-                $provider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['obtener_resumen_financiero']));
+                $provider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['consultar_datos_financieros']));
                 self::fail('Se esperaba rechazo de una respuesta no utilizable.');
             } catch (\NumaProviderException $exception) {
                 self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
@@ -334,12 +331,12 @@ final class GeminiNumaProviderTest extends TestCase
                         'content' => ['parts' => [
                             ['functionCall' => [
                                 'id' => 'parallel-electricity',
-                                'name' => 'obtener_resumen_financiero',
+                                'name' => 'consultar_datos_financieros',
                                 'args' => ['periodo' => 'junio', 'categoria' => 'electricidad'],
                             ], 'thoughtSignature' => 'never-log-this'],
                             ['functionCall' => [
                                 'id' => 'parallel-delivery',
-                                'name' => 'obtener_resumen_financiero',
+                                'name' => 'consultar_datos_financieros',
                                 'args' => ['periodo' => 'junio', 'categoria' => 'comida_domicilio'],
                             ]],
                         ]],
@@ -357,7 +354,7 @@ final class GeminiNumaProviderTest extends TestCase
             'Consulta de prueba',
             '',
             $this->toolContext(),
-            ['obtener_resumen_financiero'],
+            ['consultar_datos_financieros'],
         ));
 
         self::assertCount(2, $response->toolRequests());
@@ -366,8 +363,8 @@ final class GeminiNumaProviderTest extends TestCase
             'provider_turn' => 1,
             'function_call_count' => 2,
             'function_calls' => [
-                ['name' => 'obtener_resumen_financiero', 'id' => 'parallel-electricity'],
-                ['name' => 'obtener_resumen_financiero', 'id' => 'parallel-delivery'],
+                ['name' => 'consultar_datos_financieros', 'id' => 'parallel-electricity'],
+                ['name' => 'consultar_datos_financieros', 'id' => 'parallel-delivery'],
             ],
             'finish_reason' => 'STOP',
             'part_shapes' => [
@@ -443,7 +440,7 @@ final class GeminiNumaProviderTest extends TestCase
                                 'parts' => [[
                                     'functionCall' => [
                                         'id' => 'call-1',
-                                        'name' => 'obtener_resumen_financiero',
+                                        'name' => 'consultar_datos_financieros',
                                         'args' => [
                                             'fecha_inicio' => '2026-07-01',
                                             'fecha_fin' => '2026-07-31',
@@ -470,11 +467,11 @@ final class GeminiNumaProviderTest extends TestCase
             '¿Cuál es mi resumen financiero de julio?',
             '',
             $this->toolContext(),
-            ['obtener_resumen_financiero'],
+            ['consultar_datos_financieros'],
             functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
         ));
 
-        self::assertSame('obtener_resumen_financiero', $toolResponse->toolRequest()?->name());
+        self::assertSame('consultar_datos_financieros', $toolResponse->toolRequest()?->name());
         self::assertSame([
             'fecha_inicio' => '2026-07-01',
             'fecha_fin' => '2026-07-31',
@@ -484,12 +481,12 @@ final class GeminiNumaProviderTest extends TestCase
             '¿Cuál es mi resumen financiero de julio?',
             '',
             $this->toolContext([[
-                'tool' => 'obtener_resumen_financiero',
+                'tool' => 'consultar_datos_financieros',
                 'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'ingresos' => 1200.0,
                 'gastos' => 800.0,
             ]]),
-            ['obtener_resumen_financiero'],
+            ['consultar_datos_financieros'],
             functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
         ));
 
@@ -498,7 +495,7 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame('call-1', $requests[1]['contents'][1]['parts'][0]['functionCall']['id']);
         self::assertSame('signature-1', $requests[1]['contents'][1]['parts'][0]['thoughtSignature']);
         self::assertSame('call-1', $requests[1]['contents'][2]['parts'][0]['functionResponse']['id']);
-        self::assertSame('obtener_resumen_financiero', $requests[1]['contents'][2]['parts'][0]['functionResponse']['name']);
+        self::assertSame('consultar_datos_financieros', $requests[1]['contents'][2]['parts'][0]['functionResponse']['name']);
         self::assertSame(1200, $requests[1]['contents'][2]['parts'][0]['functionResponse']['response']['result']['ingresos']);
         self::assertStringNotContainsString('financial_tool_results', $requests[1]['contents'][0]['parts'][0]['text']);
         self::assertSame('ANY', $requests[0]['toolConfig']['functionCallingConfig']['mode']);
@@ -522,7 +519,7 @@ final class GeminiNumaProviderTest extends TestCase
                                 'parts' => [[
                                     'functionCall' => [
                                         'id' => 'call-' . $callNumber,
-                                        'name' => 'obtener_resumen_financiero',
+                                        'name' => 'consultar_datos_financieros',
                                         'args' => [
                                             'fecha_inicio' => $callNumber === 1 ? '2026-07-01' : '2026-08-01',
                                             'fecha_fin' => $callNumber === 1 ? '2026-07-31' : '2026-08-31',
@@ -544,12 +541,12 @@ final class GeminiNumaProviderTest extends TestCase
             ];
         });
 
-        $first = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(), ['obtener_resumen_financiero'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY));
-        $second = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([['tool' => 'obtener_resumen_financiero', 'ingresos' => 1200.0]]), ['obtener_resumen_financiero'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO));
+        $first = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY));
+        $second = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0]]), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO));
         $final = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([
-            ['tool' => 'obtener_resumen_financiero', 'ingresos' => 1200.0],
-            ['tool' => 'obtener_resumen_financiero', 'ingresos' => 1300.0],
-        ]), ['obtener_resumen_financiero'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_NONE));
+            ['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0],
+            ['tool' => 'consultar_datos_financieros', 'ingresos' => 1300.0],
+        ]), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_NONE));
 
         self::assertSame('2026-07-01', $first->toolRequest()?->arguments()['fecha_inicio']);
         self::assertSame('2026-08-01', $second->toolRequest()?->arguments()['fecha_inicio']);
@@ -575,7 +572,7 @@ final class GeminiNumaProviderTest extends TestCase
                     'status' => 200,
                     'body' => json_encode([
                         'candidates' => [['content' => ['parts' => [['functionCall' => [
-                            'name' => 'obtener_resumen_financiero',
+                            'name' => 'consultar_datos_financieros',
                             'args' => ['periodo' => 'mes_actual'],
                         ]]]], 'finishReason' => 'STOP']],
                     ], JSON_THROW_ON_ERROR),
@@ -589,7 +586,7 @@ final class GeminiNumaProviderTest extends TestCase
             '¿Cuánto gasté?',
             '',
             $this->toolContext(),
-            ['obtener_resumen_financiero'],
+            ['consultar_datos_financieros'],
             functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
         ));
 
@@ -597,8 +594,8 @@ final class GeminiNumaProviderTest extends TestCase
             $provider->respond(new \NumaRequest(
                 '¿Cuánto gasté?',
                 '',
-                $this->toolContext([['tool' => 'obtener_resumen_financiero', 'gastos' => 800.0]]),
-                ['obtener_resumen_financiero'],
+                $this->toolContext([['tool' => 'consultar_datos_financieros', 'gastos' => 800.0]]),
+                ['consultar_datos_financieros'],
                 functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
             ));
             self::fail('Se esperaba un error transitorio sin reintento posterior a la tool.');
@@ -619,7 +616,7 @@ final class GeminiNumaProviderTest extends TestCase
         ]);
 
         try {
-            $unknownProvider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['obtener_resumen_financiero']));
+            $unknownProvider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['consultar_datos_financieros']));
             self::fail('Se esperaba rechazo de functionCall desconocido.');
         } catch (\NumaProviderException $exception) {
             self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
@@ -633,7 +630,7 @@ final class GeminiNumaProviderTest extends TestCase
         ]);
 
         try {
-            $malformedProvider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['obtener_resumen_financiero']));
+            $malformedProvider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['consultar_datos_financieros']));
             self::fail('Se esperaba rechazo de functionCall malformado.');
         } catch (\NumaProviderException $exception) {
             self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
@@ -970,7 +967,7 @@ final class GeminiNumaProviderTest extends TestCase
      */
     private function toolContext(array $toolResults = []): array
     {
-        $definition = (new \NumaFinancialToolRegistry())->get('obtener_resumen_financiero');
+        $definition = (new \NumaFinancialToolRegistry())->get('consultar_datos_financieros');
         $context = [[
             'type' => 'available_financial_tools',
             'items' => [$definition->externalContract()],

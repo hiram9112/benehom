@@ -11,7 +11,7 @@ final class NumaFinancialFactValidator
     private const AMOUNT_KEYS = [
         'ingresos', 'gastos', 'gastos_esenciales', 'gastos_flexibles', 'ahorro_posible', 'ahorro_real',
         'total', 'valor', 'valor_a', 'valor_b', 'diferencia_absoluta', 'promedio', 'maximo', 'minimo',
-        'promedio_mensual', 'importe_total', 'cantidad',
+        'promedio_mensual', 'importe_total', 'importe', 'cantidad',
     ];
 
     private const PERCENTAGE_KEYS = ['porcentaje', 'diferencia_porcentual'];
@@ -153,6 +153,11 @@ final class NumaFinancialFactValidator
         $messages = [];
 
         foreach ($toolResults as $result) {
+            if (($result['tool'] ?? null) === NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS) {
+                $messages[] = 'He consultado tus datos financieros en BeneHom.';
+                continue;
+            }
+
             $messages[] = match ($result['tool'] ?? null) {
                 NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO => $this->summaryFallback($result),
                 NumaFinancialToolRegistry::OBTENER_RANKING_CATEGORIAS => $this->rankingFallback($result),

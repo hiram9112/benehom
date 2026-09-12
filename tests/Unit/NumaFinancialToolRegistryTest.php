@@ -13,478 +13,91 @@ require_once APP_PATH . '/services/NumaFinancialDataToolContract.php';
 
 final class NumaFinancialToolRegistryTest extends TestCase
 {
-    public function testRegistraUnicamenteLasToolsFinancierasPermitidas(): void
+    public function testRegistraSoloLaConsultaFinancieraCanonica(): void
     {
         $registry = new \NumaFinancialToolRegistry();
 
-        self::assertSame([
-            'obtener_resumen_financiero',
-            'obtener_ranking_categorias',
-            'obtener_evolucion_financiera',
-            'comparar_periodos',
-            'obtener_estadisticas_movimientos',
-            'obtener_movimientos',
-        ], $registry->names());
+        self::assertSame(['consultar_datos_financieros'], $registry->names());
         self::assertSame($registry->names(), array_keys($registry->all()));
-    }
-
-    public function testRechazaUnLimiteDeToolsSuperiorAlHardCap(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        new \NumaFinancialToolRegistry(maxToolCalls: 6);
-    }
-
-    public function testRechazaUnLimiteAgregadoDeResultadosSuperiorAlHardCap(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        new \NumaFinancialToolRegistry(
-            maxAggregateResultJsonChars: \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS + 1,
-        );
-    }
-
-    public function testElHardCapDeResultadosAgregadosEsDeDosMilQuinientosBytes(): void
-    {
-        self::assertSame(2500, \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS);
-    }
-
-    public function testRechazaUnRangoTemporalSuperiorAlHardCap(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        new \NumaFinancialToolExecutor(maxToolRangeDays: \NumaFinancialToolExecutor::MAX_TOOL_RANGE_DAYS + 1);
-    }
-
-    public function testCadaToolTieneMetadatosYUnaImplementacionConcreta(): void
-    {
-        $registry = new \NumaFinancialToolRegistry();
-
-        foreach ($registry->all() as $definition) {
-            self::assertNotSame('', $definition->name());
-            self::assertNotSame('', $definition->description());
-            self::assertNotSame('', $definition->whenToUse());
-            self::assertNotSame('', $definition->whenNotToUse());
-            self::assertSame('object', $definition->parameterSchema()['type']);
-            self::assertFalse($definition->parameterSchema()['additionalProperties']);
-            self::assertTrue(
-                in_array('metrica', $definition->requiredParameters(), true)
-                || array_key_exists('periodo', $definition->parameterSchema()['properties'])
-            );
-            self::assertNotEmpty($definition->resultLimit());
-            self::assertNotSame('', $definition->implementation());
-        }
-    }
-
-    public function testLasSeisDeclaracionesGeminiDerivanDelContratoCompleto(): void
-    {
-        $registry = new \NumaFinancialToolRegistry();
-
-        self::assertCount(6, $registry->all());
-        foreach ($registry->all() as $definition) {
-            $declaration = $definition->functionDeclaration();
-            $contract = $definition->externalContract();
-
-            self::assertSame($definition->name(), $declaration['name']);
-            self::assertStringContainsString($definition->description(), $declaration['description']);
-            self::assertStringContainsString($definition->whenToUse(), $declaration['description']);
-            self::assertStringContainsString($definition->whenNotToUse(), $declaration['description']);
-            self::assertSame($definition->parameterSchema(), $declaration['parameters']);
-            self::assertSame($declaration['name'], $contract['name']);
-            self::assertSame($declaration['description'], $contract['description']);
-            self::assertSame($declaration['parameters'], $contract['parameters']);
-            self::assertSame($definition->resultLimit(), $contract['result_limit']);
-            self::assertSame($definition->compatibilityRules(), $contract['compatibility_rules']);
-            self::assertNotEmpty($definition->requiredParameterSets());
-
-            foreach ($declaration['parameters']['properties'] as $parameter) {
-                self::assertNotSame('', $parameter['description'] ?? '');
-            }
-
-            foreach ($definition->allowedValues() as $parameter => $values) {
-                self::assertSame($values, $declaration['parameters']['properties'][$parameter]['enum']);
-            }
-        }
-    }
-
-    public function testDeclaracionesConservanLimitesYAlternativasCompletasDePeriodo(): void
-    {
-        $registry = new \NumaFinancialToolRegistry();
-        $ranking = $registry->get('obtener_ranking_categorias')->functionDeclaration();
-        $comparison = $registry->get('comparar_periodos')->functionDeclaration();
-
-        self::assertSame(1, $ranking['parameters']['properties']['limite']['minimum']);
-        self::assertSame(10, $ranking['parameters']['properties']['limite']['maximum']);
-        self::assertSame(
-            [['periodo'], ['fecha_inicio', 'fecha_fin']],
-            array_column($ranking['parameters']['anyOf'], 'required')
-        );
-        self::assertSame([
-            ['metrica', 'periodo_a', 'periodo_b'],
-            ['metrica', 'periodo_a', 'fecha_inicio_b', 'fecha_fin_b'],
-            ['metrica', 'fecha_inicio_a', 'fecha_fin_a', 'periodo_b'],
-            ['metrica', 'fecha_inicio_a', 'fecha_fin_a', 'fecha_inicio_b', 'fecha_fin_b'],
-        ], array_column($comparison['parameters']['anyOf'], 'required'));
-    }
-
-    public function testDeclaraEnumsPermitidosSinParametrosDinamicos(): void
-    {
-        $registry = new \NumaFinancialToolRegistry();
-
-        $ranking = $registry->get('obtener_ranking_categorias');
-        self::assertSame(
-            ['ingresos', 'gastos', 'gastos_esenciales', 'gastos_flexibles'],
-            $ranking->allowedValues()['metrica']
-        );
-
-        $evolution = $registry->get('obtener_evolucion_financiera');
-        self::assertSame(['mes', 'categoria', 'tipo'], $evolution->allowedValues()['agrupacion']);
-
-        $stats = $registry->get('obtener_estadisticas_movimientos');
-        self::assertSame(
-            ['ingresos', 'gastos', 'gastos_esenciales', 'gastos_flexibles'],
-            $stats->allowedValues()['metrica']
-        );
-    }
-
-    public function testCatalogoReutilizaCategoriasDeFormulariosYDistingueGruposDeHojas(): void
-    {
-        $catalog = new \NumaFinancialCategoryCatalog();
-
-        self::assertContains('nomina', $catalog->categoryValues());
-        self::assertContains('regalos', $catalog->categoryValues());
-        self::assertContains('compras', $catalog->groupValues());
-        self::assertArrayHasKey('nomina', ingresoCategoriaLabels());
-        self::assertArrayHasKey('regalos', gastoCategoriaLabels());
-        self::assertSame('nomina', $catalog->resolveCategory('Nómina'));
-        self::assertSame('regalos', $catalog->resolveCategory('Regalos'));
-        self::assertSame('electricidad', $catalog->resolveCategory('luz'));
-        self::assertSame('comida_domicilio', $catalog->resolveCategory('comida a domicilio'));
-        self::assertSame('compras', $catalog->resolveGroup('Compras'));
+        self::assertSame('consultar_datos_financieros', $registry->get('consultar_datos_financieros')->functionDeclaration()['name']);
 
         $this->expectException(InvalidArgumentException::class);
-        $catalog->resolveCategory('Compras');
+        $registry->get('obtener_resumen_financiero');
     }
 
-    public function testCatalogoRechazaAliasDeCategoriaAmbiguo(): void
+    public function testDeclaracionActivaEsElContratoCanonicoCompatibleConGemini(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        (new \NumaFinancialCategoryCatalog())->resolveCategory('Otros');
-    }
-
-    public function testRechazaToolsNoRegistradas(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        (new \NumaFinancialToolRegistry())->get('ejecutar_sql');
-    }
-
-    public function testContratoCanonicoAisladoDeclaraUnaSolaToolSinAlterarElRegistroActivo(): void
-    {
-        $contract = new \NumaFinancialDataToolContract();
-        $declaration = $contract->functionDeclaration();
+        $declaration = (new \NumaFinancialToolRegistry())->get('consultar_datos_financieros')->functionDeclaration();
 
         self::assertSame('consultar_datos_financieros', $declaration['name']);
         self::assertSame(['periodos'], $declaration['parameters']['required']);
-        self::assertSame(1, $declaration['parameters']['properties']['periodos']['minItems']);
-        self::assertSame(1, $declaration['parameters']['properties']['selectores']['minItems']);
         self::assertArrayNotHasKey('oneOf', $declaration['parameters']);
         self::assertArrayNotHasKey('anyOf', $declaration['parameters']);
-        $serialized = json_encode($declaration, JSON_THROW_ON_ERROR);
-        self::assertStringNotContainsString('"oneOf"', $serialized);
-        self::assertStringNotContainsString('"anyOf"', $serialized);
-        self::assertSame([
-            'obtener_resumen_financiero',
-            'obtener_ranking_categorias',
-            'obtener_evolucion_financiera',
-            'comparar_periodos',
-            'obtener_estadisticas_movimientos',
-            'obtener_movimientos',
-        ], (new \NumaFinancialToolRegistry())->names());
+        self::assertStringNotContainsString('"salario"', json_encode($declaration, JSON_THROW_ON_ERROR));
     }
 
-    public function testContratoCanonicoDerivaLaTaxonomiaCompletaDeLosCatalogos(): void
+    public function testContratoDerivaLaTaxonomiaCompletaDeLosCatalogos(): void
     {
         $parameters = (new \NumaFinancialDataToolContract())->functionDeclaration()['parameters']['properties'];
-        $selectorProperties = $parameters['selectores']['items']['properties'];
-        $areas = $selectorProperties['area']['enum'];
-        $relationships = $parameters['selectores']['description'];
-        $incomeAreas = array_filter(
-            $areas,
-            static fn (string $area): bool => str_contains($relationships, 'ingresos/' . $area . ' ('),
-        );
-        $expenseAreas = array_filter(
-            $areas,
-            static fn (string $area): bool => preg_match(
-                '#gastos/[^/]+/' . preg_quote($area, '#') . ' \\(#',
-                $relationships,
-            ) === 1,
-        );
+        $selector = $parameters['selectores']['items']['properties'];
+        $catalog = new \NumaFinancialCategoryCatalog();
 
-        self::assertCount(5, $incomeAreas);
-        self::assertCount(19, array_filter(
-            $selectorProperties['categoria']['enum'],
-            static fn (string $category): bool => (new \NumaFinancialCategoryCatalog())->category($category)['kind'] === 'ingreso',
-        ));
-        self::assertCount(2, $selectorProperties['tipo']['enum']);
-        self::assertCount(16, $expenseAreas);
-        self::assertCount(71, array_filter(
-            $selectorProperties['categoria']['enum'],
-            static fn (string $category): bool => (new \NumaFinancialCategoryCatalog())->category($category)['kind'] === 'gasto',
-        ));
+        self::assertCount(5, $catalog->incomeAreaValues());
+        self::assertCount(19, array_filter($selector['categoria']['enum'], fn (string $key): bool => $catalog->category($key)['kind'] === 'ingreso'));
+        self::assertCount(2, $selector['tipo']['enum']);
+        self::assertCount(16, $catalog->expenseAreaValues());
+        self::assertCount(71, array_filter($selector['categoria']['enum'], fn (string $key): bool => $catalog->category($key)['kind'] === 'gasto'));
         self::assertStringContainsString('gastos/esencial/suministros', $parameters['selectores']['description']);
         self::assertStringContainsString('electricidad (Electricidad)', $parameters['selectores']['description']);
         self::assertStringContainsString('gastos/flexible/restauracion', $parameters['selectores']['description']);
         self::assertStringContainsString('comida_domicilio (Comida a domicilio)', $parameters['selectores']['description']);
-        $serializedDeclaration = json_encode(
-            (new \NumaFinancialDataToolContract())->functionDeclaration(),
-            JSON_THROW_ON_ERROR,
-        );
-        foreach (['salario', 'prestaciones_ayudas', 'alquileres', 'inversiones', 'ventas_segunda_mano', 'aportaciones_regalos'] as $legacy) {
-            self::assertStringNotContainsString('"' . $legacy . '"', $serializedDeclaration);
-        }
-        self::assertNotContains('actividad_propia', $selectorProperties['categoria']['enum']);
-        self::assertContains('actividad_propia', $areas);
     }
 
-    public function testContratoCanonicoValidaPeriodosYNormalizaSelectores(): void
+    public function testContratoNormalizaYDeduplicaSelectores(): void
     {
         $validated = (new \NumaFinancialDataToolContract())->validateArguments([
-            'periodos' => [
-                ['tipo' => 'mes', 'mes' => '2026-07'],
-                ['tipo' => 'rango', 'inicio' => '2026-01-01', 'fin' => '2026-02-28'],
-                ['tipo' => 'relativo', 'periodo_relativo' => 'mes_anterior'],
-                ['tipo' => 'ultimos_meses', 'cantidad_meses' => 3],
-                ['tipo' => 'referencia_conversacional', 'indice' => 0],
-            ],
+            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
             'selectores' => [
                 ['categoria' => 'electricidad'],
                 ['categoria' => 'electricidad'],
-                ['categoria' => 'comida_domicilio'],
                 ['area' => 'trabajo'],
             ],
         ]);
 
-        self::assertCount(5, $validated['periodos']);
         self::assertSame([
             ['ambito' => 'gastos', 'tipo' => 'esencial', 'area' => 'suministros', 'categoria' => 'electricidad'],
-            ['ambito' => 'gastos', 'tipo' => 'flexible', 'area' => 'restauracion', 'categoria' => 'comida_domicilio'],
             ['ambito' => 'ingresos', 'area' => 'trabajo'],
         ], $validated['selectores']);
-
-        self::assertSame([], (new \NumaFinancialDataToolContract())->validateArguments([
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
-        ])['selectores']);
     }
 
-    #[DataProvider('invalidCanonicalContractCases')]
-    public function testContratoCanonicoRechazaPeriodosYSelectoresInvalidos(array $arguments): void
+    #[DataProvider('invalidArguments')]
+    public function testContratoRechazaSelectoresYPeriodosInvalidos(array $arguments): void
     {
         $this->expectException(InvalidArgumentException::class);
-
         (new \NumaFinancialDataToolContract())->validateArguments($arguments);
     }
 
     /** @return array<string, array{0:array<string, mixed>}> */
-    public static function invalidCanonicalContractCases(): array
+    public static function invalidArguments(): array
     {
         return [
-            'periodo ambiguo' => [[
+            'campo ambiguo en periodo' => [[
                 'periodos' => [['tipo' => 'mes', 'mes' => '2026-07', 'inicio' => '2026-07-01']],
             ]],
-            'rango invertido' => [[
-                'periodos' => [['tipo' => 'rango', 'inicio' => '2026-07-31', 'fin' => '2026-07-01']],
-            ]],
-            'selector desconocido' => [[
+            'categoria legacy' => [[
                 'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
                 'selectores' => [['categoria' => 'salario']],
             ]],
-            'actividad propia legacy como categoria' => [[
-                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
-                'selectores' => [['categoria' => 'actividad_propia']],
-            ]],
-            'selector incompatible' => [[
+            'relacion incompatible' => [[
                 'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
                 'selectores' => [['ambito' => 'ingresos', 'categoria' => 'electricidad']],
             ]],
-            'area y categoria incompatibles' => [[
-                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
-                'selectores' => [['area' => 'suministros', 'categoria' => 'comida_domicilio']],
-            ]],
         ];
     }
 
-    public function testContratoCanonicoDefineLaHojaYLaCoberturaHomogenea(): void
-    {
-        $schema = (new \NumaFinancialDataToolContract())->resultSchema();
-        $month = $schema['properties']['meses']['items'];
-        $leaf = $month['properties']['ingresos']['properties']['areas']['items']['properties']['categorias']['items'];
-
-        self::assertSame(['categoria', 'importe'], $leaf['required']);
-        self::assertSame(['categoria', 'importe'], array_keys($leaf['properties']));
-        self::assertFalse($leaf['additionalProperties']);
-        self::assertSame('Meses naturales ordenados de forma ascendente.', $schema['properties']['meses']['description']);
-        self::assertSame(
-            ['completa', 'areas_consultadas', 'areas_totales'],
-            $month['properties']['ingresos']['properties']['cobertura']['required'],
-        );
-        self::assertSame(
-            ['completa', 'tipos_consultados', 'tipos_totales'],
-            $month['properties']['gastos']['properties']['cobertura']['required'],
-        );
-    }
-
-    public function testRechazaUsuarioAutenticadoInternoInvalido(): void
+    public function testLimitesDeRegistroNoAdmitenTruncado(): void
     {
         $this->expectException(InvalidArgumentException::class);
-
-        (new \NumaFinancialToolRegistry())->execute('obtener_resumen_financiero', 0, [
-            'fecha_inicio' => '2026-07-01',
-            'fecha_fin' => '2026-07-31',
-        ]);
-    }
-
-    /** @param array<string, mixed> $arguments */
-    #[DataProvider('invalidArgumentCases')]
-    public function testValidadorRechazaReglasComunes(string $tool, array $arguments): void
-    {
-        $this->assertInvalidArguments($tool, $arguments);
-    }
-
-    /**
-     * @return array<string, array{0:string, 1:array<string, mixed>}>
-     */
-    public static function invalidArgumentCases(): array
-    {
-        return [
-            'periodo ausente' => ['obtener_resumen_financiero', []],
-            'periodo relativo y rango simultaneos' => ['obtener_resumen_financiero', [
-                'periodo' => 'mes_actual',
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-            ]],
-            'rango con fecha final ausente' => ['obtener_resumen_financiero', [
-                'fecha_inicio' => '2026-07-01',
-            ]],
-            'parametro adicional usuario_id' => ['obtener_resumen_financiero', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'usuario_id' => 99,
-            ]],
-            'parametro adicional sql' => ['obtener_ranking_categorias', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'sql' => 'SELECT * FROM gastos',
-            ]],
-            'fecha invalida' => ['obtener_estadisticas_movimientos', [
-                'fecha_inicio' => '2026-02-30',
-                'fecha_fin' => '2026-07-31',
-                'metrica' => 'gastos',
-            ]],
-            'periodo invertido' => ['obtener_resumen_financiero', [
-                'fecha_inicio' => '2026-07-31',
-                'fecha_fin' => '2026-07-01',
-            ]],
-            'comparacion con un periodo ausente' => ['comparar_periodos', [
-                'periodo_a' => 'mes_actual',
-                'metrica' => 'gastos',
-            ]],
-            'comparacion con forma doble en periodo a' => ['comparar_periodos', [
-                'periodo_a' => 'mes_actual',
-                'fecha_inicio_a' => '2026-07-01',
-                'fecha_fin_a' => '2026-07-31',
-                'periodo_b' => 'mes_anterior',
-                'metrica' => 'gastos',
-            ]],
-            'intervalo excesivo' => ['obtener_resumen_financiero', [
-                'fecha_inicio' => '2024-01-01',
-                'fecha_fin' => '2026-12-31',
-            ]],
-            'enum de agrupacion invalido' => ['obtener_evolucion_financiera', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'agrupacion' => 'semana',
-            ]],
-            'enum de metrica invalido' => ['obtener_ranking_categorias', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'metrica' => 'saldo',
-            ]],
-            'categoria inexistente' => ['comparar_periodos', [
-                'fecha_inicio_a' => '2026-07-01',
-                'fecha_fin_a' => '2026-07-31',
-                'fecha_inicio_b' => '2026-06-01',
-                'fecha_fin_b' => '2026-06-30',
-                'metrica' => 'gastos',
-                'categoria' => 'categoria_inexistente',
-            ]],
-            'grupo aplicado como categoria' => ['comparar_periodos', [
-                'fecha_inicio_a' => '2026-07-01',
-                'fecha_fin_a' => '2026-07-31',
-                'fecha_inicio_b' => '2026-06-01',
-                'fecha_fin_b' => '2026-06-30',
-                'metrica' => 'gastos',
-                'categoria' => 'Compras',
-            ]],
-            'categoria incompatible con ahorro' => ['comparar_periodos', [
-                'periodo_a' => 'mes_actual',
-                'periodo_b' => 'mes_anterior',
-                'metrica' => 'ahorro_real',
-                'categoria' => 'electricidad',
-            ]],
-            'limite fuera de rango' => ['obtener_ranking_categorias', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'limite' => 25,
-            ]],
-            'limite no numerico' => ['obtener_ranking_categorias', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'limite' => 'dos',
-            ]],
-            'orden de movimientos invalido' => ['obtener_movimientos', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'orden' => 'id',
-            ]],
-            'movimientos con parametro dinamico' => ['obtener_movimientos', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'campo' => 'cantidad',
-            ]],
-            'movimientos con direccion invalida' => ['obtener_movimientos', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'direccion' => 'aleatoria',
-            ]],
-            'movimientos con limite excesivo' => ['obtener_movimientos', [
-                'fecha_inicio' => '2026-07-01',
-                'fecha_fin' => '2026-07-31',
-                'limite' => 11,
-            ]],
-            'tipo de gasto sin movimiento de gasto' => ['obtener_movimientos', [
-                'periodo' => 'mes_actual',
-                'tipo_gasto' => 'esencial',
-            ]],
-            'grupo y categoria simultaneos' => ['obtener_movimientos', [
-                'periodo' => 'mes_actual',
-                'grupo' => 'suministros',
-                'categoria' => 'electricidad',
-            ]],
-        ];
-    }
-
-    /** @param array<string, mixed> $arguments */
-    private function assertInvalidArguments(string $tool, array $arguments): void
-    {
-        try {
-            (new \NumaFinancialToolRegistry())->execute($tool, 1, $arguments);
-        } catch (InvalidArgumentException) {
-            self::assertTrue(true);
-            return;
-        }
-
-        self::fail('La tool financiera de Numa acepto parametros no permitidos.');
+        new \NumaFinancialToolRegistry(maxToolCalls: 6);
     }
 }

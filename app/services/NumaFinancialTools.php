@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../models/Database.php';
 require_once __DIR__ . '/../helpers/utils.php';
+require_once __DIR__ . '/NumaFinancialDataToolContract.php';
 
 final class NumaPeriodResolver
 {
@@ -763,8 +764,10 @@ interface NumaFinancialToolRegistryInterface
 final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterface
 {
     public const MAX_TOOL_CALLS = 5;
-    public const MAX_AGGREGATE_RESULT_JSON_CHARS = 2500;
+    public const MAX_AGGREGATE_RESULT_JSON_CHARS = 262144;
+    public const CONSULTAR_DATOS_FINANCIEROS = NumaFinancialDataToolContract::NAME;
 
+    // Se conservan como identificadores internos hasta retirar el ejecutor sustituido en la Tarea 7.
     public const OBTENER_RESUMEN_FINANCIERO = 'obtener_resumen_financiero';
     public const OBTENER_RANKING_CATEGORIAS = 'obtener_ranking_categorias';
     public const OBTENER_EVOLUCION_FINANCIERA = 'obtener_evolucion_financiera';
@@ -774,34 +777,8 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
 
     /** @var array<int, string> */
     private const TOOL_NAMES = [
-        self::OBTENER_RESUMEN_FINANCIERO,
-        self::OBTENER_RANKING_CATEGORIAS,
-        self::OBTENER_EVOLUCION_FINANCIERA,
-        self::COMPARAR_PERIODOS,
-        self::OBTENER_ESTADISTICAS_MOVIMIENTOS,
-        self::OBTENER_MOVIMIENTOS,
+        self::CONSULTAR_DATOS_FINANCIEROS,
     ];
-
-    /** @var array<int, string> */
-    private const FINANCIAL_METRICS = [
-        'ingresos',
-        'gastos',
-        'gastos_esenciales',
-        'gastos_flexibles',
-        'ahorro_posible',
-        'ahorro_real',
-    ];
-
-    /** @var array<int, string> */
-    private const MOVEMENT_METRICS = [
-        'ingresos',
-        'gastos',
-        'gastos_esenciales',
-        'gastos_flexibles',
-    ];
-
-    /** @var array<int, string> */
-    private const GROUPINGS = ['mes', 'categoria', 'tipo'];
 
     /** @var array<string, NumaFinancialToolDefinition> */
     private readonly array $definitions;
@@ -921,52 +898,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             return $result;
         }
 
-        foreach (['categorias', 'evolucion', 'movimientos'] as $itemsKey) {
-            if (!isset($result[$itemsKey]) || !is_array($result[$itemsKey]) || !array_is_list($result[$itemsKey])) {
-                continue;
-            }
-
-            while ($result[$itemsKey] !== []
-                && $this->aggregateJsonLength([...$this->executedToolResults, $result]) > $this->maxAggregateResultJsonChars
-            ) {
-                $this->discardLeastRelevantItem($result[$itemsKey], $itemsKey);
-            }
-
-            if (isset($result['limite']) && is_int($result['limite'])) {
-                $result['limite'] = min($result['limite'], count($result[$itemsKey]));
-            }
-
-            $result['resultado_acotado'] = true;
-
-            while ($result[$itemsKey] !== []
-                && $this->aggregateJsonLength([...$this->executedToolResults, $result]) > $this->maxAggregateResultJsonChars
-            ) {
-                $this->discardLeastRelevantItem($result[$itemsKey], $itemsKey);
-
-                if (isset($result['limite']) && is_int($result['limite'])) {
-                    $result['limite'] = min($result['limite'], count($result[$itemsKey]));
-                }
-            }
-
-            if ($this->aggregateJsonLength([...$this->executedToolResults, $result]) <= $this->maxAggregateResultJsonChars) {
-                return $result;
-            }
-        }
-
         throw new NumaFinancialToolLimitExceeded();
-    }
-
-    /** @param array<int, mixed> $items */
-    private function discardLeastRelevantItem(array &$items, string $itemsKey): void
-    {
-        // La evolución se presenta cronológicamente: al acotarla se conserva lo más reciente.
-        if ($itemsKey === 'evolucion' && isset($items[0]['mes'])) {
-            array_shift($items);
-
-            return;
-        }
-
-        array_pop($items);
     }
 
     /** @param array<int, array<string, mixed>> $results */
@@ -980,142 +912,18 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
      */
     private static function buildDefinitions(): array
     {
-        $catalog = new NumaFinancialCategoryCatalog();
-        $categories = $catalog->categoryValues();
-        $groups = $catalog->groupValues();
-
         $definitions = [
-            self::OBTENER_RESUMEN_FINANCIERO => new NumaFinancialToolDefinition(
-                name: self::OBTENER_RESUMEN_FINANCIERO,
-                description: 'Devuelve los totales globales de ingresos, gastos, gastos esenciales, gastos flexibles, ahorro posible y ahorro real de un periodo.',
-                whenToUse: 'el usuario pide un balance o resumen general del periodo.',
-                whenNotToUse: 'pide ordenar categorias, ver una serie temporal, comparar dos periodos, calcular estadisticas de movimientos o listar movimientos concretos.',
-                parameterSchema: self::dateRangeSchema(),
-                requiredParameters: [],
-                requirementGroups: [self::periodRequirementGroup()],
+            self::CONSULTAR_DATOS_FINANCIEROS => new NumaFinancialToolDefinition(
+                name: self::CONSULTAR_DATOS_FINANCIEROS,
+                description: (new NumaFinancialDataToolContract())->functionDeclaration()['description'],
+                whenToUse: 'necesites hechos financieros privados del usuario para responder.',
+                whenNotToUse: 'la pregunta se responde solo con información pública o del producto.',
+                parameterSchema: (new NumaFinancialDataToolContract())->functionDeclaration()['parameters'],
+                requiredParameters: ['periodos'],
+                requirementGroups: [],
                 compatibilityRules: [],
-                resultLimit: ['max_items' => 1],
-                implementation: 'executeResumenFinanciero'
-            ),
-            self::OBTENER_RANKING_CATEGORIAS => new NumaFinancialToolDefinition(
-                name: self::OBTENER_RANKING_CATEGORIAS,
-                description: 'Ordena categorias por su importe agregado y devuelve total y porcentaje para una metrica.',
-                whenToUse: 'el usuario pregunta en que categorias ingreso o gasto mas o menos dentro de un periodo.',
-                whenNotToUse: 'pide un resumen global, una evolucion temporal, comparar periodos, estadisticas agregadas o movimientos individuales.',
-                parameterSchema: self::periodSchema([
-                    'metrica' => self::metricSchema(self::MOVEMENT_METRICS),
-                    'limite' => self::limitSchema(10, 'Numero maximo de categorias del ranking; usa un entero entre 1 y 10.'),
-                ]),
-                requiredParameters: [],
-                requirementGroups: [self::periodRequirementGroup()],
-                compatibilityRules: [],
-                resultLimit: ['max_items' => 10],
-                implementation: 'executeRankingCategorias'
-            ),
-            self::OBTENER_EVOLUCION_FINANCIERA => new NumaFinancialToolDefinition(
-                name: self::OBTENER_EVOLUCION_FINANCIERA,
-                description: 'Devuelve una serie o distribucion agregada de una metrica por mes, categoria o tipo.',
-                whenToUse: 'el usuario pide evolucion, tendencia, distribucion o identificar el mes de mayor valor.',
-                whenNotToUse: 'pide solo totales globales, comparar exactamente dos periodos, estadisticas de movimientos o listar movimientos individuales.',
-                parameterSchema: self::periodSchema([
-                    'metrica' => self::metricSchema(self::FINANCIAL_METRICS),
-                    'agrupacion' => [
-                        'type' => 'string',
-                        'enum' => self::GROUPINGS,
-                        'description' => 'mes crea una serie cronologica; categoria distribuye por categoria; tipo separa clases de movimiento o gasto.',
-                    ],
-                    'limite' => self::limitSchema(24, 'Numero maximo de elementos; usa un entero entre 1 y 24.'),
-                ]),
-                requiredParameters: ['agrupacion'],
-                requirementGroups: [self::periodRequirementGroup()],
-                compatibilityRules: [],
-                resultLimit: ['max_items' => 24],
-                implementation: 'executeEvolucionFinanciera'
-            ),
-            self::COMPARAR_PERIODOS => new NumaFinancialToolDefinition(
-                name: self::COMPARAR_PERIODOS,
-                description: 'Compara una misma metrica entre dos periodos y devuelve ambos valores, diferencia absoluta y diferencia porcentual cuando procede.',
-                whenToUse: 'el usuario contrasta dos periodos concretos, por ejemplo este mes frente al anterior.',
-                whenNotToUse: 'pide una tendencia de varios meses, un ranking, estadisticas de movimientos o movimientos individuales.',
-                parameterSchema: self::schema([
-                    ...self::periodProperties('_a', 'A'),
-                    ...self::periodProperties('_b', 'B'),
-                    'metrica' => self::metricSchema(self::FINANCIAL_METRICS),
-                    'categoria' => self::categorySchema($categories),
-                ]),
-                requiredParameters: ['metrica'],
-                requirementGroups: [self::periodRequirementGroup('_a'), self::periodRequirementGroup('_b')],
-                compatibilityRules: [self::categoryMetricCompatibilityRule()],
-                resultLimit: ['max_items' => 1],
-                implementation: 'executeCompararPeriodos'
-            ),
-            self::OBTENER_ESTADISTICAS_MOVIMIENTOS => new NumaFinancialToolDefinition(
-                name: self::OBTENER_ESTADISTICAS_MOVIMIENTOS,
-                description: 'Calcula promedio por movimiento, promedio mensual, maximo, minimo, total y cantidad para una metrica y categoria opcional.',
-                whenToUse: 'el usuario pide promedios, maximos, minimos, totales estadisticos o cantidad de movimientos.',
-                whenNotToUse: 'pide un balance global, un ranking, una evolucion, comparar periodos o ver movimientos concretos.',
-                parameterSchema: self::periodSchema([
-                    'metrica' => self::metricSchema(self::MOVEMENT_METRICS),
-                    'categoria' => self::categorySchema($categories),
-                ]),
-                requiredParameters: ['metrica'],
-                requirementGroups: [self::periodRequirementGroup()],
-                compatibilityRules: [self::categoryMetricCompatibilityRule()],
-                resultLimit: ['max_items' => 1],
-                implementation: 'executeEstadisticasMovimientos'
-            ),
-            self::OBTENER_MOVIMIENTOS => new NumaFinancialToolDefinition(
-                name: self::OBTENER_MOVIMIENTOS,
-                description: 'Devuelve una seleccion acotada de movimientos individuales con fecha, cantidad y categoria, aplicando filtros y orden.',
-                whenToUse: 'el usuario pide ver, encontrar o enumerar movimientos concretos, recientes, mayores o menores.',
-                whenNotToUse: 'pide solo un total, promedio, ranking, evolucion o comparacion agregada.',
-                parameterSchema: self::periodSchema([
-                    'tipo_movimiento' => [
-                        'type' => 'string',
-                        'enum' => ['ingreso', 'gasto'],
-                        'description' => 'ingreso incluye solo entradas y gasto incluye solo salidas. Es obligatorio usar gasto si se indica tipo_gasto.',
-                    ],
-                    'tipo_gasto' => [
-                        'type' => 'string',
-                        'enum' => ['esencial', 'flexible'],
-                        'description' => 'Clasificacion del gasto: esencial para necesidades basicas o flexible para gasto ajustable. Requiere tipo_movimiento=gasto.',
-                    ],
-                    'grupo' => self::groupSchema($groups),
-                    'categoria' => self::categorySchema($categories),
-                    'orden' => [
-                        'type' => 'string',
-                        'enum' => ['fecha', 'cantidad'],
-                        'description' => 'Criterio de orden: fecha para cronologia o cantidad para importe.',
-                    ],
-                    'direccion' => [
-                        'type' => 'string',
-                        'enum' => ['asc', 'desc'],
-                        'description' => 'asc ordena de menor o mas antiguo a mayor o mas reciente; desc aplica el orden inverso.',
-                    ],
-                    'limite' => self::limitSchema(10, 'Numero maximo de movimientos devueltos; usa un entero entre 1 y 10.'),
-                ]),
-                requiredParameters: [],
-                requirementGroups: [self::periodRequirementGroup()],
-                compatibilityRules: [
-                    [
-                        'type' => 'requires_value',
-                        'parameter' => 'tipo_gasto',
-                        'required_parameter' => 'tipo_movimiento',
-                        'required_value' => 'gasto',
-                        'description' => 'tipo_gasto solo se admite cuando tipo_movimiento es gasto.',
-                    ],
-                    [
-                        'type' => 'mutually_exclusive',
-                        'parameters' => ['grupo', 'categoria'],
-                        'description' => 'grupo y categoria son filtros alternativos y no se combinan.',
-                    ],
-                    [
-                        'type' => 'movement_filters_compatible',
-                        'description' => 'La categoria o grupo debe corresponder al tipo de movimiento y, en gastos, al tipo de gasto solicitado.',
-                    ],
-                ],
-                resultLimit: ['max_items' => 10],
-                implementation: 'executeObtenerMovimientos'
+                resultLimit: ['max_items' => 10000],
+                implementation: 'executeConsultarDatosFinancieros',
             ),
         ];
 
@@ -1248,20 +1056,30 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
 final class NumaFinancialToolExecutor
 {
     public const MAX_TOOL_RANGE_DAYS = 731;
+    public const MAX_TOOL_RESULT_ROWS = 10000;
 
     private readonly int $maxToolRangeDays;
+    private readonly int $maxToolResultRows;
 
     public function __construct(
         private readonly ?PDO $connection = null,
         ?int $maxToolRangeDays = null,
         private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
         private readonly NumaFinancialCategoryCatalog $categoryCatalog = new NumaFinancialCategoryCatalog(),
+        private readonly NumaFinancialDataToolContract $dataContract = new NumaFinancialDataToolContract(),
+        ?int $maxToolResultRows = null,
     ) {
         $this->maxToolRangeDays = $maxToolRangeDays
             ?? bh_env_int('NUMA_MAX_TOOL_RANGE_DAYS', self::MAX_TOOL_RANGE_DAYS);
 
         if ($this->maxToolRangeDays <= 0 || $this->maxToolRangeDays > self::MAX_TOOL_RANGE_DAYS) {
             throw new InvalidArgumentException('El limite de rango de fechas de tools de Numa no es valido.');
+        }
+
+        $this->maxToolResultRows = $maxToolResultRows
+            ?? bh_env_int('NUMA_MAX_TOOL_RESULT_ROWS', self::MAX_TOOL_RESULT_ROWS);
+        if ($this->maxToolResultRows <= 0 || $this->maxToolResultRows > self::MAX_TOOL_RESULT_ROWS) {
+            throw new InvalidArgumentException('El limite de filas de resultado de Numa no es valido.');
         }
     }
 
@@ -1271,6 +1089,10 @@ final class NumaFinancialToolExecutor
      */
     public function execute(NumaFinancialToolDefinition $definition, int $authenticatedUserId, array $arguments): array
     {
+        if ($definition->implementation() === 'executeConsultarDatosFinancieros') {
+            return $this->executeConsultarDatosFinancieros($authenticatedUserId, $arguments);
+        }
+
         $arguments = $this->validate($definition, $authenticatedUserId, $arguments);
 
         $result = match ($definition->implementation()) {
@@ -1294,6 +1116,10 @@ final class NumaFinancialToolExecutor
     {
         if ($authenticatedUserId <= 0) {
             throw new InvalidArgumentException('Usuario de Numa no valido.');
+        }
+
+        if ($definition->implementation() === 'executeConsultarDatosFinancieros') {
+            return $this->dataContract->validateArguments($arguments);
         }
 
         $arguments = $this->normaliseCategoryArguments($arguments);
@@ -1477,6 +1303,394 @@ final class NumaFinancialToolExecutor
         }
 
         return $arguments;
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    private function executeConsultarDatosFinancieros(int $usuarioId, array $arguments): array
+    {
+        if ($usuarioId <= 0) {
+            throw new InvalidArgumentException('Usuario de Numa no valido.');
+        }
+
+        $validated = $this->dataContract->validateArguments($arguments);
+        $months = $this->canonicalMonths($validated['periodos']);
+        $selection = $this->canonicalSelection($validated['selectores']);
+        $estimatedRows = $this->estimatedCanonicalRows($months, $selection);
+        if ($estimatedRows > $this->maxToolResultRows) {
+            throw new NumaFinancialToolLimitExceeded();
+        }
+
+        $facts = $this->canonicalFacts($usuarioId, $months, $selection);
+        $logicalRows = 0;
+        $result = ['tool' => NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, 'meses' => []];
+        foreach ($months as $month) {
+            $monthResult = ['mes' => $month];
+            $logicalRows++;
+            if ($selection['ingresos'] !== []) {
+                $monthResult['ingresos'] = $this->canonicalIncomeBranch($month, $selection['ingresos'], $facts, $logicalRows);
+            }
+            if ($selection['gastos'] !== []) {
+                $monthResult['gastos'] = $this->canonicalExpenseBranch($month, $selection['gastos'], $facts, $logicalRows);
+            }
+            $result['meses'][] = $monthResult;
+        }
+
+        if ($logicalRows > $this->maxToolResultRows) {
+            throw new NumaFinancialToolLimitExceeded();
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param list<array<string, int|string>> $periods
+     * @return list<string>
+     */
+    private function canonicalMonths(array $periods): array
+    {
+        $months = [];
+        foreach ($periods as $period) {
+            $type = $period['tipo'];
+            if ($type === 'mes') {
+                $months[] = (string) $period['mes'];
+                continue;
+            }
+
+            if ($type === 'rango') {
+                $months = [...$months, ...$this->monthsBetween((string) $period['inicio'], (string) $period['fin'])];
+                continue;
+            }
+
+            if ($type === 'relativo') {
+                $resolved = $this->periodResolver->resolve((string) $period['periodo_relativo']);
+                $months = [...$months, ...$this->monthsBetween($resolved['inicio'], $resolved['fin'])];
+                continue;
+            }
+
+            if ($type === 'ultimos_meses') {
+                $now = $this->periodResolver->currentDate();
+                $end = new DateTimeImmutable(substr($now, 0, 7) . '-01', new DateTimeZone('Europe/Madrid'));
+                $start = $end->modify(sprintf('-%d months', (int) $period['cantidad_meses'] - 1));
+                $months = [...$months, ...$this->monthsBetween($start->format('Y-m-d'), $end->format('Y-m-t'))];
+                continue;
+            }
+
+            // Las referencias se resuelven contra la conversación controlada en la Tarea 4.
+            throw new NumaFinancialToolInputIncomplete('Referencia conversacional de Numa no disponible.');
+        }
+
+        $months = array_values(array_unique($months));
+        sort($months, SORT_STRING);
+
+        return $months;
+    }
+
+    /** @return list<string> */
+    private function monthsBetween(string $start, string $end): array
+    {
+        $first = new DateTimeImmutable(substr($start, 0, 7) . '-01', new DateTimeZone('Europe/Madrid'));
+        $last = new DateTimeImmutable(substr($end, 0, 7) . '-01', new DateTimeZone('Europe/Madrid'));
+        $months = [];
+        while ($first <= $last) {
+            $months[] = $first->format('Y-m');
+            $first = $first->modify('+1 month');
+        }
+
+        return $months;
+    }
+
+    /**
+     * @param list<array<string, string>> $selectors
+     * @return array{ingresos:array<string, list<string>|null>,gastos:array<string, array<string, list<string>|null>>}
+     */
+    private function canonicalSelection(array $selectors): array
+    {
+        $incomeAreas = $this->categoryCatalog->incomeAreas();
+        $expenseTypes = $this->categoryCatalog->expenseTypes();
+        $selection = ['ingresos' => [], 'gastos' => []];
+
+        if ($selectors === []) {
+            foreach ($incomeAreas as $area => $_details) {
+                $selection['ingresos'][$area] = null;
+            }
+            foreach ($expenseTypes as $type => $areas) {
+                foreach ($areas as $area => $_details) {
+                    $selection['gastos'][$type][$area] = null;
+                }
+            }
+
+            return $selection;
+        }
+
+        foreach ($selectors as $selector) {
+            if ($selector['ambito'] === 'ingresos') {
+                if (!isset($selector['area'])) {
+                    foreach ($incomeAreas as $area => $_details) {
+                        $selection['ingresos'][$area] = null;
+                    }
+                    continue;
+                }
+                $this->addCanonicalSelection($selection['ingresos'], $selector['area'], $selector['categoria'] ?? null);
+                continue;
+            }
+
+            if (!isset($selector['tipo'])) {
+                foreach ($expenseTypes as $type => $areas) {
+                    foreach ($areas as $area => $_details) {
+                        $selection['gastos'][$type][$area] = null;
+                    }
+                }
+                continue;
+            }
+
+            $type = $selector['tipo'];
+            if (!isset($selector['area'])) {
+                foreach ($expenseTypes[$type] as $area => $_details) {
+                    $selection['gastos'][$type][$area] = null;
+                }
+                continue;
+            }
+            $selection['gastos'][$type] ??= [];
+            $this->addCanonicalSelection($selection['gastos'][$type], $selector['area'], $selector['categoria'] ?? null);
+        }
+
+        return $selection;
+    }
+
+    /** @param array<string, list<string>|null> $areas */
+    private function addCanonicalSelection(array &$areas, string $area, ?string $category): void
+    {
+        if (($areas[$area] ?? false) === null && array_key_exists($area, $areas)) {
+            return;
+        }
+        if ($category === null) {
+            $areas[$area] = null;
+
+            return;
+        }
+        $areas[$area] = array_values(array_unique([...( $areas[$area] ?? []), $category]));
+    }
+
+    /**
+     * @param array{ingresos:array<string, list<string>|null>,gastos:array<string, array<string, list<string>|null>>} $selection
+     */
+    private function estimatedCanonicalRows(array $months, array $selection): int
+    {
+        $leaves = 0;
+        $expenseAreas = 0;
+        foreach ($selection['ingresos'] as $area => $categories) {
+            $leaves += count($categories ?? $this->categoryCatalog->categoriesForGroup($area));
+        }
+        foreach ($selection['gastos'] as $areas) {
+            foreach ($areas as $area => $categories) {
+                $leaves += count($categories ?? $this->categoryCatalog->categoriesForGroup($area));
+                $expenseAreas++;
+            }
+        }
+
+        $branchNodes = ($selection['ingresos'] === [] ? 0 : 1) + ($selection['gastos'] === [] ? 0 : 1);
+
+        return count($months) * (
+            $leaves
+            + count($selection['ingresos'])
+            + $expenseAreas
+            + count($selection['gastos'])
+            + $branchNodes
+            + 1
+        );
+    }
+
+    /**
+     * @param list<string> $months
+     * @param array{ingresos:array<string, list<string>|null>,gastos:array<string, array<string, list<string>|null>>} $selection
+     * @return array<string, array<string, array<string, int>>>
+     */
+    private function canonicalFacts(int $usuarioId, array $months, array $selection): array
+    {
+        $selects = [];
+        $params = [':usuario_id' => $usuarioId];
+
+        if ($selection['ingresos'] !== []) {
+            $incomeMonths = $this->canonicalPlaceholders($months, 'ingreso_mes', $params);
+            $incomeCategories = $this->selectedCanonicalCategories($selection['ingresos']);
+            $incomePlaceholders = $this->canonicalPlaceholders($incomeCategories, 'ingreso_categoria', $params);
+            $selects[] = "SELECT DATE_FORMAT(fecha, '%Y-%m') AS mes, 'ingresos' AS ambito, NULL AS tipo, categoria, cantidad FROM ingresos"
+                . ' WHERE usuario_id = :usuario_id AND DATE_FORMAT(fecha, \'%Y-%m\') IN (' . implode(', ', $incomeMonths) . ')'
+                . ' AND categoria IN (' . implode(', ', $incomePlaceholders) . ')';
+        }
+        if ($selection['gastos'] !== []) {
+            $expenseMonths = $this->canonicalPlaceholders($months, 'gasto_mes', $params);
+            $expenseCategories = $this->selectedCanonicalCategories($selection['gastos']);
+            $expensePlaceholders = $this->canonicalPlaceholders($expenseCategories, 'gasto_categoria', $params);
+            $selects[] = "SELECT DATE_FORMAT(fecha, '%Y-%m') AS mes, 'gastos' AS ambito, tipo, categoria, cantidad FROM gastos"
+                . ' WHERE usuario_id = :usuario_id AND DATE_FORMAT(fecha, \'%Y-%m\') IN (' . implode(', ', $expenseMonths) . ')'
+                . ' AND categoria IN (' . implode(', ', $expensePlaceholders) . ')';
+        }
+
+        if ($selects === []) {
+            return [];
+        }
+
+        $stmt = $this->db()->prepare(implode(' UNION ALL ', $selects));
+        $this->bindAndExecute($stmt, $params);
+        $facts = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $month = (string) $row['mes'];
+            $scope = (string) $row['ambito'];
+            $category = (string) $row['categoria'];
+            $type = $row['tipo'] === null ? '' : (string) $row['tipo'];
+            // La invariante mensual garantiza una única hoja por categoría.
+            $facts[$month][$scope][$type . ':' . $category] = $this->cents($row['cantidad']);
+        }
+
+        return $facts;
+    }
+
+    /** @param array<string, mixed> $params @return list<string> */
+    private function canonicalPlaceholders(array $values, string $prefix, array &$params): array
+    {
+        $placeholders = [];
+        foreach (array_values($values) as $index => $value) {
+            $placeholder = ':' . $prefix . '_' . $index;
+            $params[$placeholder] = $value;
+            $placeholders[] = $placeholder;
+        }
+
+        return $placeholders;
+    }
+
+    /** @param array<string, mixed> $selection @return list<string> */
+    private function selectedCanonicalCategories(array $selection): array
+    {
+        $categories = [];
+        $walk = function (array $areas) use (&$categories, &$walk): void {
+            foreach ($areas as $area => $value) {
+                if (is_array($value) && !array_is_list($value)) {
+                    $walk($value);
+                    continue;
+                }
+                $categories = [...$categories, ...($value ?? $this->categoryCatalog->categoriesForGroup($area))];
+            }
+        };
+        $walk($selection);
+
+        return array_values(array_unique($categories));
+    }
+
+    /**
+     * @param array<string, list<string>|null> $selection
+     * @param array<string, array<string, array<string, int>>> $facts
+     * @return array<string, mixed>
+     */
+    private function canonicalIncomeBranch(string $month, array $selection, array $facts, int &$logicalRows): array
+    {
+        $areas = [];
+        $total = 0;
+        foreach ($this->categoryCatalog->incomeAreas() as $area => $details) {
+            if (!array_key_exists($area, $selection)) {
+                continue;
+            }
+            $areas[] = $this->canonicalArea($month, $area, $selection[$area], null, $facts, $logicalRows);
+            $total += $this->cents($areas[array_key_last($areas)]['importe']);
+        }
+
+        $logicalRows++;
+        return [
+            'importe' => $this->money($total),
+            'cobertura' => $this->canonicalCoverage(count($areas), count($this->categoryCatalog->incomeAreas()), 'areas'),
+            'areas' => $areas,
+        ];
+    }
+
+    /**
+     * @param array<string, array<string, list<string>|null>> $selection
+     * @param array<string, array<string, array<string, int>>> $facts
+     * @return array<string, mixed>
+     */
+    private function canonicalExpenseBranch(string $month, array $selection, array $facts, int &$logicalRows): array
+    {
+        $types = [];
+        $total = 0;
+        foreach ($this->categoryCatalog->expenseTypes() as $type => $catalogueAreas) {
+            if (!isset($selection[$type])) {
+                continue;
+            }
+            $areas = [];
+            $typeTotal = 0;
+            foreach ($catalogueAreas as $area => $_details) {
+                if (!array_key_exists($area, $selection[$type])) {
+                    continue;
+                }
+                $areas[] = $this->canonicalArea($month, $area, $selection[$type][$area], $type, $facts, $logicalRows);
+                $typeTotal += $this->cents($areas[array_key_last($areas)]['importe']);
+            }
+            $logicalRows++;
+            $types[] = [
+                'tipo' => $type,
+                'importe' => $this->money($typeTotal),
+                'cobertura' => $this->canonicalCoverage(count($areas), count($catalogueAreas), 'areas'),
+                'areas' => $areas,
+            ];
+            $total += $typeTotal;
+        }
+
+        $logicalRows++;
+        return [
+            'importe' => $this->money($total),
+            'cobertura' => $this->canonicalCoverage(count($types), count($this->categoryCatalog->expenseTypes()), 'tipos'),
+            'tipos' => $types,
+        ];
+    }
+
+    /**
+     * @param list<string>|null $selectedCategories
+     * @param array<string, array<string, array<string, int>>> $facts
+     * @return array<string, mixed>
+     */
+    private function canonicalArea(
+        string $month,
+        string $area,
+        ?array $selectedCategories,
+        ?string $expenseType,
+        array $facts,
+        int &$logicalRows,
+    ): array {
+        $categories = $selectedCategories ?? $this->categoryCatalog->categoriesForGroup($area);
+        $items = [];
+        $total = 0;
+        $scope = $expenseType === null ? 'ingresos' : 'gastos';
+        foreach ($this->categoryCatalog->categoriesForGroup($area) as $category) {
+            if (!in_array($category, $categories, true)) {
+                continue;
+            }
+            $amount = $facts[$month][$scope][($expenseType ?? '') . ':' . $category] ?? 0;
+            $items[] = ['categoria' => $category, 'importe' => $this->money($amount)];
+            $total += $amount;
+            $logicalRows++;
+        }
+
+        $logicalRows++;
+        return [
+            'area' => $area,
+            'importe' => $this->money($total),
+            'cobertura' => $this->canonicalCoverage(count($items), count($this->categoryCatalog->categoriesForGroup($area)), 'categorias'),
+            'categorias' => $items,
+        ];
+    }
+
+    /** @return array<string, bool|int> */
+    private function canonicalCoverage(int $selected, int $total, string $noun): array
+    {
+        $consulted = $noun === 'tipos' ? 'tipos_consultados' : $noun . '_consultadas';
+
+        return [
+            'completa' => $selected === $total,
+            $consulted => $selected,
+            $noun . '_totales' => $total,
+        ];
     }
 
     /**

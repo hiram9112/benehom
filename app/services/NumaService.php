@@ -832,18 +832,6 @@ final class NumaService
     /** @param array<int, array<string, mixed>> $toolResults */
     private function withBoundedMovementSelectionNotice(string $message, array $toolResults): string
     {
-        foreach ($toolResults as $result) {
-            if (($result['tool'] ?? null) === NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS
-                && ($result['seleccion_acotada'] ?? false) === true
-            ) {
-                if (preg_match('/selecci[oó]n acotada|(?:listado|registro) completo.*BeneHom/iu', $message) === 1) {
-                    return $message;
-                }
-
-                return $message . "\n\nEl listado es parcial; puedes consultar el completo en BeneHom.";
-            }
-        }
-
         return $message;
     }
 
@@ -1136,32 +1124,6 @@ final class NumaService
      */
     private function movementResultsForPresentation(array $toolResults): array
     {
-        foreach ($toolResults as $resultIndex => $result) {
-            if (($result['tool'] ?? null) !== NumaFinancialToolRegistry::OBTENER_MOVIMIENTOS
-                || !is_array($result['movimientos'] ?? null)
-            ) {
-                continue;
-            }
-
-            foreach ($result['movimientos'] as $movementIndex => $movement) {
-                if (!is_array($movement)) {
-                    continue;
-                }
-
-                // El label conserva la categoría para el usuario; el código interno no aporta información adicional.
-                unset($result['movimientos'][$movementIndex]['categoria']);
-
-                if (is_string($movement['fecha'] ?? null)) {
-                    $month = $this->movementMonthLabel($movement['fecha']);
-                    if ($month !== null) {
-                        $result['movimientos'][$movementIndex]['fecha'] = $month;
-                    }
-                }
-            }
-
-            $toolResults[$resultIndex] = $result;
-        }
-
         return $toolResults;
     }
 
@@ -1423,6 +1385,10 @@ final class NumaService
      */
     private function resolveToolPeriods(string $toolName, array $arguments, string $message, ?array $referencePeriod): array
     {
+        if ($toolName === NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS) {
+            return $arguments;
+        }
+
         $messagePeriods = $this->periodResolver->periodsMentionedInMessage($message, $referencePeriod);
 
         if ($messagePeriods === [] && $this->periodResolver->hasAmbiguousPeriodMention($message)) {

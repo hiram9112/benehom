@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/services/NumaFinancialTools.php';
+require_once APP_PATH . '/services/NumaFinancialDataToolContract.php';
 
 final class NumaFinancialToolRegistryTest extends TestCase
 {
@@ -177,6 +178,161 @@ final class NumaFinancialToolRegistryTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         (new \NumaFinancialToolRegistry())->get('ejecutar_sql');
+    }
+
+    public function testContratoCanonicoAisladoDeclaraUnaSolaToolSinAlterarElRegistroActivo(): void
+    {
+        $contract = new \NumaFinancialDataToolContract();
+        $declaration = $contract->functionDeclaration();
+
+        self::assertSame('consultar_datos_financieros', $declaration['name']);
+        self::assertSame(['periodos'], $declaration['parameters']['required']);
+        self::assertSame(1, $declaration['parameters']['properties']['periodos']['minItems']);
+        self::assertSame(1, $declaration['parameters']['properties']['selectores']['minItems']);
+        self::assertArrayNotHasKey('oneOf', $declaration['parameters']);
+        self::assertArrayNotHasKey('anyOf', $declaration['parameters']);
+        $serialized = json_encode($declaration, JSON_THROW_ON_ERROR);
+        self::assertStringNotContainsString('"oneOf"', $serialized);
+        self::assertStringNotContainsString('"anyOf"', $serialized);
+        self::assertSame([
+            'obtener_resumen_financiero',
+            'obtener_ranking_categorias',
+            'obtener_evolucion_financiera',
+            'comparar_periodos',
+            'obtener_estadisticas_movimientos',
+            'obtener_movimientos',
+        ], (new \NumaFinancialToolRegistry())->names());
+    }
+
+    public function testContratoCanonicoDerivaLaTaxonomiaCompletaDeLosCatalogos(): void
+    {
+        $parameters = (new \NumaFinancialDataToolContract())->functionDeclaration()['parameters']['properties'];
+        $selectorProperties = $parameters['selectores']['items']['properties'];
+        $areas = $selectorProperties['area']['enum'];
+        $relationships = $parameters['selectores']['description'];
+        $incomeAreas = array_filter(
+            $areas,
+            static fn (string $area): bool => str_contains($relationships, 'ingresos/' . $area . ' ('),
+        );
+        $expenseAreas = array_filter(
+            $areas,
+            static fn (string $area): bool => preg_match(
+                '#gastos/[^/]+/' . preg_quote($area, '#') . ' \\(#',
+                $relationships,
+            ) === 1,
+        );
+
+        self::assertCount(5, $incomeAreas);
+        self::assertCount(19, array_filter(
+            $selectorProperties['categoria']['enum'],
+            static fn (string $category): bool => (new \NumaFinancialCategoryCatalog())->category($category)['kind'] === 'ingreso',
+        ));
+        self::assertCount(2, $selectorProperties['tipo']['enum']);
+        self::assertCount(16, $expenseAreas);
+        self::assertCount(71, array_filter(
+            $selectorProperties['categoria']['enum'],
+            static fn (string $category): bool => (new \NumaFinancialCategoryCatalog())->category($category)['kind'] === 'gasto',
+        ));
+        self::assertStringContainsString('gastos/esencial/suministros', $parameters['selectores']['description']);
+        self::assertStringContainsString('electricidad (Electricidad)', $parameters['selectores']['description']);
+        self::assertStringContainsString('gastos/flexible/restauracion', $parameters['selectores']['description']);
+        self::assertStringContainsString('comida_domicilio (Comida a domicilio)', $parameters['selectores']['description']);
+        $serializedDeclaration = json_encode(
+            (new \NumaFinancialDataToolContract())->functionDeclaration(),
+            JSON_THROW_ON_ERROR,
+        );
+        foreach (['salario', 'prestaciones_ayudas', 'alquileres', 'inversiones', 'ventas_segunda_mano', 'aportaciones_regalos'] as $legacy) {
+            self::assertStringNotContainsString('"' . $legacy . '"', $serializedDeclaration);
+        }
+        self::assertNotContains('actividad_propia', $selectorProperties['categoria']['enum']);
+        self::assertContains('actividad_propia', $areas);
+    }
+
+    public function testContratoCanonicoValidaPeriodosYNormalizaSelectores(): void
+    {
+        $validated = (new \NumaFinancialDataToolContract())->validateArguments([
+            'periodos' => [
+                ['tipo' => 'mes', 'mes' => '2026-07'],
+                ['tipo' => 'rango', 'inicio' => '2026-01-01', 'fin' => '2026-02-28'],
+                ['tipo' => 'relativo', 'periodo_relativo' => 'mes_anterior'],
+                ['tipo' => 'ultimos_meses', 'cantidad_meses' => 3],
+                ['tipo' => 'referencia_conversacional', 'indice' => 0],
+            ],
+            'selectores' => [
+                ['categoria' => 'electricidad'],
+                ['categoria' => 'electricidad'],
+                ['categoria' => 'comida_domicilio'],
+                ['area' => 'trabajo'],
+            ],
+        ]);
+
+        self::assertCount(5, $validated['periodos']);
+        self::assertSame([
+            ['ambito' => 'gastos', 'tipo' => 'esencial', 'area' => 'suministros', 'categoria' => 'electricidad'],
+            ['ambito' => 'gastos', 'tipo' => 'flexible', 'area' => 'restauracion', 'categoria' => 'comida_domicilio'],
+            ['ambito' => 'ingresos', 'area' => 'trabajo'],
+        ], $validated['selectores']);
+
+        self::assertSame([], (new \NumaFinancialDataToolContract())->validateArguments([
+            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+        ])['selectores']);
+    }
+
+    #[DataProvider('invalidCanonicalContractCases')]
+    public function testContratoCanonicoRechazaPeriodosYSelectoresInvalidos(array $arguments): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new \NumaFinancialDataToolContract())->validateArguments($arguments);
+    }
+
+    /** @return array<string, array{0:array<string, mixed>}> */
+    public static function invalidCanonicalContractCases(): array
+    {
+        return [
+            'periodo ambiguo' => [[
+                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07', 'inicio' => '2026-07-01']],
+            ]],
+            'rango invertido' => [[
+                'periodos' => [['tipo' => 'rango', 'inicio' => '2026-07-31', 'fin' => '2026-07-01']],
+            ]],
+            'selector desconocido' => [[
+                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'selectores' => [['categoria' => 'salario']],
+            ]],
+            'actividad propia legacy como categoria' => [[
+                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'selectores' => [['categoria' => 'actividad_propia']],
+            ]],
+            'selector incompatible' => [[
+                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'selectores' => [['ambito' => 'ingresos', 'categoria' => 'electricidad']],
+            ]],
+            'area y categoria incompatibles' => [[
+                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'selectores' => [['area' => 'suministros', 'categoria' => 'comida_domicilio']],
+            ]],
+        ];
+    }
+
+    public function testContratoCanonicoDefineLaHojaYLaCoberturaHomogenea(): void
+    {
+        $schema = (new \NumaFinancialDataToolContract())->resultSchema();
+        $month = $schema['properties']['meses']['items'];
+        $leaf = $month['properties']['ingresos']['properties']['areas']['items']['properties']['categorias']['items'];
+
+        self::assertSame(['categoria', 'importe'], $leaf['required']);
+        self::assertSame(['categoria', 'importe'], array_keys($leaf['properties']));
+        self::assertFalse($leaf['additionalProperties']);
+        self::assertSame('Meses naturales ordenados de forma ascendente.', $schema['properties']['meses']['description']);
+        self::assertSame(
+            ['completa', 'areas_consultadas', 'areas_totales'],
+            $month['properties']['ingresos']['properties']['cobertura']['required'],
+        );
+        self::assertSame(
+            ['completa', 'tipos_consultados', 'tipos_totales'],
+            $month['properties']['gastos']['properties']['cobertura']['required'],
+        );
     }
 
     public function testRechazaUsuarioAutenticadoInternoInvalido(): void

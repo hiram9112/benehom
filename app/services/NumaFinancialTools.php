@@ -529,6 +529,63 @@ final class NumaFinancialCategoryCatalog
         return array_keys($this->groups);
     }
 
+    /** @return array<int, string> */
+    public function incomeAreaValues(): array
+    {
+        return array_keys(array_filter(
+            $this->groups,
+            static fn (array $group): bool => $group['kind'] === 'ingreso'
+        ));
+    }
+
+    /** @return array<int, string> */
+    public function expenseAreaValues(): array
+    {
+        return array_keys(array_filter(
+            $this->groups,
+            static fn (array $group): bool => $group['kind'] === 'gasto'
+        ));
+    }
+
+    /** @return array<int, string> */
+    public function expenseTypeValues(): array
+    {
+        return array_keys(gastoCategorias());
+    }
+
+    /**
+     * @return array<string, array{label:string,categories:array<string,string>}>
+     */
+    public function incomeAreas(): array
+    {
+        return $this->areasForKind('ingreso');
+    }
+
+    /**
+     * @return array<string, array<string, array{label:string,categories:array<string,string>}>>
+     */
+    public function expenseTypes(): array
+    {
+        $types = [];
+        foreach ($this->expenseTypeValues() as $expenseType) {
+            $areas = [];
+            foreach ($this->expenseAreaValues() as $area) {
+                $group = $this->group($area);
+                if ($group['expense_type'] !== $expenseType) {
+                    continue;
+                }
+
+                $areas[$area] = [
+                    'label' => $group['label'],
+                    'categories' => $this->categoryLabelsForGroup($area),
+                ];
+            }
+            $types[$expenseType] = $areas;
+        }
+
+        return $types;
+    }
+
     public function resolveCategory(string $value): string
     {
         if (isset($this->categories[$value])) {
@@ -588,6 +645,37 @@ final class NumaFinancialCategoryCatalog
             $this->categories,
             static fn (array $category): bool => $category['group'] === $group
         ));
+    }
+
+    /**
+     * @return array<string, array{label:string,categories:array<string,string>}>
+     */
+    private function areasForKind(string $kind): array
+    {
+        $areas = [];
+        foreach ($this->groups as $area => $group) {
+            if ($group['kind'] !== $kind) {
+                continue;
+            }
+
+            $areas[$area] = [
+                'label' => $group['label'],
+                'categories' => $this->categoryLabelsForGroup($area),
+            ];
+        }
+
+        return $areas;
+    }
+
+    /** @return array<string, string> */
+    private function categoryLabelsForGroup(string $group): array
+    {
+        $categories = [];
+        foreach ($this->categoriesForGroup($group) as $category) {
+            $categories[$category] = $this->category($category)['label'];
+        }
+
+        return $categories;
     }
 
     private function addGroup(string $name, string $kind, ?string $expenseType, string $label): void

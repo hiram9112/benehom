@@ -142,6 +142,23 @@ final class NumaFinancialFactValidatorTest extends TestCase
         );
     }
 
+    public function testFallbackDeToolCanonicaConservaUnaRespuestaFinancieraUtil(): void
+    {
+        $message = (new \NumaFinancialFactValidator())->fallback([[
+            'tool' => \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
+            'meses' => [[
+                'mes' => '2026-07',
+                'ingresos' => ['importe' => '1200.00'],
+                'gastos' => ['importe' => '800.00'],
+            ]],
+        ]]);
+
+        self::assertSame(
+            'En julio de 2026, tus ingresos fueron 1200.00 EUR. Tus gastos fueron 800.00 EUR.',
+            $message,
+        );
+    }
+
     #[DataProvider('toolFallbacks')]
     public function testGeneraUnFallbackDeterministaParaCadaTool(array $result, string $expected): void
     {

@@ -301,7 +301,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         );
     }
 
-    public function testFunctionCallingEmparejaLlamadasCanonicasParalelasConSusIds(): void
+    public function testFunctionCallingEmparejaLlamadasParalelasPorIdAunqueLosResultadosLleguenInvertidos(): void
     {
         $user = $this->crearUsuario('numa-canonical-parallel@example.test');
         $userId = (int) $user['id'];
@@ -322,23 +322,26 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         ]);
 
         $requests = [];
+        $parsedToolRequests = [];
+        $reorderedToolResultIds = [];
+        $calls = [
+            ['id' => 'electricidad', 'args' => [
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+                'selectores' => [['categoria' => 'electricidad']],
+            ]],
+            ['id' => 'domicilio', 'args' => [
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+                'selectores' => [['categoria' => 'comida_domicilio']],
+            ]],
+        ];
         $responses = [
             $this->classificationResponse(),
-            $this->functionCallsResponse([
-                ['id' => 'electricidad', 'args' => [
-                    'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
-                    'selectores' => [['categoria' => 'electricidad']],
-                ]],
-                ['id' => 'domicilio', 'args' => [
-                    'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
-                    'selectores' => [['categoria' => 'comida_domicilio']],
-                ]],
-            ]),
+            $this->functionCallsResponse($calls),
             $this->textResponse('He consultado ambas categorías.'),
         ];
         $index = 0;
-        $providerFactory = function (?\NumaProviderConsumptionInterface $consumption) use (&$requests, &$responses, &$index): \NumaProviderInterface {
-            return new \GeminiNumaProvider(
+        $providerFactory = function (?\NumaProviderConsumptionInterface $consumption) use (&$requests, &$responses, &$index, &$parsedToolRequests, &$reorderedToolResultIds): \NumaProviderInterface {
+            $provider = new \GeminiNumaProvider(
                 'test-key',
                 'gemini-test-model',
                 transport: function (string $url, array $headers, string $body) use (&$requests, &$responses, &$index): array {
@@ -348,6 +351,60 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
                 },
                 consumption: $consumption,
             );
+
+            return new class(
+                $provider,
+                static function (array $toolRequests) use (&$parsedToolRequests): void {
+                    $parsedToolRequests = array_map(static fn (\NumaToolRequest $request): array => [
+                        'id' => $request->id(),
+                        'name' => $request->name(),
+                        'arguments' => $request->arguments(),
+                    ], $toolRequests);
+                },
+                static function (\NumaRequest $request) use (&$reorderedToolResultIds): \NumaRequest {
+                    $context = $request->context();
+                    foreach ($context as &$contextItem) {
+                        if (($contextItem['type'] ?? null) !== 'financial_tool_results'
+                            || !is_array($contextItem['items'] ?? null)
+                        ) {
+                            continue;
+                        }
+
+                        $contextItem['items'] = array_reverse($contextItem['items']);
+                        $reorderedToolResultIds = array_column($contextItem['items'], 'call_id');
+                    }
+                    unset($contextItem);
+
+                    return new \NumaRequest(
+                        $request->message(),
+                        $request->systemInstruction(),
+                        $context,
+                        $request->availableTools(),
+                        $request->history(),
+                        $request->responseSchema(),
+                        $request->functionCallingMode(),
+                        $request->maxOutputTokens(),
+                    );
+                },
+            ) implements \NumaProviderInterface {
+                public function __construct(
+                    private readonly \NumaProviderInterface $provider,
+                    private readonly \Closure $observeToolRequests,
+                    private readonly \Closure $reorderToolResults,
+                ) {
+                }
+
+                public function respond(\NumaRequest $request): \NumaResponse
+                {
+                    $request = ($this->reorderToolResults)($request);
+                    $response = $this->provider->respond($request);
+                    if ($response->toolRequests() !== []) {
+                        ($this->observeToolRequests)($response->toolRequests());
+                    }
+
+                    return $response;
+                }
+            };
         };
         $service = new \NumaService(
             new \NumaUso($this->db),
@@ -365,10 +422,21 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
 
         self::assertSame('He consultado ambas categorías.', $service->answer($userId, 'Compara electricidad y comida a domicilio de julio.')->toArray()['message']);
         $parts = $requests[2]['contents'];
+        self::assertSame([
+            ['id' => 'electricidad', 'name' => 'consultar_datos_financieros', 'arguments' => $calls[0]['args']],
+            ['id' => 'domicilio', 'name' => 'consultar_datos_financieros', 'arguments' => $calls[1]['args']],
+        ], $parsedToolRequests);
+        self::assertSame(['domicilio', 'electricidad'], $reorderedToolResultIds);
         self::assertSame('electricidad', $parts[1]['parts'][0]['functionCall']['id']);
         self::assertSame('domicilio', $parts[1]['parts'][1]['functionCall']['id']);
+        self::assertSame('consultar_datos_financieros', $parts[1]['parts'][0]['functionCall']['name']);
+        self::assertSame('consultar_datos_financieros', $parts[1]['parts'][1]['functionCall']['name']);
+        self::assertSame($calls[0]['args'], $parts[1]['parts'][0]['functionCall']['args']);
+        self::assertSame($calls[1]['args'], $parts[1]['parts'][1]['functionCall']['args']);
         self::assertSame('electricidad', $parts[2]['parts'][0]['functionResponse']['id']);
         self::assertSame('domicilio', $parts[2]['parts'][1]['functionResponse']['id']);
+        self::assertSame('consultar_datos_financieros', $parts[2]['parts'][0]['functionResponse']['name']);
+        self::assertSame('consultar_datos_financieros', $parts[2]['parts'][1]['functionResponse']['name']);
         self::assertSame('10.00', $parts[2]['parts'][0]['functionResponse']['response']['result']['meses'][0]['gastos']['importe']);
         self::assertSame('20.00', $parts[2]['parts'][1]['functionResponse']['response']['result']['meses'][0]['gastos']['importe']);
     }

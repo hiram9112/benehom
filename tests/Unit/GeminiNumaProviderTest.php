@@ -97,7 +97,7 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(35, $response->tokenUsage()->outputTokens());
     }
 
-    public function testEnviaLasSeisDeclaracionesSinPerderElContratoDelRegistro(): void
+    public function testEnviaLaDeclaracionCanonicaSinPerderElContratoDelRegistro(): void
     {
         $captured = [];
         $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$captured): array {
@@ -135,6 +135,11 @@ final class GeminiNumaProviderTest extends TestCase
                 $definitions,
             ),
             $captured['tools'][0]['functionDeclarations']
+        );
+        self::assertCount(1, $captured['tools'][0]['functionDeclarations']);
+        self::assertSame(
+            'consultar_datos_financieros',
+            $captured['tools'][0]['functionDeclarations'][0]['name'],
         );
     }
 
@@ -476,11 +481,12 @@ final class GeminiNumaProviderTest extends TestCase
             'fecha_inicio' => '2026-07-01',
             'fecha_fin' => '2026-07-31',
         ], $toolResponse->toolRequest()?->arguments());
+        self::assertSame('call-1', $toolResponse->toolRequest()?->id());
 
         $finalResponse = $provider->respond(new \NumaRequest(
             '¿Cuál es mi resumen financiero de julio?',
             '',
-            $this->toolContext([[
+            $this->toolContext(['call-1' => [
                 'tool' => 'consultar_datos_financieros',
                 'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
                 'ingresos' => 1200.0,
@@ -542,10 +548,10 @@ final class GeminiNumaProviderTest extends TestCase
         });
 
         $first = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY));
-        $second = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0]]), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO));
+        $second = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(['call-1' => ['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0]]), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO));
         $final = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([
-            ['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0],
-            ['tool' => 'consultar_datos_financieros', 'ingresos' => 1300.0],
+            'call-1' => ['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0],
+            'call-2' => ['tool' => 'consultar_datos_financieros', 'ingresos' => 1300.0],
         ]), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_NONE));
 
         self::assertSame('2026-07-01', $first->toolRequest()?->arguments()['fecha_inicio']);
@@ -561,6 +567,42 @@ final class GeminiNumaProviderTest extends TestCase
         ));
     }
 
+    public function testRechazaFunctionCallFinancieraSinIdStringNoVacio(): void
+    {
+        $invalidIds = [
+            'ausente' => [],
+            'null' => ['id' => null],
+            'vacio' => ['id' => ''],
+            'espacios' => ['id' => '   '],
+        ];
+
+        foreach ($invalidIds as $case => $idField) {
+            $functionCall = array_merge([
+                'name' => 'consultar_datos_financieros',
+                'args' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+            ], $idField);
+            $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['functionCall' => $functionCall]]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ]);
+
+            try {
+                $provider->respond(new \NumaRequest(
+                    '¿Cuánto gasté?',
+                    '',
+                    $this->toolContext(),
+                    ['consultar_datos_financieros'],
+                    functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
+                ));
+                self::fail('Se esperaba rechazo para el ID ' . $case . '.');
+            } catch (\NumaProviderException $exception) {
+                self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage(), $case);
+            }
+        }
+    }
+
     public function testNoReintentaAutomaticamenteDespuesDeEjecutarUnaTool(): void
     {
         $calls = 0;
@@ -572,6 +614,7 @@ final class GeminiNumaProviderTest extends TestCase
                     'status' => 200,
                     'body' => json_encode([
                         'candidates' => [['content' => ['parts' => [['functionCall' => [
+                            'id' => 'call-1',
                             'name' => 'consultar_datos_financieros',
                             'args' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
                         ]]]], 'finishReason' => 'STOP']],
@@ -594,7 +637,7 @@ final class GeminiNumaProviderTest extends TestCase
             $provider->respond(new \NumaRequest(
                 '¿Cuánto gasté?',
                 '',
-                $this->toolContext([['tool' => 'consultar_datos_financieros', 'gastos' => 800.0]]),
+                $this->toolContext(['call-1' => ['tool' => 'consultar_datos_financieros', 'gastos' => 800.0]]),
                 ['consultar_datos_financieros'],
                 functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
             ));
@@ -963,7 +1006,7 @@ final class GeminiNumaProviderTest extends TestCase
     }
 
     /**
-     * @param array<int, array<string, mixed>> $toolResults
+     * @param array<string, array<string, mixed>> $toolResults
      * @return array<int, array<string, mixed>>
      */
     private function toolContext(array $toolResults = []): array
@@ -977,7 +1020,12 @@ final class GeminiNumaProviderTest extends TestCase
         if ($toolResults !== []) {
             $context[] = [
                 'type' => 'financial_tool_results',
-                'items' => $toolResults,
+                'items' => array_map(static fn (string $callId, array $result): array => [
+                    'call_id' => $callId,
+                    'name' => $result['tool'],
+                    'arguments' => [],
+                    'result' => $result,
+                ], array_keys($toolResults), array_values($toolResults)),
             ];
         }
 

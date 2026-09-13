@@ -15,7 +15,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
     /** @var callable */
     private $transport;
 
-    /** @var list<array{content:array<string,mixed>,calls:list<array{name:string,id:string|null}>}> */
+    /** @var list<array{content:array<string,mixed>,calls:list<array{name:string,id:string}>}> */
     private array $functionCallTurns = [];
 
     /** @var Closure(array<string, mixed>):void */
@@ -196,27 +196,28 @@ final class GeminiNumaProvider implements NumaProviderInterface
                 throw self::invalidResponseError();
             }
 
-            $resultIndex = 0;
             foreach ($this->functionCallTurns as $turn) {
                 $functionResponses = [];
                 foreach ($turn['calls'] as $call) {
-                    if (!array_key_exists($resultIndex, $toolResults)) {
-                        break 2;
+                    $callId = $call['id'];
+                    if (!array_key_exists($callId, $toolResults)) {
+                        throw self::invalidResponseError();
                     }
 
+                    $toolExecution = $toolResults[$callId];
+                    if ($toolExecution['name'] !== $call['name']) {
+                        throw self::invalidResponseError();
+                    }
                     $functionResponse = [
                         'name' => $call['name'],
                         'response' => [
-                            'result' => $toolResults[$resultIndex],
+                            'result' => $toolExecution['result'],
                         ],
                     ];
 
-                    if ($call['id'] !== null) {
-                        $functionResponse['id'] = $call['id'];
-                    }
+                    $functionResponse['id'] = $call['id'];
 
                     $functionResponses[] = ['functionResponse' => $functionResponse];
-                    ++$resultIndex;
                 }
 
                 $contents[] = $turn['content'];
@@ -463,11 +464,11 @@ final class GeminiNumaProvider implements NumaProviderInterface
             }
 
             $id = $functionCall['id'] ?? null;
-            if ($id !== null && !is_string($id)) {
+            if (!is_string($id) || trim($id) === '') {
                 throw self::invalidResponseError();
             }
 
-            $toolRequests[] = new NumaToolRequest($name, $args);
+            $toolRequests[] = new NumaToolRequest($name, $args, $id);
             $turnCalls[] = [
                 'name' => $name,
                 'id' => $id,
@@ -754,7 +755,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array<string, array{name:string,arguments:array<string,mixed>,result:array<string,mixed>}>
      */
     private function financialToolResults(NumaRequest $request): array
     {
@@ -765,7 +766,27 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
             $items = $contextItem['items'] ?? null;
             if (is_array($items)) {
-                return array_values(array_filter($items, static fn (mixed $item): bool => is_array($item)));
+                $toolResults = [];
+                foreach ($items as $item) {
+                    if (!is_array($item)
+                        || !is_string($item['call_id'] ?? null)
+                        || trim($item['call_id']) === ''
+                        || !is_string($item['name'] ?? null)
+                        || !is_array($item['arguments'] ?? null)
+                        || !is_array($item['result'] ?? null)
+                        || isset($toolResults[$item['call_id']])
+                    ) {
+                        throw self::invalidResponseError();
+                    }
+
+                    $toolResults[$item['call_id']] = [
+                        'name' => $item['name'],
+                        'arguments' => $item['arguments'],
+                        'result' => $item['result'],
+                    ];
+                }
+
+                return $toolResults;
             }
         }
 

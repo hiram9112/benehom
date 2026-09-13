@@ -154,7 +154,7 @@ final class NumaFinancialFactValidator
 
         foreach ($toolResults as $result) {
             if (($result['tool'] ?? null) === NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS) {
-                $messages[] = 'He consultado tus datos financieros en BeneHom.';
+                $messages[] = $this->financialDataFallback($result);
                 continue;
             }
 
@@ -170,6 +170,46 @@ final class NumaFinancialFactValidator
         }
 
         return implode("\n\n", $messages);
+    }
+
+    /** @param array<string, mixed> $result */
+    private function financialDataFallback(array $result): string
+    {
+        $messages = [];
+        $months = $result['meses'] ?? null;
+
+        if (!is_array($months)) {
+            return 'He consultado tus datos financieros en BeneHom.';
+        }
+
+        foreach ($months as $month) {
+            if (!is_array($month)) {
+                continue;
+            }
+
+            $sentences = [];
+            foreach (['ingresos' => 'Tus ingresos fueron', 'gastos' => 'Tus gastos fueron'] as $key => $label) {
+                $branch = $month[$key] ?? null;
+                if (is_array($branch) && array_key_exists('importe', $branch)) {
+                    $sentences[] = ($sentences === [] ? lcfirst($label) : $label) . ' '
+                        . $this->amountText($branch['importe']) . '.';
+                }
+            }
+
+            if ($sentences === []) {
+                continue;
+            }
+
+            $monthValue = $month['mes'] ?? null;
+            $period = is_string($monthValue) && preg_match('/^\d{4}-(?:0[1-9]|1[0-2])$/', $monthValue) === 1
+                ? $this->monthText($monthValue)
+                : 'el periodo consultado';
+            $messages[] = 'En ' . $period . ', ' . implode(' ', $sentences);
+        }
+
+        return $messages === []
+            ? 'He consultado tus datos financieros en BeneHom.'
+            : implode("\n\n", $messages);
     }
 
     /**

@@ -391,9 +391,14 @@ final class NumaToolRequest
     public function __construct(
         private readonly string $name,
         private readonly array $arguments = [],
+        private readonly ?string $id = null,
     ) {
         if (trim($name) === '') {
             throw new InvalidArgumentException('La solicitud de tool debe tener nombre.');
+        }
+
+        if ($id !== null && trim($id) === '') {
+            throw new InvalidArgumentException('El ID de la solicitud de tool no puede estar vacio.');
         }
     }
 
@@ -408,6 +413,11 @@ final class NumaToolRequest
     public function arguments(): array
     {
         return $this->arguments;
+    }
+
+    public function id(): ?string
+    {
+        return $this->id;
     }
 }
 
@@ -582,16 +592,25 @@ final class NumaProviderBoundary implements NumaProviderInterface
             }
 
             foreach ($items as $item) {
-                if (!is_array($item)) {
+                if (!is_array($item)
+                    || count($item) !== 4
+                    || array_diff(array_keys($item), ['call_id', 'name', 'arguments', 'result']) !== []
+                    || !is_string($item['call_id'] ?? null)
+                    || trim($item['call_id']) === ''
+                    || !is_string($item['name'] ?? null)
+                    || !is_array($item['arguments'] ?? null)
+                    || !is_array($item['result'] ?? null)
+                ) {
                     throw $this->boundaryViolation();
                 }
 
-                $toolName = $item['tool'] ?? null;
-                if (!is_string($toolName) || !isset(self::FINANCIAL_RESULT_SCHEMAS[$toolName])) {
+                $toolName = $item['name'];
+                $result = $item['result'];
+                if (!isset(self::FINANCIAL_RESULT_SCHEMAS[$toolName]) || ($result['tool'] ?? null) !== $toolName) {
                     throw $this->boundaryViolation();
                 }
 
-                $this->assertAllowedShape($item, self::FINANCIAL_RESULT_SCHEMAS[$toolName]);
+                $this->assertAllowedShape($result, self::FINANCIAL_RESULT_SCHEMAS[$toolName]);
             }
         }
     }

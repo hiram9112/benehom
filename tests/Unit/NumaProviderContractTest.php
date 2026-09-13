@@ -213,15 +213,20 @@ final class NumaProviderContractTest extends TestCase
                 'parameters' => ['type' => 'object'],
             ]]],
             ['type' => 'financial_tool_results', 'items' => [[
-                'tool' => 'consultar_datos_financieros',
-                'meses' => [[
-                    'mes' => '2026-07',
-                    'gastos' => [
-                        'importe' => '800.00',
-                        'cobertura' => ['completa' => false, 'tipos_consultados' => 1, 'tipos_totales' => 2],
-                        'tipos' => [],
-                    ],
-                ]],
+                'call_id' => 'call-1',
+                'name' => 'consultar_datos_financieros',
+                'arguments' => [],
+                'result' => [
+                    'tool' => 'consultar_datos_financieros',
+                    'meses' => [[
+                        'mes' => '2026-07',
+                        'gastos' => [
+                            'importe' => '800.00',
+                            'cobertura' => ['completa' => false, 'tipos_consultados' => 1, 'tipos_totales' => 2],
+                            'tipos' => [],
+                        ],
+                    ]],
+                ],
             ]]],
         ];
 
@@ -254,7 +259,12 @@ final class NumaProviderContractTest extends TestCase
             }
         };
         $boundary = new \NumaProviderBoundary($inner);
-        $context = [['type' => 'financial_tool_results', 'items' => [$result]]];
+        $context = [['type' => 'financial_tool_results', 'items' => [[
+            'call_id' => 'call-1',
+            'name' => 'consultar_datos_financieros',
+            'arguments' => [],
+            'result' => $result,
+        ]]]];
 
         $boundary->respond(new \NumaRequest('Pregunta', '', $context));
 

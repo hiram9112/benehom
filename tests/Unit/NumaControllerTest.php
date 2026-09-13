@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once APP_PATH . '/controllers/NumaController.php';
@@ -110,12 +111,12 @@ final class NumaFinancialToolRegistryFake implements \NumaFinancialToolRegistryI
 
     public function names(): array
     {
-        return [\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO];
+        return [\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS];
     }
 
     public function get(string $name): \NumaFinancialToolDefinition
     {
-        if ($name !== \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO) {
+        if ($name !== \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS) {
             throw new \InvalidArgumentException('Tool no registrada en fake.');
         }
 
@@ -141,6 +142,15 @@ final class NumaFinancialToolRegistryFake implements \NumaFinancialToolRegistryI
             throw new \InvalidArgumentException('Usuario no valido en fake.');
         }
 
+        if (isset($arguments['fecha_inicio'], $arguments['fecha_fin'])) {
+            return [
+                'periodos' => [[
+                    'mes_inicio' => substr((string) $arguments['fecha_inicio'], 0, 7),
+                    'mes_fin' => substr((string) $arguments['fecha_fin'], 0, 7),
+                ]],
+            ];
+        }
+
         return $arguments;
     }
 
@@ -153,15 +163,17 @@ final class NumaFinancialToolRegistryFake implements \NumaFinancialToolRegistryI
             'arguments' => $arguments,
         ];
 
-        if ($name !== \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO) {
+        if ($name !== \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS) {
             throw new \InvalidArgumentException('Tool no permitida.');
         }
 
         return [
             'tool' => $name,
-            'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
-            'ingresos' => 1200.0,
-            'gastos' => 800.0,
+            'meses' => [[
+                'mes' => '2026-07',
+                'ingresos' => ['importe' => '1200.00'],
+                'gastos' => ['importe' => '800.00'],
+            ]],
         ];
     }
 }
@@ -1527,7 +1539,7 @@ final class NumaControllerTest extends TestCase
                 'reason' => 'user_financial_summary',
                 'data_intent' => 'resumen_financiero',
             ]),
-            new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO)),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS)),
             new \NumaResponse('Tus gastos del periodo fueron 800 euros.')
         );
 
@@ -1568,7 +1580,7 @@ final class NumaControllerTest extends TestCase
                 'knowledge_query' => 'gastos flexibles en BeneHom',
                 'data_intent' => 'resumen_financiero',
             ]),
-            new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO)),
+            new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS)),
             new \NumaResponse('Los gastos flexibles son variables; en el periodo gastaste 800 euros.')
         );
 
@@ -1781,6 +1793,48 @@ final class NumaControllerTest extends TestCase
         self::assertLessThan(1000.0, (hrtime(true) - $startedAt) / 1_000_000);
     }
 
+    public function testPresupuestoRechazaLaDecimaLlamadaDeProveedor(): void
+    {
+        $numaUso = new NumaUsoFake();
+        $budget = new \NumaPaidCallBudget(
+            new \NumaPrivateUsageBudget($numaUso, 123),
+            9,
+        );
+        $transportCalls = 0;
+        $provider = new \GeminiNumaProvider(
+            'fake-key',
+            'fake-model',
+            maxTransientRetries: 0,
+            transport: static function () use (&$transportCalls): array {
+                ++$transportCalls;
+
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [['text' => 'Respuesta valida.']]], 'finishReason' => 'STOP']],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            },
+            consumption: $budget,
+        );
+
+        for ($call = 0; $call < 9; $call++) {
+            $provider->respond(new \NumaRequest('Consulta ' . $call));
+        }
+
+        try {
+            $provider->respond(new \NumaRequest('Decima consulta'));
+            self::fail('La decima llamada de proveedor debe superar el presupuesto compartido.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_USAGE_ERROR', $exception->providerError()->safeCode());
+        }
+
+        self::assertSame(9, $transportCalls);
+        self::assertSame(9, $budget->llamadasIniciadas());
+        self::assertSame(9, $numaUso->reservations);
+        self::assertSame(9, $numaUso->confirmations);
+    }
+
     public function testChatActivoDetieneElFlujoSiNoHayCuotaParaElEmbeddingNecesario(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
@@ -1844,7 +1898,7 @@ final class NumaControllerTest extends TestCase
             new \NumaResponse(
                 'Necesito consultar datos agregados.',
                 null,
-                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, [
                     'fecha_inicio' => '2026-07-01',
                     'fecha_fin' => '2026-07-31',
                 ])
@@ -1868,7 +1922,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame(1, $tools->executions);
         self::assertSame(123, $tools->calls[0]['user_id']);
         self::assertCount(3, $provider->requests());
-        self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $provider->requests()[1]->availableTools());
+        self::assertSame([\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS], $provider->requests()[1]->availableTools());
         self::assertSame(\NumaRequest::FUNCTION_CALLING_ANY, $provider->requests()[1]->functionCallingMode());
         self::assertSame(\NumaRequest::FUNCTION_CALLING_AUTO, $provider->requests()[2]->functionCallingMode());
         self::assertSame(3, $numaUso->reservations);
@@ -1877,7 +1931,7 @@ final class NumaControllerTest extends TestCase
         self::assertArrayNotHasKey('tools', $response['data']);
         self::assertCount(1, $entries);
         $log = json_decode(substr($entries[0], 5), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame([\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO], $log['tools']);
+        self::assertSame([\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS], $log['tools']);
     }
 
     public function testChatActivoUsaFallbackSiElProveedorInventaUnaCifraFinanciera(): void
@@ -1893,7 +1947,7 @@ final class NumaControllerTest extends TestCase
                 'data_intent' => 'resumen_financiero',
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'],
             )),
             new \NumaResponse('En julio ingresaste 1200 EUR y gastaste 801 EUR.'),
@@ -1921,8 +1975,7 @@ final class NumaControllerTest extends TestCase
         ));
 
         self::assertSame([
-            ['kind' => 'date', 'value' => '2026-07-01'],
-            ['kind' => 'date', 'value' => '2026-07-31'],
+            ['kind' => 'month', 'value' => '2026-07'],
             ['kind' => 'amount', 'value' => '1200.00'],
             ['kind' => 'amount', 'value' => '800.00'],
         ], $financialFacts[0]['items']);
@@ -1942,7 +1995,7 @@ final class NumaControllerTest extends TestCase
                 'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['mes_inicio' => '2026-01', 'mes_fin' => '2026-01'],
             )),
             new \NumaResponse('En enero gastaste 800 euros.')
@@ -1976,7 +2029,7 @@ final class NumaControllerTest extends TestCase
                 'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['mes_inicio' => '2026-06', 'mes_fin' => '2026-06'],
             )),
             new \NumaResponse('En junio gastaste 800 euros.')
@@ -2007,7 +2060,7 @@ final class NumaControllerTest extends TestCase
                 'data_intent' => 'resumen_financiero',
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['mes_inicio' => '2026-06', 'mes_fin' => '2026-06'],
             )),
             new \NumaResponse('En junio gastaste 800 euros.')
@@ -2038,7 +2091,7 @@ final class NumaControllerTest extends TestCase
                 'data_intent' => 'resumen_financiero',
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['mes_inicio' => '2026-05', 'mes_fin' => '2026-05'],
             )),
             new \NumaResponse('En mayo gastaste 700 euros.'),
@@ -2090,7 +2143,7 @@ final class NumaControllerTest extends TestCase
                 'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['mes_inicio' => '2026-01', 'mes_fin' => '2026-01'],
             )),
             new \NumaResponse('En enero gastaste 700 euros.')
@@ -2124,7 +2177,7 @@ final class NumaControllerTest extends TestCase
                 'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['mes_inicio' => '2026-09', 'mes_fin' => '2026-09'],
             )),
             new \NumaResponse('En septiembre gastaste 700 euros.'),
@@ -2207,7 +2260,7 @@ final class NumaControllerTest extends TestCase
                             'role' => 'model',
                             'parts' => [['functionCall' => [
                                 'id' => 'call-1',
-                                'name' => 'obtener_resumen_financiero',
+                                'name' => 'consultar_datos_financieros',
                                 'args' => ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'],
                             ]]],
                         ], 'finishReason' => 'STOP']],
@@ -2243,6 +2296,67 @@ final class NumaControllerTest extends TestCase
         self::assertSame('call-1', $captured[2]['contents'][2]['parts'][0]['functionResponse']['id']);
     }
 
+    #[DataProvider('invalidFinancialFunctionCallIds')]
+    public function testChatActivoNoEjecutaFunctionCallFinancieraSinIdValido(array $idField): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $this->configureJsonPost();
+        $transportCalls = 0;
+        $tools = new NumaFinancialToolRegistryFake();
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static function () use (&$transportCalls, $idField): array {
+            ++$transportCalls;
+
+            if ($transportCalls === 1) {
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [[
+                            'text' => '{"intent":"datos_usuario","allowed":true,"reason":"user_data","needs_clarification":false,"knowledge_query":null}',
+                        ]]], 'finishReason' => 'STOP']],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            }
+
+            $functionCall = array_merge([
+                'name' => 'consultar_datos_financieros',
+                'args' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+            ], $idField);
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['functionCall' => $functionCall]]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuánto gasté en julio?"}',
+            new NumaUsoFake(),
+            $provider,
+            [],
+            $tools,
+        );
+
+        self::assertFalse($response['ok']);
+        self::assertSame(503, $response['_status']);
+        self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $response['error']['code']);
+        self::assertSame(0, $tools->executions);
+        self::assertSame(2, $transportCalls);
+    }
+
+    /** @return array<string, array{0:array<string, mixed>}> */
+    public static function invalidFinancialFunctionCallIds(): array
+    {
+        return [
+            'id ausente' => [[]],
+            'id null' => [['id' => null]],
+            'id vacio' => [['id' => '']],
+            'id con espacios' => [['id' => '   ']],
+        ];
+    }
+
     public function testChatActivoRespondeLocalmenteCuandoLaSolicitudCompletaNoCabe(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
@@ -2260,7 +2374,7 @@ final class NumaControllerTest extends TestCase
             new \NumaResponse(
                 'Necesito consultar datos agregados.',
                 null,
-                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, [
                     'fecha_inicio' => '2026-07-01',
                     'fecha_fin' => '2026-07-31',
                 ])
@@ -2425,7 +2539,7 @@ final class NumaControllerTest extends TestCase
                 'data_intent' => 'resumen_financiero',
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
-                \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+                \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['mes_inicio' => '2026-06', 'mes_fin' => '2026-06'],
             )),
             new \NumaResponse('El mes anterior gastaste menos.'),
@@ -2714,7 +2828,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame(0, $tools->executions);
         self::assertCount(2, $provider->requests());
         self::assertSame([
-            \NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO,
+            \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
         ], $provider->requests()[1]->availableTools());
         self::assertSame(2, $usage->confirmations);
     }
@@ -2733,7 +2847,7 @@ final class NumaControllerTest extends TestCase
             new \NumaResponse(
                 'Consulto los datos agregados.',
                 null,
-                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, [
                     'fecha_inicio' => '2026-07-01',
                     'fecha_fin' => '2026-07-31',
                 ]),
@@ -2773,7 +2887,7 @@ final class NumaControllerTest extends TestCase
             new \NumaResponse(
                 'Necesito consultar datos agregados.',
                 null,
-                new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, [
+                new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, [
                     'fecha_inicio' => '2026-07-01',
                     'fecha_fin' => '2026-07-31',
                 ])
@@ -2816,11 +2930,11 @@ final class NumaControllerTest extends TestCase
                 'needs_clarification' => false,
                 'knowledge_query' => null,
             ]),
-            new \NumaResponse('tool 1', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 2', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 3', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 4', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 5', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
+            new \NumaResponse('tool 1', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 2', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 3', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 4', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 5', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
             new \NumaResponse('Resumen final autorizado.'),
         );
 
@@ -2862,11 +2976,11 @@ final class NumaControllerTest extends TestCase
                 'needs_clarification' => false,
                 'knowledge_query' => 'gastos flexibles en BeneHom',
             ]),
-            new \NumaResponse('tool 1', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 2', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 3', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 4', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 5', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
+            new \NumaResponse('tool 1', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 2', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 3', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 4', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 5', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
             new \NumaResponse('Resumen combinado final autorizado.'),
         );
 
@@ -2906,12 +3020,12 @@ final class NumaControllerTest extends TestCase
                 'needs_clarification' => false,
                 'knowledge_query' => null,
             ]),
-            new \NumaResponse('tool 1', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 2', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 3', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 4', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 5', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
-            new \NumaResponse('tool 6', null, new \NumaToolRequest(\NumaFinancialToolRegistry::OBTENER_RESUMEN_FINANCIERO, $arguments)),
+            new \NumaResponse('tool 1', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 2', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 3', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 4', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 5', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
+            new \NumaResponse('tool 6', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, $arguments)),
         );
 
         $response = $this->invoke(

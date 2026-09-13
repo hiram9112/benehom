@@ -749,6 +749,7 @@ final class NumaService
     ): array {
         $availableTools = $this->availableToolNames($classification);
         $toolResults = [];
+        $toolExecutions = [];
         $resolvedPeriods = [];
         $remainingFinalCalls = max(0, $this->maxProviderCalls() - 1);
         $maxToolCalls = $this->maxToolCalls();
@@ -767,7 +768,7 @@ final class NumaService
             $response = $provider->respond(new NumaRequest(
                 $message,
                 '',
-                $this->finalContext($message, $classification, $knowledgeResults, $availableTools, $toolResults, $history, $publicMode, $dashboardMonth),
+                $this->finalContext($message, $classification, $knowledgeResults, $availableTools, $toolResults, $toolExecutions, $history, $publicMode, $dashboardMonth),
                 $availableTools,
                 $history,
                 null,
@@ -822,6 +823,7 @@ final class NumaService
                     $validatedToolRequests[] = new NumaToolRequest(
                         $toolRequest->name(),
                         $arguments,
+                        $toolRequest->id(),
                     );
                 }
             } catch (NumaFinancialToolInputIncomplete) {
@@ -830,7 +832,9 @@ final class NumaService
 
             foreach ($validatedToolRequests as $toolRequest) {
                 $resolvedPeriods = [...$resolvedPeriods, ...$this->periodsFromToolArguments($toolRequest)];
-                $toolResults[] = $this->executeToolRequest($toolRequest, $authenticatedUserId);
+                $execution = $this->executeToolRequest($toolRequest, $authenticatedUserId);
+                $toolExecutions[] = $execution;
+                $toolResults[] = $execution['result'];
             }
         }
 
@@ -919,7 +923,7 @@ final class NumaService
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{call_id:?string,name:string,arguments:array<string,mixed>,result:array<string,mixed>}
      */
     private function executeToolRequest(NumaToolRequest $toolRequest, ?int $authenticatedUserId): array
     {
@@ -939,13 +943,19 @@ final class NumaService
             // La observabilidad no puede alterar una ejecución financiera correcta.
         }
 
-        return $result;
+        return [
+            'call_id' => $toolRequest->id(),
+            'name' => $toolRequest->name(),
+            'arguments' => $toolRequest->arguments(),
+            'result' => $result,
+        ];
     }
 
     /**
      * @param array<int, NumaKnowledgeSearchResult> $knowledgeResults
      * @param array<int, string> $availableTools
      * @param array<int, array<string, mixed>> $toolResults
+     * @param array<int, array{call_id:?string,name:string,arguments:array<string,mixed>,result:array<string,mixed>}> $toolExecutions
      * @param array<int, array{role:string,message:string}> $history
      * @return array<int, array<string, mixed>>
      */
@@ -955,6 +965,7 @@ final class NumaService
         array $knowledgeResults,
         array $availableTools,
         array $toolResults,
+        array $toolExecutions,
         array $history,
         bool $publicMode = false,
         ?string $dashboardMonth = null,
@@ -1033,7 +1044,7 @@ final class NumaService
             ];
             $toolResultContextOverhead = $this->jsonLength($toolResultContext) - $this->jsonLength([]);
             $toolItems = $this->toolResultsForContext(
-                $this->movementResultsForPresentation($toolResults),
+                $toolExecutions,
                 max(0, $remainingBudget - $toolResultContextOverhead)
             );
 

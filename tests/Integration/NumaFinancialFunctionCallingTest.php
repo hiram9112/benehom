@@ -28,7 +28,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         parent::tearDown();
     }
 
-    public function testFunctionCallingDeclaraYEjecutaLaConsultaCanonica(): void
+    public function testFunctionCallingAceptaUnaSeleccionTemporalValidaSinReleerElMensaje(): void
     {
         $user = $this->crearUsuario('numa-canonical-function@example.test');
         $userId = (int) $user['id'];
@@ -51,7 +51,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
                 'knowledge_query' => null,
             ], JSON_THROW_ON_ERROR)),
             $this->functionCallResponse('financial-call', [
-                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
                 'selectores' => [['categoria' => 'electricidad']],
             ]),
             $this->textResponse('He consultado los datos solicitados.'),
@@ -83,7 +83,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
             new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
         );
 
-        $result = $service->answer($userId, '¿Cuánto pagué de electricidad en julio?');
+        $result = $service->answer($userId, '¿Cuánto pagué de electricidad?');
 
         self::assertSame('He consultado los datos solicitados.', $result->toArray()['message']);
         self::assertSame('consultar_datos_financieros', $requests[1]['tools'][0]['functionDeclarations'][0]['name']);
@@ -92,6 +92,213 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         self::assertSame('financial-call', $requests[2]['contents'][2]['parts'][0]['functionResponse']['id']);
         self::assertSame('consultar_datos_financieros', $requests[2]['contents'][2]['parts'][0]['functionResponse']['name']);
         self::assertSame('42.50', $requests[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['meses'][0]['gastos']['importe']);
+    }
+
+    public function testFunctionCallingConservaElAnclaExplicitaDelMismoMensaje(): void
+    {
+        $user = $this->crearUsuario('numa-current-message-anchor@example.test');
+        $userId = (int) $user['id'];
+        $statement = $this->db->prepare('INSERT INTO gastos (usuario_id, tipo, categoria, cantidad, fecha) VALUES (:usuario_id, :tipo, :categoria, :cantidad, :fecha)');
+        foreach ([['10.00', '2025-12-03'], ['20.00', '2026-01-03']] as [$amount, $date]) {
+            $statement->execute([
+                ':usuario_id' => $userId,
+                ':tipo' => 'esencial',
+                ':categoria' => 'electricidad',
+                ':cantidad' => $amount,
+                ':fecha' => $date,
+            ]);
+        }
+
+        $responses = [
+            $this->classificationResponse(),
+            $this->functionCallResponse('current-message-anchor', [
+                'periodos' => [
+                    ['mes_inicio' => '2026-01', 'mes_fin' => '2026-01'],
+                    ['mes_inicio' => '2025-12', 'mes_fin' => '2025-12'],
+                ],
+                'selectores' => [['categoria' => 'electricidad']],
+            ]),
+            $this->textResponse('He comparado enero con diciembre.'),
+        ];
+        $index = 0;
+        $providerFactory = function (?\NumaProviderConsumptionInterface $consumption) use (&$responses, &$index): \NumaProviderInterface {
+            return new \GeminiNumaProvider(
+                'test-key',
+                'gemini-test-model',
+                transport: function () use (&$responses, &$index): array {
+                    return ['status' => 200, 'body' => json_encode($responses[$index++], JSON_THROW_ON_ERROR)];
+                },
+                consumption: $consumption,
+            );
+        };
+        $service = new \NumaService(
+            new \NumaUso($this->db),
+            new \NumaLocalScopeClassifier(),
+            $providerFactory,
+            static fn (): array => [],
+            new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)),
+            new class implements \NumaGlobalAvailabilityInterface {
+                public function assertAvailable(): void
+                {
+                }
+            },
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-09-12', new \DateTimeZone('Europe/Madrid'))),
+        );
+
+        $result = $service->answer(
+            $userId,
+            'Compara enero de 2026 con el mes anterior.',
+            dashboardMonth: '2026-06',
+        );
+
+        self::assertSame([
+            ['mes_inicio' => '2026-01', 'mes_fin' => '2026-01'],
+            ['mes_inicio' => '2025-12', 'mes_fin' => '2025-12'],
+        ], $result->periods());
+    }
+
+    public function testFunctionCallingReutilizaVariosPeriodosDeLaConversacionActual(): void
+    {
+        $user = $this->crearUsuario('numa-conversation-periods@example.test');
+        $userId = (int) $user['id'];
+        $statement = $this->db->prepare('INSERT INTO gastos (usuario_id, tipo, categoria, cantidad, fecha) VALUES (:usuario_id, :tipo, :categoria, :cantidad, :fecha)');
+        $statement->execute([
+            ':usuario_id' => $userId,
+            ':tipo' => 'esencial',
+            ':categoria' => 'electricidad',
+            ':cantidad' => '20.00',
+            ':fecha' => '2026-06-03',
+        ]);
+        $statement->execute([
+            ':usuario_id' => $userId,
+            ':tipo' => 'esencial',
+            ':categoria' => 'electricidad',
+            ':cantidad' => '30.00',
+            ':fecha' => '2026-07-03',
+        ]);
+
+        $responses = [
+            $this->classificationResponse(),
+            $this->functionCallResponse('conversation-periods', [
+                'periodos' => [
+                    ['mes_inicio' => '2026-06', 'mes_fin' => '2026-06'],
+                    ['mes_inicio' => '2026-07', 'mes_fin' => '2026-07'],
+                ],
+                'selectores' => [['categoria' => 'electricidad']],
+            ]),
+            $this->textResponse('He consultado ambos meses.'),
+        ];
+        $index = 0;
+        $providerFactory = function (?\NumaProviderConsumptionInterface $consumption) use (&$responses, &$index): \NumaProviderInterface {
+            return new \GeminiNumaProvider(
+                'test-key',
+                'gemini-test-model',
+                transport: function () use (&$responses, &$index): array {
+                    return ['status' => 200, 'body' => json_encode($responses[$index++], JSON_THROW_ON_ERROR)];
+                },
+                consumption: $consumption,
+            );
+        };
+        $service = new \NumaService(
+            new \NumaUso($this->db),
+            new \NumaLocalScopeClassifier(),
+            $providerFactory,
+            static fn (): array => [],
+            new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)),
+            new class implements \NumaGlobalAvailabilityInterface {
+                public function assertAvailable(): void
+                {
+                }
+            },
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
+        );
+
+        $result = $service->answer($userId, 'Compáralos.', [
+            ['role' => 'user', 'message' => 'Consulta junio y julio.'],
+            ['role' => 'assistant', 'message' => 'He consultado ambos meses.', 'periods' => [
+                ['mes_inicio' => '2026-06', 'mes_fin' => '2026-06'],
+                ['mes_inicio' => '2026-07', 'mes_fin' => '2026-07'],
+            ]],
+        ]);
+
+        self::assertSame('He consultado ambos meses.', $result->toArray()['message']);
+        self::assertSame([
+            ['mes_inicio' => '2026-06', 'mes_fin' => '2026-06'],
+            ['mes_inicio' => '2026-07', 'mes_fin' => '2026-07'],
+        ], $result->periods());
+    }
+
+    public function testGeminiRecibeLosPeriodosAsociadosACadaIntercambio(): void
+    {
+        $user = $this->crearUsuario('numa-conversation-period-index@example.test');
+        $userId = (int) $user['id'];
+        $statement = $this->db->prepare('INSERT INTO gastos (usuario_id, tipo, categoria, cantidad, fecha) VALUES (:usuario_id, :tipo, :categoria, :cantidad, :fecha)');
+        foreach ([['10.00', '2026-01-03'], ['20.00', '2026-03-03'], ['30.00', '2026-06-03']] as [$amount, $date]) {
+            $statement->execute([
+                ':usuario_id' => $userId,
+                ':tipo' => 'esencial',
+                ':categoria' => 'electricidad',
+                ':cantidad' => $amount,
+                ':fecha' => $date,
+            ]);
+        }
+
+        $requests = [];
+        $responses = [
+            $this->classificationResponse(),
+            $this->functionCallResponse('period-index', [
+                'periodos' => [['mes_inicio' => '2026-03', 'mes_fin' => '2026-03']],
+                'selectores' => [['categoria' => 'electricidad']],
+            ]),
+            $this->textResponse('He consultado marzo.'),
+        ];
+        $index = 0;
+        $providerFactory = function (?\NumaProviderConsumptionInterface $consumption) use (&$requests, &$responses, &$index): \NumaProviderInterface {
+            return new \GeminiNumaProvider(
+                'test-key',
+                'gemini-test-model',
+                transport: function (string $url, array $headers, string $body) use (&$requests, &$responses, &$index): array {
+                    $requests[] = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+                    return ['status' => 200, 'body' => json_encode($responses[$index++], JSON_THROW_ON_ERROR)];
+                },
+                consumption: $consumption,
+            );
+        };
+        $service = new \NumaService(
+            new \NumaUso($this->db),
+            new \NumaLocalScopeClassifier(),
+            $providerFactory,
+            static fn (): array => [],
+            new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)),
+            new class implements \NumaGlobalAvailabilityInterface {
+                public function assertAvailable(): void
+                {
+                }
+            },
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
+        );
+
+        $result = $service->answer($userId, 'Compáralos.', [
+            ['role' => 'user', 'message' => 'Consulta enero y marzo.'],
+            ['role' => 'assistant', 'message' => 'He consultado ambos meses.', 'periods' => [
+                ['mes_inicio' => '2026-01', 'mes_fin' => '2026-01'],
+                ['mes_inicio' => '2026-03', 'mes_fin' => '2026-03'],
+            ]],
+            ['role' => 'user', 'message' => 'Consulta también junio.'],
+            ['role' => 'assistant', 'message' => 'He consultado junio.', 'periods' => [
+                ['mes_inicio' => '2026-06', 'mes_fin' => '2026-06'],
+            ]],
+        ]);
+
+        self::assertSame([
+            ['mes_inicio' => '2026-03', 'mes_fin' => '2026-03'],
+        ], $result->periods());
+        self::assertSame('2026-03', $requests[2]['contents'][6]['parts'][0]['functionResponse']['response']['result']['meses'][0]['mes']);
+        self::assertStringContainsString(
+            '[Periodos asociados al intercambio: 2026-01 a 2026-01; 2026-03 a 2026-03]',
+            $requests[1]['contents'][1]['parts'][0]['text'],
+        );
     }
 
     public function testFunctionCallingEmparejaLlamadasCanonicasParalelasConSusIds(): void
@@ -119,11 +326,11 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
             $this->classificationResponse(),
             $this->functionCallsResponse([
                 ['id' => 'electricidad', 'args' => [
-                    'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                    'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
                     'selectores' => [['categoria' => 'electricidad']],
                 ]],
                 ['id' => 'domicilio', 'args' => [
-                    'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                    'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
                     'selectores' => [['categoria' => 'comida_domicilio']],
                 ]],
             ]),

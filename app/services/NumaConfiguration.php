@@ -127,7 +127,6 @@ final class NumaConfiguration
             1,
             NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
         );
-        self::assertInteger('NUMA_MAX_TOOL_RANGE_DAYS', NumaFinancialToolExecutor::MAX_TOOL_RANGE_DAYS, 1, NumaFinancialToolExecutor::MAX_TOOL_RANGE_DAYS);
     }
 
     private static function assertEmbeddingProvider(): void

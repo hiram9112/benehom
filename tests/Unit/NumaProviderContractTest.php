@@ -48,7 +48,8 @@ final class NumaProviderContractTest extends TestCase
 
     public function testRespuestaPermiteDatosEstructuradosToolYTokens(): void
     {
-        $toolRequest = new \NumaToolRequest('obtener_resumen_financiero', ['periodo' => 'mes_actual']);
+        $arguments = ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]];
+        $toolRequest = new \NumaToolRequest('consultar_datos_financieros', $arguments);
         $tokenUsage = new \NumaTokenUsage(120, 35);
         $response = new \NumaResponse(
             'Necesito consultar datos agregados.',
@@ -60,8 +61,8 @@ final class NumaProviderContractTest extends TestCase
         self::assertSame('Necesito consultar datos agregados.', $response->message());
         self::assertSame(['intent' => 'datos_usuario', 'allowed' => true], $response->structuredData());
         self::assertSame($toolRequest, $response->toolRequest());
-        self::assertSame('obtener_resumen_financiero', $toolRequest->name());
-        self::assertSame(['periodo' => 'mes_actual'], $toolRequest->arguments());
+        self::assertSame('consultar_datos_financieros', $toolRequest->name());
+        self::assertSame($arguments, $toolRequest->arguments());
         self::assertSame($tokenUsage, $response->tokenUsage());
         self::assertTrue($tokenUsage->hasReliableTokens());
         self::assertSame(155, $tokenUsage->totalTokens());

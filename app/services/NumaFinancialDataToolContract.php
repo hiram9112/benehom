@@ -4,30 +4,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/NumaFinancialTools.php';
 
-/**
- * Contrato todavía aislado de la tool financiera única del Sprint 1.1.
- * El registro activo sigue declarando las seis tools anteriores hasta la Tarea 3.
- */
 final class NumaFinancialDataToolContract
 {
     public const NAME = 'consultar_datos_financieros';
-
-    /** @var array<int, string> */
-    private const PERIOD_TYPES = [
-        'mes',
-        'rango',
-        'relativo',
-        'ultimos_meses',
-        'referencia_conversacional',
-    ];
-
-    /** @var array<int, string> */
-    private const RELATIVE_PERIODS = [
-        NumaPeriodResolver::CURRENT_MONTH,
-        NumaPeriodResolver::PREVIOUS_MONTH,
-        NumaPeriodResolver::CURRENT_YEAR,
-        NumaPeriodResolver::PREVIOUS_YEAR,
-    ];
 
     public function __construct(private readonly NumaFinancialCategoryCatalog $catalog = new NumaFinancialCategoryCatalog())
     {
@@ -38,7 +17,7 @@ final class NumaFinancialDataToolContract
     {
         return [
             'name' => self::NAME,
-            'description' => 'Consulta hechos financieros mensuales canónicos. Selecciona los períodos y ramas necesarias; la respuesta incluye solo importes, cobertura y sumas estructurales.',
+            'description' => 'Consulta hechos financieros mensuales canónicos. Interpreta completamente las referencias temporales usando el contexto autoritativo de BeneHom y envía únicamente intervalos mensuales concretos en formato YYYY-MM.',
             'parameters' => [
                 'type' => 'object',
                 'additionalProperties' => false,
@@ -142,7 +121,7 @@ final class NumaFinancialDataToolContract
             'properties' => [
                 'meses' => [
                     'type' => 'array',
-                    'description' => 'Meses naturales ordenados de forma ascendente.',
+                    'description' => 'Meses naturales en el orden solicitado, sin duplicados.',
                     'items' => [
                         'type' => 'object',
                         'additionalProperties' => false,
@@ -161,7 +140,7 @@ final class NumaFinancialDataToolContract
 
     /**
      * @param array<string, mixed> $arguments
-     * @return array{periodos:list<array<string, int|string>>,selectores:list<array<string, string>>}
+     * @return array{periodos:list<array{mes_inicio:string,mes_fin:string}>,selectores:list<array<string, string>>}
      */
     public function validateArguments(array $arguments): array
     {
@@ -184,19 +163,15 @@ final class NumaFinancialDataToolContract
         return [
             'type' => 'array',
             'minItems' => 1,
-            'description' => 'Lista no vacía de períodos. Cada elemento usa tipo=mes, rango, relativo, ultimos_meses o referencia_conversacional y solo sus campos correspondientes.',
+            'description' => 'Lista no vacía de intervalos mensuales concretos, en el orden solicitado. Para un solo mes usa el mismo valor en mes_inicio y mes_fin. Para meses no contiguos usa elementos separados. No envíes expresiones relativas ni referencias por índice.',
             'items' => [
                 'type' => 'object',
+                'additionalProperties' => false,
                 'properties' => [
-                    'tipo' => $this->enumSchema(self::PERIOD_TYPES, 'Discriminante del período.'),
-                    'mes' => ['type' => 'string', 'description' => 'Mes natural en formato YYYY-MM; se usa solo con tipo=mes.'],
-                    'inicio' => ['type' => 'string', 'format' => 'date', 'description' => 'Fecha inicial inclusiva; se usa solo con tipo=rango.'],
-                    'fin' => ['type' => 'string', 'format' => 'date', 'description' => 'Fecha final inclusiva; se usa solo con tipo=rango.'],
-                    'periodo_relativo' => $this->enumSchema(self::RELATIVE_PERIODS, 'Período relativo resuelto por PHP; se usa solo con tipo=relativo.'),
-                    'cantidad_meses' => ['type' => 'integer', 'description' => 'Número positivo de meses consecutivos, incluido el actual; se usa solo con tipo=ultimos_meses.'],
-                    'indice' => ['type' => 'integer', 'description' => 'Índice desde cero de un período ya resuelto en la conversación actual; se usa solo con tipo=referencia_conversacional.'],
+                    'mes_inicio' => ['type' => 'string', 'pattern' => '^20\\d{2}-(0[1-9]|1[0-2])$', 'description' => 'Primer mes inclusivo en formato YYYY-MM.'],
+                    'mes_fin' => ['type' => 'string', 'pattern' => '^20\\d{2}-(0[1-9]|1[0-2])$', 'description' => 'Último mes inclusivo en formato YYYY-MM.'],
                 ],
-                'required' => ['tipo'],
+                'required' => ['mes_inicio', 'mes_fin'],
             ],
         ];
     }
@@ -220,7 +195,7 @@ final class NumaFinancialDataToolContract
         ];
     }
 
-    /** @param mixed $value @return list<array<string, int|string>> */
+    /** @param mixed $value @return list<array{mes_inicio:string,mes_fin:string}> */
     private function validatePeriods(mixed $value): array
     {
         if (!is_array($value) || !array_is_list($value) || $value === []) {
@@ -233,48 +208,22 @@ final class NumaFinancialDataToolContract
                 throw new InvalidArgumentException('Periodo de Numa no valido.');
             }
 
-            $type = $period['tipo'] ?? null;
-            if (!is_string($type) || !in_array($type, self::PERIOD_TYPES, true)) {
-                throw new InvalidArgumentException('Tipo de periodo de Numa no permitido.');
+            $this->assertKeys($period, ['mes_inicio', 'mes_fin']);
+            $this->assertRequiredKeys($period, ['mes_inicio', 'mes_fin']);
+
+            $start = $period['mes_inicio'];
+            $end = $period['mes_fin'];
+            if (!is_string($start) || !is_string($end)
+                || preg_match('/^20\\d{2}-(?:0[1-9]|1[0-2])$/', $start) !== 1
+                || preg_match('/^20\\d{2}-(?:0[1-9]|1[0-2])$/', $end) !== 1
+            ) {
+                throw new InvalidArgumentException('Mes de Numa no valido.');
+            }
+            if ($start > $end) {
+                throw new InvalidArgumentException('Rango de Numa no valido.');
             }
 
-            $expectedKeys = match ($type) {
-                'mes' => ['tipo', 'mes'],
-                'rango' => ['tipo', 'inicio', 'fin'],
-                'relativo' => ['tipo', 'periodo_relativo'],
-                'ultimos_meses' => ['tipo', 'cantidad_meses'],
-                'referencia_conversacional' => ['tipo', 'indice'],
-            };
-            $this->assertKeys($period, $expectedKeys);
-            $this->assertRequiredKeys($period, $expectedKeys);
-
-            if ($type === 'mes') {
-                $month = $period['mes'];
-                if (!is_string($month) || preg_match('/^20\\d{2}-(?:0[1-9]|1[0-2])$/', $month) !== 1) {
-                    throw new InvalidArgumentException('Mes de Numa no valido.');
-                }
-            } elseif ($type === 'rango') {
-                $start = $this->validDate($period['inicio']);
-                $end = $this->validDate($period['fin']);
-                if ($start > $end) {
-                    throw new InvalidArgumentException('Rango de Numa no valido.');
-                }
-            } elseif ($type === 'relativo') {
-                if (!is_string($period['periodo_relativo'])
-                    || !in_array($period['periodo_relativo'], self::RELATIVE_PERIODS, true)
-                ) {
-                    throw new InvalidArgumentException('Periodo relativo de Numa no permitido.');
-                }
-            } elseif ($type === 'ultimos_meses') {
-                if (!is_int($period['cantidad_meses']) || $period['cantidad_meses'] <= 0) {
-                    throw new InvalidArgumentException('Cantidad de meses de Numa no valida.');
-                }
-            } elseif (!is_int($period['indice']) || $period['indice'] < 0) {
-                throw new InvalidArgumentException('Referencia conversacional de Numa no valida.');
-            }
-
-            /** @var array<string, int|string> $period */
-            $periods[] = $period;
+            $periods[] = ['mes_inicio' => $start, 'mes_fin' => $end];
         }
 
         return $periods;
@@ -399,20 +348,6 @@ final class NumaFinancialDataToolContract
         if (array_diff($required, array_keys($value)) !== []) {
             throw new NumaFinancialToolInputIncomplete('Campos de Numa incompletos.');
         }
-    }
-
-    private function validDate(mixed $value): DateTimeImmutable
-    {
-        if (!is_string($value)) {
-            throw new InvalidArgumentException('Fecha de Numa no valida.');
-        }
-
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value, new DateTimeZone('Europe/Madrid'));
-        if (!$date || $date->format('Y-m-d') !== $value) {
-            throw new InvalidArgumentException('Fecha de Numa no valida.');
-        }
-
-        return $date;
     }
 
     /** @param list<string> $values @return array<string, mixed> */

@@ -19,6 +19,18 @@ final class NumaFunctionalDecisionsTest extends TestCase
         self::assertStringContainsString('movimientos concretos', $prompt);
         self::assertStringContainsString('listados extensos', $prompt);
         self::assertStringContainsString('Europe/Madrid', $prompt);
+        self::assertStringContainsString('primero el período explícito del mensaje actual', $prompt);
+        self::assertStringContainsString('"este mes" usa dashboard_month', $prompt);
+        self::assertStringContainsString('"mes actual del calendario" usa server_date', $prompt);
+        self::assertStringContainsString(
+            'Expresiones como "año actual", "este año", "lo que va de año" o equivalentes son referencias al calendario real: usa server_date en business_timezone, nunca dashboard_month, y selecciona desde enero del año de server_date hasta el mes actual inclusive, aunque esté parcialmente transcurrido, sin incluir meses futuros del mismo año.',
+            $prompt,
+        );
+        self::assertStringContainsString(
+            'Expresiones como "últimos N meses", "últimos meses" o equivalentes son referencias al calendario real: usa server_date en business_timezone, nunca dashboard_month, y selecciona los N meses naturales completos inmediatamente anteriores al mes de server_date, sin incluir el mes actual parcial.',
+            $prompt,
+        );
+        self::assertStringContainsString('no elijas una arbitrariamente: pide aclaración', $prompt);
         self::assertStringContainsString('promedio mensual', $prompt);
         self::assertStringContainsString('solo meses con datos', $prompt);
         self::assertStringContainsString('texto plano estructurado, sin Markdown', $prompt);

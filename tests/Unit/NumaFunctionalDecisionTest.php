@@ -31,7 +31,24 @@ final class NumaFunctionalDecisionTest extends TestCase
             }
         };
 
-        $decision = (new \NumaProviderFunctionalDecider($provider))->decide('¿Cuánto gasté este mes?');
+        $history = [
+            ['role' => 'user', 'message' => 'Consulta febrero.'],
+            ['role' => 'assistant', 'message' => 'He consultado febrero.', 'periods' => [
+                ['mes_inicio' => '2026-02', 'mes_fin' => '2026-02'],
+            ]],
+        ];
+        $temporalContext = [
+            'type' => 'authoritative_temporal_context',
+            'server_date' => '2026-09-12',
+            'business_timezone' => 'Europe/Madrid',
+            'dashboard_month' => '2026-06',
+        ];
+
+        $decision = (new \NumaProviderFunctionalDecider($provider))->decide(
+            '¿Cuánto gasté este mes?',
+            $history,
+            $temporalContext,
+        );
 
         self::assertSame('datos_usuario', $decision->classification()->intent());
         self::assertSame([], $provider->request?->availableTools());
@@ -40,6 +57,12 @@ final class NumaFunctionalDecisionTest extends TestCase
         self::assertSame(
             ['intent', 'allowed', 'reason', 'needs_clarification', 'knowledge_query'],
             $provider->request?->responseSchema()['required'] ?? [],
+        );
+        self::assertSame($temporalContext, $provider->request?->context()[1] ?? null);
+        self::assertSame($history, $provider->request?->history());
+        self::assertStringContainsString(
+            'antes de Function Calling',
+            implode(' ', $provider->request?->context()[0]['rules'] ?? []),
         );
     }
 
@@ -55,7 +78,7 @@ final class NumaFunctionalDecisionTest extends TestCase
             'knowledge_query' => null,
             'tool' => [
                 'name' => 'obtener_resumen_financiero',
-                'arguments' => ['periodo' => 'mes_actual'],
+                'arguments' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
             ],
         ]);
     }

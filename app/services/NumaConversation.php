@@ -24,7 +24,7 @@ final class NumaConversation
     }
 
     /**
-     * @return array<int, array{role:string,message:string,period:array<string,string>|null}>
+     * @return array<int, array{role:string,message:string,periods:list<array{mes_inicio:string,mes_fin:string}>}>
      */
     public function transcript(): array
     {
@@ -32,13 +32,13 @@ final class NumaConversation
             return [
                 'role' => $entry['role'],
                 'message' => $entry['message'],
-                'period' => $entry['period'],
+                'periods' => $entry['periods'],
             ];
         }, $this->entries());
     }
 
     /**
-     * @return array<int, array{role:string,message:string,period?:array<string,string>}>
+     * @return array<int, array{role:string,message:string,periods?:list<array{mes_inicio:string,mes_fin:string}>}>
      */
     public function context(): array
     {
@@ -54,8 +54,8 @@ final class NumaConversation
                 'message' => $entry['message'],
             ];
 
-            if ($entry['period'] !== null) {
-                $contextEntry['period'] = $entry['period'];
+            if ($entry['periods'] !== []) {
+                $contextEntry['periods'] = $entry['periods'];
             }
 
             $context[] = $contextEntry;
@@ -81,7 +81,7 @@ final class NumaConversation
 
     /**
      * @param array<int, array{title:string,section:string,url:string}> $sources
-     * @param array<string, string>|null $period
+     * @param array{mes_inicio:string,mes_fin:string}|list<array{mes_inicio:string,mes_fin:string}>|null $period
      */
     public function appendExchange(
         string $userMessage,
@@ -97,8 +97,8 @@ final class NumaConversation
         }
 
         $entries = $this->entries();
-        $entries[] = $this->entry('user', $userMessage, [], null, $includeInContext);
-        $entries[] = $this->entry('assistant', $assistantMessage, $sources, $period, $includeInContext);
+        $entries[] = $this->entry('user', $userMessage, [], [], $includeInContext);
+        $entries[] = $this->entry('assistant', $assistantMessage, $sources, $this->periodList($period), $includeInContext);
 
         while (count($entries) > self::MAX_VISIBLE_ENTRIES) {
             $displayOnlyPair = $this->firstDisplayOnlyPair($entries);
@@ -139,18 +139,18 @@ final class NumaConversation
     }
 
     /**
-     * @return array<int, array{role:string,message:string,period:array<string,string>|null}>
+     * @return array<int, array{role:string,message:string,periods:list<array{mes_inicio:string,mes_fin:string}>}>
      */
     public function publicTranscript(): array
     {
         return array_map(static fn (array $entry): array => [
             'role' => $entry['role'],
             'message' => $entry['message'],
-            'period' => $entry['period'],
+            'periods' => $entry['periods'],
         ], $this->publicEntries());
     }
 
-    /** @return array<int, array{role:string,message:string,period?:array<string,string>}> */
+    /** @return array<int, array{role:string,message:string,periods?:list<array{mes_inicio:string,mes_fin:string}>}> */
     public function publicContext(): array
     {
         $context = [];
@@ -160,8 +160,8 @@ final class NumaConversation
             }
 
             $contextEntry = ['role' => $entry['role'], 'message' => $entry['message']];
-            if ($entry['period'] !== null) {
-                $contextEntry['period'] = $entry['period'];
+            if ($entry['periods'] !== []) {
+                $contextEntry['periods'] = $entry['periods'];
             }
             $context[] = $contextEntry;
         }
@@ -182,7 +182,7 @@ final class NumaConversation
 
     /**
      * @param array<int, array{title:string,section:string,url:string}> $sources
-     * @param array<string, string>|null $period
+     * @param array{mes_inicio:string,mes_fin:string}|list<array{mes_inicio:string,mes_fin:string}>|null $period
      */
     public function appendPublicExchange(
         string $userMessage,
@@ -198,8 +198,8 @@ final class NumaConversation
         }
 
         $entries = $this->publicEntries();
-        $entries[] = $this->entry('user', $userMessage, [], null, $includeInContext);
-        $entries[] = $this->entry('assistant', $assistantMessage, $sources, $period, $includeInContext);
+        $entries[] = $this->entry('user', $userMessage, [], [], $includeInContext);
+        $entries[] = $this->entry('assistant', $assistantMessage, $sources, $this->periodList($period), $includeInContext);
 
         while (count($entries) > self::MAX_VISIBLE_ENTRIES) {
             $displayOnlyPair = $this->firstDisplayOnlyPair($entries);
@@ -236,7 +236,7 @@ final class NumaConversation
     }
 
     /**
-     * @return array<int, array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,period:array<string,string>|null,include_in_context:bool}>
+     * @return array<int, array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,periods:list<array{mes_inicio:string,mes_fin:string}>,include_in_context:bool}>
      */
     private function entries(): array
     {
@@ -298,7 +298,7 @@ final class NumaConversation
     }
 
     /**
-     * @return array<int, array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,period:array<string,string>|null,include_in_context:bool}>
+     * @return array<int, array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,periods:list<array{mes_inicio:string,mes_fin:string}>,include_in_context:bool}>
      */
     private function publicEntries(): array
     {
@@ -326,7 +326,7 @@ final class NumaConversation
 
     /**
      * @param mixed $entry
-     * @return array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,period:array<string,string>|null,include_in_context:bool}|null
+     * @return array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,periods:list<array{mes_inicio:string,mes_fin:string}>,include_in_context:bool}|null
      */
     private function normalizeEntry($entry): ?array
     {
@@ -344,21 +344,23 @@ final class NumaConversation
             $role,
             $message,
             is_array($entry['sources'] ?? null) ? $entry['sources'] : [],
-            is_array($entry['period'] ?? null) ? $entry['period'] : null,
+            is_array($entry['periods'] ?? null)
+                ? $entry['periods']
+                : [],
             ($entry['include_in_context'] ?? false) === true,
         );
     }
 
     /**
      * @param array<int, array<string, mixed>> $sources
-     * @param array<string, mixed>|null $period
-     * @return array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,period:array<string,string>|null,include_in_context:bool}
+     * @param array<int, array<string, mixed>> $periods
+     * @return array{role:string,message:string,sources:array<int,array{title:string,section:string,url:string}>,periods:list<array{mes_inicio:string,mes_fin:string}>,include_in_context:bool}
      */
     private function entry(
         string $role,
         string $message,
         array $sources,
-        ?array $period,
+        array $periods,
         bool $includeInContext,
     ): array {
         $safeSources = [];
@@ -375,18 +377,30 @@ final class NumaConversation
             }
         }
 
-        $safePeriod = null;
-        if (is_string($period['start'] ?? null) && is_string($period['end'] ?? null)) {
-            $safePeriod = ['start' => $period['start'], 'end' => $period['end']];
+        $safePeriods = [];
+        foreach ($periods as $period) {
+            if (is_array($period) && is_string($period['mes_inicio'] ?? null) && is_string($period['mes_fin'] ?? null)) {
+                $safePeriods[] = ['mes_inicio' => $period['mes_inicio'], 'mes_fin' => $period['mes_fin']];
+            }
         }
 
         return [
             'role' => $role,
             'message' => trim($message),
             'sources' => $safeSources,
-            'period' => $safePeriod,
+            'periods' => $safePeriods,
             'include_in_context' => $includeInContext,
         ];
+    }
+
+    /** @param array<string, mixed>|list<array<string, mixed>>|null $period */
+    private function periodList(?array $period): array
+    {
+        if ($period === null) {
+            return [];
+        }
+
+        return array_is_list($period) ? $period : [$period];
     }
 
     /**

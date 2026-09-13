@@ -152,7 +152,7 @@ final class NumaRequest
     /**
      * @param array<int, array<string, mixed>> $context
      * @param array<int, string> $availableTools
-     * @param array<int, array{role:string,message:string,period?:array<string,string>}> $history
+     * @param array<int, array{role:string,message:string,periods?:list<array{mes_inicio:string,mes_fin:string}>}> $history
      * @param array<string, mixed>|null $responseSchema
      */
     public function __construct(
@@ -217,7 +217,7 @@ final class NumaRequest
     }
 
     /**
-     * @return array<int, array{role:string,message:string,period?:array<string,string>}>
+     * @return array<int, array{role:string,message:string,periods?:list<array{mes_inicio:string,mes_fin:string}>}>
      */
     public function history(): array
     {

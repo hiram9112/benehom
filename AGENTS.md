@@ -31,6 +31,16 @@ composer build:css
 - `composer lint:design` is blocking: it rejects design-token drift, raw colors outside its allowlist, and Bootstrap icon classes.
 - PHPStan reads `phpstan.dist.neon`; use `vendor/bin/phpstan analyse` without inventing a different path set.
 
+### Optional Real Gemini Verification
+
+To validate Numa's temporal interpretation against the real Gemini model:
+
+```bash
+composer eval:numa-temporal
+```
+
+This check is manual and non-blocking for normal CI. It requires `NUMA_API_KEY`, performs real external Gemini calls, and may consume provider quota or cost. Use it after changes to Numa temporal prompts, conversational period handling, Function Calling, or the Gemini model.
+
 ## Tests And Database
 
 - Run DB-free tests with `vendor/bin/phpunit --testsuite Unit`.

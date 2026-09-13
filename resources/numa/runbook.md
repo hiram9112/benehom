@@ -18,7 +18,7 @@ recorrido antes de crear proveedores o iniciar una llamada pagada.
 | Generacion | `NUMA_PROVIDER`, `NUMA_MODEL`, `NUMA_API_KEY`, `NUMA_MAX_INPUT_TOKENS`, `NUMA_MAX_OUTPUT_TOKENS`, `NUMA_MAX_PROVIDER_CALLS`, `NUMA_PROVIDER_TIMEOUT_SECONDS`, `NUMA_REQUEST_TIMEOUT_SECONDS`, `NUMA_MAX_TRANSIENT_RETRIES` |
 | Limites globales | `NUMA_GLOBAL_*` |
 | Embeddings y RAG | `NUMA_EMBEDDING_PROVIDER`, `NUMA_EMBEDDING_MODEL`, `NUMA_EMBEDDING_DIMENSIONS`, `NUMA_MAX_RAG_RESULTS`, `NUMA_MAX_RAG_CHUNK_CHARS`, `NUMA_RAG_MIN_SIMILARITY` |
-| Tools | `NUMA_MAX_TOOL_CALLS`, `NUMA_MAX_TOOL_RESULT_CHARS`, `NUMA_MAX_TOOL_RANGE_DAYS` |
+| Tools | `NUMA_MAX_TOOL_CALLS`, `NUMA_MAX_TOOL_RESULT_CHARS` |
 | Modo publico | `NUMA_PUBLIC_HASH_KEY`, `NUMA_PUBLIC_DAILY_LIMIT`, `NUMA_PUBLIC_MONTHLY_LIMIT`, `NUMA_PUBLIC_GLOBAL_*` |
 | Evaluacion RAG real | `NUMA_RAG_EVALUATION_DB_*` |
 
@@ -84,6 +84,17 @@ en `_test` o `_sandbox`:
 ```bash
 php bin/evaluar-rag-numa.php --real
 ```
+
+La precedencia temporal de clasificación y Function Calling se evalúa por separado
+con seis casos sintéticos, sin base de datos ni ejecución de la tool financiera:
+
+```bash
+php bin/evaluar-precedencia-temporal-numa.php --real
+```
+
+El comando reutiliza las reglas temporales de producción, captura únicamente la
+clasificación y los meses solicitados a la tool, exige confirmación explícita de coste
+con `--real` y está bloqueado en CI y en `APP_ENV=testing`.
 
 ## Cuota, proveedor y claves
 

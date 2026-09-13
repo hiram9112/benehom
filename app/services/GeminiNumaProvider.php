@@ -159,11 +159,17 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $contents = [];
         foreach ($request->history() as $entry) {
             $text = $entry['message'];
-            if (isset($entry['period']['start'], $entry['period']['end'])
-                && is_string($entry['period']['start'])
-                && is_string($entry['period']['end'])
-            ) {
-                $text .= "\n[Periodo resuelto por BeneHom: {$entry['period']['start']} a {$entry['period']['end']}]";
+            $periods = $entry['periods'] ?? [];
+            if (is_array($periods)) {
+                $labels = [];
+                foreach ($periods as $period) {
+                    if (is_array($period) && is_string($period['mes_inicio'] ?? null) && is_string($period['mes_fin'] ?? null)) {
+                        $labels[] = $period['mes_inicio'] . ' a ' . $period['mes_fin'];
+                    }
+                }
+                if ($labels !== []) {
+                    $text .= "\n[Periodos asociados al intercambio: " . implode('; ', $labels) . ']';
+                }
             }
 
             $contents[] = [

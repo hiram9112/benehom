@@ -31,6 +31,14 @@ final class NumaFinancialToolRegistryTest extends TestCase
 
         self::assertSame('consultar_datos_financieros', $declaration['name']);
         self::assertSame(['periodos'], $declaration['parameters']['required']);
+        self::assertSame(
+            ['mes_inicio', 'mes_fin'],
+            array_keys($declaration['parameters']['properties']['periodos']['items']['properties']),
+        );
+        self::assertSame(
+            ['mes_inicio', 'mes_fin'],
+            $declaration['parameters']['properties']['periodos']['items']['required'],
+        );
         self::assertArrayNotHasKey('oneOf', $declaration['parameters']);
         self::assertArrayNotHasKey('anyOf', $declaration['parameters']);
         self::assertStringNotContainsString('"salario"', json_encode($declaration, JSON_THROW_ON_ERROR));
@@ -56,7 +64,7 @@ final class NumaFinancialToolRegistryTest extends TestCase
     public function testContratoNormalizaYDeduplicaSelectores(): void
     {
         $validated = (new \NumaFinancialDataToolContract())->validateArguments([
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [
                 ['categoria' => 'electricidad'],
                 ['categoria' => 'electricidad'],
@@ -68,28 +76,45 @@ final class NumaFinancialToolRegistryTest extends TestCase
             ['ambito' => 'gastos', 'tipo' => 'esencial', 'area' => 'suministros', 'categoria' => 'electricidad'],
             ['ambito' => 'ingresos', 'area' => 'trabajo'],
         ], $validated['selectores']);
+        self::assertSame([
+            ['mes_inicio' => '2026-07', 'mes_fin' => '2026-07'],
+        ], $validated['periodos']);
     }
 
     #[DataProvider('invalidArguments')]
     public function testContratoRechazaSelectoresYPeriodosInvalidos(array $arguments): void
     {
+        $pdo = $this->createMock(\PDO::class);
+        $pdo->expects(self::never())->method('prepare');
+        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo));
+
         $this->expectException(InvalidArgumentException::class);
-        (new \NumaFinancialDataToolContract())->validateArguments($arguments);
+        $registry->execute(
+            'consultar_datos_financieros',
+            1,
+            $arguments,
+        );
     }
 
     /** @return array<string, array{0:array<string, mixed>}> */
     public static function invalidArguments(): array
     {
         return [
-            'campo ambiguo en periodo' => [[
+            'contrato temporal anterior' => [[
                 'periodos' => [['tipo' => 'mes', 'mes' => '2026-07', 'inicio' => '2026-07-01']],
             ]],
+            'rango invertido' => [[
+                'periodos' => [['mes_inicio' => '2026-08', 'mes_fin' => '2026-07']],
+            ]],
+            'mes de inicio invalido' => [[
+                'periodos' => [['mes_inicio' => '2026-13', 'mes_fin' => '2026-13']],
+            ]],
             'categoria legacy' => [[
-                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
                 'selectores' => [['categoria' => 'salario']],
             ]],
             'relacion incompatible' => [[
-                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
                 'selectores' => [['ambito' => 'ingresos', 'categoria' => 'electricidad']],
             ]],
         ];

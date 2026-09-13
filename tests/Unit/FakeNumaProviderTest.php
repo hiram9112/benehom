@@ -34,14 +34,15 @@ final class FakeNumaProviderTest extends TestCase
 
     public function testSimulaSolicitudDeTool(): void
     {
-        $provider = \FakeNumaProvider::toolRequest('obtener_resumen_financiero', ['periodo' => 'mes_actual']);
+        $arguments = ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]];
+        $provider = \FakeNumaProvider::toolRequest('consultar_datos_financieros', $arguments);
 
         $response = $provider->respond(new \NumaRequest('¿Cuánto gasté este mes?'));
         $toolRequest = $response->toolRequest();
 
         self::assertInstanceOf(\NumaToolRequest::class, $toolRequest);
-        self::assertSame('obtener_resumen_financiero', $toolRequest->name());
-        self::assertSame(['periodo' => 'mes_actual'], $toolRequest->arguments());
+        self::assertSame('consultar_datos_financieros', $toolRequest->name());
+        self::assertSame($arguments, $toolRequest->arguments());
     }
 
     public function testSimulaTimeout(): void

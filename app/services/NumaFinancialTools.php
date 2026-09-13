@@ -8,46 +8,11 @@ require_once __DIR__ . '/NumaFinancialDataToolContract.php';
 
 final class NumaPeriodResolver
 {
-    public const CURRENT_MONTH = 'mes_actual';
-    public const PREVIOUS_MONTH = 'mes_anterior';
-    public const CURRENT_YEAR = 'anio_actual';
-    public const PREVIOUS_YEAR = 'anio_anterior';
-
-    /** @var array<int, string> */
-    private const RELATIVE_PERIODS = [
-        self::CURRENT_MONTH,
-        self::PREVIOUS_MONTH,
-        self::CURRENT_YEAR,
-        self::PREVIOUS_YEAR,
-    ];
-
-    /** @var array<string, int> */
-    private const NAMED_MONTHS = [
-        'enero' => 1,
-        'febrero' => 2,
-        'marzo' => 3,
-        'abril' => 4,
-        'mayo' => 5,
-        'junio' => 6,
-        'julio' => 7,
-        'agosto' => 8,
-        'septiembre' => 9,
-        'octubre' => 10,
-        'noviembre' => 11,
-        'diciembre' => 12,
-    ];
-
     private readonly DateTimeZone $timezone;
 
     public function __construct(private readonly ?DateTimeImmutable $now = null)
     {
         $this->timezone = new DateTimeZone('Europe/Madrid');
-    }
-
-    /** @return array<int, string> */
-    public static function relativePeriods(): array
-    {
-        return [...self::RELATIVE_PERIODS, ...array_keys(self::NAMED_MONTHS)];
     }
 
     public function currentDate(): string
@@ -63,125 +28,6 @@ final class NumaPeriodResolver
         }
 
         return $this->month($this->date($month . '-01'));
-    }
-
-    /**
-     * @param array{start:string,end:string}|null $referencePeriod
-     * @return array{inicio:string,fin:string}
-     */
-    public function resolve(string $period, ?array $referencePeriod = null): array
-    {
-        $referenceDate = $this->referenceDate($referencePeriod);
-        $now = $this->now();
-
-        return match ($period) {
-            self::CURRENT_MONTH => $this->month($referenceDate),
-            self::PREVIOUS_MONTH => $this->month($referenceDate->modify('first day of last month')),
-            self::CURRENT_YEAR => $this->year($referenceDate),
-            self::PREVIOUS_YEAR => $this->year($referenceDate->modify('first day of January last year')),
-            default => isset(self::NAMED_MONTHS[$period])
-                ? $this->month($now->setDate((int) $now->format('Y'), self::NAMED_MONTHS[$period], 1))
-                : throw new InvalidArgumentException('Periodo relativo de Numa no permitido.'),
-        };
-    }
-
-    /**
-     * @param array{start:string,end:string}|null $referencePeriod
-     * @return array{inicio:string,fin:string}
-     */
-    public function resolveForFollowUp(string $period, ?array $referencePeriod = null): array
-    {
-        if ($referencePeriod === null || !in_array($period, [self::PREVIOUS_MONTH, self::PREVIOUS_YEAR], true)) {
-            return $this->resolve($period);
-        }
-
-        return $this->resolve($period, $referencePeriod);
-    }
-
-    /**
-     * @param array{start:string,end:string}|null $referencePeriod
-     * @return list<array{inicio:string,fin:string}>
-     */
-    public function periodsMentionedInMessage(string $message, ?array $referencePeriod = null): array
-    {
-        if (preg_match_all('/\b(20\d{2}-\d{2}-\d{2})\b/', $message, $dateMatches) > 0) {
-            $dates = $dateMatches[1];
-            if (count($dates) === 1) {
-                return [$this->normalize($dates[0], $dates[0])];
-            }
-
-            return [$this->normalize($dates[0], $dates[count($dates) - 1])];
-        }
-
-        $months = implode('|', array_keys(self::NAMED_MONTHS));
-        $referenceDate = $this->referenceDate($referencePeriod);
-        if (preg_match('/\bentre\s+(' . $months . ')\s+y\s+(' . $months . ')(?:\s+de\s+(20\d{2}))?\b/iu', $message, $rangeMatch) === 1) {
-            $year = isset($rangeMatch[3]) && $rangeMatch[3] !== ''
-                ? (int) $rangeMatch[3]
-                : (int) $referenceDate->format('Y');
-            $startMonth = self::NAMED_MONTHS[strtolower($rangeMatch[1])];
-            $endMonth = self::NAMED_MONTHS[strtolower($rangeMatch[2])];
-
-            return [$this->normalize(
-                $referenceDate->setDate($year, $startMonth, 1)->format('Y-m-d'),
-                $referenceDate->setDate($year, $endMonth, 1)->format('Y-m-d'),
-            )];
-        }
-
-        if (preg_match_all('/\b(' . $months . ')(?:\s+de\s+(20\d{2}))?\b/iu', $message, $monthMatches) > 0) {
-            $periods = [];
-            foreach ($monthMatches[1] as $index => $monthName) {
-                $month = self::NAMED_MONTHS[strtolower($monthName)];
-                $year = isset($monthMatches[2][$index]) && $monthMatches[2][$index] !== ''
-                    ? (int) $monthMatches[2][$index]
-                    : (int) $referenceDate->format('Y');
-                $period = $this->month($referenceDate->setDate($year, $month, 1));
-
-                if (!in_array($period, $periods, true)) {
-                    $periods[] = $period;
-                }
-            }
-
-            return $periods;
-        }
-
-        if (preg_match('/\b(?:los?\s+)?(?:ultimos|últimos)\s+([1-9]\d?)\s+mes(?:es)?\b/iu', $message, $match) === 1) {
-            $months = (int) $match[1];
-            $referenceDate = $this->referenceDate($referencePeriod);
-            return [$this->normalize(
-                $referenceDate->modify('first day of this month')->modify(sprintf('-%d months', $months - 1))->format('Y-m-d'),
-                $referenceDate->modify('last day of this month')->format('Y-m-d'),
-            )];
-        }
-
-        $relativePeriods = [
-            '/\b(?:mes actual|este(?: mismo)? mes)\b/iu' => self::CURRENT_MONTH,
-            '/\b(?:mes anterior|mes pasado|el mes pasado)\b/iu' => self::PREVIOUS_MONTH,
-            '/\b(?:ano actual|año actual|este año)\b/iu' => self::CURRENT_YEAR,
-            '/\b(?:ano anterior|año anterior|año pasado|el año pasado)\b/iu' => self::PREVIOUS_YEAR,
-        ];
-        foreach ($relativePeriods as $pattern => $period) {
-            if (preg_match($pattern, $message) === 1) {
-                return [$this->resolve($period, $referencePeriod)];
-            }
-        }
-
-        if (preg_match('/\b(20\d{2})\b/', $message, $yearMatch) === 1) {
-            return [$this->year($this->now()->setDate((int) $yearMatch[1], 1, 1))];
-        }
-
-        return [];
-    }
-
-    public function hasAmbiguousPeriodMention(string $message): bool
-    {
-        if (preg_match('/\b(?:mes|año|ano)\b/iu', $message) === 1) {
-            return true;
-        }
-
-        $months = implode('|', array_keys(self::NAMED_MONTHS));
-
-        return preg_match('/\b(?:entre|desde|hasta)\s+(?:' . $months . '|este|ese|aquel)\b/iu', $message) === 1;
     }
 
     /** @return array{inicio:string,fin:string} */
@@ -205,27 +51,12 @@ final class NumaPeriodResolver
         return ($this->now ?? new DateTimeImmutable('now', $this->timezone))->setTimezone($this->timezone);
     }
 
-    /** @param array{start:string,end:string}|null $referencePeriod */
-    private function referenceDate(?array $referencePeriod): DateTimeImmutable
-    {
-        return $referencePeriod === null ? $this->now() : $this->date($referencePeriod['start']);
-    }
-
     /** @return array{inicio:string,fin:string} */
     private function month(DateTimeImmutable $date): array
     {
         return [
             'inicio' => $date->modify('first day of this month')->format('Y-m-d'),
             'fin' => $date->modify('last day of this month')->format('Y-m-d'),
-        ];
-    }
-
-    /** @return array{inicio:string,fin:string} */
-    private function year(DateTimeImmutable $date): array
-    {
-        return [
-            'inicio' => $date->setDate((int) $date->format('Y'), 1, 1)->format('Y-m-d'),
-            'fin' => $date->setDate((int) $date->format('Y'), 12, 31)->format('Y-m-d'),
         ];
     }
 
@@ -963,17 +794,12 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
             'fecha_inicio' . $suffix => [
                 'type' => 'string',
                 'format' => 'date',
-                'description' => 'Primera fecha explicita de ' . $periodLabel . ' en formato YYYY-MM-DD. Debe enviarse junto con fecha_fin' . $suffix . ' y sin periodo' . $suffix . '.',
+                'description' => 'Primera fecha explicita de ' . $periodLabel . ' en formato YYYY-MM-DD. Debe enviarse junto con fecha_fin' . $suffix . '.',
             ],
             'fecha_fin' . $suffix => [
                 'type' => 'string',
                 'format' => 'date',
-                'description' => 'Ultima fecha explicita de ' . $periodLabel . ' en formato YYYY-MM-DD. Debe enviarse junto con fecha_inicio' . $suffix . ' y sin periodo' . $suffix . '.',
-            ],
-            'periodo' . $suffix => [
-                'type' => 'string',
-                'enum' => NumaPeriodResolver::relativePeriods(),
-                'description' => 'Valor simbolico de ' . $periodLabel . '. BeneHom resuelve sus fechas; no calcules fechas relativas. Se usa sin fecha_inicio' . $suffix . ' ni fecha_fin' . $suffix . '.',
+                'description' => 'Ultima fecha explicita de ' . $periodLabel . ' en formato YYYY-MM-DD. Debe enviarse junto con fecha_inicio' . $suffix . '.',
             ],
         ];
     }
@@ -982,7 +808,6 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
     private static function periodRequirementGroup(string $suffix = ''): array
     {
         return [
-            ['periodo' . $suffix],
             ['fecha_inicio' . $suffix, 'fecha_fin' . $suffix],
         ];
     }
@@ -1055,27 +880,17 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
 
 final class NumaFinancialToolExecutor
 {
-    public const MAX_TOOL_RANGE_DAYS = 731;
     public const MAX_TOOL_RESULT_ROWS = 10000;
 
-    private readonly int $maxToolRangeDays;
     private readonly int $maxToolResultRows;
 
     public function __construct(
         private readonly ?PDO $connection = null,
-        ?int $maxToolRangeDays = null,
         private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
         private readonly NumaFinancialCategoryCatalog $categoryCatalog = new NumaFinancialCategoryCatalog(),
         private readonly NumaFinancialDataToolContract $dataContract = new NumaFinancialDataToolContract(),
         ?int $maxToolResultRows = null,
     ) {
-        $this->maxToolRangeDays = $maxToolRangeDays
-            ?? bh_env_int('NUMA_MAX_TOOL_RANGE_DAYS', self::MAX_TOOL_RANGE_DAYS);
-
-        if ($this->maxToolRangeDays <= 0 || $this->maxToolRangeDays > self::MAX_TOOL_RANGE_DAYS) {
-            throw new InvalidArgumentException('El limite de rango de fechas de tools de Numa no es valido.');
-        }
-
         $this->maxToolResultRows = $maxToolResultRows
             ?? bh_env_int('NUMA_MAX_TOOL_RESULT_ROWS', self::MAX_TOOL_RESULT_ROWS);
         if ($this->maxToolResultRows <= 0 || $this->maxToolResultRows > self::MAX_TOOL_RESULT_ROWS) {
@@ -1352,38 +1167,15 @@ final class NumaFinancialToolExecutor
     private function canonicalMonths(array $periods): array
     {
         $months = [];
+        $seen = [];
         foreach ($periods as $period) {
-            $type = $period['tipo'];
-            if ($type === 'mes') {
-                $months[] = (string) $period['mes'];
-                continue;
+            foreach ($this->monthsBetween($period['mes_inicio'], $period['mes_fin']) as $month) {
+                if (!isset($seen[$month])) {
+                    $seen[$month] = true;
+                    $months[] = $month;
+                }
             }
-
-            if ($type === 'rango') {
-                $months = [...$months, ...$this->monthsBetween((string) $period['inicio'], (string) $period['fin'])];
-                continue;
-            }
-
-            if ($type === 'relativo') {
-                $resolved = $this->periodResolver->resolve((string) $period['periodo_relativo']);
-                $months = [...$months, ...$this->monthsBetween($resolved['inicio'], $resolved['fin'])];
-                continue;
-            }
-
-            if ($type === 'ultimos_meses') {
-                $now = $this->periodResolver->currentDate();
-                $end = new DateTimeImmutable(substr($now, 0, 7) . '-01', new DateTimeZone('Europe/Madrid'));
-                $start = $end->modify(sprintf('-%d months', (int) $period['cantidad_meses'] - 1));
-                $months = [...$months, ...$this->monthsBetween($start->format('Y-m-d'), $end->format('Y-m-t'))];
-                continue;
-            }
-
-            // Las referencias se resuelven contra la conversación controlada en la Tarea 4.
-            throw new NumaFinancialToolInputIncomplete('Referencia conversacional de Numa no disponible.');
         }
-
-        $months = array_values(array_unique($months));
-        sort($months, SORT_STRING);
 
         return $months;
     }
@@ -2105,12 +1897,6 @@ final class NumaFinancialToolExecutor
      */
     private function period(array $arguments): array
     {
-        if (isset($arguments['periodo'])) {
-            $period = $this->periodResolver->resolve($this->stringArg($arguments, 'periodo'));
-
-            return [$period['inicio'], $period['fin']];
-        }
-
         $start = $this->dateArg($arguments, 'fecha_inicio');
         $end = $this->dateArg($arguments, 'fecha_fin');
         $period = $this->periodResolver->normalize($start, $end);
@@ -2122,13 +1908,6 @@ final class NumaFinancialToolExecutor
     /** @param array<string, mixed> $arguments */
     private function comparisonPeriod(array $arguments, string $suffix): array
     {
-        $relativeKey = 'periodo_' . $suffix;
-        if (isset($arguments[$relativeKey])) {
-            $period = $this->periodResolver->resolve($this->stringArg($arguments, $relativeKey));
-
-            return [$period['inicio'], $period['fin']];
-        }
-
         $period = $this->periodResolver->normalize(
             $this->dateArg($arguments, 'fecha_inicio_' . $suffix),
             $this->dateArg($arguments, 'fecha_fin_' . $suffix),
@@ -2162,12 +1941,6 @@ final class NumaFinancialToolExecutor
             throw new InvalidArgumentException('Periodo de Numa no valido.');
         }
 
-        $startDate = new DateTimeImmutable($start);
-        $endDate = new DateTimeImmutable($end);
-
-        if ($startDate->diff($endDate)->days > $this->maxToolRangeDays) {
-            throw new InvalidArgumentException('Intervalo de fechas de Numa excesivo.');
-        }
     }
 
     /** @param array<string, mixed> $arguments */

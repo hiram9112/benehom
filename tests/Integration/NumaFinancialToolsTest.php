@@ -14,7 +14,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto((int) $user['id'], 'esencial', 'electricidad', '12.34', '2026-07-03');
 
         $result = $this->execute((int) $user['id'], [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['categoria' => 'electricidad']],
         ]);
 
@@ -42,7 +42,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto((int) $user['id'], 'esencial', 'electricidad', '3.01', '2026-07-03');
 
         $area = $this->execute((int) $user['id'], [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['area' => 'suministros']],
         ])['meses'][0]['gastos']['tipos'][0]['areas'][0];
 
@@ -66,14 +66,14 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto($userId, 'flexible', 'comida_domicilio', '20.20', '2026-07-02');
 
         $type = $this->execute($userId, [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['tipo' => 'flexible']],
         ])['meses'][0]['gastos'];
         self::assertSame('20.20', $type['importe']);
         self::assertSame(['completa' => false, 'tipos_consultados' => 1, 'tipos_totales' => 2], $type['cobertura']);
         self::assertCount(8, $type['tipos'][0]['areas']);
 
-        $full = $this->execute($userId, ['periodos' => [['tipo' => 'mes', 'mes' => '2026-07']]])['meses'][0];
+        $full = $this->execute($userId, ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]])['meses'][0];
         self::assertSame('1000.10', $full['ingresos']['importe']);
         self::assertSame(['completa' => true, 'areas_consultadas' => 5, 'areas_totales' => 5], $full['ingresos']['cobertura']);
         self::assertSame('20.20', $full['gastos']['importe']);
@@ -89,7 +89,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto($userId, 'flexible', 'comida_domicilio', '20.00', '2026-07-02');
 
         $month = $this->execute($userId, [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['ambito' => 'ingresos']],
         ])['meses'][0];
 
@@ -104,7 +104,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $user = $this->crearUsuario('numa-hierarchy-empty-month@example.test');
 
         $month = $this->execute((int) $user['id'], [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['ambito' => 'ingresos']],
         ])['meses'][0];
 
@@ -119,7 +119,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         ))));
     }
 
-    public function testMesesNoContiguosSeOrdenanYSonIndependientes(): void
+    public function testRangosSolapadosConservanLaPrimeraAparicionSinDuplicados(): void
     {
         $user = $this->crearUsuario('numa-hierarchy-months@example.test');
         $userId = (int) $user['id'];
@@ -128,14 +128,33 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
 
         $months = $this->execute($userId, [
             'periodos' => [
-                ['tipo' => 'mes', 'mes' => '2026-08'],
-                ['tipo' => 'mes', 'mes' => '2026-06'],
+                ['mes_inicio' => '2026-08', 'mes_fin' => '2026-08'],
+                ['mes_inicio' => '2026-06', 'mes_fin' => '2026-08'],
             ],
             'selectores' => [['categoria' => 'nomina']],
         ])['meses'];
 
-        self::assertSame(['2026-06', '2026-08'], array_column($months, 'mes'));
-        self::assertSame(['1.10', '2.20'], array_column(array_column($months, 'ingresos'), 'importe'));
+        self::assertSame(['2026-08', '2026-06', '2026-07'], array_column($months, 'mes'));
+        self::assertSame(['2.20', '1.10', '0.00'], array_column(array_column($months, 'ingresos'), 'importe'));
+    }
+
+    public function testMesesNoContiguosLleganComoPeriodosSeparados(): void
+    {
+        $user = $this->crearUsuario('numa-hierarchy-non-contiguous-months@example.test');
+        $userId = (int) $user['id'];
+        $this->insertIngreso($userId, 'nomina', '1.10', '2026-01-01');
+        $this->insertIngreso($userId, 'nomina', '3.30', '2026-03-01');
+
+        $months = $this->execute($userId, [
+            'periodos' => [
+                ['mes_inicio' => '2026-01', 'mes_fin' => '2026-01'],
+                ['mes_inicio' => '2026-03', 'mes_fin' => '2026-03'],
+            ],
+            'selectores' => [['categoria' => 'nomina']],
+        ])['meses'];
+
+        self::assertSame(['2026-01', '2026-03'], array_column($months, 'mes'));
+        self::assertSame(['1.10', '3.30'], array_column(array_column($months, 'ingresos'), 'importe'));
     }
 
     public function testDatosDeOtroUsuarioNoAfectanElResultado(): void
@@ -146,7 +165,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertGasto((int) $other['id'], 'flexible', 'comida_domicilio', '999.99', '2026-07-01');
 
         $result = $this->execute((int) $user['id'], [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['categoria' => 'comida_domicilio']],
         ]);
 
@@ -161,7 +180,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $this->insertIngreso($userId, 'paga_extra', '0.20', '2026-07-02');
 
         $result = $this->execute($userId, [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['area' => 'trabajo']],
         ]);
         self::assertSame('0.30', $result['meses'][0]['ingresos']['importe']);
@@ -170,7 +189,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo, maxToolResultRows: 3));
         try {
             $registry->execute('consultar_datos_financieros', $userId, [
-                'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
                 'selectores' => [['categoria' => 'electricidad']],
             ]);
             self::fail('La estimación de filas debía rechazar el resultado antes de consultar datos.');
@@ -189,7 +208,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
 
         $this->expectException(\NumaFinancialToolLimitExceeded::class);
         $registry->execute('consultar_datos_financieros', (int) $user['id'], [
-            'periodos' => [['tipo' => 'mes', 'mes' => '2026-07']],
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['categoria' => 'electricidad']],
         ]);
     }

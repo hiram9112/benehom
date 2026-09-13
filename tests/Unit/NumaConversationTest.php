@@ -63,6 +63,21 @@ final class NumaConversationTest extends TestCase
         self::assertSame([], $_SESSION['numa_conversation']['entries']);
     }
 
+    public function testNuevaConversacionNoConservaPeriodosDeLaAnterior(): void
+    {
+        $conversation = new \NumaConversation();
+        $conversation->appendExchange(
+            'Consulta anterior',
+            'Respuesta anterior',
+            period: [['mes_inicio' => '2026-06', 'mes_fin' => '2026-06']],
+        );
+
+        $conversation->clear();
+
+        self::assertSame([], $conversation->context());
+        self::assertSame([], $conversation->transcript());
+    }
+
     public function testConservaLaVersionDeConversacionEnLosIntercambios(): void
     {
         $_SESSION['numa_conversation'] = [
@@ -78,13 +93,16 @@ final class NumaConversationTest extends TestCase
         self::assertSame(4, $_SESSION['numa_conversation']['version']);
     }
 
-    public function testConservaElPeriodoEstructuradoParaSeguimientos(): void
+    public function testConservaVariosPeriodosEstructuradosParaSeguimientos(): void
     {
         $conversation = new \NumaConversation();
         $conversation->appendExchange(
             '¿Cuánto gasté en julio?',
             'Gastaste 100 euros.',
-            period: ['start' => '2026-07-01', 'end' => '2026-07-31'],
+            period: [
+                ['mes_inicio' => '2026-07', 'mes_fin' => '2026-07'],
+                ['mes_inicio' => '2026-09', 'mes_fin' => '2026-09'],
+            ],
         );
 
         self::assertSame([
@@ -92,7 +110,10 @@ final class NumaConversationTest extends TestCase
             [
                 'role' => 'assistant',
                 'message' => 'Gastaste 100 euros.',
-                'period' => ['start' => '2026-07-01', 'end' => '2026-07-31'],
+                'periods' => [
+                    ['mes_inicio' => '2026-07', 'mes_fin' => '2026-07'],
+                    ['mes_inicio' => '2026-09', 'mes_fin' => '2026-09'],
+                ],
             ],
         ], $conversation->context());
     }

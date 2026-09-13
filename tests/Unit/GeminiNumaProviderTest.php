@@ -573,7 +573,7 @@ final class GeminiNumaProviderTest extends TestCase
                     'body' => json_encode([
                         'candidates' => [['content' => ['parts' => [['functionCall' => [
                             'name' => 'consultar_datos_financieros',
-                            'args' => ['periodo' => 'mes_actual'],
+                            'args' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
                         ]]]], 'finishReason' => 'STOP']],
                     ], JSON_THROW_ON_ERROR),
                 ];
@@ -864,6 +864,7 @@ final class GeminiNumaProviderTest extends TestCase
 
         $systemInstruction = $captured['system_instruction']['parts'][0]['text'] ?? '';
         self::assertStringContainsString('Eres Numa, la guia inteligente de BeneHom.', $systemInstruction);
+        self::assertStringContainsString('primero el período explícito del mensaje actual', $systemInstruction);
         self::assertStringContainsString('No actues como asistente generalista.', $systemInstruction);
         self::assertStringNotContainsString('Instruccion no controlada', $systemInstruction);
         self::assertSame(1, $consumption->calls);

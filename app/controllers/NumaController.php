@@ -81,8 +81,7 @@ class NumaController
 
     private ?NumaMinimalLogger $interactionLogger = null;
 
-    /** @var array{start:string,end:string}|null */
-    private ?array $dashboardReferencePeriod = null;
+    private ?string $dashboardMonth = null;
 
     public function chat(): void
     {
@@ -99,8 +98,6 @@ class NumaController
         if ($message === null) {
             return;
         }
-        $referencePeriod = $this->dashboardReferencePeriod;
-
         if (!bh_env_bool('NUMA_ENABLED', false)) {
             bh_numa_error('NUMA_NOT_AVAILABLE', 503);
             return;
@@ -136,7 +133,7 @@ class NumaController
                     $authenticatedUserId,
                     $message,
                     $context,
-                    $referencePeriod,
+                    $this->dashboardMonth,
                 ),
             );
 
@@ -151,7 +148,7 @@ class NumaController
                 $message,
                 (string) $data['message'],
                 $result->sources(),
-                is_array($data['period'] ?? null) ? $data['period'] : null,
+                $result->periods(),
                 $result->contextual(),
             );
             $data['conversation'] = $conversation->transcript();
@@ -1175,7 +1172,7 @@ class NumaController
     private function validatedMessage(bool $allowDashboardMonth = false): ?string
     {
         $this->requestBodyTooLarge = false;
-        $this->dashboardReferencePeriod = null;
+        $this->dashboardMonth = null;
 
         if (!$this->hasJsonContentType()) {
             bh_numa_error('NUMA_INVALID_MESSAGE', 400);
@@ -1218,16 +1215,13 @@ class NumaController
             }
 
             try {
-                $period = $this->periodResolver()->referencePeriodForMonth($dashboardMonth);
+                $this->periodResolver()->referencePeriodForMonth($dashboardMonth);
             } catch (InvalidArgumentException) {
                 bh_numa_error('NUMA_INVALID_MESSAGE', 400);
                 return null;
             }
 
-            $this->dashboardReferencePeriod = [
-                'start' => $period['inicio'],
-                'end' => $period['fin'],
-            ];
+            $this->dashboardMonth = $dashboardMonth;
         }
 
         $message = $payload['message'] ?? null;

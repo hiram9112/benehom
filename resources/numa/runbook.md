@@ -18,7 +18,7 @@ recorrido antes de crear proveedores o iniciar una llamada pagada.
 | Generacion | `NUMA_PROVIDER`, `NUMA_MODEL`, `NUMA_API_KEY`, `NUMA_MAX_INPUT_TOKENS`, `NUMA_MAX_OUTPUT_TOKENS`, `NUMA_MAX_PROVIDER_CALLS`, `NUMA_PROVIDER_TIMEOUT_SECONDS`, `NUMA_REQUEST_TIMEOUT_SECONDS`, `NUMA_MAX_TRANSIENT_RETRIES` |
 | Limites globales | `NUMA_GLOBAL_*` |
 | Embeddings y RAG | `NUMA_EMBEDDING_PROVIDER`, `NUMA_EMBEDDING_MODEL`, `NUMA_EMBEDDING_DIMENSIONS`, `NUMA_MAX_RAG_RESULTS`, `NUMA_MAX_RAG_CHUNK_CHARS`, `NUMA_RAG_MIN_SIMILARITY` |
-| Tools | `NUMA_MAX_TOOL_CALLS`, `NUMA_MAX_TOOL_RESULT_CHARS` |
+| Tools | `NUMA_MAX_TOOL_CALLS` |
 | Modo publico | `NUMA_PUBLIC_HASH_KEY`, `NUMA_PUBLIC_DAILY_LIMIT`, `NUMA_PUBLIC_MONTHLY_LIMIT`, `NUMA_PUBLIC_GLOBAL_*` |
 | Evaluacion RAG real | `NUMA_RAG_EVALUATION_DB_*` |
 
@@ -26,14 +26,10 @@ Los modelos iniciales son `gemini-3.1-flash-lite` para generacion y
 `gemini-embedding-001` con 768 dimensiones para embeddings. El modo `fake` solo se
 admite con `APP_ENV=testing`; nunca es una alternativa de produccion.
 
-`NUMA_MAX_TOOL_RESULT_CHARS` tiene un maximo de 2.500 bytes para el JSON agregado de
-resultados de tools enviado al proveedor. Aunque el nombre historico de la variable
-incluye `CHARS`, el limite efectivo se calcula con `strlen()` sobre el JSON UTF-8
-codificado; por tanto, mide bytes, incluidos los de caracteres no ASCII.
-
 Los limites seguros iniciales son: 300 caracteres, 16.000 tokens de entrada para alojar
-las seis declaraciones financieras completas, hasta 9 llamadas pagadas por interaccion
-(clasificacion, embedding RAG, cinco tools, redaccion final y un reintento transitorio),
+la declaracion financiera canonica completa, hasta 9 llamadas pagadas por interaccion
+(clasificacion, embedding RAG, hasta cinco llamadas a `consultar_datos_financieros`,
+redaccion final y un reintento transitorio),
 1.000 tokens de salida, 10 segundos por llamada, 25 segundos por peticion, 15 llamadas
 diarias y 60 mensuales por identidad privada o publica. Los limites globales iniciales
 estan en `.env.example` y deben ajustarse antes de activar cada entorno.
@@ -177,8 +173,8 @@ unidades consumidas y si la respuesta final coincidió con el resultado autoriza
 Los casos minimos son una consulta de `electricidad` y su expresion "luz", una de
 `comida_domicilio` y "comida a domicilio", un filtro por grupo, una metrica, un periodo
 simbolico y un rango explicito. Para cada uno, comprobar que `tools.functionDeclarations`
-incluye las seis declaraciones completas, que la clasificacion no contiene el antiguo
-arbol financiero de `responseSchema` y que el intercambio conserva exactamente
+incluye exclusivamente `consultar_datos_financieros`, que la clasificacion no contiene
+un arbol financiero de seleccion en `responseSchema` y que el intercambio conserva exactamente
 `functionCall` (nombre e identificador), `functionResponse` y el turno del modelo.
 
 Registrar por separado los rechazos de `MAX_TOKENS`, tool desconocida, argumentos
@@ -225,7 +221,7 @@ argumentos, IDs ni payloads completos:
 | Turno | `function_call_count` | Tool | `finishReason` | Resultado observado |
 | --- | --- | --- | --- | --- |
 | 1 | 0 | No aplicable | `STOP` | Respuesta de texto. |
-| 2 | 1 | `obtener_estadisticas_movimientos` | `STOP` | Gemini solicito una tool. |
+| 2 | 1 | `consultar_datos_financieros` | `STOP` | Gemini solicito una tool. |
 | 3 | 0 | No aplicable | `STOP` | Respuesta final de texto. |
 
 El resto de `finishReason`, argumentos e IDs de la validacion real son no registrados.
@@ -252,7 +248,7 @@ de 17.3.3 queda en `GeminiNumaProviderTest`,
 
 | Defensa | Cobertura automatizada |
 | --- | --- |
-| Declaraciones y schema | Verifica la presencia de `tools.functionDeclarations`, las seis declaraciones completas, sus nombres, descripciones, enums, alternativas de periodo y schemas. Verifica ademas que Gemini recibe la proyeccion compatible sin `additionalProperties`, mientras el contrato interno mantiene su prohibicion. |
+| Declaraciones y schema | Verifica la presencia de `tools.functionDeclarations` con la declaracion unica `consultar_datos_financieros`, su nombre, descripcion, enums, alternativas de periodo y schema. Verifica ademas que Gemini recibe la proyeccion compatible sin `additionalProperties`, mientras el contrato interno mantiene su prohibicion. |
 | Separacion clasificacion/tools | Verifica que el antiguo arbol de seleccion financiera no aparece en `responseSchema`; la clasificacion permanece estructurada y las tools se declaran en la solicitud posterior. |
 | Protocolo function calling | Verifica la secuencia `functionCall -> validacion PHP -> tool -> functionResponse -> respuesta`, la correspondencia de nombre e ID, y la conservacion del turno `model` del proveedor, incluida su `thoughtSignature` cuando existe. |
 | Llamadas sucesivas y en lote | Verifica una segunda tool secuencial, varios `functionCall` en un mismo turno y un `functionResponse` emparejado por llamada. Tambien verifica el rechazo de un lote que excede el presupuesto maximo de tools. |

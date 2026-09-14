@@ -53,7 +53,7 @@ final class FakeNumaProvider implements NumaProviderInterface
      * @param array<string, mixed> $arguments
      */
     public static function toolRequest(
-        string $toolName = 'obtener_resumen_financiero',
+        string $toolName = 'consultar_datos_financieros',
         array $arguments = [],
         ?NumaTokenUsage $tokenUsage = null,
     ): self {

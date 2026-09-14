@@ -22,7 +22,7 @@ final class NumaFinancialToolRegistryTest extends TestCase
         self::assertSame('consultar_datos_financieros', $registry->get('consultar_datos_financieros')->functionDeclaration()['name']);
 
         $this->expectException(InvalidArgumentException::class);
-        $registry->get('obtener_resumen_financiero');
+        $registry->get('tool_retirada');
     }
 
     public function testDeclaracionActivaEsElContratoCanonicoCompatibleConGemini(): void
@@ -41,7 +41,7 @@ final class NumaFinancialToolRegistryTest extends TestCase
         );
         self::assertArrayNotHasKey('oneOf', $declaration['parameters']);
         self::assertArrayNotHasKey('anyOf', $declaration['parameters']);
-        self::assertStringNotContainsString('"salario"', json_encode($declaration, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('"categoria_retirada"', json_encode($declaration, JSON_THROW_ON_ERROR));
     }
 
     public function testContratoDerivaLaTaxonomiaCompletaDeLosCatalogos(): void
@@ -109,9 +109,9 @@ final class NumaFinancialToolRegistryTest extends TestCase
             'mes de inicio invalido' => [[
                 'periodos' => [['mes_inicio' => '2026-13', 'mes_fin' => '2026-13']],
             ]],
-            'categoria legacy' => [[
+            'categoria retirada' => [[
                 'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
-                'selectores' => [['categoria' => 'salario']],
+                'selectores' => [['categoria' => 'categoria_retirada']],
             ]],
             'relacion incompatible' => [[
                 'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],

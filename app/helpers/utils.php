@@ -92,7 +92,13 @@ function ingresoCategoriaLabels(): array
 
 function ingresoCategoriaPermitida(string $categoria): bool
 {
-    return isset(ingresoCategoriaLabels()[$categoria]);
+    foreach (ingresoCategorias() as $grupo) {
+        if (isset(($grupo['conceptos'] ?? [])[$categoria])) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 //Funcion para formatear las categorias

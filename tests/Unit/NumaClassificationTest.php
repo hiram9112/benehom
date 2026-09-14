@@ -41,7 +41,6 @@ final class NumaClassificationTest extends TestCase
         self::assertTrue($classification->allowed());
         self::assertSame('product_help', $classification->reason());
         self::assertNull($classification->knowledgeQuery());
-        self::assertNull($classification->dataIntent());
         self::assertSame([
             'intent' => 'producto',
             'allowed' => true,
@@ -49,24 +48,21 @@ final class NumaClassificationTest extends TestCase
         ], $classification->toStructuredData());
     }
 
-    public function testAceptaConsultaDocumentalEIntencionDeDatosControlada(): void
+    public function testAceptaConsultaDocumentalControlada(): void
     {
         $classification = \NumaClassification::fromStructuredData([
             'intent' => 'consulta_combinada',
             'allowed' => true,
             'reason' => 'combined_help',
             'knowledge_query' => 'gastos flexibles en BeneHom',
-            'data_intent' => 'ranking_categorias',
         ]);
 
         self::assertSame('gastos flexibles en BeneHom', $classification->knowledgeQuery());
-        self::assertSame('ranking_categorias', $classification->dataIntent());
         self::assertSame([
             'intent' => 'consulta_combinada',
             'allowed' => true,
             'reason' => 'combined_help',
             'knowledge_query' => 'gastos flexibles en BeneHom',
-            'data_intent' => 'ranking_categorias',
         ], $classification->toStructuredData());
     }
 
@@ -81,7 +77,6 @@ final class NumaClassificationTest extends TestCase
         self::assertSame('interaccion_conversacional', $classification->intent());
         self::assertTrue($classification->allowed());
         self::assertNull($classification->knowledgeQuery());
-        self::assertNull($classification->dataIntent());
     }
 
     #[DataProvider('capacidadesConversacionalesInvalidasProvider')]
@@ -101,25 +96,24 @@ final class NumaClassificationTest extends TestCase
     {
         return [
             'consulta documental' => [['knowledge_query' => 'BeneHom']],
-            'intencion de datos' => [['data_intent' => 'movimientos']],
+            'capacidad financiera retirada' => [['consulta_financiera' => 'movimientos']],
         ];
     }
 
-    public function testAceptaIntencionEstructuradaParaConsultarMovimientos(): void
+    public function testAceptaClasificacionEstructuradaParaDatosPropios(): void
     {
         $provider = \FakeNumaProvider::structuredResponse([
             'intent' => 'datos_usuario',
             'allowed' => true,
             'reason' => 'user_movements',
-            'data_intent' => 'movimientos',
         ]);
 
         $classification = (new \NumaProviderScopeClassifier($provider))->classify('Muéstrame mis últimos movimientos.');
 
         self::assertSame('datos_usuario', $classification->intent());
         self::assertTrue($classification->allowed());
-        self::assertSame(\NumaDataIntent::MOVIMIENTOS, $classification->dataIntent());
-        self::assertContains(\NumaDataIntent::MOVIMIENTOS, $provider->lastRequest()?->context()[0]['output']['allowed_data_intents'] ?? []);
+        self::assertSame(['intent', 'allowed', 'reason'], $provider->lastRequest()?->context()[0]['output']['required_keys'] ?? []);
+        self::assertSame(['knowledge_query'], $provider->lastRequest()?->context()[0]['output']['optional_keys'] ?? []);
     }
 
     public function testElClasificadorPublicoRecibeLaProhibicionDeDatosYTools(): void
@@ -212,7 +206,7 @@ final class NumaClassificationTest extends TestCase
         ]);
     }
 
-    public function testRechazaIntencionDeDatosNoControlada(): void
+    public function testRechazaCapacidadFinancieraNoControlada(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -220,7 +214,7 @@ final class NumaClassificationTest extends TestCase
             'intent' => 'datos_usuario',
             'allowed' => true,
             'reason' => 'user_data',
-            'data_intent' => 'sql_libre',
+            'consulta_financiera' => 'sql_libre',
         ]);
     }
 
@@ -467,14 +461,12 @@ final class NumaClassificationTest extends TestCase
             'intent' => 'datos_usuario',
             'allowed' => true,
             'reason' => 'user_financial_analysis',
-            'data_intent' => 'ranking_categorias',
         ]);
 
         $classification = (new \NumaProviderScopeClassifier($provider))->classify('¿En qué categoría gasté más este mes?');
 
         self::assertSame('datos_usuario', $classification->intent());
         self::assertTrue($classification->allowed());
-        self::assertSame('ranking_categorias', $classification->dataIntent());
         self::assertCount(1, $provider->requests());
         self::assertSame([], $provider->lastRequest()?->availableTools());
         self::assertSame('¿En qué categoría gasté más este mes?', $provider->lastRequest()?->message());

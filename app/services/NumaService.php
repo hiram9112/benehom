@@ -788,7 +788,7 @@ final class NumaService
                 $this->assertRequiredFlowCompleted($classification, $knowledgeResults, $toolResults);
 
                 return [
-                    $this->withBoundedMovementSelectionNotice($finalMessage, $toolResults),
+                    $finalMessage,
                     $toolResults,
                     array_values(array_unique($resolvedPeriods, SORT_REGULAR)),
                 ];
@@ -836,12 +836,6 @@ final class NumaService
             NumaProviderError::INVALID_RESPONSE,
             'NUMA_PROVIDER_INVALID_RESPONSE'
         ));
-    }
-
-    /** @param array<int, array<string, mixed>> $toolResults */
-    private function withBoundedMovementSelectionNotice(string $message, array $toolResults): string
-    {
-        return $message;
     }
 
     private function needsKnowledge(NumaClassification $classification): bool
@@ -982,7 +976,6 @@ final class NumaService
                 'Cuando un periodo sea un mes natural completo, nómbralo como mes y año; al comparar valores, explica si hay un aumento, una disminución o ninguna variación sin añadir interpretación financiera.',
                 'Envía a la tool únicamente períodos mensuales concretos con mes_inicio y mes_fin en formato YYYY-MM. No envíes referencias relativas, índices ni expresiones temporales.',
                 'Puedes calcular comparaciones, diferencias, porcentajes, medias, rankings y tendencias solo a partir de las hojas financieras entregadas. Antes de llamar total a un importe o concluir sobre el universo completo, comprueba cobertura: una rama parcial es solo el subtotal de los elementos incluidos; sus contadores indican qué parte del universo se consultó y quedan elementos fuera de esa selección. No la presentes como gasto, ingreso o total completo del usuario ni como gasto registrado en sus cuentas, y no la interpretes como movimientos ausentes, pendientes de registrar o datos que BeneHom no posee. Indica naturalmente que corresponde solo a los tipos, áreas, categorías o movimientos consultados.',
-                'La fecha de cada movimiento expresa solo el mes disponible en BeneHom. Usa la etiqueta mensual natural entregada y no la presentes como una fecha diaria.',
                 ...($classification->intent() === NumaClassificationIntent::INTERACCION_CONVERSACIONAL ? [
                     'Manten una conversacion breve y natural usando solo el mensaje actual y el historial controlado.',
                     'Puedes reconocer el tono o la emocion del usuario sin atribuirte experiencias o sentimientos propios.',
@@ -1021,33 +1014,10 @@ final class NumaService
         }
 
         if ($toolResults !== []) {
-            $toolResultContext = [
+            $context[] = [
                 'type' => 'financial_tool_results',
-                'items' => [],
+                'items' => $toolExecutions,
             ];
-            $toolResultContextOverhead = $this->jsonLength($toolResultContext) - $this->jsonLength([]);
-            $toolItems = $this->toolResultsForContext(
-                $toolExecutions,
-                max(0, $remainingBudget - $toolResultContextOverhead)
-            );
-
-            if (count($toolItems) !== count($toolResults)) {
-                if ($this->jsonLength($toolResults) <= bh_env_int(
-                    'NUMA_MAX_TOOL_RESULT_CHARS',
-                    NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
-                )) {
-                    throw new NumaInputLimitExceeded();
-                }
-
-                throw new NumaFinancialToolLimitExceeded();
-            }
-
-            $toolResultContext['items'] = $toolItems;
-            if ($this->jsonLength($toolResultContext) > max(0, $remainingBudget)) {
-                throw new NumaInputLimitExceeded();
-            }
-
-            $context[] = $toolResultContext;
         }
 
         return $context;
@@ -1093,61 +1063,6 @@ final class NumaService
         }
 
         return $items;
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $toolResults
-     * @return array<int, array<string, mixed>>
-     */
-    private function toolResultsForContext(array $toolResults, int $remainingBudget): array
-    {
-        $maxChars = min(
-            bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS),
-            max(0, $remainingBudget)
-        );
-
-        if ($maxChars <= 0) {
-            return [];
-        }
-
-        if ($this->jsonLength($toolResults) <= $maxChars) {
-            return $toolResults;
-        }
-
-        $limited = [];
-        foreach ($toolResults as $result) {
-            $candidate = [...$limited, $result];
-            if ($this->jsonLength($candidate) > $maxChars) {
-                break;
-            }
-
-            $limited[] = $result;
-        }
-
-        return $limited;
-    }
-
-    /**
-     * Conserva el resultado canonico de la tool y adapta solo su copia para la respuesta al usuario.
-     *
-     * @param array<int, array<string, mixed>> $toolResults
-     * @return array<int, array<string, mixed>>
-     */
-    private function movementResultsForPresentation(array $toolResults): array
-    {
-        return $toolResults;
-    }
-
-    private function movementMonthLabel(string $date): ?string
-    {
-        if (preg_match('/^(\d{4})-(0[1-9]|1[0-2])-\d{2}(?:\s.*)?$/', $date, $matches) !== 1) {
-            return null;
-        }
-
-        return [
-            '01' => 'enero', '02' => 'febrero', '03' => 'marzo', '04' => 'abril', '05' => 'mayo', '06' => 'junio',
-            '07' => 'julio', '08' => 'agosto', '09' => 'septiembre', '10' => 'octubre', '11' => 'noviembre', '12' => 'diciembre',
-        ][$matches[2]] . ' de ' . $matches[1];
     }
 
     /**
@@ -1351,27 +1266,13 @@ final class NumaService
     private function periodsFromToolArguments(NumaToolRequest $toolRequest): array
     {
         $periods = [];
-        if ($toolRequest->name() === NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS) {
-            foreach ($toolRequest->arguments()['periodos'] ?? [] as $period) {
-                if (is_array($period) && is_string($period['mes_inicio'] ?? null) && is_string($period['mes_fin'] ?? null)) {
-                    $periods[] = ['mes_inicio' => $period['mes_inicio'], 'mes_fin' => $period['mes_fin']];
-                }
+        foreach ($toolRequest->arguments()['periodos'] ?? [] as $period) {
+            if (is_array($period) && is_string($period['mes_inicio'] ?? null) && is_string($period['mes_fin'] ?? null)) {
+                $periods[] = ['mes_inicio' => $period['mes_inicio'], 'mes_fin' => $period['mes_fin']];
             }
-
-            return array_values(array_unique($periods, SORT_REGULAR));
         }
 
-        $arguments = $toolRequest->arguments();
-        if (is_string($arguments['fecha_inicio'] ?? null) && is_string($arguments['fecha_fin'] ?? null)) {
-            $period = $this->periodResolver->normalize($arguments['fecha_inicio'], $arguments['fecha_fin']);
-
-            return [[
-                'mes_inicio' => substr($period['inicio'], 0, 7),
-                'mes_fin' => substr($period['fin'], 0, 7),
-            ]];
-        }
-
-        return [];
+        return array_values(array_unique($periods, SORT_REGULAR));
     }
 
     /**

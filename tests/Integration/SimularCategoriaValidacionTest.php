@@ -124,7 +124,7 @@ final class SimularCategoriaValidacionTest extends IntegrationTestCase
         $usuario = $this->crearUsuario('sim-catingreso.integration@example.test');
 
         $respuesta = $this->invocar([
-            'categoria' => 'salario',
+            'categoria' => 'nomina',
             'mes' => '2026-05',
         ], $usuario['id']);
 

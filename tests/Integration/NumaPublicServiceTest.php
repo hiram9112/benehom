@@ -151,7 +151,7 @@ final class NumaPublicServiceTest extends TestCase
         $provider = new NumaPublicServiceProvider(new \NumaResponse(
             'No debe ejecutarse.',
             null,
-            new \NumaToolRequest('obtener_resumen_financiero'),
+            new \NumaToolRequest('consultar_datos_financieros'),
         ));
         $usage = new \NumaPublicUso($this->db);
         $visitorHash = $this->visitorHash();

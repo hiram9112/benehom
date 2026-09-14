@@ -19,35 +19,35 @@ VALUES (
 
 INSERT INTO ingresos (usuario_id, categoria, cantidad, fecha) VALUES
 -- Diciembre 2025
-(1, 'salario', 1820.00, '2025-12-01'),
-(1, 'actividad_propia', 240.00, '2025-12-01'),
-(1, 'aportaciones_regalos', 180.00, '2025-12-01'),
+(1, 'nomina', 1820.00, '2025-12-01'),
+(1, 'servicios_proyectos', 240.00, '2025-12-01'),
+(1, 'regalo_aportacion', 180.00, '2025-12-01'),
 
 -- Enero 2026
-(1, 'salario', 1820.00, '2026-01-01'),
-(1, 'ventas_segunda_mano', 95.00, '2026-01-01'),
+(1, 'nomina', 1820.00, '2026-01-01'),
+(1, 'venta_segunda_mano', 95.00, '2026-01-01'),
 
 -- Febrero 2026
-(1, 'salario', 1820.00, '2026-02-01'),
-(1, 'inversiones', 38.50, '2026-02-01'),
+(1, 'nomina', 1820.00, '2026-02-01'),
+(1, 'inversiones_intereses', 38.50, '2026-02-01'),
 
 -- Marzo 2026
-(1, 'salario', 1860.00, '2026-03-01'),
-(1, 'actividad_propia', 160.00, '2026-03-01'),
+(1, 'nomina', 1860.00, '2026-03-01'),
+(1, 'servicios_proyectos', 160.00, '2026-03-01'),
 
 -- Abril 2026
-(1, 'salario', 1860.00, '2026-04-01'),
-(1, 'alquileres', 320.00, '2026-04-01'),
+(1, 'nomina', 1860.00, '2026-04-01'),
+(1, 'alquiler', 320.00, '2026-04-01'),
 
 -- Mayo 2026
-(1, 'salario', 1860.00, '2026-05-01'),
-(1, 'prestaciones_ayudas', 120.00, '2026-05-01'),
+(1, 'nomina', 1860.00, '2026-05-01'),
+(1, 'prestacion_subsidio', 120.00, '2026-05-01'),
 (1, 'otros', 75.00, '2026-05-01'),
 
 -- Junio 2026
-(1, 'salario', 1860.00, '2026-06-01'),
-(1, 'actividad_propia', 210.00, '2026-06-01'),
-(1, 'inversiones', 42.75, '2026-06-01');
+(1, 'nomina', 1860.00, '2026-06-01'),
+(1, 'servicios_proyectos', 210.00, '2026-06-01'),
+(1, 'inversiones_intereses', 42.75, '2026-06-01');
 
 
 /* =========================================================

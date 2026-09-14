@@ -77,7 +77,7 @@ final class NumaFunctionalDecisionTest extends TestCase
             'needs_clarification' => false,
             'knowledge_query' => null,
             'tool' => [
-                'name' => 'obtener_resumen_financiero',
+                'name' => 'consultar_datos_financieros',
                 'arguments' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
             ],
         ]);

@@ -149,7 +149,7 @@ final class FrontControllerRoutingTest extends TestCase
             'accept' => 'application/json',
             'post' => [
                 '_csrf' => 'csrf-token',
-                'categoria_ingreso' => 'salario',
+                'categoria_ingreso' => 'nomina',
                 'cantidad_ingreso' => '100',
                 'mes_seleccionado' => 'mes-invalido',
             ],

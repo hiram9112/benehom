@@ -186,7 +186,7 @@ final class NumaAdversarialEvaluationTest extends TestCase
             'needs_clarification' => false,
             'knowledge_query' => null,
             'tool' => [
-                'name' => 'obtener_resumen_financiero',
+                'name' => 'consultar_datos_financieros',
                 'arguments' => ['usuario_id' => 99],
             ],
         ]);
@@ -272,7 +272,7 @@ final class NumaAdversarialEvaluationTest extends TestCase
             'needs_clarification' => false,
             'knowledge_query' => null,
             'tool' => [
-                'name' => 'obtener_resumen_financiero',
+                'name' => 'consultar_datos_financieros',
                 'arguments' => ['usuario_id' => 99],
             ],
         ]);
@@ -489,12 +489,7 @@ final class NumaAdversarialToolRegistryFake implements \NumaFinancialToolRegistr
     public function names(): array
     {
         return [
-            'obtener_resumen_financiero',
-            'obtener_ranking_categorias',
-            'obtener_evolucion_financiera',
-            'comparar_periodos',
-            'obtener_estadisticas_movimientos',
-            'obtener_movimientos',
+            'consultar_datos_financieros',
         ];
     }
 

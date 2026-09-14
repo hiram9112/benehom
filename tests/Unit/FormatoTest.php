@@ -12,8 +12,14 @@ final class FormatoTest extends TestCase
     {
         self::assertSame('Alquiler o hipoteca', \formatearCategoria('alquiler_hipoteca'));
         self::assertSame('Nómina', \formatearCategoria('nomina'));
-        self::assertSame('Salario o nómina', \formatearCategoria('salario'));
         self::assertSame('Categoria Personalizada', \formatearCategoria('categoria_personalizada'));
+    }
+
+    public function testMantieneEtiquetasDeLecturaParaCategoriasLegacy(): void
+    {
+        foreach (\ingresoCategoriaLabelsLegacy() as $categoria => $etiqueta) {
+            self::assertSame($etiqueta, \formatearCategoria($categoria));
+        }
     }
 
     public function testFormateaCantidadConDosDecimalesYComa(): void

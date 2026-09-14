@@ -29,7 +29,7 @@ final class NumaProviderContractTest extends TestCase
             '¿Cómo añado un movimiento?',
             'Instrucciones internas',
             [['title' => 'Movimientos', 'content' => 'Contenido controlado']],
-            ['obtener_resumen_financiero'],
+            ['consultar_datos_financieros'],
             [['role' => 'user', 'message' => 'Pregunta anterior']],
         );
 
@@ -39,7 +39,7 @@ final class NumaProviderContractTest extends TestCase
         self::assertSame('¿Cómo añado un movimiento?', $request->message());
         self::assertSame('Instrucciones internas', $request->systemInstruction());
         self::assertSame([['title' => 'Movimientos', 'content' => 'Contenido controlado']], $request->context());
-        self::assertSame(['obtener_resumen_financiero'], $request->availableTools());
+        self::assertSame(['consultar_datos_financieros'], $request->availableTools());
         self::assertSame([['role' => 'user', 'message' => 'Pregunta anterior']], $request->history());
         self::assertSame('Respuesta breve de Numa.', $response->message());
         self::assertNull($response->structuredData());
@@ -341,13 +341,13 @@ final class NumaProviderContractTest extends TestCase
             'nota privada' => [[['type' => 'financial_tool_results', 'items' => [['nota' => 'Nota interna.']]]]],
             'notas privadas' => [[['type' => 'financial_tool_results', 'items' => [['notas' => ['Nota interna.']]]]]],
             'clave prohibida anidada' => [[['type' => 'financial_tool_results', 'items' => [['detalle' => ['usuario_id' => 7]]]]]],
-            'descripcion no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_resumen_financiero', 'descripcion' => 'Compra privada']]]]],
-            'dato anidado bajo clave permitida' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_resumen_financiero', 'ingresos' => ['descripcion' => 'Compra privada']]]]]],
-            'comercio no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_estadisticas_movimientos', 'comercio' => 'Tienda']]]]],
-            'referencia no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_ranking_categorias', 'referencia' => 'ABC-123']]]]],
-            'saldo no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'comparar_periodos', 'saldo' => 2000.0]]]]],
-            'fecha creacion no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_evolucion_financiera', 'fecha_creacion' => '2026-07-01']]]]],
-            'periodo solicitado no permitido para resumen' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'obtener_resumen_financiero', 'periodo_solicitado' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31']]]]]],
+            'descripcion no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'consultar_datos_financieros', 'descripcion' => 'Compra privada']]]]],
+            'dato anidado bajo clave permitida' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'consultar_datos_financieros', 'ingresos' => ['descripcion' => 'Compra privada']]]]]],
+            'comercio no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'consultar_datos_financieros', 'comercio' => 'Tienda']]]]],
+            'referencia no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'consultar_datos_financieros', 'referencia' => 'ABC-123']]]]],
+            'saldo no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'consultar_datos_financieros', 'saldo' => 2000.0]]]]],
+            'fecha creacion no allowlist' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'consultar_datos_financieros', 'fecha_creacion' => '2026-07-01']]]]],
+            'periodo solicitado no permitido' => [[['type' => 'financial_tool_results', 'items' => [['tool' => 'consultar_datos_financieros', 'periodo_solicitado' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31']]]]]],
         ];
     }
 }

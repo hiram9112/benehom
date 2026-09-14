@@ -53,7 +53,7 @@ final class AcumulacionMensualTest extends IntegrationTestCase
         $usuario = $this->crearUsuario('acum-ingreso-nuevo@test.local');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '1500',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
@@ -66,17 +66,17 @@ final class AcumulacionMensualTest extends IntegrationTestCase
     public function testIngresoExistenteRequiereConfirmacionSinModificarlo(): void
     {
         $usuario = $this->crearUsuario('acum-ingreso-confirmar@test.local');
-        \Ingreso::agregarIngreso($usuario['id'], 'salario', '1500', '2026-05-01');
+        \Ingreso::agregarIngreso($usuario['id'], 'nomina', '1500', '2026-05-01');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '200',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
 
         self::assertFalse($respuesta['ok']);
         self::assertTrue($respuesta['requiere_confirmacion']);
-        self::assertSame('salario', $respuesta['confirmacion']['categoria']);
+        self::assertSame('nomina', $respuesta['confirmacion']['categoria']);
         self::assertSame('1500.00', $respuesta['confirmacion']['cantidad_actual']);
         self::assertSame('2026-05', $respuesta['confirmacion']['mes']);
         self::assertSame('200', $respuesta['confirmacion']['cantidad_nueva']);
@@ -89,10 +89,10 @@ final class AcumulacionMensualTest extends IntegrationTestCase
     public function testConfirmarIngresoAcumulaEnLaFilaMensualExistente(): void
     {
         $usuario = $this->crearUsuario('acum-ingreso-ok@test.local');
-        \Ingreso::agregarIngreso($usuario['id'], 'salario', '1500', '2026-05-01');
+        \Ingreso::agregarIngreso($usuario['id'], 'nomina', '1500', '2026-05-01');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '200',
             'mes_seleccionado' => '2026-05',
             'confirmar_acumulacion' => '1',
@@ -110,10 +110,10 @@ final class AcumulacionMensualTest extends IntegrationTestCase
     public function testIngresoEnOtroMesSeMantieneSeparado(): void
     {
         $usuario = $this->crearUsuario('acum-ingreso-meses@test.local');
-        \Ingreso::agregarIngreso($usuario['id'], 'salario', '1500', '2026-04-01');
+        \Ingreso::agregarIngreso($usuario['id'], 'nomina', '1500', '2026-04-01');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '1600',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
@@ -166,10 +166,10 @@ final class AcumulacionMensualTest extends IntegrationTestCase
     {
         $duenio = $this->crearUsuario('acum-duenio@test.local');
         $atacante = $this->crearUsuario('acum-atacante@test.local');
-        \Ingreso::agregarIngreso($duenio['id'], 'salario', '1500', '2026-05-01');
+        \Ingreso::agregarIngreso($duenio['id'], 'nomina', '1500', '2026-05-01');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '200',
             'mes_seleccionado' => '2026-05',
             'confirmar_acumulacion' => '1',
@@ -183,10 +183,10 @@ final class AcumulacionMensualTest extends IntegrationTestCase
     public function testConfirmacionVuelveAValidarLaIdentidadMensual(): void
     {
         $usuario = $this->crearUsuario('acum-revalidar@test.local');
-        $ingresoId = \Ingreso::agregarIngreso($usuario['id'], 'salario', '1500', '2026-05-01');
+        $ingresoId = \Ingreso::agregarIngreso($usuario['id'], 'nomina', '1500', '2026-05-01');
 
         $pendiente = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '200',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
@@ -195,7 +195,7 @@ final class AcumulacionMensualTest extends IntegrationTestCase
         self::assertTrue(\Ingreso::eliminarIngreso((int) $ingresoId, $usuario['id']));
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '200',
             'mes_seleccionado' => '2026-05',
             'confirmar_acumulacion' => '1',

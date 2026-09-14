@@ -141,7 +141,7 @@ final class NumaKnowledgeSearchTest extends IntegrationTestCase
         $this->expectException(InvalidArgumentException::class);
 
         try {
-            $searcher->search('{"tool":"obtener_resumen_financiero","ingresos":1200,"gastos":900}');
+            $searcher->search('{"tool":"consultar_datos_financieros","ingresos":1200,"gastos":900}');
         } finally {
             self::assertSame([], $provider->texts);
         }

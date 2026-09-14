@@ -80,7 +80,7 @@ final class OwnershipScopingTest extends IntegrationTestCase
         $duenio = $this->crearUsuario('ingreso-owner.integration@example.test');
         $otroUsuario = $this->crearUsuario('ingreso-attacker.integration@example.test');
 
-        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'salario', 1500, '2026-02-15');
+        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'nomina', 1500, '2026-02-15');
 
         self::assertNotFalse($ingresoId);
 
@@ -100,7 +100,7 @@ final class OwnershipScopingTest extends IntegrationTestCase
         $duenio = $this->crearUsuario('ingreso-edit-owner.integration@example.test');
         $otroUsuario = $this->crearUsuario('ingreso-edit-attacker.integration@example.test');
 
-        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'salario', 1500, '2026-02-15');
+        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'nomina', 1500, '2026-02-15');
 
         self::assertNotFalse($ingresoId);
 

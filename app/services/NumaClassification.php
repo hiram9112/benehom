@@ -59,46 +59,13 @@ final class NumaClassificationIntent
     }
 }
 
-final class NumaDataIntent
-{
-    public const RESUMEN_FINANCIERO = 'resumen_financiero';
-    public const RANKING_CATEGORIAS = 'ranking_categorias';
-    public const EVOLUCION_FINANCIERA = 'evolucion_financiera';
-    public const COMPARACION_PERIODOS = 'comparacion_periodos';
-    public const ESTADISTICAS_MOVIMIENTOS = 'estadisticas_movimientos';
-    public const MOVIMIENTOS = 'movimientos';
-
-    /** @var array<int, string> */
-    private const ALL = [
-        self::RESUMEN_FINANCIERO,
-        self::RANKING_CATEGORIAS,
-        self::EVOLUCION_FINANCIERA,
-        self::COMPARACION_PERIODOS,
-        self::ESTADISTICAS_MOVIMIENTOS,
-        self::MOVIMIENTOS,
-    ];
-
-    /**
-     * @return array<int, string>
-     */
-    public static function all(): array
-    {
-        return self::ALL;
-    }
-
-    public static function exists(string $intent): bool
-    {
-        return in_array($intent, self::ALL, true);
-    }
-}
-
 final class NumaClassification
 {
     /** @var array<int, string> */
     private const REQUIRED_KEYS = ['intent', 'allowed', 'reason'];
 
     /** @var array<int, string> */
-    private const OPTIONAL_KEYS = ['knowledge_query', 'data_intent'];
+    private const OPTIONAL_KEYS = ['knowledge_query'];
 
     /** @var array<int, string> */
     private const DANGEROUS_KEYS = [
@@ -123,7 +90,6 @@ final class NumaClassification
         private readonly bool $allowed,
         private readonly string $reason,
         private readonly ?string $knowledgeQuery = null,
-        private readonly ?string $dataIntent = null,
     ) {
         if (!NumaClassificationIntent::exists($intent)) {
             throw new InvalidArgumentException('Categoria de Numa no soportada.');
@@ -141,14 +107,10 @@ final class NumaClassification
             throw new InvalidArgumentException('La consulta documental de Numa no puede estar vacia.');
         }
 
-        if ($dataIntent !== null && !NumaDataIntent::exists($dataIntent)) {
-            throw new InvalidArgumentException('Intencion de datos de Numa no soportada.');
-        }
-
         if ($intent === NumaClassificationIntent::INTERACCION_CONVERSACIONAL
-            && ($knowledgeQuery !== null || $dataIntent !== null)
+            && $knowledgeQuery !== null
         ) {
-            throw new InvalidArgumentException('La interaccion conversacional de Numa no puede solicitar conocimiento ni datos.');
+            throw new InvalidArgumentException('La interaccion conversacional de Numa no puede solicitar conocimiento.');
         }
     }
 
@@ -163,7 +125,6 @@ final class NumaClassification
         $allowed = $data['allowed'];
         $reason = $data['reason'];
         $knowledgeQuery = $data['knowledge_query'] ?? null;
-        $dataIntent = $data['data_intent'] ?? null;
 
         if (!is_string($intent) || !is_bool($allowed) || !is_string($reason)) {
             throw new InvalidArgumentException('Salida estructurada de Numa invalida.');
@@ -173,16 +134,11 @@ final class NumaClassification
             throw new InvalidArgumentException('Consulta documental de Numa invalida.');
         }
 
-        if ($dataIntent !== null && !is_string($dataIntent)) {
-            throw new InvalidArgumentException('Intencion de datos de Numa invalida.');
-        }
-
         return new self(
             $intent,
             $allowed,
             trim($reason),
             $knowledgeQuery === null ? null : trim($knowledgeQuery),
-            $dataIntent === null ? null : trim($dataIntent),
         );
     }
 
@@ -196,7 +152,6 @@ final class NumaClassification
                 'allowed' => ['type' => 'BOOLEAN'],
                 'reason' => ['type' => 'STRING'],
                 'knowledge_query' => ['type' => 'STRING', 'nullable' => true],
-                'data_intent' => ['type' => 'STRING', 'enum' => NumaDataIntent::all(), 'nullable' => true],
             ],
             'required' => self::REQUIRED_KEYS,
         ];
@@ -222,11 +177,6 @@ final class NumaClassification
         return $this->knowledgeQuery;
     }
 
-    public function dataIntent(): ?string
-    {
-        return $this->dataIntent;
-    }
-
     /**
      * @return array<string, string|bool>
      */
@@ -240,10 +190,6 @@ final class NumaClassification
 
         if ($this->knowledgeQuery !== null) {
             $data['knowledge_query'] = $this->knowledgeQuery;
-        }
-
-        if ($this->dataIntent !== null) {
-            $data['data_intent'] = $this->dataIntent;
         }
 
         return $data;
@@ -406,9 +352,8 @@ final class NumaProviderScopeClassifier
             'output' => [
                 'format' => 'json_object',
                 'required_keys' => ['intent', 'allowed', 'reason'],
-                'optional_keys' => ['knowledge_query', 'data_intent'],
+                'optional_keys' => ['knowledge_query'],
                 'allowed_intents' => NumaClassificationIntent::all(),
-                'allowed_data_intents' => NumaDataIntent::all(),
             ],
             'rules' => [
                 'Devuelve exclusivamente JSON válido, sin texto adicional.',
@@ -417,9 +362,8 @@ final class NumaProviderScopeClassifier
                 'Marca allowed true solo para producto, educacion_financiera, datos_usuario, consulta_combinada o interaccion_conversacional.',
                 'Usa interaccion_conversacional para saludos, agradecimientos, reacciones, reformulaciones o comentarios breves que puedan responderse solo con el mensaje y el historial controlado.',
                 'Si el mensaje incluye una peticion sustantiva de conocimiento, datos o una accion, clasifica esa peticion; la cortesia o el tono emocional no la convierten en interaccion_conversacional.',
-                'Interaccion_conversacional nunca lleva knowledge_query ni data_intent y no autoriza conocimiento general ajeno a BeneHom.',
+                'Interaccion_conversacional nunca lleva knowledge_query y no autoriza conocimiento general ajeno a BeneHom.',
                 'Usa knowledge_query solo para una consulta documental breve sin datos privados.',
-                'Usa data_intent solo si encaja exactamente con una intención de datos permitida.',
                 ...($publicMode ? [
                     'Esta interacción es pública: nunca autorices datos_usuario, consulta_combinada, tools ni datos financieros privados.',
                 ] : []),

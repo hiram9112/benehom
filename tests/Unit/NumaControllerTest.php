@@ -1537,7 +1537,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_financial_summary',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS)),
             new \NumaResponse('Tus gastos del periodo fueron 800 euros.')
@@ -1578,7 +1579,7 @@ final class NumaControllerTest extends TestCase
                 'allowed' => true,
                 'reason' => 'combined_help',
                 'knowledge_query' => 'gastos flexibles en BeneHom',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS)),
             new \NumaResponse('Los gastos flexibles son variables; en el periodo gastaste 800 euros.')
@@ -1893,7 +1894,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_data',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse(
                 'Necesito consultar datos agregados.',
@@ -1944,7 +1946,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_data',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
                 \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
@@ -1976,10 +1979,7 @@ final class NumaControllerTest extends TestCase
 
         self::assertSame('1200.00', $financialResults[0]['items'][0]['result']['meses'][0]['ingresos']['importe']);
         self::assertSame('800.00', $financialResults[0]['items'][0]['result']['meses'][0]['gastos']['importe']);
-        self::assertSame([], array_values(array_filter(
-            $contexts,
-            static fn (array $context): bool => ($context['type'] ?? null) === 'financial_facts'
-        )));
+        self::assertCount(1, $financialResults);
     }
 
     public function testChatConservaElPeriodoExplicitoFrenteAlDashboard(): void
@@ -2058,7 +2058,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_data',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
                 \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
@@ -2089,7 +2090,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_data',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
                 \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
@@ -2370,7 +2372,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_data',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse(
                 'Necesito consultar datos agregados.',
@@ -2537,7 +2540,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_data',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse('consulta', null, new \NumaToolRequest(
                 \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
@@ -2883,7 +2887,8 @@ final class NumaControllerTest extends TestCase
                 'intent' => 'datos_usuario',
                 'allowed' => true,
                 'reason' => 'user_data',
-                'data_intent' => 'resumen_financiero',
+                'needs_clarification' => false,
+                'knowledge_query' => null,
             ]),
             new \NumaResponse(
                 'Necesito consultar datos agregados.',

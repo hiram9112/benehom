@@ -68,7 +68,7 @@ final class NumaConfigurationTest extends TestCase
         self::addToAssertionCount(1);
     }
 
-    public function testAceptaElMaximoDeLlamadasPorInteraccionNecesarioParaCincoTools(): void
+    public function testAceptaElMaximoDeLlamadasPorInteraccionNecesarioParaCincoConsultas(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '9';
@@ -90,7 +90,7 @@ final class NumaConfigurationTest extends TestCase
         \NumaConfiguration::assertRuntime();
     }
 
-    public function testRechazaMasDeCincoToolsPorInteraccion(): void
+    public function testRechazaMasDeCincoConsultasPorInteraccion(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $_ENV['NUMA_MAX_TOOL_CALLS'] = '6';

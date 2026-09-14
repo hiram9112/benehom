@@ -7,7 +7,6 @@ require_once __DIR__ . '/../models/NumaConsumoGlobal.php';
 require_once __DIR__ . '/NumaUsageBudget.php';
 require_once __DIR__ . '/NumaClassification.php';
 require_once __DIR__ . '/NumaFinancialTools.php';
-require_once __DIR__ . '/NumaFinancialFactValidator.php';
 require_once __DIR__ . '/NumaKnowledge.php';
 require_once __DIR__ . '/NumaPreRouter.php';
 require_once __DIR__ . '/NumaProvider.php';
@@ -329,7 +328,6 @@ final class NumaService
         NumaFinancialToolRegistryInterface|Closure $financialTools,
         NumaGlobalAvailabilityInterface|Closure $globalAvailability,
         private readonly NumaPeriodResolver $periodResolver = new NumaPeriodResolver(),
-        private readonly NumaFinancialFactValidator $financialFacts = new NumaFinancialFactValidator(),
         ?callable $toolExecutionObserver = null,
     ) {
         $this->providerFactory = $provider instanceof NumaProviderInterface
@@ -789,10 +787,6 @@ final class NumaService
 
                 $this->assertRequiredFlowCompleted($classification, $knowledgeResults, $toolResults);
 
-                if ($toolResults !== [] && !$this->financialFacts->validates($finalMessage, $toolResults)) {
-                    $finalMessage = $this->financialFacts->fallback($toolResults);
-                }
-
                 return [
                     $this->withBoundedMovementSelectionNotice($finalMessage, $toolResults),
                     $toolResults,
@@ -987,7 +981,7 @@ final class NumaService
                 'Redacta los resultados de tools en lenguaje natural: no muestres nombres de tools, claves de campos, etiquetas como Periodo A o Periodo B, estructuras JSON ni otros detalles de backend.',
                 'Cuando un periodo sea un mes natural completo, nómbralo como mes y año; al comparar valores, explica si hay un aumento, una disminución o ninguna variación sin añadir interpretación financiera.',
                 'Envía a la tool únicamente períodos mensuales concretos con mes_inicio y mes_fin en formato YYYY-MM. No envíes referencias relativas, índices ni expresiones temporales.',
-                'Copia importes, porcentajes y cantidades exactamente de los hechos financieros autorizados; no los recalcules ni introduzcas cifras nuevas.',
+                'Puedes calcular comparaciones, diferencias, porcentajes, medias, rankings y tendencias solo a partir de las hojas financieras entregadas. Antes de llamar total a un importe o concluir sobre el universo completo, comprueba cobertura: una rama parcial es solo el subtotal de los elementos incluidos; sus contadores indican qué parte del universo se consultó y quedan elementos fuera de esa selección. No la presentes como gasto, ingreso o total completo del usuario ni como gasto registrado en sus cuentas, y no la interpretes como movimientos ausentes, pendientes de registrar o datos que BeneHom no posee. Indica naturalmente que corresponde solo a los tipos, áreas, categorías o movimientos consultados.',
                 'La fecha de cada movimiento expresa solo el mes disponible en BeneHom. Usa la etiqueta mensual natural entregada y no la presentes como una fecha diaria.',
                 ...($classification->intent() === NumaClassificationIntent::INTERACCION_CONVERSACIONAL ? [
                     'Manten una conversacion breve y natural usando solo el mensaje actual y el historial controlado.',
@@ -1027,17 +1021,6 @@ final class NumaService
         }
 
         if ($toolResults !== []) {
-            $financialFacts = [
-                'type' => 'financial_facts',
-                'items' => $this->financialFacts->facts($toolResults),
-            ];
-            if ($this->jsonLength($financialFacts) > max(0, $remainingBudget)) {
-                throw new NumaInputLimitExceeded();
-            }
-
-            $context[] = $financialFacts;
-            $remainingBudget -= $this->jsonLength($financialFacts);
-
             $toolResultContext = [
                 'type' => 'financial_tool_results',
                 'items' => [],

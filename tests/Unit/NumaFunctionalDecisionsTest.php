@@ -12,7 +12,16 @@ final class NumaFunctionalDecisionsTest extends TestCase
     {
         $prompt = $this->read(BASE_PATH . '/resources/numa/prompts/base.md');
 
-        self::assertStringContainsString('describe cifras, diferencias y tendencias objetivas', $prompt);
+        self::assertStringContainsString('datos financieros estructurados', $prompt);
+        self::assertStringContainsString('calcular comparaciones, diferencias, porcentajes, medias, rankings y tendencias', $prompt);
+        self::assertStringContainsString('comprueba su cobertura', $prompt);
+        self::assertStringContainsString('cobertura parcial', $prompt);
+        self::assertStringContainsString('subtotal de los elementos incluidos', $prompt);
+        self::assertStringContainsString('quedan elementos fuera de esa selección', $prompt);
+        self::assertStringContainsString('No lo presentes como gasto, ingreso o total completo del usuario', $prompt);
+        self::assertStringContainsString('no significa que falten movimientos', $prompt);
+        self::assertStringContainsString('tipos, áreas, categorías o movimientos consultados', $prompt);
+        self::assertStringNotContainsString('sin recalcularlos', $prompt);
         self::assertStringContainsString('No recomiendes que debe hacer el usuario', $prompt);
         self::assertStringContainsString('ingresos, gastos y movimientos', $prompt);
         self::assertStringContainsString('metas de ahorro, escenarios de inversion, proyecciones de inflacion ni hipotecas', $prompt);

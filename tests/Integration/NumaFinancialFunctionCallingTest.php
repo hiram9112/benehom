@@ -94,6 +94,148 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         self::assertSame('42.50', $requests[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['meses'][0]['gastos']['importe']);
     }
 
+    public function testGeminiDerivaUnRankingDeHojasConCoberturaParcial(): void
+    {
+        $user = $this->crearUsuario('numa-derived-ranking@example.test');
+        $userId = (int) $user['id'];
+        $statement = $this->db->prepare('INSERT INTO gastos (usuario_id, tipo, categoria, cantidad, fecha) VALUES (:usuario_id, :tipo, :categoria, :cantidad, :fecha)');
+        foreach ([
+            ['alquiler_hipoteca', '700.00'],
+            ['compra_basica', '400.00'],
+            ['transporte_publico', '150.00'],
+        ] as [$category, $amount]) {
+            $statement->execute([
+                ':usuario_id' => $userId,
+                ':tipo' => 'esencial',
+                ':categoria' => $category,
+                ':cantidad' => $amount,
+                ':fecha' => '2026-07-03',
+            ]);
+        }
+
+        $requests = [];
+        $responses = [
+            $this->classificationResponse(),
+            $this->functionCallResponse('derived-ranking', [
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+                'selectores' => [
+                    ['categoria' => 'alquiler_hipoteca'],
+                    ['categoria' => 'compra_basica'],
+                    ['categoria' => 'transporte_publico'],
+                ],
+            ]),
+            $this->textResponse('Entre las categorías consultadas, Vivienda fue la mayor con 700 EUR, seguida de Alimentación con 400 EUR y Transporte con 150 EUR. Esos 1.250 EUR corresponden solo a las 3 categorías consultadas, no al total de gastos.'),
+        ];
+        $index = 0;
+        $providerFactory = function (?\NumaProviderConsumptionInterface $consumption) use (&$requests, &$responses, &$index): \NumaProviderInterface {
+            return new \GeminiNumaProvider(
+                'test-key',
+                'gemini-test-model',
+                transport: function (string $url, array $headers, string $body) use (&$requests, &$responses, &$index): array {
+                    $requests[] = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+                    return ['status' => 200, 'body' => json_encode($responses[$index++], JSON_THROW_ON_ERROR)];
+                },
+                consumption: $consumption,
+            );
+        };
+        $service = new \NumaService(
+            new \NumaUso($this->db),
+            new \NumaLocalScopeClassifier(),
+            $providerFactory,
+            static fn (): array => [],
+            new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)),
+            new class implements \NumaGlobalAvailabilityInterface {
+                public function assertAvailable(): void
+                {
+                }
+            },
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
+        );
+
+        $result = $service->answer($userId, 'Ordena mis gastos de julio por categoría.');
+
+        self::assertSame(
+            'Entre las categorías consultadas, Vivienda fue la mayor con 700 EUR, seguida de Alimentación con 400 EUR y Transporte con 150 EUR. Esos 1.250 EUR corresponden solo a las 3 categorías consultadas, no al total de gastos.',
+            $result->toArray()['message'],
+        );
+        $financialResult = $requests[2]['contents'][2]['parts'][0]['functionResponse']['response']['result'];
+        self::assertSame('1250.00', $financialResult['meses'][0]['gastos']['importe']);
+        self::assertSame(
+            ['completa' => false, 'tipos_consultados' => 1, 'tipos_totales' => 2],
+            $financialResult['meses'][0]['gastos']['cobertura'],
+        );
+        self::assertSame(
+            ['completa' => false, 'categorias_consultadas' => 1, 'categorias_totales' => 6],
+            $financialResult['meses'][0]['gastos']['tipos'][0]['areas'][0]['cobertura'],
+        );
+        self::assertSame('700.00', $financialResult['meses'][0]['gastos']['tipos'][0]['areas'][0]['categorias'][0]['importe']);
+        self::assertSame('400.00', $financialResult['meses'][0]['gastos']['tipos'][0]['areas'][1]['categorias'][0]['importe']);
+        self::assertSame('150.00', $financialResult['meses'][0]['gastos']['tipos'][0]['areas'][2]['categorias'][0]['importe']);
+    }
+
+    public function testGeminiDerivaLaMediaDeVariasHojasMensuales(): void
+    {
+        $user = $this->crearUsuario('numa-derived-average@example.test');
+        $userId = (int) $user['id'];
+        $statement = $this->db->prepare('INSERT INTO gastos (usuario_id, tipo, categoria, cantidad, fecha) VALUES (:usuario_id, :tipo, :categoria, :cantidad, :fecha)');
+        foreach ([['2026-01-03', '300.00'], ['2026-02-03', '500.00'], ['2026-03-03', '400.00']] as [$date, $amount]) {
+            $statement->execute([
+                ':usuario_id' => $userId,
+                ':tipo' => 'esencial',
+                ':categoria' => 'electricidad',
+                ':cantidad' => $amount,
+                ':fecha' => $date,
+            ]);
+        }
+
+        $requests = [];
+        $responses = [
+            $this->classificationResponse(),
+            $this->functionCallResponse('derived-average', [
+                'periodos' => [['mes_inicio' => '2026-01', 'mes_fin' => '2026-03']],
+                'selectores' => [['categoria' => 'electricidad']],
+            ]),
+            $this->textResponse('La media de electricidad entre enero y marzo, usando los 3 meses consultados, es de 400 EUR.'),
+        ];
+        $index = 0;
+        $providerFactory = function (?\NumaProviderConsumptionInterface $consumption) use (&$requests, &$responses, &$index): \NumaProviderInterface {
+            return new \GeminiNumaProvider(
+                'test-key',
+                'gemini-test-model',
+                transport: function (string $url, array $headers, string $body) use (&$requests, &$responses, &$index): array {
+                    $requests[] = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+                    return ['status' => 200, 'body' => json_encode($responses[$index++], JSON_THROW_ON_ERROR)];
+                },
+                consumption: $consumption,
+            );
+        };
+        $service = new \NumaService(
+            new \NumaUso($this->db),
+            new \NumaLocalScopeClassifier(),
+            $providerFactory,
+            static fn (): array => [],
+            new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db)),
+            new class implements \NumaGlobalAvailabilityInterface {
+                public function assertAvailable(): void
+                {
+                }
+            },
+            new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
+        );
+
+        $result = $service->answer($userId, '¿Cuál fue la media de electricidad entre enero y marzo?');
+
+        self::assertSame(
+            'La media de electricidad entre enero y marzo, usando los 3 meses consultados, es de 400 EUR.',
+            $result->toArray()['message'],
+        );
+        $months = $requests[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['meses'];
+        self::assertSame(['2026-01', '2026-02', '2026-03'], array_column($months, 'mes'));
+        self::assertSame(['300.00', '500.00', '400.00'], array_column(array_column($months, 'gastos'), 'importe'));
+    }
+
     public function testFunctionCallingConservaElAnclaExplicitaDelMismoMensaje(): void
     {
         $user = $this->crearUsuario('numa-current-message-anchor@example.test');

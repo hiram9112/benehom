@@ -1934,7 +1934,7 @@ final class NumaControllerTest extends TestCase
         self::assertSame([\NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS], $log['tools']);
     }
 
-    public function testChatActivoUsaFallbackSiElProveedorInventaUnaCifraFinanciera(): void
+    public function testChatActivoConservaElAnalisisDerivadoDeGeminiYLaJerarquiaFinanciera(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
         $this->configureJsonPost();
@@ -1950,7 +1950,7 @@ final class NumaControllerTest extends TestCase
                 \NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS,
                 ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'],
             )),
-            new \NumaResponse('En julio ingresaste 1200 EUR y gastaste 801 EUR.'),
+            new \NumaResponse('La diferencia entre ingresos y gastos es de 400 EUR y los gastos equivalen al 66,67 % de tus ingresos.'),
         );
 
         $response = $this->invoke(
@@ -1964,21 +1964,22 @@ final class NumaControllerTest extends TestCase
 
         self::assertTrue($response['ok']);
         self::assertSame(
-            'En julio de 2026, tus ingresos fueron 1200.00 EUR. Tus gastos fueron 800.00 EUR.',
+            'La diferencia entre ingresos y gastos es de 400 EUR y los gastos equivalen al 66,67 % de tus ingresos.',
             $response['data']['message']
         );
 
         $contexts = $provider->requests()[2]->context();
-        $financialFacts = array_values(array_filter(
+        $financialResults = array_values(array_filter(
             $contexts,
-            static fn (array $context): bool => ($context['type'] ?? null) === 'financial_facts'
+            static fn (array $context): bool => ($context['type'] ?? null) === 'financial_tool_results'
         ));
 
-        self::assertSame([
-            ['kind' => 'month', 'value' => '2026-07'],
-            ['kind' => 'amount', 'value' => '1200.00'],
-            ['kind' => 'amount', 'value' => '800.00'],
-        ], $financialFacts[0]['items']);
+        self::assertSame('1200.00', $financialResults[0]['items'][0]['result']['meses'][0]['ingresos']['importe']);
+        self::assertSame('800.00', $financialResults[0]['items'][0]['result']['meses'][0]['gastos']['importe']);
+        self::assertSame([], array_values(array_filter(
+            $contexts,
+            static fn (array $context): bool => ($context['type'] ?? null) === 'financial_facts'
+        )));
     }
 
     public function testChatConservaElPeriodoExplicitoFrenteAlDashboard(): void

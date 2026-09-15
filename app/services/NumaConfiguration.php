@@ -14,6 +14,7 @@ final class NumaConfigurationException extends RuntimeException
 final class NumaConfiguration
 {
     public const DEFAULT_MAX_OUTPUT_TOKENS = 1000;
+    public const REQUEST_LOCK_MARGIN_SECONDS = 5;
 
     public static function maxOutputTokens(): int
     {
@@ -92,12 +93,17 @@ final class NumaConfiguration
         self::assertUserIdList('NUMA_LIMIT_EXEMPT_USER_IDS');
         self::assertInteger('NUMA_DAILY_LIMIT', 15, 1);
         self::assertInteger('NUMA_MONTHLY_LIMIT', 60, self::integerValue('NUMA_DAILY_LIMIT', 15));
-        self::assertInteger('NUMA_RESERVATION_TTL_SECONDS', 120, 1);
-        self::assertInteger('NUMA_MAX_INPUT_TOKENS', 16000, 1, 16000);
+        self::assertInteger('NUMA_MAX_INPUT_TOKENS', 65536, 1);
         self::assertInteger('NUMA_MAX_OUTPUT_TOKENS', self::DEFAULT_MAX_OUTPUT_TOKENS, 1);
         self::assertInteger('NUMA_MAX_PROVIDER_CALLS', 9, 1, 9);
-        self::assertInteger('NUMA_PROVIDER_TIMEOUT_SECONDS', 10, 1, 10);
-        self::assertInteger('NUMA_REQUEST_TIMEOUT_SECONDS', 25, 1, 25);
+        self::assertInteger('NUMA_PROVIDER_TIMEOUT_SECONDS', 60, 1);
+        self::assertInteger('NUMA_EMBEDDING_TIMEOUT_SECONDS', 30, 1);
+        self::assertInteger('NUMA_REQUEST_TIMEOUT_SECONDS', 240, 1);
+        self::assertInteger(
+            'NUMA_RESERVATION_TTL_SECONDS',
+            245,
+            self::integerValue('NUMA_REQUEST_TIMEOUT_SECONDS', 240) + self::REQUEST_LOCK_MARGIN_SECONDS,
+        );
         self::assertInteger('NUMA_MAX_TRANSIENT_RETRIES', 1, 0, 1);
         self::assertInteger('NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT', 100, 1);
         self::assertInteger(
@@ -105,11 +111,11 @@ final class NumaConfiguration
             1000,
             self::integerValue('NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT', 100),
         );
-        self::assertInteger('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 100000, 1);
+        self::assertInteger('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 300000, 1);
         self::assertInteger(
             'NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT',
-            600000,
-            self::integerValue('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 100000),
+            1500000,
+            self::integerValue('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 300000),
         );
         self::assertInteger('NUMA_EMBEDDING_DIMENSIONS', 768, 768, 768);
         self::assertInteger('NUMA_MAX_RAG_RESULTS', NumaKnowledgeSearcher::MAX_RESULTS, 1, NumaKnowledgeSearcher::MAX_RESULTS);
@@ -122,11 +128,12 @@ final class NumaConfiguration
         self::assertFloat('NUMA_RAG_MIN_SIMILARITY', NumaKnowledgeSearcher::DEFAULT_MIN_SIMILARITY, 0.0, 1.0);
         self::assertInteger('NUMA_MAX_TOOL_CALLS', NumaFinancialToolRegistry::MAX_TOOL_CALLS, 1, NumaFinancialToolRegistry::MAX_TOOL_CALLS);
         self::assertInteger(
-            'NUMA_MAX_TOOL_RESULT_CHARS',
-            NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+            'NUMA_MAX_TOOL_RESULT_BYTES',
+            NumaFinancialToolRegistry::MAX_TOOL_RESULT_BYTES,
             1,
-            NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS,
+            NumaFinancialToolRegistry::MAX_TOOL_RESULT_BYTES,
         );
+        self::assertInteger('NUMA_MAX_TOOL_RESULT_ROWS', NumaFinancialToolExecutor::MAX_TOOL_RESULT_ROWS, 1, NumaFinancialToolExecutor::MAX_TOOL_RESULT_ROWS);
     }
 
     private static function assertEmbeddingProvider(): void

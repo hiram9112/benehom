@@ -45,8 +45,6 @@ class NumaController
     private const PUBLIC_CHAT_RATE_LIMIT_ACTION = 'numa_public_chat_ip';
     private const CHAT_REQUEST_SESSION_KEY = 'numa_chat_request';
     private const PUBLIC_CHAT_REQUEST_SESSION_KEY = 'numa_public_chat_request';
-    private const CHAT_REQUEST_EXPIRY_MARGIN_SECONDS = 5;
-
     private const STATUS_REASON_DISABLED = 'disabled';
     private const STATUS_REASON_CONFIGURATION_INCOMPLETE = 'configuration_incomplete';
     private const STATUS_REASON_TEMPORARILY_UNAVAILABLE = 'temporarily_unavailable';
@@ -567,9 +565,9 @@ class NumaController
     /** @param array{timestamp:int,usuario_id:int,conversation_version:int} $request */
     private function chatRequestExpired(array $request): bool
     {
-        $deadline = max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25));
+        $deadline = max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 240));
 
-        return time() > $request['timestamp'] + $deadline + self::CHAT_REQUEST_EXPIRY_MARGIN_SECONDS;
+        return time() > $request['timestamp'] + $deadline + NumaConfiguration::REQUEST_LOCK_MARGIN_SECONDS;
     }
 
     /** @param array{timestamp:int,usuario_id:int,conversation_version:int} $request */
@@ -626,9 +624,9 @@ class NumaController
     /** @param array{timestamp:int,visitante_hash:string,conversation_version:int} $request */
     private function publicChatRequestExpired(array $request): bool
     {
-        $deadline = max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25));
+        $deadline = max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 240));
 
-        return time() > $request['timestamp'] + $deadline + self::CHAT_REQUEST_EXPIRY_MARGIN_SECONDS;
+        return time() > $request['timestamp'] + $deadline + NumaConfiguration::REQUEST_LOCK_MARGIN_SECONDS;
     }
 
     /** @param array{timestamp:int,visitante_hash:string,conversation_version:int} $request */

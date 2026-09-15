@@ -76,6 +76,11 @@ interface NumaEmbeddingTimeoutProviderInterface extends NumaEmbeddingProviderInt
     public function withTimeoutSeconds(int $timeoutSeconds): NumaEmbeddingProviderInterface;
 }
 
+interface NumaEmbeddingInputEstimateProviderInterface extends NumaEmbeddingProviderInterface
+{
+    public function inputTokenEstimate(string $text, string $method): int;
+}
+
 final class NumaMeteredEmbeddingProvider implements NumaEmbeddingTaskProviderInterface
 {
     public function __construct(
@@ -109,6 +114,11 @@ final class NumaMeteredEmbeddingProvider implements NumaEmbeddingTaskProviderInt
         }
 
         $provider = $this->provider;
+        if ($this->consumption instanceof NumaProviderInputEstimateInterface
+            && $provider instanceof NumaEmbeddingInputEstimateProviderInterface
+        ) {
+            $this->consumption->setInputTokenEstimate($provider->inputTokenEstimate($text, $method));
+        }
         if ($this->consumption instanceof NumaInteractionBudgetInterface) {
             $configuredTimeoutSeconds = $provider instanceof NumaEmbeddingTimeoutProviderInterface
                 ? $provider->timeoutSeconds()

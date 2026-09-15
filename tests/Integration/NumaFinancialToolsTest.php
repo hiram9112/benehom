@@ -172,7 +172,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         self::assertSame('9.99', $result['meses'][0]['gastos']['importe']);
     }
 
-    public function testCentimosSeConservanYLaEstimacionExcesivaFallaAntesDelSql(): void
+    public function testCentimosSeConservan(): void
     {
         $user = $this->crearUsuario('numa-hierarchy-limits@example.test');
         $userId = (int) $user['id'];
@@ -184,18 +184,6 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'selectores' => [['area' => 'trabajo']],
         ]);
         self::assertSame('0.30', $result['meses'][0]['ingresos']['importe']);
-
-        $pdo = new NumaFinancialToolsRecordingPdo();
-        $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($pdo, maxToolResultRows: 3));
-        try {
-            $registry->execute('consultar_datos_financieros', $userId, [
-                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
-                'selectores' => [['categoria' => 'electricidad']],
-            ]);
-            self::fail('La estimación de filas debía rechazar el resultado antes de consultar datos.');
-        } catch (\NumaFinancialToolLimitExceeded) {
-            self::assertSame([], $pdo->preparedSql);
-        }
     }
 
     public function testResultadoQueExcedeElTamanoSerializadoFallaSinTruncar(): void
@@ -203,7 +191,7 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
         $user = $this->crearUsuario('numa-hierarchy-json-limit@example.test');
         $registry = new \NumaFinancialToolRegistry(
             new \NumaFinancialToolExecutor($this->db),
-            maxAggregateResultJsonChars: 10,
+            maxToolResultBytes: 10,
         );
 
         $this->expectException(\NumaFinancialToolLimitExceeded::class);
@@ -211,6 +199,82 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
             'selectores' => [['categoria' => 'electricidad']],
         ]);
+    }
+
+    public function testCapDeDiezMilFilasRechazaDiezMilUnaSinDevolverResultadoParcial(): void
+    {
+        $previous = $_ENV['NUMA_MAX_TOOL_RESULT_ROWS'] ?? null;
+        $_ENV['NUMA_MAX_TOOL_RESULT_ROWS'] = '10000';
+        $user = $this->crearUsuario('numa-real-row-cap@example.test');
+        $userId = (int) $user['id'];
+        $this->insertManyGastos($userId, 10001);
+
+        try {
+            $registry = new \NumaFinancialToolRegistry(new \NumaFinancialToolExecutor($this->db));
+            try {
+                $registry->execute('consultar_datos_financieros', $userId, [
+                    'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+                    'selectores' => [['categoria' => 'electricidad']],
+                ]);
+                self::fail('La fila 10001 debía abortar la tool sin devolver una lista parcial.');
+            } catch (\NumaFinancialToolLimitExceeded) {
+                self::addToAssertionCount(1);
+            }
+        } finally {
+            if ($previous === null) {
+                unset($_ENV['NUMA_MAX_TOOL_RESULT_ROWS']);
+            } else {
+                $_ENV['NUMA_MAX_TOOL_RESULT_ROWS'] = $previous;
+            }
+        }
+    }
+
+    public function testRangoAmplioConPocasFilasRealesNoSeRechazaPorCardinalidadTeorica(): void
+    {
+        $user = $this->crearUsuario('numa-sparse-large-range@example.test');
+        $userId = (int) $user['id'];
+        $this->insertGasto($userId, 'esencial', 'electricidad', '12.34', '2000-01-03');
+        $definition = (new \NumaFinancialToolRegistry())->get('consultar_datos_financieros');
+
+        $result = (new \NumaFinancialToolExecutor($this->db))->execute($definition, $userId, [
+            'periodos' => [['mes_inicio' => '2000-01', 'mes_fin' => '2099-12']],
+            'selectores' => [['categoria' => 'electricidad']],
+        ]);
+
+        self::assertSame(1200, count($result['meses']));
+        self::assertSame('12.34', $result['meses'][0]['gastos']['importe']);
+        self::assertSame('0.00', $result['meses'][1199]['gastos']['importe']);
+    }
+
+    public function testCapDeFilasLogicasSeAplicaDuranteLaConstruccionSinResultadoParcial(): void
+    {
+        $user = $this->crearUsuario('numa-logical-row-cap@example.test');
+        $registry = new \NumaFinancialToolRegistry(
+            new \NumaFinancialToolExecutor($this->db, maxToolResultRows: 3),
+        );
+
+        $this->expectException(\NumaFinancialToolLimitExceeded::class);
+        $registry->execute('consultar_datos_financieros', (int) $user['id'], [
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+            'selectores' => [['categoria' => 'electricidad']],
+        ]);
+    }
+
+    public function testResultadoLegitimoSuperiorAlAntiguoLimiteSeEntregaCompleto(): void
+    {
+        $user = $this->crearUsuario('numa-hierarchy-large-result@example.test');
+        $result = (new \NumaFinancialToolRegistry(
+            new \NumaFinancialToolExecutor($this->db),
+            maxToolResultBytes: \NumaFinancialToolRegistry::MAX_TOOL_RESULT_BYTES,
+        ))->execute('consultar_datos_financieros', (int) $user['id'], [
+            'periodos' => [['mes_inicio' => '2025-08', 'mes_fin' => '2026-07']],
+        ]);
+
+        $serialized = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        self::assertGreaterThan(2500, strlen($serialized));
+        self::assertSame(12, count($result['meses']));
+        self::assertSame('2025-08', $result['meses'][0]['mes']);
+        self::assertSame('2026-07', $result['meses'][11]['mes']);
     }
 
     /** @param array<string, mixed> $arguments @return array<string, mixed> */
@@ -240,29 +304,16 @@ final class NumaFinancialToolsTest extends IntegrationTestCase
             ':fecha' => $date,
         ]);
     }
-}
 
-final class NumaFinancialToolsRecordingPdo extends \PDO
-{
-    /** @var list<string> */
-    public array $preparedSql = [];
-
-    public function __construct()
+    private function insertManyGastos(int $userId, int $count): void
     {
-        $config = require CONFIG_PATH . '/database.php';
-        parent::__construct(
-            "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4",
-            $config['user'],
-            $config['password'],
-        );
-        $this->setAttribute(self::ATTR_ERRMODE, self::ERRMODE_EXCEPTION);
-    }
-
-    /** @param array<mixed> $options */
-    public function prepare(string $query, array $options = []): \PDOStatement|false
-    {
-        $this->preparedSql[] = $query;
-
-        return parent::prepare($query, $options);
+        for ($offset = 0; $offset < $count; $offset += 500) {
+            $batchSize = min(500, $count - $offset);
+            $values = implode(', ', array_fill(0, $batchSize, "(?, 'esencial', 'electricidad', '1.00', '2026-07-03')"));
+            $statement = $this->db->prepare(
+                'INSERT INTO gastos (usuario_id, tipo, categoria, cantidad, fecha) VALUES ' . $values
+            );
+            $statement->execute(array_fill(0, $batchSize, $userId));
+        }
     }
 }

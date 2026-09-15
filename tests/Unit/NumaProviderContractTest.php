@@ -79,6 +79,31 @@ final class NumaProviderContractTest extends TestCase
         self::assertFalse($usage->hasReliableTokens());
     }
 
+    public function testUsaLaMismaEstimacionBytesEntreTresParaElLimiteYLaReserva(): void
+    {
+        $payload = str_repeat('x', 12);
+        $previous = $_ENV['NUMA_MAX_INPUT_TOKENS'] ?? null;
+
+        try {
+            $_ENV['NUMA_MAX_INPUT_TOKENS'] = '4';
+            self::assertSame(4, \NumaInputBudget::assertSerializedPayload($payload));
+
+            $_ENV['NUMA_MAX_INPUT_TOKENS'] = '3';
+            try {
+                \NumaInputBudget::assertSerializedPayload($payload);
+                self::fail('El payload debía exceder el límite técnico de contexto.');
+            } catch (\NumaInputLimitExceeded $exception) {
+                self::assertSame('NUMA_CONVERSATION_TOO_LONG', $exception->getMessage());
+            }
+        } finally {
+            if ($previous === null) {
+                unset($_ENV['NUMA_MAX_INPUT_TOKENS']);
+            } else {
+                $_ENV['NUMA_MAX_INPUT_TOKENS'] = $previous;
+            }
+        }
+    }
+
     public function testUsoDeTokensPermiteTotalFacturable(): void
     {
         $usage = new \NumaTokenUsage(120, 35, 200);
@@ -155,39 +180,6 @@ final class NumaProviderContractTest extends TestCase
         self::assertSame([['title' => 'Contexto', 'content' => 'Controlado']], $provider->lastRequest->context());
         self::assertSame(['tool_controlada'], $provider->lastRequest->availableTools());
         self::assertSame([['role' => 'assistant', 'message' => 'Respuesta anterior']], $provider->lastRequest->history());
-    }
-
-    public function testPresupuestoRechazaSolicitudCompletaAntesDelProveedor(): void
-    {
-        $previous = $_ENV['NUMA_MAX_INPUT_TOKENS'] ?? null;
-        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '1';
-        $provider = new class implements \NumaProviderInterface {
-            public int $calls = 0;
-
-            public function respond(\NumaRequest $request): \NumaResponse
-            {
-                $this->calls++;
-                return new \NumaResponse('No debe llamarse.');
-            }
-        };
-
-        try {
-            $wrapped = new \NumaSystemInstructionProvider($provider, 'Prompt base controlado');
-            try {
-                $wrapped->respond(new \NumaRequest('Pregunta'));
-                self::fail('Se esperaba que el presupuesto rechazara la solicitud.');
-            } catch (\NumaInputLimitExceeded $exception) {
-                self::assertSame('NUMA_CONVERSATION_TOO_LONG', $exception->getMessage());
-                self::assertSame(0, $provider->calls);
-            }
-        } finally {
-            if ($previous === null) {
-                unset($_ENV['NUMA_MAX_INPUT_TOKENS']);
-            } else {
-                $_ENV['NUMA_MAX_INPUT_TOKENS'] = $previous;
-            }
-        }
-
     }
 
     public function testFronteraDejaPasarSoloMensajeContextoElegibleYResultadoMinimo(): void

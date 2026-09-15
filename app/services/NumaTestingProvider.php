@@ -40,6 +40,17 @@ final class NumaTestingProvider implements NumaProviderInterface
 
     public function respond(NumaRequest $request): NumaResponse
     {
+        if ($this->consumption instanceof NumaProviderInputEstimateInterface) {
+            $payload = json_encode([
+                'system_instruction' => $request->systemInstruction(),
+                'message' => $request->message(),
+                'context' => $request->context(),
+                'available_tools' => $request->availableTools(),
+                'history' => $request->history(),
+            ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $this->consumption->setInputTokenEstimate(NumaInputBudget::assertSerializedPayload($payload));
+        }
+
         $this->consumption?->iniciarLlamada();
 
         if ($this->scenario === self::SUCCESS) {

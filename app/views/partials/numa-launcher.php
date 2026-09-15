@@ -26,7 +26,7 @@ function bh_numa_launcher(string $mode = 'private'): void
     $isPublic = $mode === 'public';
     $available = bh_env_bool('NUMA_ENABLED', false) && (!$isPublic || bh_env_bool('NUMA_PUBLIC_ENABLED', false));
     $maxMessageLength = bh_numa_max_message_length();
-    $requestTimeoutMs = (max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25)) * 1000) + 1000;
+    $requestTimeoutMs = (max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 240)) * 1000) + 1000;
     $stateClass = $available ? ' is-available' : ' is-unavailable';
     $bodySrc = bh_asset('img/numa/runtime/numa-body.webp');
     $faceFrames = [

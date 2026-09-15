@@ -55,8 +55,8 @@ final class NumaConsumoGlobalTest extends TestCase
 
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '1500000';
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
         $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
         $_ENV['NUMA_MAX_RAG_CHUNK_CHARS'] = '900';
@@ -108,7 +108,7 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(100, $estado['daily_calls_limit']);
         self::assertSame(1000, $estado['monthly_calls_limit']);
         self::assertSame(12000, $estado['daily_tokens']);
-        self::assertSame(100000, $estado['daily_tokens_limit']);
+        self::assertSame(300000, $estado['daily_tokens_limit']);
     }
 
     public function testReinicioDiarioNoSumaLlamadasDeOtrosDias(): void
@@ -162,6 +162,8 @@ final class NumaConsumoGlobalTest extends TestCase
         $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '400';
         $public = \NumaConsumoGlobal::forPublicLlm($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
         $private = new \NumaConsumoGlobal($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+        $public->setInputTokenEstimate(5000);
+        $private->setInputTokenEstimate(5000);
 
         $public->iniciarLlamada();
         $private->iniciarLlamada();
@@ -228,6 +230,7 @@ final class NumaConsumoGlobalTest extends TestCase
         $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '1';
         $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '1';
         $repo = \NumaConsumoGlobal::forPublicLlm($this->db, new DateTimeImmutable('2026-07-25 10:00:00'));
+        $repo->setInputTokenEstimate(5000);
 
         $repo->iniciarLlamada();
         $repo->registrarTokens(new \NumaTokenUsage(120, 35));
@@ -301,10 +304,12 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame([0.1, 0.2], $embedding);
         self::assertSame(1, $transportCalls);
         self::assertIsArray($reservedBeforeTransport);
-        self::assertSame(2048, $reservedBeforeTransport['input_tokens']);
+        self::assertGreaterThan(0, $reservedBeforeTransport['input_tokens']);
+        self::assertLessThan(2048, $reservedBeforeTransport['input_tokens']);
         self::assertSame(0, $reservedBeforeTransport['output_tokens']);
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(2048, $row['input_tokens']);
+        self::assertGreaterThan(0, $row['input_tokens']);
+        self::assertLessThan(2048, $row['input_tokens']);
         self::assertSame(0, $row['output_tokens']);
     }
 
@@ -343,7 +348,8 @@ final class NumaConsumoGlobalTest extends TestCase
         $row = $this->row('2026-07-25');
 
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(2048, $row['input_tokens']);
+        self::assertGreaterThan(0, $row['input_tokens']);
+        self::assertLessThan(2048, $row['input_tokens']);
         self::assertSame(0, $row['output_tokens']);
     }
 
@@ -393,6 +399,8 @@ final class NumaConsumoGlobalTest extends TestCase
 
         $repoA = new \NumaConsumoGlobal($this->newConnection(), new DateTimeImmutable($fecha . ' 10:00:00'));
         $repoB = new \NumaConsumoGlobal($this->newConnection(), new DateTimeImmutable($fecha . ' 10:00:00'));
+        $repoA->setInputTokenEstimate(5000);
+        $repoB->setInputTokenEstimate(5000);
 
         $repoA->iniciarLlamada();
 
@@ -406,8 +414,8 @@ final class NumaConsumoGlobalTest extends TestCase
     {
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '1500000';
         $dir = sys_get_temp_dir() . '/benehom-numa-global-' . bin2hex(random_bytes(8));
         $locker = $this->newConnection();
 
@@ -465,8 +473,8 @@ final class NumaConsumoGlobalTest extends TestCase
     {
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '1500000';
         $_ENV['NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT'] = '1';
         $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = '400';
         $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = '15';
@@ -585,7 +593,10 @@ final class NumaConsumoGlobalTest extends TestCase
 
     private function repo(string $now): \NumaConsumoGlobal
     {
-        return new \NumaConsumoGlobal($this->db, new DateTimeImmutable($now));
+        $repo = new \NumaConsumoGlobal($this->db, new DateTimeImmutable($now));
+        $repo->setInputTokenEstimate(5000);
+
+        return $repo;
     }
 
     private function crearUsuario(): int
@@ -665,7 +676,7 @@ final class NumaConsumoGlobalTest extends TestCase
             'public_daily_limit' => '5',
             'public_monthly_limit' => '20',
             'reservation_ttl' => '120',
-            'max_input_tokens' => '5000',
+            'input_token_estimate' => '5000',
             'max_output_tokens' => '1000',
             'ready_file' => $readyFile,
             'attempt_file' => $attemptFile,
@@ -701,7 +712,6 @@ $_ENV['NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT'] = (string) $payload['public_month
 $_ENV['NUMA_PUBLIC_DAILY_LIMIT'] = (string) $payload['public_daily_limit'];
 $_ENV['NUMA_PUBLIC_MONTHLY_LIMIT'] = (string) $payload['public_monthly_limit'];
 $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = (string) $payload['reservation_ttl'];
-$_ENV['NUMA_MAX_INPUT_TOKENS'] = (string) $payload['max_input_tokens'];
 $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = (string) $payload['max_output_tokens'];
 
 $db = $payload['db'];
@@ -736,6 +746,7 @@ $publicUso = new NumaPublicUso($pdo, new DateTimeImmutable((string) $payload['no
 $budget = new NumaPaidCallBudget(new NumaPublicUsageBudget($publicUso, (string) $payload['visitante_hash']), 3);
 $global = NumaConsumoGlobal::forPublicLlm($pdo, new DateTimeImmutable((string) $payload['now']));
 $chain = new NumaProviderConsumptionChain($budget, $global);
+$chain->setInputTokenEstimate((int) $payload['input_token_estimate']);
 
 try {
     $chain->iniciarLlamada();
@@ -850,7 +861,7 @@ PHP;
             'monthly_call_limit' => '1',
             'daily_token_limit' => '50000',
             'monthly_token_limit' => '300000',
-            'max_input_tokens' => '5000',
+            'input_token_estimate' => '5000',
             'max_output_tokens' => '1000',
             'ready_file' => $readyFile,
             'attempt_file' => $attemptFile,
@@ -877,7 +888,6 @@ $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = (string) $payload['daily_call_l
 $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = (string) $payload['monthly_call_limit'];
 $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = (string) $payload['daily_token_limit'];
 $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = (string) $payload['monthly_token_limit'];
-$_ENV['NUMA_MAX_INPUT_TOKENS'] = (string) $payload['max_input_tokens'];
 $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = (string) $payload['max_output_tokens'];
 
 $db = $payload['db'];
@@ -908,6 +918,7 @@ while (!is_file((string) $payload['start_file'])) {
 
 file_put_contents((string) $payload['attempt_file'], '1');
 $repo = new NumaConsumoGlobal($pdo, new DateTimeImmutable((string) $payload['now']));
+$repo->setInputTokenEstimate((int) $payload['input_token_estimate']);
 
 try {
     $repo->iniciarLlamada();

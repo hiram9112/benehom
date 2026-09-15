@@ -337,7 +337,7 @@ final class NumaPublicUso
 
     private function reservationTtl(): int
     {
-        return max(1, bh_env_int('NUMA_RESERVATION_TTL_SECONDS', 120));
+        return max(1, bh_env_int('NUMA_RESERVATION_TTL_SECONDS', 245));
     }
 
     private function db(): PDO

@@ -71,7 +71,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-login-url="/index.php?r=auth/login"', $html);
         self::assertStringContainsString('data-numa-csrf="', $html);
         self::assertStringContainsString('data-numa-max-message-length="300"', $html);
-        self::assertStringContainsString('data-numa-request-timeout-ms="26000"', $html);
+        self::assertStringContainsString('data-numa-request-timeout-ms="241000"', $html);
         self::assertStringContainsString('maxlength="300"', $html);
         self::assertStringContainsString('>0/300</span>', $html);
         self::assertStringContainsString('class="bh-numa-launcher-character"', $html);

@@ -28,6 +28,12 @@ interface NumaProviderDeferredConsumptionInterface extends NumaProviderConsumpti
     public function conexionTransaccional(): PDO;
 }
 
+/** Receives the conservative estimate from the serialized provider payload. */
+interface NumaProviderInputEstimateInterface
+{
+    public function setInputTokenEstimate(int $inputTokens): void;
+}
+
 /** Control compartido por todas las llamadas externas de una interacción. */
 interface NumaInteractionBudgetInterface
 {
@@ -36,7 +42,7 @@ interface NumaInteractionBudgetInterface
     public function allowTransientRetry(): bool;
 }
 
-final class NumaProviderConsumptionChain implements NumaProviderConsumptionInterface, NumaInteractionBudgetInterface
+final class NumaProviderConsumptionChain implements NumaProviderConsumptionInterface, NumaInteractionBudgetInterface, NumaProviderInputEstimateInterface
 {
     /** @var list<NumaProviderConsumptionInterface> */
     private readonly array $consumers;
@@ -117,6 +123,15 @@ final class NumaProviderConsumptionChain implements NumaProviderConsumptionInter
     {
         foreach ($this->consumers as $consumer) {
             $consumer->registrarTokens($usage);
+        }
+    }
+
+    public function setInputTokenEstimate(int $inputTokens): void
+    {
+        foreach ($this->consumers as $consumer) {
+            if ($consumer instanceof NumaProviderInputEstimateInterface) {
+                $consumer->setInputTokenEstimate($inputTokens);
+            }
         }
     }
 
@@ -247,33 +262,21 @@ final class NumaInputLimitExceeded extends RuntimeException
 
 final class NumaInputBudget
 {
-    private const APPROX_CHARS_PER_TOKEN = 4;
-    private const STRUCTURAL_OVERHEAD_CHARS = 300;
+    private const APPROX_BYTES_PER_TOKEN = 3;
 
-    public static function assertFits(NumaRequest $request): void
+    public static function assertSerializedPayload(string $payload): int
     {
-        $maxTokens = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000));
-        $maxChars = $maxTokens * self::APPROX_CHARS_PER_TOKEN;
-        $estimatedChars = self::STRUCTURAL_OVERHEAD_CHARS
-            + self::length($request->systemInstruction())
-            + self::length($request->message())
-            + self::jsonLength($request->context())
-            + self::jsonLength($request->availableTools())
-            + self::jsonLength($request->history());
-
-        if ($estimatedChars > $maxChars) {
+        $estimatedTokens = self::estimateSerializedPayloadTokens($payload);
+        if ($estimatedTokens > max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 65536))) {
             throw new NumaInputLimitExceeded('NUMA_CONVERSATION_TOO_LONG');
         }
+
+        return $estimatedTokens;
     }
 
-    private static function jsonLength(array $value): int
+    public static function estimateSerializedPayloadTokens(string $payload): int
     {
-        return self::length(json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-    }
-
-    private static function length(string $value): int
-    {
-        return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
+        return max(1, (int) ceil(strlen($payload) / self::APPROX_BYTES_PER_TOKEN));
     }
 }
 
@@ -734,8 +737,6 @@ final class NumaSystemInstructionProvider implements NumaProviderInterface
             $request->functionCallingMode(),
             $request->maxOutputTokens(),
         );
-        NumaInputBudget::assertFits($controlledRequest);
-
         return $this->provider->respond($controlledRequest);
     }
 

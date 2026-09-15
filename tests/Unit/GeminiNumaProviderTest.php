@@ -76,7 +76,7 @@ final class GeminiNumaProviderTest extends TestCase
 
         self::assertStringEndsWith('/models/gemini-model:generateContent', $captured['url']);
         self::assertContains('x-goog-api-key: server-api-key', $captured['headers']);
-        self::assertSame(10, $captured['timeout']);
+        self::assertSame(20, $captured['timeout']);
         self::assertSame(1000, $captured['body']['generationConfig']['maxOutputTokens']);
         self::assertSame('low', $captured['body']['generationConfig']['thinkingConfig']['thinkingLevel']);
         self::assertSame('consultar_datos_financieros', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
@@ -95,6 +95,75 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame('Respuesta breve de Numa.', $response->message());
         self::assertSame(120, $response->tokenUsage()->inputTokens());
         self::assertSame(35, $response->tokenUsage()->outputTokens());
+    }
+
+    public function testPresupuestoUsaElPayloadSerializadoAntesDelTransporte(): void
+    {
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '1';
+        $transportCalls = 0;
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static function () use (&$transportCalls): array {
+            ++$transportCalls;
+
+            return ['status' => 200, 'body' => '{}'];
+        });
+
+        $this->expectException(\NumaInputLimitExceeded::class);
+        $this->expectExceptionMessage('NUMA_CONVERSATION_TOO_LONG');
+
+        try {
+            $provider->respond(new \NumaRequest(
+                'Pregunta con declaracion y contexto.',
+                'Instruccion controlada.',
+                $this->toolContext(),
+                ['consultar_datos_financieros'],
+            ));
+        } finally {
+            self::assertSame(0, $transportCalls);
+        }
+    }
+
+    public function testReservaLaEstimacionConcretaDelPayloadSerializado(): void
+    {
+        $payload = '';
+        $consumption = new class implements \NumaProviderConsumptionInterface, \NumaProviderInputEstimateInterface {
+            public ?int $inputTokens = null;
+
+            public function setInputTokenEstimate(int $inputTokens): void
+            {
+                $this->inputTokens = $inputTokens;
+            }
+
+            public function iniciarLlamada(): void
+            {
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+        };
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: static function (string $url, array $headers, string $body) use (&$payload): array {
+                $payload = $body;
+
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [[
+                            'content' => ['parts' => [['text' => 'Respuesta valida.']]],
+                            'finishReason' => 'STOP',
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            },
+            consumption: $consumption,
+        );
+
+        $provider->respond(new \NumaRequest('Pregunta', 'Instruccion controlada.', $this->toolContext(), ['consultar_datos_financieros']));
+
+        self::assertNotSame('', $payload);
+        self::assertSame(\NumaInputBudget::estimateSerializedPayloadTokens($payload), $consumption->inputTokens);
     }
 
     public function testEnviaLaDeclaracionCanonicaSinPerderElContratoDelRegistro(): void
@@ -872,6 +941,7 @@ final class GeminiNumaProviderTest extends TestCase
         $_ENV['NUMA_MODEL'] = 'model';
 
         $captured = [];
+        $capturedTimeout = null;
         $consumption = new class implements \NumaProviderConsumptionInterface {
             public int $calls = 0;
 
@@ -887,8 +957,9 @@ final class GeminiNumaProviderTest extends TestCase
                 ++$this->tokenRegistrations;
             }
         };
-        $provider = \NumaProviderFactory::fromEnvironment(function (string $url, array $headers, string $body, int $timeout) use (&$captured): array {
+        $provider = \NumaProviderFactory::fromEnvironment(function (string $url, array $headers, string $body, int $timeout) use (&$captured, &$capturedTimeout): array {
             $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+            $capturedTimeout = $timeout;
 
             return [
                 'status' => 200,
@@ -910,6 +981,7 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertStringContainsString('primero el período explícito del mensaje actual', $systemInstruction);
         self::assertStringContainsString('No actues como asistente generalista.', $systemInstruction);
         self::assertStringNotContainsString('Instruccion no controlada', $systemInstruction);
+        self::assertSame(60, $capturedTimeout);
         self::assertSame(1, $consumption->calls);
         self::assertSame(1, $consumption->tokenRegistrations);
     }
@@ -997,6 +1069,7 @@ final class GeminiNumaProviderTest extends TestCase
             'NUMA_API_KEY',
             'NUMA_MODEL',
             'NUMA_MAX_OUTPUT_TOKENS',
+            'NUMA_MAX_INPUT_TOKENS',
             'NUMA_PROVIDER_TIMEOUT_SECONDS',
             'NUMA_MAX_TRANSIENT_RETRIES',
             'NUMA_PROVIDER_RESPONSE_DIAGNOSTICS',

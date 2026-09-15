@@ -104,7 +104,8 @@ final class NumaConfigurationTest extends TestCase
     public function testAceptaElMaximoDeBytesParaResultadosDeTools(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = (string) \NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS;
+        $_ENV['NUMA_MAX_TOOL_RESULT_BYTES'] = (string) \NumaFinancialToolRegistry::MAX_TOOL_RESULT_BYTES;
+        $_ENV['NUMA_MAX_TOOL_RESULT_ROWS'] = (string) \NumaFinancialToolExecutor::MAX_TOOL_RESULT_ROWS;
 
         \NumaConfiguration::assertRuntime();
 
@@ -114,10 +115,22 @@ final class NumaConfigurationTest extends TestCase
     public function testRechazaMasBytesDeLosPermitidosParaResultadosDeTools(): void
     {
         $_ENV['NUMA_ENABLED'] = 'true';
-        $_ENV['NUMA_MAX_TOOL_RESULT_CHARS'] = (string) (\NumaFinancialToolRegistry::MAX_AGGREGATE_RESULT_JSON_CHARS + 1);
+        $_ENV['NUMA_MAX_TOOL_RESULT_BYTES'] = (string) (\NumaFinancialToolRegistry::MAX_TOOL_RESULT_BYTES + 1);
 
         $this->expectException(\NumaConfigurationException::class);
-        $this->expectExceptionMessage('NUMA_MAX_TOOL_RESULT_CHARS');
+        $this->expectExceptionMessage('NUMA_MAX_TOOL_RESULT_BYTES');
+
+        \NumaConfiguration::assertRuntime();
+    }
+
+    public function testExigeQueLaReservaCubraElDeadlineDeLaInteraccion(): void
+    {
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_REQUEST_TIMEOUT_SECONDS'] = '240';
+        $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '244';
+
+        $this->expectException(\NumaConfigurationException::class);
+        $this->expectExceptionMessage('NUMA_RESERVATION_TTL_SECONDS');
 
         \NumaConfiguration::assertRuntime();
     }

@@ -67,7 +67,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
 
         self::assertStringEndsWith('/models/gemini-embedding-001:embedContent', $captured['url']);
         self::assertContains('x-goog-api-key: embedding-key', $captured['headers']);
-        self::assertSame(10, $captured['timeout']);
+        self::assertSame(20, $captured['timeout']);
         self::assertArrayNotHasKey('embedContentConfig', $captured['body']);
         self::assertSame('RETRIEVAL_DOCUMENT', $captured['body']['taskType']);
         self::assertSame(768, $captured['body']['outputDimensionality']);
@@ -136,6 +136,17 @@ final class GeminiEmbeddingProviderTest extends TestCase
         new \GeminiEmbeddingProvider('', 'gemini-embedding-001');
     }
 
+    public function testPresupuestoDeEmbeddingUsaLaEstimacionDelPayloadSerializado(): void
+    {
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '1';
+        $provider = new \GeminiEmbeddingProvider('key', 'model');
+
+        $this->expectException(\NumaInputLimitExceeded::class);
+        $this->expectExceptionMessage('NUMA_CONVERSATION_TOO_LONG');
+
+        $provider->inputTokenEstimate('Texto que excede el presupuesto mínimo.', 'embedQuery');
+    }
+
     public function testMapeaErroresHttpSinExponerCuerpoTecnico(): void
     {
         $provider = new \GeminiEmbeddingProvider('key', 'model', transport: fn (): array => [
@@ -160,8 +171,10 @@ final class GeminiEmbeddingProviderTest extends TestCase
         $_ENV['NUMA_EMBEDDING_DIMENSIONS'] = '768';
 
         $capturedHeaders = [];
-        $provider = \NumaEmbeddingProviderFactory::fromEnvironment(function (string $url, array $headers) use (&$capturedHeaders): array {
+        $capturedTimeout = null;
+        $provider = \NumaEmbeddingProviderFactory::fromEnvironment(function (string $url, array $headers, string $body, int $timeout) use (&$capturedHeaders, &$capturedTimeout): array {
             $capturedHeaders = $headers;
+            $capturedTimeout = $timeout;
 
             return [
                 'status' => 200,
@@ -177,6 +190,7 @@ final class GeminiEmbeddingProviderTest extends TestCase
 
         self::assertCount(768, $embedding);
         self::assertContains('x-goog-api-key: shared-key', $capturedHeaders);
+        self::assertSame(30, $capturedTimeout);
     }
 
     public function testUsaTaskTypeDeConsultaYNormalizaVectoresReducidos(): void
@@ -547,7 +561,8 @@ final class GeminiEmbeddingProviderTest extends TestCase
             'NUMA_API_KEY',
             'NUMA_EMBEDDING_MODEL',
             'NUMA_EMBEDDING_DIMENSIONS',
-            'NUMA_PROVIDER_TIMEOUT_SECONDS',
+            'NUMA_EMBEDDING_TIMEOUT_SECONDS',
+            'NUMA_MAX_INPUT_TOKENS',
         ];
     }
 

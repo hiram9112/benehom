@@ -32,7 +32,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         private readonly string $apiKey,
         private readonly string $model,
         private readonly int $maxOutputTokens = NumaConfiguration::DEFAULT_MAX_OUTPUT_TOKENS,
-        private readonly int $timeoutSeconds = 10,
+        private readonly int $timeoutSeconds = 60,
         private readonly int $maxTransientRetries = 1,
         ?callable $transport = null,
         private readonly string $baseUrl = self::API_BASE_URL,
@@ -71,7 +71,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
             (string) bh_env_value('NUMA_API_KEY', ''),
             (string) bh_env_value('NUMA_MODEL', 'gemini-3.1-flash-lite'),
             NumaConfiguration::maxOutputTokens(),
-            bh_env_int('NUMA_PROVIDER_TIMEOUT_SECONDS', 10),
+            bh_env_int('NUMA_PROVIDER_TIMEOUT_SECONDS', 60),
             bh_env_int('NUMA_MAX_TRANSIENT_RETRIES', 1),
             $transport,
             self::API_BASE_URL,
@@ -86,6 +86,10 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $outputTokenLimit = $this->outputTokenLimit($request);
         $payload = $this->buildPayload($request, $outputTokenLimit);
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $inputTokenEstimate = NumaInputBudget::assertSerializedPayload($body);
+        if ($this->consumption instanceof NumaProviderInputEstimateInterface) {
+            $this->consumption->setInputTokenEstimate($inputTokenEstimate);
+        }
         $url = rtrim($this->baseUrl, '/') . '/models/' . rawurlencode($this->model) . ':generateContent';
         $headers = [
             'Accept: application/json',
@@ -296,7 +300,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
             return $this->consumption->timeoutForCall($this->timeoutSeconds);
         }
 
-        return max(1, min($this->timeoutSeconds, 10));
+        return max(1, $this->timeoutSeconds);
     }
 
     /**
@@ -326,7 +330,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
             CURLOPT_POSTFIELDS => $body,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_CONNECTTIMEOUT => max(1, min(5, $timeoutSeconds)),
-            CURLOPT_TIMEOUT => $timeoutSeconds,
+            CURLOPT_TIMEOUT => $timeoutSeconds + 1,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_WRITEFUNCTION => function ($curlHandle, string $chunk) use (&$responseBody, &$responseTooLarge): int {

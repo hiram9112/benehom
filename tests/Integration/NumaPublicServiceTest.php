@@ -252,6 +252,7 @@ final class NumaPublicServiceTest extends TestCase
         $usage = new \NumaPublicUso($this->db);
         $budget = new \NumaPaidCallBudget(new \NumaPublicUsageBudget($usage, $visitorHash), 3);
         $chain = new \NumaProviderConsumptionChain($budget, \NumaConsumoGlobal::forPublicLlm($this->db));
+        $chain->setInputTokenEstimate(100);
         $before = $this->providerCalls();
 
         $chain->iniciarLlamada();
@@ -354,6 +355,10 @@ final class NumaPublicServiceProvider implements \NumaProviderInterface
 
     public function respond(\NumaRequest $request): \NumaResponse
     {
+        if ($this->consumption instanceof \NumaProviderInputEstimateInterface) {
+            $payload = json_encode(['message' => $request->message()], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $this->consumption->setInputTokenEstimate(\NumaInputBudget::assertSerializedPayload($payload));
+        }
         $this->consumption?->iniciarLlamada();
 
         if ($this->exception !== null) {
@@ -391,6 +396,10 @@ final class NumaPublicSequentialServiceProvider implements \NumaProviderInterfac
     {
         ++$this->calls;
         $this->requests[] = $request;
+        if ($this->consumption instanceof \NumaProviderInputEstimateInterface) {
+            $payload = json_encode(['message' => $request->message()], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $this->consumption->setInputTokenEstimate(\NumaInputBudget::assertSerializedPayload($payload));
+        }
         $this->consumption?->iniciarLlamada();
 
         return array_shift($this->responses) ?? throw new \LogicException('Falta una respuesta publica de prueba.');

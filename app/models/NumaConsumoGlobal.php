@@ -10,7 +10,7 @@ final class NumaGlobalLimiteAlcanzado extends RuntimeException
 {
 }
 
-final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterface
+final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterface, NumaProviderInputEstimateInterface
 {
     private const CALL_TYPE_LLM = 'llm';
     private const CALL_TYPE_EMBEDDING = 'embedding';
@@ -18,6 +18,8 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
 
     /** @var list<array{fecha:string,input:int,output:int}> */
     private array $pendingTokenReservations = [];
+
+    private ?int $inputTokenEstimate = null;
 
     public function __construct(
         private readonly ?PDO $connection = null,
@@ -124,6 +126,15 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
     public function conexionTransaccional(): PDO
     {
         return $this->db();
+    }
+
+    public function setInputTokenEstimate(int $inputTokens): void
+    {
+        if ($inputTokens < 1) {
+            throw new InvalidArgumentException('La estimacion de entrada de Numa no es valida.');
+        }
+
+        $this->inputTokenEstimate = $inputTokens;
     }
 
     private function incrementarLlamadaSiCabe(int $reservedInputTokens, int $reservedOutputTokens): void
@@ -354,12 +365,12 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
 
     private function dailyTokenLimit(): int
     {
-        return max(0, bh_env_int('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 100000));
+        return max(0, bh_env_int('NUMA_GLOBAL_DAILY_TOKEN_LIMIT', 300000));
     }
 
     private function monthlyTokenLimit(): int
     {
-        return max(0, bh_env_int('NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT', 600000));
+        return max(0, bh_env_int('NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT', 1500000));
     }
 
     private function ensureRow(string $fecha): void
@@ -436,13 +447,17 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
     {
         if ($this->callType === self::CALL_TYPE_EMBEDDING) {
             return [
-                'input' => max(1, $this->embeddingInputTokenEstimate()),
+                'input' => $this->inputTokenEstimate ?? max(1, $this->embeddingInputTokenEstimate()),
                 'output' => 0,
             ];
         }
 
+        if ($this->inputTokenEstimate === null) {
+            throw new LogicException('La estimacion del payload de Numa debe definirse antes de reservar consumo.');
+        }
+
         return [
-            'input' => $this->maxInputTokens(),
+            'input' => $this->inputTokenEstimate,
             'output' => $this->maxOutputTokens(),
         ];
     }
@@ -460,11 +475,6 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
             $usage->inputTokens() ?? $reservedInput,
             $usage->outputTokens() ?? $reservedOutput,
         ];
-    }
-
-    private function maxInputTokens(): int
-    {
-        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000));
     }
 
     private function maxOutputTokens(): int

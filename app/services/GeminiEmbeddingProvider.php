@@ -7,7 +7,7 @@ require_once __DIR__ . '/NumaEmbeddingProvider.php';
 require_once __DIR__ . '/NumaConfiguration.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
 
-final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface, NumaEmbeddingTaskProviderInterface, NumaEmbeddingTimeoutProviderInterface
+final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterface, NumaEmbeddingTaskProviderInterface, NumaEmbeddingTimeoutProviderInterface, NumaEmbeddingInputEstimateProviderInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
     private const DEFAULT_DIMENSIONS = 768;
@@ -25,7 +25,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
         private readonly string $apiKey,
         private readonly string $model,
         private readonly int $dimensions = self::DEFAULT_DIMENSIONS,
-        private readonly int $timeoutSeconds = 10,
+        private readonly int $timeoutSeconds = 30,
         ?callable $transport = null,
         private readonly string $baseUrl = self::API_BASE_URL,
         private readonly int $maxResponseBodyBytes = 65536,
@@ -49,7 +49,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             (string) bh_env_value('NUMA_API_KEY', ''),
             (string) bh_env_value('NUMA_EMBEDDING_MODEL', 'gemini-embedding-001'),
             bh_env_int('NUMA_EMBEDDING_DIMENSIONS', self::DEFAULT_DIMENSIONS),
-            bh_env_int('NUMA_PROVIDER_TIMEOUT_SECONDS', 10),
+            bh_env_int('NUMA_EMBEDDING_TIMEOUT_SECONDS', 30),
             $transport,
             self::API_BASE_URL,
             bh_numa_max_provider_response_body_bytes(),
@@ -74,6 +74,13 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
         return $this->embedWithTaskType($text, self::QUERY_TASK_TYPE);
     }
 
+    public function inputTokenEstimate(string $text, string $method): int
+    {
+        return NumaInputBudget::assertSerializedPayload(
+            $this->requestBody($text, $method === 'embedQuery' ? self::QUERY_TASK_TYPE : self::DOCUMENT_TASK_TYPE),
+        );
+    }
+
     /**
      * @return array<int, float>
      */
@@ -85,16 +92,8 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             throw new InvalidArgumentException('El texto para embeddings de Numa no puede estar vacio.');
         }
 
-        $payload = [
-            'content' => [
-                'parts' => [[
-                    'text' => $text,
-                ]],
-            ],
-            'taskType' => $taskType,
-            'outputDimensionality' => $this->dimensions,
-        ];
-        $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $body = $this->requestBody($text, $taskType);
+        NumaInputBudget::assertSerializedPayload($body);
         $url = rtrim($this->baseUrl, '/') . '/models/' . rawurlencode($this->model) . ':embedContent';
         $headers = [
             'Accept: application/json',
@@ -126,6 +125,21 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
         return $this->parseEmbedding($responseBody);
     }
 
+    private function requestBody(string $text, string $taskType): string
+    {
+        $payload = [
+            'content' => [
+                'parts' => [[
+                    'text' => $text,
+                ]],
+            ],
+            'taskType' => $taskType,
+            'outputDimensionality' => $this->dimensions,
+        ];
+
+        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    }
+
     public function tokenUsage(): NumaTokenUsage
     {
         return $this->lastTokenUsage ?? NumaTokenUsage::unknown();
@@ -148,7 +162,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             $this->apiKey,
             $this->model,
             $this->dimensions,
-            min($this->timeoutSeconds(), max(1, min($timeoutSeconds, 10))),
+            min($this->timeoutSeconds(), max(1, $timeoutSeconds)),
             $this->transport,
             $this->baseUrl,
             $this->maxResponseBodyBytes,
@@ -187,7 +201,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
             CURLOPT_POSTFIELDS => $body,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_CONNECTTIMEOUT => max(1, min(5, $timeoutSeconds)),
-            CURLOPT_TIMEOUT => $timeoutSeconds,
+            CURLOPT_TIMEOUT => $timeoutSeconds + 1,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_WRITEFUNCTION => function ($curlHandle, string $chunk) use (&$responseBody, &$responseTooLarge): int {
@@ -231,7 +245,7 @@ final class GeminiEmbeddingProvider implements NumaEmbeddingProviderUsageInterfa
 
     private function safeTimeoutSeconds(): int
     {
-        return max(1, min($this->timeoutSeconds, 10));
+        return max(1, $this->timeoutSeconds);
     }
 
     /**

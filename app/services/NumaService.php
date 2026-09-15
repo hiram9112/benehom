@@ -25,14 +25,9 @@ final class NumaGlobalAvailability implements NumaGlobalAvailabilityInterface
     public function assertAvailable(): void
     {
         $status = $this->consumoGlobal->estadoGlobal();
-        $tokensPerCall = max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000))
-            + NumaConfiguration::maxOutputTokens();
-
         if (!bh_numa_limits_bypassed()
             && ($status['daily_calls'] + 1 > $status['daily_calls_limit']
-            || $status['monthly_calls'] + 1 > $status['monthly_calls_limit']
-            || $status['daily_tokens'] + $tokensPerCall > $status['daily_tokens_limit']
-            || $status['monthly_tokens'] + $tokensPerCall > $status['monthly_tokens_limit'])
+            || $status['monthly_calls'] + 1 > $status['monthly_calls_limit'])
         ) {
             throw new NumaGlobalLimiteAlcanzado('NUMA_GLOBAL_LIMIT_REACHED');
         }
@@ -146,7 +141,7 @@ final class NumaPaidCallBudget implements NumaProviderDeferredConsumptionInterfa
         private readonly NumaUsageBudgetInterface $usage,
         private readonly int $maxCalls,
         private readonly int $maxTransientRetries = 1,
-        private readonly int $requestTimeoutSeconds = 25,
+        private readonly int $requestTimeoutSeconds = 240,
         ?Closure $monotonicClock = null,
     ) {
         if ($maxCalls < 1 || $maxTransientRetries < 0 || $requestTimeoutSeconds < 1) {
@@ -1127,7 +1122,7 @@ final class NumaService
 
     private function requestTimeoutSeconds(): int
     {
-        return max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 25));
+        return max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 240));
     }
 
     private function providerStatusCode(NumaProviderError $error): int
@@ -1235,7 +1230,7 @@ final class NumaService
 
     private function maxInputChars(): int
     {
-        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 16000)) * self::APPROX_CHARS_PER_TOKEN;
+        return max(1, bh_env_int('NUMA_MAX_INPUT_TOKENS', 65536)) * self::APPROX_CHARS_PER_TOKEN;
     }
 
     private function textLength(string $text): int

@@ -505,7 +505,7 @@ interface NumaFinancialToolRegistryInterface
 final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterface
 {
     public const MAX_TOOL_CALLS = 5;
-    public const MAX_AGGREGATE_RESULT_JSON_CHARS = 262144;
+    public const MAX_TOOL_RESULT_BYTES = 262144;
     public const CONSULTAR_DATOS_FINANCIEROS = NumaFinancialDataToolContract::NAME;
 
     /** @var array<int, string> */
@@ -518,7 +518,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
 
     private readonly int $maxToolCalls;
 
-    private readonly int $maxAggregateResultJsonChars;
+    private readonly int $maxToolResultBytes;
 
     private int $executedToolCalls = 0;
 
@@ -528,18 +528,18 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
     public function __construct(
         private readonly NumaFinancialToolExecutor $executor = new NumaFinancialToolExecutor(),
         ?int $maxToolCalls = null,
-        ?int $maxAggregateResultJsonChars = null,
+        ?int $maxToolResultBytes = null,
     ) {
         $this->maxToolCalls = $maxToolCalls ?? bh_env_int('NUMA_MAX_TOOL_CALLS', self::MAX_TOOL_CALLS);
-        $this->maxAggregateResultJsonChars = $maxAggregateResultJsonChars
-            ?? bh_env_int('NUMA_MAX_TOOL_RESULT_CHARS', self::MAX_AGGREGATE_RESULT_JSON_CHARS);
+        $this->maxToolResultBytes = $maxToolResultBytes
+            ?? bh_env_int('NUMA_MAX_TOOL_RESULT_BYTES', self::MAX_TOOL_RESULT_BYTES);
 
         if ($this->maxToolCalls <= 0 || $this->maxToolCalls > self::MAX_TOOL_CALLS) {
             throw new InvalidArgumentException('El limite de llamadas a tools de Numa no es valido.');
         }
 
-        if ($this->maxAggregateResultJsonChars <= 0
-            || $this->maxAggregateResultJsonChars > self::MAX_AGGREGATE_RESULT_JSON_CHARS
+        if ($this->maxToolResultBytes <= 0
+            || $this->maxToolResultBytes > self::MAX_TOOL_RESULT_BYTES
         ) {
             throw new InvalidArgumentException('El limite agregado de resultado de tools de Numa no es valido.');
         }
@@ -627,7 +627,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
      */
     private function limitAggregateResult(array $result): array
     {
-        if ($this->aggregateJsonLength([...$this->executedToolResults, $result]) <= $this->maxAggregateResultJsonChars) {
+        if ($this->aggregateJsonBytes([...$this->executedToolResults, $result]) <= $this->maxToolResultBytes) {
             return $result;
         }
 
@@ -635,7 +635,7 @@ final class NumaFinancialToolRegistry implements NumaFinancialToolRegistryInterf
     }
 
     /** @param array<int, array<string, mixed>> $results */
-    private function aggregateJsonLength(array $results): int
+    private function aggregateJsonBytes(array $results): int
     {
         return strlen(json_encode($results, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
@@ -731,17 +731,13 @@ final class NumaFinancialToolExecutor
         $validated = $this->dataContract->validateArguments($arguments);
         $months = $this->canonicalMonths($validated['periodos']);
         $selection = $this->canonicalSelection($validated['selectores']);
-        $estimatedRows = $this->estimatedCanonicalRows($months, $selection);
-        if ($estimatedRows > $this->maxToolResultRows) {
-            throw new NumaFinancialToolLimitExceeded();
-        }
 
         $facts = $this->canonicalFacts($usuarioId, $months, $selection);
         $logicalRows = 0;
         $result = ['tool' => NumaFinancialToolRegistry::CONSULTAR_DATOS_FINANCIEROS, 'meses' => []];
         foreach ($months as $month) {
+            $this->countLogicalRows($logicalRows);
             $monthResult = ['mes' => $month];
-            $logicalRows++;
             if ($selection['ingresos'] !== []) {
                 $monthResult['ingresos'] = $this->canonicalIncomeBranch($month, $selection['ingresos'], $facts, $logicalRows);
             }
@@ -749,10 +745,6 @@ final class NumaFinancialToolExecutor
                 $monthResult['gastos'] = $this->canonicalExpenseBranch($month, $selection['gastos'], $facts, $logicalRows);
             }
             $result['meses'][] = $monthResult;
-        }
-
-        if ($logicalRows > $this->maxToolResultRows) {
-            throw new NumaFinancialToolLimitExceeded();
         }
 
         return $result;
@@ -865,35 +857,6 @@ final class NumaFinancialToolExecutor
     }
 
     /**
-     * @param array{ingresos:array<string, list<string>|null>,gastos:array<string, array<string, list<string>|null>>} $selection
-     */
-    private function estimatedCanonicalRows(array $months, array $selection): int
-    {
-        $leaves = 0;
-        $expenseAreas = 0;
-        foreach ($selection['ingresos'] as $area => $categories) {
-            $leaves += count($categories ?? $this->categoryCatalog->categoriesForGroup($area));
-        }
-        foreach ($selection['gastos'] as $areas) {
-            foreach ($areas as $area => $categories) {
-                $leaves += count($categories ?? $this->categoryCatalog->categoriesForGroup($area));
-                $expenseAreas++;
-            }
-        }
-
-        $branchNodes = ($selection['ingresos'] === [] ? 0 : 1) + ($selection['gastos'] === [] ? 0 : 1);
-
-        return count($months) * (
-            $leaves
-            + count($selection['ingresos'])
-            + $expenseAreas
-            + count($selection['gastos'])
-            + $branchNodes
-            + 1
-        );
-    }
-
-    /**
      * @param list<string> $months
      * @param array{ingresos:array<string, list<string>|null>,gastos:array<string, array<string, list<string>|null>>} $selection
      * @return array<string, array<string, array<string, int>>>
@@ -924,10 +887,17 @@ final class NumaFinancialToolExecutor
             return [];
         }
 
-        $stmt = $this->db()->prepare(implode(' UNION ALL ', $selects));
+        $stmt = $this->db()->prepare(
+            implode(' UNION ALL ', $selects) . ' LIMIT ' . ($this->maxToolResultRows + 1)
+        );
         $this->bindAndExecute($stmt, $params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        if (count($rows) > $this->maxToolResultRows) {
+            throw new NumaFinancialToolLimitExceeded();
+        }
+
         $facts = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+        foreach ($rows as $row) {
             $month = (string) $row['mes'];
             $scope = (string) $row['ambito'];
             $category = (string) $row['categoria'];
@@ -987,7 +957,7 @@ final class NumaFinancialToolExecutor
             $total += $this->cents($areas[array_key_last($areas)]['importe']);
         }
 
-        $logicalRows++;
+        $this->countLogicalRows($logicalRows);
         return [
             'importe' => $this->money($total),
             'cobertura' => $this->canonicalCoverage(count($areas), count($this->categoryCatalog->incomeAreas()), 'areas'),
@@ -1017,7 +987,7 @@ final class NumaFinancialToolExecutor
                 $areas[] = $this->canonicalArea($month, $area, $selection[$type][$area], $type, $facts, $logicalRows);
                 $typeTotal += $this->cents($areas[array_key_last($areas)]['importe']);
             }
-            $logicalRows++;
+            $this->countLogicalRows($logicalRows);
             $types[] = [
                 'tipo' => $type,
                 'importe' => $this->money($typeTotal),
@@ -1027,7 +997,7 @@ final class NumaFinancialToolExecutor
             $total += $typeTotal;
         }
 
-        $logicalRows++;
+        $this->countLogicalRows($logicalRows);
         return [
             'importe' => $this->money($total),
             'cobertura' => $this->canonicalCoverage(count($types), count($this->categoryCatalog->expenseTypes()), 'tipos'),
@@ -1057,12 +1027,12 @@ final class NumaFinancialToolExecutor
                 continue;
             }
             $amount = $facts[$month][$scope][($expenseType ?? '') . ':' . $category] ?? 0;
+            $this->countLogicalRows($logicalRows);
             $items[] = ['categoria' => $category, 'importe' => $this->money($amount)];
             $total += $amount;
-            $logicalRows++;
         }
 
-        $logicalRows++;
+        $this->countLogicalRows($logicalRows);
         return [
             'area' => $area,
             'importe' => $this->money($total),
@@ -1081,6 +1051,13 @@ final class NumaFinancialToolExecutor
             $consulted => $selected,
             $noun . '_totales' => $total,
         ];
+    }
+
+    private function countLogicalRows(int &$logicalRows): void
+    {
+        if (++$logicalRows > $this->maxToolResultRows) {
+            throw new NumaFinancialToolLimitExceeded();
+        }
     }
 
     /**

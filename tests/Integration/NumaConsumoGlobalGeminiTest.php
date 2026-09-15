@@ -12,6 +12,7 @@ require_once APP_PATH . '/models/Database.php';
 require_once APP_PATH . '/models/NumaConsumoGlobal.php';
 require_once APP_PATH . '/services/GeminiNumaProvider.php';
 require_once APP_PATH . '/services/NumaClassification.php';
+require_once APP_PATH . '/services/NumaService.php';
 
 final class NumaConsumoGlobalGeminiTest extends TestCase
 {
@@ -36,8 +37,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '100';
         $_ENV['NUMA_GLOBAL_MONTHLY_PROVIDER_CALL_LIMIT'] = '1000';
-        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '100000';
-        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '600000';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '300000';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '1500000';
         $_ENV['NUMA_MAX_INPUT_TOKENS'] = '5000';
         $_ENV['NUMA_MAX_OUTPUT_TOKENS'] = '1000';
     }
@@ -136,7 +137,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         self::assertSame(2, $transportCalls);
         self::assertSame(2, $row['llamadas']);
-        self::assertSame(5120, $row['input_tokens']);
+        self::assertGreaterThan(120, $row['input_tokens']);
+        self::assertLessThan(5120, $row['input_tokens']);
         self::assertSame(1035, $row['output_tokens']);
     }
 
@@ -169,7 +171,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         $row = $this->row();
         self::assertSame(2, $transportCalls);
         self::assertSame(2, $row['llamadas']);
-        self::assertSame(10000, $row['input_tokens']);
+        self::assertGreaterThan(0, $row['input_tokens']);
+        self::assertLessThan(10000, $row['input_tokens']);
         self::assertSame(2000, $row['output_tokens']);
         self::assertLessThan(1000.0, (hrtime(true) - $startedAt) / 1_000_000);
     }
@@ -201,7 +204,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         self::assertSame(1, $transportCalls);
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(5000, $row['input_tokens']);
+        self::assertGreaterThan(0, $row['input_tokens']);
+        self::assertLessThan(5000, $row['input_tokens']);
         self::assertSame(1000, $row['output_tokens']);
     }
 
@@ -229,7 +233,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
 
         self::assertSame(2, $transportCalls);
         self::assertSame(2, $row['llamadas']);
-        self::assertSame(5120, $row['input_tokens']);
+        self::assertGreaterThan(120, $row['input_tokens']);
+        self::assertLessThan(5120, $row['input_tokens']);
         self::assertSame(1035, $row['output_tokens']);
     }
 
@@ -253,17 +258,23 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         $row = $this->row();
 
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(5000, $row['input_tokens']);
+        self::assertGreaterThan(0, $row['input_tokens']);
+        self::assertLessThan(5000, $row['input_tokens']);
         self::assertSame(1000, $row['output_tokens']);
     }
 
     public function testMantieneReservaConservadoraCuandoElProveedorNoInformaTokens(): void
     {
+        $requestBody = '';
         $consumo = $this->consumo();
         $provider = new \GeminiNumaProvider(
             'key',
             'model',
-            transport: fn (): array => $this->validResponse(),
+            transport: function (string $url, array $headers, string $body) use (&$requestBody): array {
+                $requestBody = $body;
+
+                return $this->validResponse();
+            },
             consumption: $consumo,
         );
 
@@ -271,7 +282,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         $row = $this->row();
 
         self::assertSame(1, $row['llamadas']);
-        self::assertSame(5000, $row['input_tokens']);
+        self::assertNotSame('', $requestBody);
+        self::assertSame(\NumaInputBudget::estimateSerializedPayloadTokens($requestBody), $row['input_tokens']);
         self::assertSame(1000, $row['output_tokens']);
     }
 
@@ -291,6 +303,28 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
         self::assertSame(1, $row['llamadas']);
         self::assertSame(200, $row['input_tokens']);
         self::assertSame(0, $row['output_tokens']);
+    }
+
+    public function testUnaLlamadaPequenaNoReservaElMaximoTecnicoDeEntrada(): void
+    {
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '65536';
+        $_ENV['NUMA_GLOBAL_DAILY_TOKEN_LIMIT'] = '1500';
+        $_ENV['NUMA_GLOBAL_MONTHLY_TOKEN_LIMIT'] = '1500';
+        $consumo = $this->consumo();
+
+        (new \NumaGlobalAvailability($consumo))->assertAvailable();
+        (new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: fn (): array => $this->validResponse(),
+            consumption: $consumo,
+        ))->respond(new \NumaRequest('Pregunta corta.'));
+
+        $row = $this->row();
+        self::assertSame(1, $row['llamadas']);
+        self::assertGreaterThan(0, $row['input_tokens']);
+        self::assertLessThan(500, $row['input_tokens']);
+        self::assertSame(1000, $row['output_tokens']);
     }
 
     private function consumo(): \NumaConsumoGlobal

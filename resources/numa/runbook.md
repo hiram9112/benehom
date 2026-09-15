@@ -17,8 +17,8 @@ recorrido antes de crear proveedores o iniciar una llamada pagada.
 | Cuota privada | `NUMA_DAILY_LIMIT`, `NUMA_MONTHLY_LIMIT`, `NUMA_RESERVATION_TTL_SECONDS` |
 | Generacion | `NUMA_PROVIDER`, `NUMA_MODEL`, `NUMA_API_KEY`, `NUMA_MAX_INPUT_TOKENS`, `NUMA_MAX_OUTPUT_TOKENS`, `NUMA_MAX_PROVIDER_CALLS`, `NUMA_PROVIDER_TIMEOUT_SECONDS`, `NUMA_REQUEST_TIMEOUT_SECONDS`, `NUMA_MAX_TRANSIENT_RETRIES` |
 | Limites globales | `NUMA_GLOBAL_*` |
-| Embeddings y RAG | `NUMA_EMBEDDING_PROVIDER`, `NUMA_EMBEDDING_MODEL`, `NUMA_EMBEDDING_DIMENSIONS`, `NUMA_MAX_RAG_RESULTS`, `NUMA_MAX_RAG_CHUNK_CHARS`, `NUMA_RAG_MIN_SIMILARITY` |
-| Tools | `NUMA_MAX_TOOL_CALLS` |
+| Embeddings y RAG | `NUMA_EMBEDDING_PROVIDER`, `NUMA_EMBEDDING_MODEL`, `NUMA_EMBEDDING_DIMENSIONS`, `NUMA_EMBEDDING_TIMEOUT_SECONDS`, `NUMA_MAX_RAG_RESULTS`, `NUMA_MAX_RAG_CHUNK_CHARS`, `NUMA_RAG_MIN_SIMILARITY` |
+| Tools | `NUMA_MAX_TOOL_CALLS`, `NUMA_MAX_TOOL_RESULT_BYTES`, `NUMA_MAX_TOOL_RESULT_ROWS` |
 | Modo publico | `NUMA_PUBLIC_HASH_KEY`, `NUMA_PUBLIC_DAILY_LIMIT`, `NUMA_PUBLIC_MONTHLY_LIMIT`, `NUMA_PUBLIC_GLOBAL_*` |
 | Evaluacion RAG real | `NUMA_RAG_EVALUATION_DB_*` |
 
@@ -26,13 +26,18 @@ Los modelos iniciales son `gemini-3.1-flash-lite` para generacion y
 `gemini-embedding-001` con 768 dimensiones para embeddings. El modo `fake` solo se
 admite con `APP_ENV=testing`; nunca es una alternativa de produccion.
 
-Los limites seguros iniciales son: 300 caracteres, 16.000 tokens de entrada para alojar
-la declaracion financiera canonica completa, hasta 9 llamadas pagadas por interaccion
-(clasificacion, embedding RAG, hasta cinco llamadas a `consultar_datos_financieros`,
-redaccion final y un reintento transitorio),
-1.000 tokens de salida, 10 segundos por llamada, 25 segundos por peticion, 15 llamadas
-diarias y 60 mensuales por identidad privada o publica. Los limites globales iniciales
-estan en `.env.example` y deben ajustarse antes de activar cada entorno.
+Los valores operativos iniciales son: 300 caracteres, 65.536 tokens de entrada para el
+payload final serializado, hasta 9 llamadas pagadas por interaccion (clasificacion,
+embedding RAG, hasta cinco llamadas a `consultar_datos_financieros`, redaccion final y
+un reintento transitorio), 1.000 tokens de salida, resultados de tools de hasta 262.144
+bytes y 10.000 filas, 60 segundos de generacion, 30 de embedding y un deadline compartido
+de 240 segundos. El lock conversacional y la reserva duran al menos 245 segundos; el
+cliente HTTP usa el timeout efectivo mas un segundo. Son controles operativos revisables
+con telemetria, no limites funcionales del analisis financiero. Las cuotas globales
+iniciales estan en `.env.example` y deben ajustarse antes de activar cada entorno.
+El mismo cálculo `ceil(bytes/3)` del payload serializado comprueba el cap técnico y fija
+la reserva previa; el uso fiable del proveedor la reconcilia después. Los límites
+globales iniciales son 300.000 tokens diarios y 1.500.000 mensuales.
 
 ## Activacion y desactivacion
 

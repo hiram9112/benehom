@@ -13,7 +13,7 @@ final class NumaConfigurationException extends RuntimeException
 /** Validates the effective Numa configuration before a paid flow can start. */
 final class NumaConfiguration
 {
-    public const DEFAULT_MAX_OUTPUT_TOKENS = 1000;
+    public const DEFAULT_MAX_OUTPUT_TOKENS = 2000;
     public const REQUEST_LOCK_MARGIN_SECONDS = 5;
 
     public static function maxOutputTokens(): int

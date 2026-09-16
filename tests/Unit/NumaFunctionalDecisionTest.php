@@ -52,7 +52,7 @@ final class NumaFunctionalDecisionTest extends TestCase
 
         self::assertSame('datos_usuario', $decision->classification()->intent());
         self::assertSame([], $provider->request?->availableTools());
-        self::assertSame(1000, $provider->request?->maxOutputTokens());
+        self::assertSame(2000, $provider->request?->maxOutputTokens());
         self::assertArrayNotHasKey('tool', $provider->request?->responseSchema()['properties'] ?? []);
         self::assertSame(
             ['intent', 'allowed', 'reason', 'needs_clarification', 'knowledge_query'],

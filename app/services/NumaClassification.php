@@ -539,6 +539,8 @@ final class NumaProviderFunctionalDecider
                 'No selecciones tools ni generes sus argumentos durante esta clasificacion.',
                 'Usa el contexto temporal autoritativo y los períodos asociados al historial para decidir si la referencia temporal puede resolverse de forma inequívoca, pero no generes todavía los períodos de la tool.',
                 'Devuelve needs_clarification=true antes de Function Calling si una consulta financiera contiene una referencia temporal con varias anclas plausibles o si necesita un período y la precedencia temporal no permite obtener uno. No pidas aclaración cuando esa precedencia produzca una única resolución.',
+                'Si el antecedente temporal más reciente contiene varios períodos y el mensaje actual usa una referencia relativa singular como "el mes anterior" sin indicar cuál debe desplazarse, devuelve needs_clarification=true; no elijas uno de esos períodos ni uses dashboard_month como alternativa.',
+                'Toda consulta financiera necesita al menos un período mensual concreto. Si el mensaje actual omite toda referencia temporal y el historial no aporta un antecedente temporal inequívoco, usa dashboard_month cuando esté disponible como período de la vista actual y no pidas aclaración. Pide aclaración solo si tampoco existe dashboard_month; nunca uses server_date como período por defecto.',
                 'Usa datos_usuario cuando la consulta completa requiera datos financieros propios.',
                 'Usa consulta_combinada cuando requiera datos financieros propios y conocimiento documental.',
                 'Usa knowledge_query solo para una consulta documental sin datos privados.',

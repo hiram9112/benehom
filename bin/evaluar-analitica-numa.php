@@ -104,12 +104,35 @@ $cases = [
         'result' => bh_numa_analitica_partial_categories_result(),
         'assert' => static fn (string $response): ?string => bh_numa_analitica_assert_partial_coverage($response),
     ],
+    [
+        'id' => 'consulta-combinada',
+        'message' => 'En una sola frase, indica mi gasto de electricidad de julio y la comparación que propone la guía de BeneHom.',
+        'intent' => 'consulta_combinada',
+        'knowledge_context' => [
+            'type' => 'knowledge_fragments',
+            'items' => [[
+                'title' => 'Revisar los suministros',
+                'section' => 'Comparación mensual',
+                'url' => '/conocimiento/gastos',
+                'content' => 'Para interpretar un gasto de suministros, BeneHom propone compararlo con meses anteriores antes de extraer conclusiones.',
+            ]],
+        ],
+        'result' => [
+            'tool' => NumaFinancialDataToolContract::NAME,
+            'meses' => [[
+                'mes' => '2026-07',
+                'gastos' => bh_numa_analitica_expense_branch('80.00'),
+            ]],
+        ],
+        'assert' => static fn (string $response): ?string => bh_numa_analitica_assert_combined($response),
+    ],
 ];
 
-$consumption = new class implements NumaProviderConsumptionInterface {
+$consumption = new class implements NumaProviderConsumptionInterface, NumaInteractionBudgetInterface {
     public int $calls = 0;
     public int $inputTokens = 0;
     public int $outputTokens = 0;
+    private bool $transientRetryUsed = false;
 
     public function iniciarLlamada(): void
     {
@@ -121,16 +144,47 @@ $consumption = new class implements NumaProviderConsumptionInterface {
         $this->inputTokens += $usage->inputTokens() ?? 0;
         $this->outputTokens += $usage->outputTokens() ?? 0;
     }
+
+    public function timeoutForCall(int $configuredTimeoutSeconds): int
+    {
+        return max(1, $configuredTimeoutSeconds);
+    }
+
+    public function allowTransientRetry(): bool
+    {
+        if ($this->transientRetryUsed) {
+            return false;
+        }
+
+        $this->transientRetryUsed = true;
+
+        return true;
+    }
+
+    public function resetInteraction(): void
+    {
+        $this->transientRetryUsed = false;
+    }
 };
 $failures = [];
+$inconclusive = [];
+$passes = 0;
+$lastCaseIndex = array_key_last($cases);
 
-foreach ($cases as $case) {
+foreach ($cases as $caseIndex => $case) {
+    $consumption->resetInteraction();
     $finalMessage = null;
     try {
         $provider = NumaSystemInstructionProvider::fromBasePrompt(new NumaProviderBoundary(
             GeminiNumaProvider::fromEnvironment(consumption: $consumption),
         ));
-        $baseContext = bh_numa_analitica_base_context($toolDefinition);
+        $baseContext = bh_numa_analitica_base_context(
+            $toolDefinition,
+            (string) ($case['intent'] ?? 'datos_usuario'),
+        );
+        if (isset($case['knowledge_context'])) {
+            array_splice($baseContext, 1, 0, [$case['knowledge_context']]);
+        }
         $toolCallResponse = $provider->respond(new NumaRequest(
             $case['message'],
             '',
@@ -181,6 +235,35 @@ foreach ($cases as $case) {
         }
 
         fwrite(STDOUT, "PASS {$case['id']}.\n");
+        ++$passes;
+    } catch (NumaProviderException $exception) {
+        $error = $exception->providerError();
+        if (in_array($error->type(), [
+            NumaProviderError::TRANSIENT,
+            NumaProviderError::UNAVAILABLE,
+            NumaProviderError::TIMEOUT,
+            NumaProviderError::RATE_LIMIT,
+        ], true)) {
+            $inconclusive[] = $case['id'] . ': ' . $error->safeCode();
+            fwrite(STDOUT, "INCONCLUSIVE {$case['id']}: {$error->safeCode()}.\n");
+            continue;
+        }
+
+        if (in_array($error->type(), [
+            NumaProviderError::QUOTA,
+            NumaProviderError::AUTHENTICATION,
+            NumaProviderError::CONFIGURATION,
+        ], true)) {
+            fwrite(STDERR, "ABORT {$case['id']}: {$error->safeCode()}.\n");
+            exit(2);
+        }
+
+        $failure = $case['id'] . ': ' . $error->safeCode();
+        if ($finalMessage !== null) {
+            $failure .= ' Respuesta: ' . $finalMessage;
+        }
+        $failures[] = $failure;
+        fwrite(STDOUT, "FAIL {$case['id']}.\n");
     } catch (Throwable $exception) {
         $failure = $case['id'] . ': ' . $exception->getMessage();
         if ($finalMessage !== null) {
@@ -188,6 +271,10 @@ foreach ($cases as $case) {
         }
         $failures[] = $failure;
         fwrite(STDOUT, "FAIL {$case['id']}.\n");
+    } finally {
+        if ($caseIndex !== $lastCaseIndex) {
+            usleep(1_000_000);
+        }
     }
 }
 
@@ -203,14 +290,24 @@ if ($failures !== []) {
     exit(1);
 }
 
-fwrite(STDOUT, 'Evaluacion analitica completada: ' . count($cases) . " casos correctos.\n");
+if ($inconclusive !== []) {
+    fwrite(STDERR, implode("\n", $inconclusive) . "\n");
+    fwrite(STDOUT, "Evaluacion analitica inconclusa: {$passes} PASS, " . count($inconclusive) . " INCONCLUSIVE.\n");
+    exit(2);
+}
+
+fwrite(STDOUT, "Evaluacion analitica completada: {$passes} PASS.\n");
 
 /** @param array<string, mixed> $toolDefinition @return array<int, array<string, mixed>> */
-function bh_numa_analitica_base_context(array $toolDefinition): array
+function bh_numa_analitica_base_context(array $toolDefinition, string $intent): array
 {
     return [[
         'type' => 'numa_final_response',
-        'classification' => ['intent' => 'datos_usuario', 'allowed' => true, 'reason' => 'user_data'],
+        'classification' => [
+            'intent' => $intent,
+            'allowed' => true,
+            'reason' => $intent === 'consulta_combinada' ? 'combined' : 'user_data',
+        ],
         'server_date' => '2026-08-12',
         'business_timezone' => 'Europe/Madrid',
         'dashboard_month' => '2026-07',
@@ -380,6 +477,20 @@ function bh_numa_analitica_assert_partial_coverage(string $response): ?string
         ) {
             return 'La respuesta presenta 1.250 como un total sin acotarlo a la cobertura parcial.';
         }
+    }
+
+    return null;
+}
+
+function bh_numa_analitica_assert_combined(string $response): ?string
+{
+    $numberError = bh_numa_analitica_assert_number($response, 80.0, 0.01);
+    if ($numberError !== null) {
+        return $numberError;
+    }
+
+    if (!str_contains(bh_numa_analitica_normalise($response), 'compar')) {
+        return 'La respuesta no integra la pauta documental de comparación mensual.';
     }
 
     return null;

@@ -1707,6 +1707,8 @@ final class NumaControllerTest extends TestCase
                     );
                 },
                 consumption: $consumption,
+                retrySleeper: static function (): void {
+                },
             );
         };
         $startedAt = hrtime(true);
@@ -1745,6 +1747,84 @@ final class NumaControllerTest extends TestCase
         self::assertStringNotContainsString($technicalDetails, $visibleResponse);
         self::assertStringNotContainsString('secret-provider-key', $visibleResponse);
         self::assertStringNotContainsString('cURL', $visibleResponse);
+    }
+
+    public function testChatReintentaRespuestaFinalSinEjecutarDeNuevoLaTool(): void
+    {
+        $_ENV['APP_ENV'] = 'local';
+        $_ENV['NUMA_BYPASS_LIMITS'] = 'true';
+        $_ENV['NUMA_ENABLED'] = 'true';
+        $_ENV['NUMA_MAX_PROVIDER_CALLS'] = '5';
+        $_ENV['NUMA_MAX_TRANSIENT_RETRIES'] = '1';
+        $this->configureJsonPost();
+        $numaUso = new NumaUsoFake(countConfirmationsInEstado: true);
+        $tools = new NumaFinancialToolRegistryFake();
+        $transportCalls = 0;
+        $delays = [];
+        $logger = new \NumaMinimalLogger(static function (): void {
+        });
+        $providerFactory = static function (?\NumaProviderConsumptionInterface $consumption = null) use (&$transportCalls, &$delays): \NumaProviderInterface {
+            return new \GeminiNumaProvider(
+                'fake-key',
+                'fake-model',
+                maxTransientRetries: 1,
+                transport: static function () use (&$transportCalls): array {
+                    ++$transportCalls;
+
+                    return match ($transportCalls) {
+                        1 => [
+                            'status' => 200,
+                            'body' => json_encode([
+                                'candidates' => [['content' => ['parts' => [['text' => json_encode([
+                                    'intent' => 'datos_usuario',
+                                    'allowed' => true,
+                                    'reason' => 'user_data',
+                                    'needs_clarification' => false,
+                                    'knowledge_query' => null,
+                                ], JSON_THROW_ON_ERROR)]]], 'finishReason' => 'STOP']],
+                            ], JSON_THROW_ON_ERROR),
+                        ],
+                        2 => [
+                            'status' => 200,
+                            'body' => json_encode([
+                                'candidates' => [['content' => ['parts' => [['functionCall' => [
+                                    'id' => 'call-1',
+                                    'name' => 'consultar_datos_financieros',
+                                    'args' => ['fecha_inicio' => '2026-07-01', 'fecha_fin' => '2026-07-31'],
+                                ]]]], 'finishReason' => 'STOP']],
+                            ], JSON_THROW_ON_ERROR),
+                        ],
+                        3 => ['status' => 503, 'body' => '{}'],
+                        default => [
+                            'status' => 200,
+                            'body' => json_encode([
+                                'candidates' => [['content' => ['parts' => [['text' => 'En julio gastaste 800 €.']]], 'finishReason' => 'STOP']],
+                            ], JSON_THROW_ON_ERROR),
+                        ],
+                    };
+                },
+                consumption: $consumption,
+                retrySleeper: static function (int $microseconds) use (&$delays): void {
+                    $delays[] = $microseconds;
+                },
+            );
+        };
+
+        $response = $this->invoke(
+            'chat',
+            '{"message":"¿Cuánto gasté en julio?"}',
+            $numaUso,
+            financialTools: $tools,
+            logger: $logger,
+            providerFactory: $providerFactory,
+        );
+
+        self::assertTrue($response['ok']);
+        self::assertSame('En julio gastaste 800 €.', $response['data']['message']);
+        self::assertSame(4, $transportCalls);
+        self::assertSame(1, $tools->executions);
+        self::assertCount(1, $delays);
+        self::assertSame(4, $numaUso->confirmations);
     }
 
     public function testPresupuestoTotalVencidoNoReservaNiInvocaElTransporte(): void

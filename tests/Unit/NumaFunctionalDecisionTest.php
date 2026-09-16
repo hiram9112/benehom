@@ -64,6 +64,18 @@ final class NumaFunctionalDecisionTest extends TestCase
             'antes de Function Calling',
             implode(' ', $provider->request?->context()[0]['rules'] ?? []),
         );
+        self::assertStringContainsString(
+            'contiene varios períodos',
+            implode(' ', $provider->request?->context()[0]['rules'] ?? []),
+        );
+        self::assertStringContainsString(
+            'usa dashboard_month cuando esté disponible',
+            implode(' ', $provider->request?->context()[0]['rules'] ?? []),
+        );
+        self::assertStringContainsString(
+            'nunca uses server_date como período por defecto',
+            implode(' ', $provider->request?->context()[0]['rules'] ?? []),
+        );
     }
 
     public function testRechazaElAntiguoArbolDeSeleccionDeTool(): void

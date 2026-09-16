@@ -11,6 +11,8 @@ final class GeminiNumaProvider implements NumaProviderInterface
 {
     private const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
     private const OUTPUT_BYTES_PER_TOKEN_HARD_LIMIT = 16;
+    private const RETRY_DELAY_MIN_MICROSECONDS = 1_500_000;
+    private const RETRY_DELAY_MAX_MICROSECONDS = 2_500_000;
 
     /** @var callable */
     private $transport;
@@ -21,9 +23,14 @@ final class GeminiNumaProvider implements NumaProviderInterface
     /** @var Closure(array<string, mixed>):void */
     private readonly Closure $diagnosticLogger;
 
+    /** @var Closure(int):void */
+    private readonly Closure $retrySleeper;
+
     private readonly string $correlationId;
 
     private int $responseTurn = 0;
+
+    private int $providerCall = 0;
 
     /** @var array<int, string> */
     private array $declaredFunctionNames = [];
@@ -40,6 +47,7 @@ final class GeminiNumaProvider implements NumaProviderInterface
         private readonly int $maxResponseBodyBytes = 65536,
         ?callable $diagnosticLogger = null,
         ?string $correlationId = null,
+        ?callable $retrySleeper = null,
     ) {
         if (trim($apiKey) === '' || trim($model) === '' || $maxResponseBodyBytes <= 0) {
             throw self::configurationError();
@@ -48,6 +56,9 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $this->transport = $transport ?? [$this, 'curlTransport'];
         $this->diagnosticLogger = Closure::fromCallable($diagnosticLogger ?? static function (array $diagnostic): void {
             error_log('numa_provider_response_diagnostic ' . json_encode($diagnostic, JSON_THROW_ON_ERROR));
+        });
+        $this->retrySleeper = Closure::fromCallable($retrySleeper ?? static function (int $microseconds): void {
+            usleep($microseconds);
         });
         $this->correlationId = $correlationId !== null && preg_match('/\A[a-f0-9]{32}\z/', $correlationId) === 1
             ? $correlationId
@@ -97,16 +108,33 @@ final class GeminiNumaProvider implements NumaProviderInterface
             'x-goog-api-key: ' . $this->apiKey,
         ];
 
+        $providerCall = ++$this->providerCall;
         $attempts = 0;
-        $maxAttempts = 1 + ($this->financialToolResults($request) === []
-            ? min(max($this->maxTransientRetries, 0), 1)
-            : 0);
+        $maxAttempts = 1 + min(max($this->maxTransientRetries, 0), 1);
 
         do {
             ++$attempts;
+            $attemptStartedAt = hrtime(true);
             // Calcula el timeout antes de reservar consumo: si el deadline ya venció,
             // no se confirma una unidad para una llamada que no llegará a empezar.
-            $timeoutSeconds = $this->safeTimeoutSeconds();
+            try {
+                $timeoutSeconds = $this->safeTimeoutSeconds();
+            } catch (NumaProviderException $exception) {
+                $this->recordAttemptFailure(
+                    $providerCall,
+                    $attempts,
+                    $maxAttempts,
+                    $attemptStartedAt,
+                    null,
+                    'deadline',
+                    null,
+                    $exception,
+                    false,
+                    null,
+                );
+
+                throw $exception;
+            }
             $this->consumption?->iniciarLlamada();
 
             try {
@@ -117,7 +145,22 @@ final class GeminiNumaProvider implements NumaProviderInterface
                     $timeoutSeconds
                 );
             } catch (NumaProviderException $exception) {
-                if ($this->shouldRetry($exception, $attempts, $maxAttempts)) {
+                $willRetry = $this->shouldRetry($exception, $attempts, $maxAttempts);
+                $retryDelayMicroseconds = $willRetry ? $this->retryDelayMicroseconds() : null;
+                $this->recordAttemptFailure(
+                    $providerCall,
+                    $attempts,
+                    $maxAttempts,
+                    $attemptStartedAt,
+                    $timeoutSeconds,
+                    'transport',
+                    null,
+                    $exception,
+                    $willRetry,
+                    $retryDelayMicroseconds,
+                );
+                if ($willRetry) {
+                    $this->waitBeforeRetry($retryDelayMicroseconds);
                     continue;
                 }
 
@@ -125,7 +168,22 @@ final class GeminiNumaProvider implements NumaProviderInterface
             } catch (Throwable $exception) {
                 $providerException = self::transientError($exception);
 
-                if ($this->shouldRetry($providerException, $attempts, $maxAttempts)) {
+                $willRetry = $this->shouldRetry($providerException, $attempts, $maxAttempts);
+                $retryDelayMicroseconds = $willRetry ? $this->retryDelayMicroseconds() : null;
+                $this->recordAttemptFailure(
+                    $providerCall,
+                    $attempts,
+                    $maxAttempts,
+                    $attemptStartedAt,
+                    $timeoutSeconds,
+                    'transport',
+                    null,
+                    $providerException,
+                    $willRetry,
+                    $retryDelayMicroseconds,
+                );
+                if ($willRetry) {
+                    $this->waitBeforeRetry($retryDelayMicroseconds);
                     continue;
                 }
 
@@ -134,19 +192,68 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
             $status = isset($result['status']) && is_int($result['status']) ? $result['status'] : 0;
             $responseBody = isset($result['body']) && is_string($result['body']) ? $result['body'] : '';
-            $this->assertResponseBodySize($responseBody);
+            try {
+                $this->assertResponseBodySize($responseBody);
+            } catch (NumaProviderException $exception) {
+                $this->recordAttemptFailure(
+                    $providerCall,
+                    $attempts,
+                    $maxAttempts,
+                    $attemptStartedAt,
+                    $timeoutSeconds,
+                    'response',
+                    $status,
+                    $exception,
+                    false,
+                    null,
+                );
+
+                throw $exception;
+            }
 
             if ($status < 200 || $status >= 300) {
                 $exception = $this->httpError($status, $responseBody);
 
-                if ($this->shouldRetry($exception, $attempts, $maxAttempts)) {
+                $willRetry = $this->shouldRetry($exception, $attempts, $maxAttempts);
+                $retryDelayMicroseconds = $willRetry ? $this->retryDelayMicroseconds() : null;
+                $this->recordAttemptFailure(
+                    $providerCall,
+                    $attempts,
+                    $maxAttempts,
+                    $attemptStartedAt,
+                    $timeoutSeconds,
+                    'http',
+                    $status,
+                    $exception,
+                    $willRetry,
+                    $retryDelayMicroseconds,
+                );
+                if ($willRetry) {
+                    $this->waitBeforeRetry($retryDelayMicroseconds);
                     continue;
                 }
 
                 throw $exception;
             }
 
-            $response = $this->parseResponse($responseBody, $outputTokenLimit);
+            try {
+                $response = $this->parseResponse($responseBody, $outputTokenLimit);
+            } catch (NumaProviderException $exception) {
+                $this->recordAttemptFailure(
+                    $providerCall,
+                    $attempts,
+                    $maxAttempts,
+                    $attemptStartedAt,
+                    $timeoutSeconds,
+                    'response',
+                    $status,
+                    $exception,
+                    false,
+                    null,
+                );
+
+                throw $exception;
+            }
             $this->consumption?->registrarTokens($response->tokenUsage());
 
             return $response;
@@ -894,6 +1001,60 @@ final class GeminiNumaProvider implements NumaProviderInterface
 
         return !($this->consumption instanceof NumaInteractionBudgetInterface)
             || $this->consumption->allowTransientRetry();
+    }
+
+    private function retryDelayMicroseconds(): int
+    {
+        return random_int(self::RETRY_DELAY_MIN_MICROSECONDS, self::RETRY_DELAY_MAX_MICROSECONDS);
+    }
+
+    private function waitBeforeRetry(?int $delayMicroseconds): void
+    {
+        if ($delayMicroseconds !== null) {
+            ($this->retrySleeper)($delayMicroseconds);
+        }
+    }
+
+    private function recordAttemptFailure(
+        int $providerCall,
+        int $attempt,
+        int $maxAttempts,
+        int $startedAt,
+        ?int $timeoutSeconds,
+        string $origin,
+        ?int $httpStatus,
+        NumaProviderException $exception,
+        bool $willRetry,
+        ?int $retryDelayMicroseconds,
+    ): void {
+        if (!bh_env_bool('NUMA_PROVIDER_RESPONSE_DIAGNOSTICS', false)) {
+            return;
+        }
+
+        $error = $exception->providerError();
+
+        try {
+            ($this->diagnosticLogger)([
+                'event' => 'attempt_failure',
+                'correlation_id' => $this->correlationId,
+                'provider_call' => max(1, $providerCall),
+                'attempt' => max(1, $attempt),
+                'max_attempts' => max(1, $maxAttempts),
+                'origin' => in_array($origin, ['deadline', 'transport', 'http', 'response'], true) ? $origin : 'transport',
+                'http_status' => $httpStatus !== null && $httpStatus >= 100 && $httpStatus <= 599 ? $httpStatus : null,
+                'duration_ms' => max(0, (int) floor((hrtime(true) - $startedAt) / 1_000_000)),
+                'timeout_seconds' => $timeoutSeconds === null ? null : max(1, $timeoutSeconds),
+                'error_type' => $error->type(),
+                'error_code' => $error->safeCode(),
+                'retryable' => $error->retryable(),
+                'will_retry' => $willRetry,
+                'retry_delay_ms' => $retryDelayMicroseconds === null
+                    ? null
+                    : (int) floor($retryDelayMicroseconds / 1000),
+            ]);
+        } catch (Throwable) {
+            // El diagnóstico no puede alterar el resultado del proveedor.
+        }
     }
 
     private static function configurationError(): NumaProviderException

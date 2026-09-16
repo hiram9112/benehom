@@ -39,7 +39,12 @@ final class NumaFunctionalDecisionsTest extends TestCase
             'Expresiones como "últimos N meses", "últimos meses" o equivalentes son referencias al calendario real: usa server_date en business_timezone, nunca dashboard_month, y selecciona los N meses naturales completos inmediatamente anteriores al mes de server_date, sin incluir el mes actual parcial.',
             $prompt,
         );
+        self::assertStringContainsString('Toda consulta financiera necesita al menos un período mensual concreto', $prompt);
+        self::assertStringContainsString('usa dashboard_month cuando exista como período de la vista actual', $prompt);
+        self::assertStringContainsString('nunca uses server_date como período por defecto', $prompt);
         self::assertStringContainsString('no elijas una arbitrariamente: pide aclaración', $prompt);
+        self::assertStringContainsString('un antecedente con varios períodos no es un ancla inequívoca', $prompt);
+        self::assertStringContainsString('no uses dashboard_month como alternativa', $prompt);
         self::assertStringContainsString('promedio mensual', $prompt);
         self::assertStringContainsString('solo meses con datos', $prompt);
         self::assertStringContainsString('texto plano estructurado, sin Markdown', $prompt);

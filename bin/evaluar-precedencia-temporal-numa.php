@@ -132,9 +132,100 @@ $cases = [
         'history' => [],
         'expected_months' => ['2025-12', '2026-01'],
     ],
+    [
+        'id' => 'electricity-alias',
+        'message' => '¿Cuánto gasté en luz en julio de 2026?',
+        'dashboard_month' => '2026-06',
+        'history' => [],
+        'expected_months' => ['2026-07'],
+        'expected_selectors' => [[
+            'ambito' => 'gastos',
+            'tipo' => 'esencial',
+            'area' => 'suministros',
+            'categoria' => 'electricidad',
+        ]],
+    ],
+    [
+        'id' => 'food-delivery',
+        'message' => '¿Cuánto gasté en comida a domicilio en julio de 2026?',
+        'dashboard_month' => '2026-06',
+        'history' => [],
+        'expected_months' => ['2026-07'],
+        'expected_selectors' => [[
+            'ambito' => 'gastos',
+            'tipo' => 'flexible',
+            'area' => 'restauracion',
+            'categoria' => 'comida_domicilio',
+        ]],
+    ],
+    [
+        'id' => 'supplies-area',
+        'message' => '¿Cuánto gasté en suministros en julio de 2026?',
+        'dashboard_month' => '2026-06',
+        'history' => [],
+        'expected_months' => ['2026-07'],
+        'expected_selectors' => [[
+            'ambito' => 'gastos',
+            'tipo' => 'esencial',
+            'area' => 'suministros',
+        ]],
+    ],
+    [
+        'id' => 'category-comparison',
+        'message' => 'Compara cuánto gasté en electricidad y comida a domicilio en julio de 2026.',
+        'dashboard_month' => '2026-06',
+        'history' => [],
+        'expected_months' => ['2026-07'],
+        'expected_selectors' => [[
+            'ambito' => 'gastos',
+            'tipo' => 'esencial',
+            'area' => 'suministros',
+            'categoria' => 'electricidad',
+        ], [
+            'ambito' => 'gastos',
+            'tipo' => 'flexible',
+            'area' => 'restauracion',
+            'categoria' => 'comida_domicilio',
+        ]],
+    ],
+    [
+        'id' => 'missing-period',
+        'message' => '¿Cuánto gasté en electricidad?',
+        'dashboard_month' => '2026-06',
+        'history' => [],
+        'expected_months' => ['2026-06'],
+        'expected_selectors' => [[
+            'ambito' => 'gastos',
+            'tipo' => 'esencial',
+            'area' => 'suministros',
+            'categoria' => 'electricidad',
+        ]],
+    ],
+    [
+        'id' => 'period-continuation',
+        'message' => '¿Y en julio de 2026?',
+        'dashboard_month' => '2026-06',
+        'history' => [[
+            'role' => 'user',
+            'message' => '¿Cuánto gasté en electricidad?',
+        ], [
+            'role' => 'assistant',
+            'message' => 'En junio de 2026 gastaste 60 euros en electricidad.',
+            'periods' => [['mes_inicio' => '2026-06', 'mes_fin' => '2026-06']],
+        ]],
+        'expected_months' => ['2026-07'],
+        'expected_selectors' => [[
+            'ambito' => 'gastos',
+            'tipo' => 'esencial',
+            'area' => 'suministros',
+            'categoria' => 'electricidad',
+        ]],
+    ],
 ];
 
-$consumption = new class implements NumaProviderConsumptionInterface {
+$consumption = new class implements NumaProviderConsumptionInterface, NumaInteractionBudgetInterface {
+    private bool $transientRetryUsed = false;
+
     public function iniciarLlamada(): void
     {
     }
@@ -142,13 +233,38 @@ $consumption = new class implements NumaProviderConsumptionInterface {
     public function registrarTokens(NumaTokenUsage $usage): void
     {
     }
+
+    public function timeoutForCall(int $configuredTimeoutSeconds): int
+    {
+        return max(1, $configuredTimeoutSeconds);
+    }
+
+    public function allowTransientRetry(): bool
+    {
+        if ($this->transientRetryUsed) {
+            return false;
+        }
+
+        $this->transientRetryUsed = true;
+
+        return true;
+    }
+
+    public function resetInteraction(): void
+    {
+        $this->transientRetryUsed = false;
+    }
 };
 $definition = (new NumaFinancialToolRegistry())
     ->get(NumaFinancialDataToolContract::NAME)
     ->functionDeclaration();
 $failures = [];
+$inconclusive = [];
+$passes = 0;
+$lastCaseIndex = array_key_last($cases);
 
-foreach ($cases as $case) {
+foreach ($cases as $caseIndex => $case) {
+    $consumption->resetInteraction();
     $temporalContext = [
         'type' => 'authoritative_temporal_context',
         'server_date' => $serverDate,
@@ -175,6 +291,7 @@ foreach ($cases as $case) {
 
         if ($expectsClarification) {
             fwrite(STDOUT, "PASS {$case['id']}: aclaracion previa a Function Calling.\n");
+            ++$passes;
             continue;
         }
 
@@ -206,6 +323,7 @@ foreach ($cases as $case) {
         ));
 
         $months = [];
+        $selectors = [];
         foreach ($response->toolRequests() as $toolRequest) {
             if ($toolRequest->name() !== NumaFinancialDataToolContract::NAME) {
                 throw new RuntimeException('tool financiera inesperada');
@@ -213,6 +331,7 @@ foreach ($cases as $case) {
 
             $arguments = (new NumaFinancialDataToolContract())->validateArguments($toolRequest->arguments());
             $months = [...$months, ...bh_numa_temporal_evaluation_months($arguments['periodos'])];
+            $selectors = [...$selectors, ...$arguments['selectores']];
         }
 
         $months = array_values(array_unique($months));
@@ -226,10 +345,54 @@ foreach ($cases as $case) {
             );
         }
 
+        if (isset($case['expected_selectors'])) {
+            $normaliseSelectors = static function (array $items): array {
+                $items = array_values(array_unique($items, SORT_REGULAR));
+                usort($items, static fn (array $left, array $right): int => strcmp(
+                    json_encode($left, JSON_THROW_ON_ERROR),
+                    json_encode($right, JSON_THROW_ON_ERROR),
+                ));
+
+                return $items;
+            };
+            if ($normaliseSelectors($selectors) !== $normaliseSelectors($case['expected_selectors'])) {
+                throw new RuntimeException('selectores financieros inesperados');
+            }
+        }
+
         fwrite(STDOUT, "PASS {$case['id']}: " . implode(', ', $months) . ".\n");
+        ++$passes;
+    } catch (NumaProviderException $exception) {
+        $error = $exception->providerError();
+        if (in_array($error->type(), [
+            NumaProviderError::TRANSIENT,
+            NumaProviderError::UNAVAILABLE,
+            NumaProviderError::TIMEOUT,
+            NumaProviderError::RATE_LIMIT,
+        ], true)) {
+            $inconclusive[] = $case['id'] . ': ' . $error->safeCode();
+            fwrite(STDOUT, "INCONCLUSIVE {$case['id']}: {$error->safeCode()}.\n");
+            continue;
+        }
+
+        if (in_array($error->type(), [
+            NumaProviderError::QUOTA,
+            NumaProviderError::AUTHENTICATION,
+            NumaProviderError::CONFIGURATION,
+        ], true)) {
+            fwrite(STDERR, "ABORT {$case['id']}: {$error->safeCode()}.\n");
+            exit(2);
+        }
+
+        $failures[] = $case['id'] . ': ' . $error->safeCode();
+        fwrite(STDOUT, "FAIL {$case['id']}.\n");
     } catch (Throwable $exception) {
         $failures[] = $case['id'] . ': ' . $exception->getMessage();
         fwrite(STDOUT, "FAIL {$case['id']}.\n");
+    } finally {
+        if ($caseIndex !== $lastCaseIndex) {
+            usleep(1_000_000);
+        }
     }
 }
 
@@ -238,7 +401,13 @@ if ($failures !== []) {
     exit(1);
 }
 
-fwrite(STDOUT, 'Evaluacion temporal completada: ' . count($cases) . " casos correctos.\n");
+if ($inconclusive !== []) {
+    fwrite(STDERR, implode("\n", $inconclusive) . "\n");
+    fwrite(STDOUT, "Evaluacion temporal inconclusa: {$passes} PASS, " . count($inconclusive) . " INCONCLUSIVE.\n");
+    exit(2);
+}
+
+fwrite(STDOUT, "Evaluacion temporal completada: {$passes} PASS.\n");
 
 /**
  * @param list<array{mes_inicio:string,mes_fin:string}> $periods

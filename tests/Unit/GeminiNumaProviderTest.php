@@ -672,11 +672,14 @@ final class GeminiNumaProviderTest extends TestCase
         }
     }
 
-    public function testNoReintentaAutomaticamenteDespuesDeEjecutarUnaTool(): void
+    public function testReintentaElMismoPayloadDespuesDeEjecutarUnaTool(): void
     {
         $calls = 0;
-        $provider = new \GeminiNumaProvider('key', 'model', maxTransientRetries: 1, transport: function () use (&$calls): array {
+        $payloads = [];
+        $delays = [];
+        $provider = new \GeminiNumaProvider('key', 'model', maxTransientRetries: 1, transport: function (string $url, array $headers, string $body) use (&$calls, &$payloads): array {
             ++$calls;
+            $payloads[] = $body;
 
             if ($calls === 1) {
                 return [
@@ -691,7 +694,18 @@ final class GeminiNumaProviderTest extends TestCase
                 ];
             }
 
-            return ['status' => 503, 'body' => '{}'];
+            if ($calls === 2) {
+                return ['status' => 503, 'body' => '{}'];
+            }
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['text' => 'En julio gastaste 800 €.']]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        }, retrySleeper: static function (int $microseconds) use (&$delays): void {
+            $delays[] = $microseconds;
         });
 
         $provider->respond(new \NumaRequest(
@@ -702,20 +716,20 @@ final class GeminiNumaProviderTest extends TestCase
             functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
         ));
 
-        try {
-            $provider->respond(new \NumaRequest(
-                '¿Cuánto gasté?',
-                '',
-                $this->toolContext(['call-1' => ['tool' => 'consultar_datos_financieros', 'gastos' => 800.0]]),
-                ['consultar_datos_financieros'],
-                functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
-            ));
-            self::fail('Se esperaba un error transitorio sin reintento posterior a la tool.');
-        } catch (\NumaProviderException $exception) {
-            self::assertSame('NUMA_PROVIDER_UNAVAILABLE', $exception->getMessage());
-        }
+        $response = $provider->respond(new \NumaRequest(
+            '¿Cuánto gasté?',
+            '',
+            $this->toolContext(['call-1' => ['tool' => 'consultar_datos_financieros', 'gastos' => 800.0]]),
+            ['consultar_datos_financieros'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
+        ));
 
-        self::assertSame(2, $calls);
+        self::assertSame('En julio gastaste 800 €.', $response->message());
+        self::assertSame(3, $calls);
+        self::assertSame($payloads[1], $payloads[2]);
+        self::assertCount(1, $delays);
+        self::assertGreaterThanOrEqual(1_500_000, $delays[0]);
+        self::assertLessThanOrEqual(2_500_000, $delays[0]);
     }
 
     public function testRechazaFunctionCallDesconocidoOMalformado(): void
@@ -752,8 +766,11 @@ final class GeminiNumaProviderTest extends TestCase
     public function testReintentaUnaVezUnFalloTransitorioSeguro(): void
     {
         $calls = 0;
-        $provider = new \GeminiNumaProvider('key', 'model', transport: function () use (&$calls): array {
+        $delays = [];
+        $events = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function () use (&$calls, &$events): array {
             ++$calls;
+            $events[] = 'transport';
 
             if ($calls === 1) {
                 return ['status' => 503, 'body' => '{}'];
@@ -770,12 +787,19 @@ final class GeminiNumaProviderTest extends TestCase
                     ]],
                 ]),
             ];
+        }, retrySleeper: static function (int $microseconds) use (&$delays, &$events): void {
+            $delays[] = $microseconds;
+            $events[] = 'wait';
         });
 
         $response = $provider->respond(new \NumaRequest('Pregunta'));
 
         self::assertSame(2, $calls);
         self::assertSame('Disponible de nuevo.', $response->message());
+        self::assertCount(1, $delays);
+        self::assertGreaterThanOrEqual(1_500_000, $delays[0]);
+        self::assertLessThanOrEqual(2_500_000, $delays[0]);
+        self::assertSame(['transport', 'wait', 'transport'], $events);
     }
 
     public function testComparteElUnicoReintentoYElTimeoutConLaInteraccion(): void
@@ -830,6 +854,8 @@ final class GeminiNumaProviderTest extends TestCase
                 ];
             },
             consumption: $consumption,
+            retrySleeper: static function (): void {
+            },
         );
 
         self::assertSame('Respuesta válida.', $provider->respond(new \NumaRequest('Primera consulta'))->message());
@@ -845,6 +871,119 @@ final class GeminiNumaProviderTest extends TestCase
         self::assertSame(3, $consumption->calls);
         self::assertSame(1, $consumption->retries);
         self::assertSame([2, 2, 2], $timeouts);
+    }
+
+    public function testDiagnosticoDeIntentosDistingueErroresSinRegistrarContenidoSensible(): void
+    {
+        $_ENV['NUMA_PROVIDER_RESPONSE_DIAGNOSTICS'] = 'true';
+        $secret = 'dato-financiero-secreto-987';
+        $scenarios = [
+            'http-503' => [
+                'transport' => static fn (): array => [
+                    'status' => 503,
+                    'body' => '{"error":{"message":"' . $secret . '"}}',
+                ],
+                'origin' => 'http',
+                'status' => 503,
+                'type' => \NumaProviderError::TRANSIENT,
+                'code' => 'NUMA_PROVIDER_UNAVAILABLE',
+            ],
+            'http-429' => [
+                'transport' => static fn (): array => [
+                    'status' => 429,
+                    'body' => '{"error":{"message":"too many requests ' . $secret . '"}}',
+                ],
+                'origin' => 'http',
+                'status' => 429,
+                'type' => \NumaProviderError::RATE_LIMIT,
+                'code' => 'NUMA_PROVIDER_RATE_LIMITED',
+            ],
+            'timeout' => [
+                'transport' => static function () use ($secret): never {
+                    throw new \NumaProviderException(
+                        new \NumaProviderError(\NumaProviderError::TIMEOUT, 'NUMA_PROVIDER_TIMEOUT', true),
+                        new \RuntimeException($secret),
+                    );
+                },
+                'origin' => 'transport',
+                'status' => null,
+                'type' => \NumaProviderError::TIMEOUT,
+                'code' => 'NUMA_PROVIDER_TIMEOUT',
+            ],
+            'transport' => [
+                'transport' => static function () use ($secret): never {
+                    throw new \RuntimeException($secret);
+                },
+                'origin' => 'transport',
+                'status' => null,
+                'type' => \NumaProviderError::TRANSIENT,
+                'code' => 'NUMA_PROVIDER_UNAVAILABLE',
+            ],
+        ];
+
+        foreach ($scenarios as $name => $scenario) {
+            $diagnostics = [];
+            $provider = new \GeminiNumaProvider(
+                'key',
+                'model',
+                maxTransientRetries: 0,
+                transport: $scenario['transport'],
+                diagnosticLogger: static function (array $diagnostic) use (&$diagnostics): void {
+                    $diagnostics[] = $diagnostic;
+                },
+                correlationId: '0123456789abcdef0123456789abcdef',
+            );
+
+            try {
+                $provider->respond(new \NumaRequest(
+                    'Pregunta ' . $secret,
+                    'Prompt ' . $secret,
+                    [['type' => 'private_context', 'value' => $secret]],
+                ));
+                self::fail('Se esperaba un error de proveedor para ' . $name . '.');
+            } catch (\NumaProviderException) {
+            }
+
+            self::assertCount(1, $diagnostics, $name);
+            self::assertSame('attempt_failure', $diagnostics[0]['event'], $name);
+            self::assertSame($scenario['origin'], $diagnostics[0]['origin'], $name);
+            self::assertSame($scenario['status'], $diagnostics[0]['http_status'], $name);
+            self::assertSame($scenario['type'], $diagnostics[0]['error_type'], $name);
+            self::assertSame($scenario['code'], $diagnostics[0]['error_code'], $name);
+            self::assertFalse($diagnostics[0]['will_retry'], $name);
+            self::assertStringNotContainsString($secret, json_encode($diagnostics, JSON_THROW_ON_ERROR), $name);
+        }
+    }
+
+    public function testDiagnosticoRegistraCadaIntentoFallidoYLaDecisionDeRetry(): void
+    {
+        $_ENV['NUMA_PROVIDER_RESPONSE_DIAGNOSTICS'] = 'true';
+        $diagnostics = [];
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: static fn (): array => ['status' => 503, 'body' => '{}'],
+            diagnosticLogger: static function (array $diagnostic) use (&$diagnostics): void {
+                $diagnostics[] = $diagnostic;
+            },
+            retrySleeper: static function (): void {
+            },
+        );
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta'));
+            self::fail('Se esperaba indisponibilidad tras agotar el retry.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_UNAVAILABLE', $exception->providerError()->safeCode());
+        }
+
+        self::assertCount(2, $diagnostics);
+        self::assertSame([1, 2], array_column($diagnostics, 'attempt'));
+        self::assertSame([2, 2], array_column($diagnostics, 'max_attempts'));
+        self::assertSame([true, false], array_column($diagnostics, 'will_retry'));
+        self::assertGreaterThanOrEqual(1500, $diagnostics[0]['retry_delay_ms']);
+        self::assertLessThanOrEqual(2500, $diagnostics[0]['retry_delay_ms']);
+        self::assertNull($diagnostics[1]['retry_delay_ms']);
     }
 
     public function testNoReintentaErrorDeAutenticacion(): void

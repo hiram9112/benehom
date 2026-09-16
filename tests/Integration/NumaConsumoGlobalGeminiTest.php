@@ -130,6 +130,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
                     : $this->validResponse(120, 35);
             },
             consumption: $consumo,
+            retrySleeper: static function (): void {
+            },
         );
 
         $provider->respond(new \NumaRequest('Pregunta'));
@@ -158,6 +160,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
                 ));
             },
             consumption: $this->consumo(),
+            retrySleeper: static function (): void {
+            },
         );
         $startedAt = hrtime(true);
 
@@ -191,6 +195,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
                 return ['status' => 503, 'body' => '{}'];
             },
             consumption: $consumo,
+            retrySleeper: static function (): void {
+            },
         );
 
         try {
@@ -226,6 +232,8 @@ final class NumaConsumoGlobalGeminiTest extends TestCase
                     : $this->validResponse(120, 35);
             },
             consumption: $this->consumo(),
+            retrySleeper: static function (): void {
+            },
         );
 
         $provider->respond(new \NumaRequest('Pregunta'));

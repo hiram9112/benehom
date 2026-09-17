@@ -60,13 +60,89 @@ test('una sesión válida inicia una nueva conversación privada', async ({ page
             body: availableStatus([]),
         }));
         await login(page, user);
+        await page.evaluate(() => {
+            Math.random = () => 0;
+        });
         await openPrivateNuma(page);
 
         await page.locator('[data-numa-new-conversation]').click();
         await page.getByRole('button', { name: 'Empezar de nuevo' }).click();
 
         await expect(page.locator('[data-numa-canonical-message="true"]')).toHaveCount(0);
+        await expect(page.locator('[data-numa-initial-greeting]')).toHaveText('Hola Usuario Playwright.\n¿En qué puedo ayudarte?');
+        await expect(page.locator('[data-numa-initial-prompt]')).toHaveCount(0);
         await expect(page.locator('[data-numa-status]')).toHaveText('Nueva conversación iniciada.');
+    });
+});
+
+test('muestra las cuatro variantes privadas como texto seguro', async ({ page }) => {
+    const userName = '<img src=x onerror=alert(1)>';
+    const user = createPrivateUser(userName);
+
+    try {
+        await page.route(privateStatusUrl, (route) => route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: availableStatus([]),
+        }));
+        await login(page, user);
+        const variants = [
+            [0, `Hola ${userName}.\n¿En qué puedo ayudarte?`],
+            [0.3, `¿Qué te gustaría consultar ${userName}?`],
+            [0.6, `¿Hay algo que quieras revisar ${userName}?`],
+            [0.9, `¿Por dónde quieres empezar ${userName}?`],
+        ];
+
+        for (const [randomValue, expectedGreeting] of variants) {
+            await page.evaluate((value) => {
+                Math.random = () => value;
+            }, randomValue);
+            await openPrivateNuma(page);
+
+            const greeting = page.locator('[data-numa-initial-greeting]');
+            await expect(greeting.locator('img')).toHaveCount(0);
+            await expect(greeting).toHaveText(expectedGreeting);
+            await expect(page.locator('[data-numa-initial-prompt]')).toHaveCount(0);
+
+            if (randomValue === 0) {
+                expect(await greeting.evaluate((element) => getComputedStyle(element).whiteSpace)).toBe('pre-line');
+            }
+
+            if (randomValue !== 0.9) {
+                await page.locator('[data-numa-close]').click();
+            }
+        }
+    } finally {
+        deletePrivateUser(user.email);
+    }
+});
+
+test('el estado inicial privado es texto informativo y no envía mensajes al pulsarlo', async ({ page }) => {
+    await withPrivateUser(page, async (user) => {
+        let chatRequests = 0;
+
+        await page.route(privateStatusUrl, (route) => route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: availableStatus([]),
+        }));
+        await page.route(privateChatUrl, (route) => {
+            chatRequests += 1;
+            return route.fulfill({ status: 500 });
+        });
+        await login(page, user);
+        await page.evaluate(() => {
+            Math.random = () => 0;
+        });
+        await openPrivateNuma(page);
+
+        await page.locator('[data-numa-initial-greeting]').click({ force: true });
+
+        expect(await page.locator('[data-numa-initial-greeting]').evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none');
+        await expect(page.locator('[data-numa-initial-prompt]')).toHaveCount(0);
+        await expect(page.locator('[data-numa-messages] .bh-numa-message.is-user')).toHaveCount(0);
+        await expect(page.locator('[data-numa-input]')).toHaveValue('');
+        expect(chatRequests).toBe(0);
     });
 });
 

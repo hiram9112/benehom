@@ -4,8 +4,14 @@ const { testDatabaseEnvironment } = require('./test-environment');
 
 const fixturePath = path.join(__dirname, 'private-user.php');
 
-function runFixture(action, email) {
-    return JSON.parse(execFileSync('php', [fixturePath, action, email], {
+function runFixture(action, email, userName) {
+    const fixtureArguments = [fixturePath, action, email];
+
+    if (userName !== undefined) {
+        fixtureArguments.push(userName);
+    }
+
+    return JSON.parse(execFileSync('php', fixtureArguments, {
         encoding: 'utf8',
         env: {
             ...process.env,
@@ -15,10 +21,10 @@ function runFixture(action, email) {
     }));
 }
 
-function createPrivateUser() {
+function createPrivateUser(userName = 'Usuario Playwright') {
     const email = `pw-numa-${Date.now().toString(36)}-${process.pid}@t.test`;
 
-    return runFixture('create', email);
+    return runFixture('create', email, userName);
 }
 
 function deletePrivateUser(email) {

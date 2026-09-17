@@ -16,52 +16,6 @@
         maxTotalDelayMs: 6000,
     };
 
-    const EMPTY_MESSAGES = [
-        '¿Qué quieres revisar hoy?',
-        '¿En qué puedo ayudarte?',
-        '¿Qué quieres consultar?',
-        '¿Hay algo que quieras revisar?',
-        '¿Qué te gustaría saber?',
-        '¿Por dónde empezamos?',
-    ];
-
-    const SUGGESTIONS = [
-        '¿Cuánto he ahorrado este mes?',
-        '¿En qué gasto más?',
-        '¿Qué son gastos esenciales y flexibles?',
-        '¿Cómo funcionan mis metas?',
-        '¿Qué es el ahorro disponible?',
-        'Compara este mes con el anterior.',
-        '¿Cómo añado un movimiento?',
-        '¿Qué es el ahorro posible?',
-    ];
-
-    const configuredTextList = (widget, attribute, fallback) => {
-        const value = widget.getAttribute(attribute);
-
-        if (!value) {
-            return fallback;
-        }
-
-        try {
-            const parsed = JSON.parse(value);
-
-            return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string' && item.trim() !== '')
-                ? parsed
-                : fallback;
-        } catch {
-            return fallback;
-        }
-    };
-
-    const randomItem = (items) => items[Math.floor(Math.random() * items.length)];
-
-    const randomSubset = (items, count) => items
-        .map((item) => ({ item, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .slice(0, count)
-        .map(({ item }) => item);
-
     const focusFirstPanelTarget = (panel, closeButton) => {
         const input = panel.querySelector('[data-numa-input]:not(:disabled)');
 
@@ -76,6 +30,24 @@
     };
 
     const normaliseText = (value) => String(value || '').trim();
+
+    const initialGreetingFor = (userName) => {
+        const variants = userName === ''
+            ? [
+                '¿En qué puedo ayudarte?',
+                '¿Qué te gustaría consultar?',
+                '¿Hay algo que quieras revisar?',
+                '¿Por dónde quieres empezar?',
+            ]
+            : [
+                `Hola ${userName}.\n¿En qué puedo ayudarte?`,
+                `¿Qué te gustaría consultar ${userName}?`,
+                `¿Hay algo que quieras revisar ${userName}?`,
+                `¿Por dónde quieres empezar ${userName}?`,
+            ];
+
+        return variants[Math.floor(Math.random() * variants.length)];
+    };
 
     const createTextNode = (tagName, className, text) => {
         const element = document.createElement(tagName);
@@ -109,8 +81,7 @@
         const counter = panel ? panel.querySelector('[data-numa-counter]') : null;
         const counterValue = panel ? panel.querySelector('[data-numa-counter-value]') : null;
         const initialState = panel ? panel.querySelector('[data-numa-initial]') : null;
-        const emptyMessage = panel ? panel.querySelector('[data-numa-empty-message]') : null;
-        const suggestions = panel ? panel.querySelector('[data-numa-suggestions]') : null;
+        const initialGreeting = panel ? panel.querySelector('[data-numa-initial-greeting]') : null;
         const messages = panel ? panel.querySelector('[data-numa-messages]') : null;
         const status = panel ? panel.querySelector('[data-numa-status]') : null;
         const shouldShowInitialTooltip = widget.getAttribute('data-numa-show-initial-tooltip') === 'true';
@@ -120,9 +91,8 @@
         const loginUrl = widget.getAttribute('data-numa-login-url') || '';
         const csrfToken = widget.getAttribute('data-numa-csrf') || '';
         const isPublicMode = widget.getAttribute('data-numa-mode') === 'public';
+        const userName = normaliseText(widget.getAttribute('data-numa-user-name'));
         const dashboardMonthInput = isPublicMode ? null : document.getElementById('mes');
-        const emptyMessages = configuredTextList(widget, 'data-numa-empty-messages', EMPTY_MESSAGES);
-        const configuredSuggestions = configuredTextList(widget, 'data-numa-suggestions', SUGGESTIONS);
         const configuredMaxMessageLength = Number(widget.getAttribute('data-numa-max-message-length'));
         const maxMessageLength = Number.isInteger(configuredMaxMessageLength) && configuredMaxMessageLength > 0
             ? configuredMaxMessageLength
@@ -132,7 +102,7 @@
             ? configuredRequestTimeoutMs
             : 26000;
 
-        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !confirmation || !confirmationCancelButton || !confirmationConfirmButton || !form || !input || !submitButton || !statusRetryButton || !panelHeader || !panelContent || !initialState || !emptyMessage || !suggestions || !messages || !status) {
+        if (!launcher || !tooltip || !panel || !closeButton || !newConversationButton || !confirmation || !confirmationCancelButton || !confirmationConfirmButton || !form || !input || !submitButton || !statusRetryButton || !panelHeader || !panelContent || !initialState || !initialGreeting || !messages || !status) {
             return;
         }
 
@@ -283,9 +253,6 @@
             const enabled = canSend() && !confirmationOpen;
             input.disabled = !enabled;
             submitButton.disabled = !enabled || normaliseText(input.value) === '';
-            suggestions.querySelectorAll('button').forEach((button) => {
-                button.disabled = !enabled;
-            });
             newConversationButton.disabled = confirmationOpen || activeRequest || !hasCanonicalConversation;
         };
 
@@ -323,20 +290,10 @@
             initialState.hidden = hasConversation;
 
             if (hasConversation) {
-                suggestions.textContent = '';
                 return;
             }
 
-            emptyMessage.textContent = randomItem(emptyMessages);
-            suggestions.textContent = '';
-            randomSubset(configuredSuggestions, 2).forEach((suggestion) => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'bh-numa-suggestion';
-                button.textContent = suggestion;
-                button.addEventListener('click', () => sendMessage(suggestion));
-                suggestions.appendChild(button);
-            });
+            initialGreeting.textContent = initialGreetingFor(userName);
             setInteractiveState();
         };
 
@@ -347,7 +304,6 @@
 
             hasConversation = true;
             initialState.hidden = true;
-            suggestions.textContent = '';
         };
 
         const scheduleTranscriptScroll = () => {

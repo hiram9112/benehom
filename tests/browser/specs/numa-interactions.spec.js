@@ -73,10 +73,73 @@ test('inicia una nueva conversacion y restablece el panel', async ({ page }) => 
     await newConversationRequest;
     await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(0);
     await expect(page.locator('[data-numa-initial]')).toBeVisible();
-    await expect(page.locator('[aria-label="Preguntas sugeridas para Numa"] button')).toHaveCount(2);
+    await expect(page.locator('[data-numa-initial-greeting]')).toHaveText(/.+/);
+    await expect(page.locator('[data-numa-initial-prompt]')).toHaveCount(0);
+    await expect(page.locator('[data-numa-suggestions]')).toHaveCount(0);
     await expect(page.locator('[data-numa-new-conversation]')).toBeDisabled();
     await expect(page.locator('[data-numa-input]')).toBeFocused();
     await expect(page.locator('[data-numa-status]')).toHaveText('Nueva conversación iniciada.');
+});
+
+test('elige las cuatro variantes públicas al reabrir Numa sin conversación', async ({ page }) => {
+    await mockAvailableStatus(page);
+    await page.goto(homeUrl);
+
+    const variants = [
+        [0, '¿En qué puedo ayudarte?'],
+        [0.3, '¿Qué te gustaría consultar?'],
+        [0.6, '¿Hay algo que quieras revisar?'],
+        [0.9, '¿Por dónde quieres empezar?'],
+    ];
+
+    for (const [randomValue, greeting] of variants) {
+        await page.evaluate((value) => {
+            Math.random = () => value;
+        }, randomValue);
+        await page.getByRole('button', { name: 'Abrir Numa' }).click();
+
+        await expect(page.locator('[data-numa-initial-greeting]')).toHaveText(greeting);
+        await expect(page.locator('[data-numa-initial-prompt]')).toHaveCount(0);
+        const initialPosition = await page.locator('.bh-numa-panel-body').evaluate((body) => {
+            const initial = body.querySelector('[data-numa-initial]');
+            const messages = body.querySelector('[data-numa-messages]');
+            const initialBox = initial.getBoundingClientRect();
+            const messagesBox = messages.getBoundingClientRect();
+
+            return (initialBox.top + initialBox.height / 2 - messagesBox.top) / messagesBox.height;
+        });
+
+        expect(initialPosition).toBeGreaterThan(0.4);
+        expect(initialPosition).toBeLessThan(0.46);
+
+        if (randomValue !== 0.9) {
+            await page.locator('[data-numa-close]').click();
+        }
+    }
+});
+
+test('el estado inicial público es texto informativo y no envía mensajes al pulsarlo', async ({ page }) => {
+    let chatRequests = 0;
+
+    await mockAvailableStatus(page);
+    await page.route(/\/index\.php\?r=numa\/public\/chat$/, (route) => {
+        chatRequests += 1;
+        return route.fulfill({ status: 500 });
+    });
+    await page.goto(homeUrl);
+    await page.evaluate(() => {
+        Math.random = () => 0;
+    });
+    await page.getByRole('button', { name: 'Abrir Numa' }).click();
+
+    const greeting = page.locator('[data-numa-initial-greeting]');
+    await greeting.click({ force: true });
+
+    expect(await greeting.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none');
+    expect(await greeting.evaluate((element) => getComputedStyle(element).cursor)).not.toBe('pointer');
+    await expect(messages(page).locator('.bh-numa-message.is-user')).toHaveCount(0);
+    await expect(page.locator('[data-numa-input]')).toHaveValue('');
+    expect(chatRequests).toBe(0);
 });
 
 test('cancela la nueva conversación con Escape y devuelve el foco a la acción', async ({ page }) => {

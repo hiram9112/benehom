@@ -28,6 +28,7 @@ function bh_numa_launcher(string $mode = 'private'): void
     $maxMessageLength = bh_numa_max_message_length();
     $requestTimeoutMs = (max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 240)) * 1000) + 1000;
     $stateClass = $available ? ' is-available' : ' is-unavailable';
+    $userName = $isPublic ? '' : trim((string) ($_SESSION['usuario'] ?? ''));
     $bodySrc = bh_asset('img/numa/runtime/numa-body.webp');
     $faceFrames = [
         bh_asset('img/numa/runtime/blink/numa-face-00.webp'),
@@ -54,18 +55,6 @@ function bh_numa_launcher(string $mode = 'private'): void
             'chat' => BASE_URL . 'index.php?r=numa/chat',
             'conversation' => BASE_URL . 'index.php?r=numa/conversation/new',
         ];
-    $emptyMessages = ['¿Qué quieres revisar hoy?', '¿En qué puedo ayudarte?', '¿Qué quieres consultar?', '¿Hay algo que quieras revisar?', '¿Qué te gustaría saber?', '¿Por dónde empezamos?'];
-    $suggestions = ['¿Cuánto he ahorrado este mes?', '¿En qué gasto más?', '¿Qué son gastos esenciales y flexibles?', '¿Cómo funcionan mis metas?', '¿Qué es el ahorro disponible?', 'Compara este mes con el anterior.', '¿Cómo añado un movimiento?', '¿Qué es el ahorro posible?'];
-    if ($isPublic) {
-        $suggestions = array_values(array_filter(
-            $suggestions,
-            static fn (string $suggestion): bool => in_array($suggestion, [
-                '¿Qué son gastos esenciales y flexibles?',
-                '¿Cómo añado un movimiento?',
-                '¿Qué es el ahorro posible?',
-            ], true)
-        ));
-    }
     $faceFramesJson = htmlspecialchars((string) json_encode($faceFrames, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
     $armFramesJson = htmlspecialchars((string) json_encode($armFrames, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
     ?>
@@ -80,9 +69,7 @@ function bh_numa_launcher(string $mode = 'private'): void
         data-numa-login-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=auth/login', ENT_QUOTES, 'UTF-8') ?>"
         data-numa-csrf="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>"
         data-numa-max-message-length="<?= $maxMessageLength ?>"
-        data-numa-request-timeout-ms="<?= $requestTimeoutMs ?>"
-        data-numa-empty-messages="<?= htmlspecialchars((string) json_encode($emptyMessages, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
-        data-numa-suggestions="<?= htmlspecialchars((string) json_encode($suggestions, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>">
+        data-numa-request-timeout-ms="<?= $requestTimeoutMs ?>"<?= $userName !== '' ? ' data-numa-user-name="' . htmlspecialchars($userName, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
         <button
             type="button"
             class="bh-numa-launcher<?= $stateClass ?>"
@@ -164,8 +151,7 @@ function bh_numa_launcher(string $mode = 'private'): void
 
             <div class="bh-numa-panel-body" data-numa-panel-content>
                 <div class="bh-numa-panel-initial" data-numa-initial>
-                    <p data-numa-empty-message></p>
-                    <div class="bh-numa-suggestions" aria-label="Preguntas sugeridas para Numa" data-numa-suggestions></div>
+                    <p class="bh-numa-initial-greeting" data-numa-initial-greeting></p>
                 </div>
 
                 <div class="bh-numa-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación con Numa" tabindex="0" data-numa-messages data-lenis-prevent></div>

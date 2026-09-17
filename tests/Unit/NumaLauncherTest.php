@@ -212,19 +212,22 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/public/chat"', $html);
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/public/conversation/new"', $html);
         self::assertStringContainsString('data-numa-login-url="/index.php?r=auth/login"', $html);
-        self::assertStringContainsString('data-numa-empty-messages=', $html);
-        self::assertStringContainsString('data-numa-suggestions=', $html);
-        self::assertStringContainsString('¿Qué quieres revisar hoy?', $html);
-        self::assertStringContainsString('¿Qué son gastos esenciales y flexibles?', $html);
-        self::assertStringContainsString('¿Cómo añado un movimiento?', $html);
-        self::assertStringContainsString('¿Qué es el ahorro posible?', $html);
-        self::assertStringNotContainsString('¿Cuánto he ahorrado este mes?', $html);
-        self::assertStringNotContainsString('¿En qué gasto más?', $html);
-        self::assertStringNotContainsString('¿Cómo funcionan mis metas?', $html);
-        self::assertStringNotContainsString('Compara este mes con el anterior.', $html);
+        self::assertStringNotContainsString('data-numa-empty-messages=', $html);
+        self::assertStringNotContainsString('data-numa-suggestions=', $html);
+        self::assertStringNotContainsString('data-numa-user-name=', $html);
         self::assertStringNotContainsString('bh-numa-public-note', $html);
         self::assertStringNotContainsString('data-numa-tools=', $html);
-        self::assertStringNotContainsString('data-numa-usuario', $html);
+    }
+
+    public function testExponeElNombrePrivadoEscapadoParaElSaludo(): void
+    {
+        $_SESSION['usuario_id'] = 123;
+        $_SESSION['usuario'] = 'Ada "<script>';
+
+        $html = $this->renderLauncher();
+
+        self::assertStringContainsString('data-numa-user-name="Ada &quot;&lt;script&gt;"', $html);
+        self::assertStringNotContainsString('data-numa-user-name="Ada "<script>"', $html);
     }
 
     public function testEstilosFijanElBotonYLoAdaptanEnResponsive(): void
@@ -273,7 +276,9 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('transition: opacity 220ms ease-out, transform 220ms ease-out', $css);
         self::assertStringContainsString('.bh-numa-panel.is-numa-entering,', $css);
         self::assertStringContainsString('width: 100%', $css);
-        self::assertStringContainsString('transform: translateY(-8%)', $css);
+        self::assertStringContainsString('margin-bottom: clamp(2rem, 10vh, 4rem)', $css);
+        self::assertStringNotContainsString('translateY(-8%)', $css);
+        self::assertStringNotContainsString('translateY(-4%)', $css);
         self::assertStringContainsString('white-space: nowrap', $css);
         self::assertStringContainsString('background: var(--bh-brand)', $css);
         self::assertStringContainsString('border-left-color: var(--bh-negative-ink)', $css);
@@ -378,7 +383,10 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-confirmation-confirm', $html);
         self::assertStringContainsString('>Empezar de nuevo</button>', $html);
         self::assertStringContainsString('data-numa-initial', $html);
-        self::assertStringContainsString('data-numa-suggestions', $html);
+        self::assertStringContainsString('data-numa-initial-greeting', $html);
+        self::assertSame(1, substr_count($html, 'data-numa-initial-greeting'));
+        self::assertStringNotContainsString('data-numa-initial-prompt', $html);
+        self::assertStringNotContainsString('data-numa-suggestions', $html);
         self::assertStringContainsString('data-numa-messages', $html);
         self::assertStringContainsString('data-numa-messages data-lenis-prevent', $html);
         self::assertStringContainsString('role="log"', $html);
@@ -392,7 +400,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('data-numa-usage', $html);
         self::assertStringContainsString('data-numa-form', $html);
         self::assertStringNotContainsString('data-numa-scope', $html);
-        self::assertStringContainsString('data-numa-empty-message', $html);
+        self::assertStringNotContainsString('data-numa-empty-message', $html);
         self::assertStringContainsString('data-numa-counter', $html);
         self::assertStringContainsString('data-numa-counter-value', $html);
         self::assertStringContainsString('id="bh-numa-counter"', $html);
@@ -444,9 +452,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("const DEFAULT_TOOLTIP_TEXT = '¿En qué puedo ayudarte?'", $javascript);
         self::assertStringContainsString('const INITIAL_TOOLTIP_TIMEOUT_MS = 5200', $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-max-message-length')", $javascript);
-        self::assertStringContainsString("'¿Qué quieres consultar?'", $javascript);
-        self::assertStringContainsString("'¿Cuánto he ahorrado este mes?'", $javascript);
-        self::assertStringContainsString("'¿Qué son gastos esenciales y flexibles?'", $javascript);
+        self::assertStringContainsString("widget.getAttribute('data-numa-user-name')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-show-initial-tooltip') === 'true'", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-status-url')", $javascript);
         self::assertStringContainsString("widget.getAttribute('data-numa-chat-url')", $javascript);
@@ -483,7 +489,6 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('focusFirstPanelTarget(panel, closeButton)', $javascript);
         self::assertStringContainsString('focusTarget.focus()', $javascript);
         self::assertStringContainsString("form.addEventListener('submit'", $javascript);
-        self::assertStringContainsString("button.addEventListener('click', () => sendMessage(suggestion))", $javascript);
         self::assertStringContainsString("fetch(statusUrl", $javascript);
         self::assertStringContainsString("fetch(chatUrl", $javascript);
         self::assertStringContainsString("statusRetryButton.addEventListener('click', loadStatus)", $javascript);
@@ -498,8 +503,8 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("addMessage('user', message)", $javascript);
         self::assertStringContainsString("addMessage('assistant'", $javascript);
         self::assertStringContainsString("data && typeof data.availability === 'string'", $javascript);
-        self::assertStringContainsString("configuredTextList(widget, 'data-numa-empty-messages', EMPTY_MESSAGES)", $javascript);
-        self::assertStringContainsString("configuredTextList(widget, 'data-numa-suggestions', SUGGESTIONS)", $javascript);
+        self::assertStringNotContainsString('data-numa-suggestions', $javascript);
+        self::assertStringNotContainsString('data-numa-empty-message', $javascript);
         self::assertStringContainsString('const setAvailability', $javascript);
         self::assertStringContainsString('const statusMessageForAvailability', $javascript);
         self::assertStringContainsString('Te estás acercando al límite de uso.', $javascript);
@@ -525,6 +530,36 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('sessionStorage', $javascript);
         self::assertStringNotContainsString('document.cookie', $javascript);
         self::assertStringNotContainsString('usuario_id', $javascript);
+    }
+
+    public function testClienteEligeUnSaludoAleatorioParaCadaEstadoInicial(): void
+    {
+        $javascript = file_get_contents(BASE_PATH . '/public/js/numa-chat.js');
+
+        self::assertIsString($javascript);
+        self::assertStringContainsString('const initialGreetingFor = (userName)', $javascript);
+        self::assertStringContainsString('return variants[Math.floor(Math.random() * variants.length)];', $javascript);
+        self::assertStringContainsString('Hola ${userName}.\n¿En qué puedo ayudarte?', $javascript);
+        self::assertStringContainsString('¿Qué te gustaría consultar ${userName}?', $javascript);
+        self::assertStringContainsString('¿Hay algo que quieras revisar ${userName}?', $javascript);
+        self::assertStringContainsString('¿Por dónde quieres empezar ${userName}?', $javascript);
+        self::assertStringContainsString("'¿En qué puedo ayudarte?'", $javascript);
+        self::assertStringContainsString("'¿Qué te gustaría consultar?'", $javascript);
+        self::assertStringContainsString("'¿Hay algo que quieras revisar?'", $javascript);
+        self::assertStringContainsString("'¿Por dónde quieres empezar?'", $javascript);
+        self::assertStringContainsString('initialGreeting.textContent = initialGreetingFor(userName);', $javascript);
+        self::assertStringNotContainsString('initialGreeting.addEventListener', $javascript);
+        self::assertStringNotContainsString('initialPrompt', $javascript);
+        self::assertStringNotContainsString('prompt:', $javascript);
+        self::assertStringNotContainsString('greetingOrder', $javascript);
+        self::assertStringNotContainsString('previousGreetingVariant', $javascript);
+        self::assertStringNotContainsString('currentInitialGreeting', $javascript);
+        self::assertStringNotContainsString('greetingForLocalHour', $javascript);
+        self::assertStringNotContainsString('Date().getHours()', $javascript);
+        self::assertStringNotContainsString('Buenos días', $javascript);
+        self::assertStringNotContainsString('Buenas tardes', $javascript);
+        self::assertStringNotContainsString('Buenas noches', $javascript);
+        self::assertStringNotContainsString('innerHTML', $javascript);
     }
 
     public function testClienteMuestraSoloTextoSeguroSinExponerElPeriodoEstructurado(): void
@@ -704,8 +739,13 @@ final class NumaLauncherTest extends TestCase
         self::assertIsString($css);
         self::assertStringContainsString('.bh-numa-launcher{', $css);
         self::assertStringContainsString('touch-action: manipulation', $css);
-        self::assertStringContainsString('.bh-numa-suggestion{', $css);
-        self::assertStringContainsString('min-height: 44px', $css);
+        self::assertStringContainsString('.bh-numa-initial-greeting{', $css);
+        self::assertStringContainsString('font-size: 1.25rem', $css);
+        self::assertStringContainsString('font-weight: var(--bh-weight-regular)', $css);
+        self::assertStringContainsString('white-space: pre-line', $css);
+        self::assertStringContainsString('margin-bottom: clamp(2rem, 10vh, 4rem)', $css);
+        self::assertStringNotContainsString('bh-numa-initial-prompt', $css);
+        self::assertStringNotContainsString('.bh-numa-suggestion{', $css);
         self::assertStringContainsString('.bh-numa-new-conversation{', $css);
         self::assertStringContainsString('min-height: 44px', $css);
         self::assertStringContainsString('.bh-numa-submit{', $css);

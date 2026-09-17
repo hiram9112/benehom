@@ -229,6 +229,7 @@ test('restaura el transcript completo sin revelar progresivamente sus respuestas
     await expect(restoredMessages).toHaveCount(2);
     await expect(restoredMessages.nth(1).locator('.bh-numa-message-content > p')).toHaveText(conversation[1].message);
     await expect(page.locator('[data-numa-messages] .bh-numa-message.is-assistant').last()).toHaveAttribute('data-numa-canonical-message', 'true');
+    await expect(page.locator('[data-numa-initial]')).toBeHidden();
 });
 
 test('lleva el transcript al final aunque se hubiera desplazado hacia arriba', async ({ page }) => {

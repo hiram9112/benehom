@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 $action = $argv[1] ?? '';
 $email = $argv[2] ?? '';
+$usuario = $argv[3] ?? 'Usuario Playwright';
 $environment = getenv('APP_ENV') ?: '';
 $databaseName = getenv('DB_NAME') ?: '';
 
@@ -14,6 +15,11 @@ if ($environment !== 'testing' || !str_ends_with($databaseName, '_test')) {
 
 if (!in_array($action, ['create', 'delete'], true) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     fwrite(STDERR, "Uso: private-user.php create|delete email\n");
+    exit(1);
+}
+
+if ($action === 'create' && trim($usuario) === '') {
+    fwrite(STDERR, "El nombre de usuario no puede estar vacío.\n");
     exit(1);
 }
 
@@ -62,7 +68,7 @@ $statement = $pdo->prepare(
      VALUES (:usuario, :email, :password, NOW())'
 );
 $statement->execute([
-    'usuario' => 'Usuario Playwright',
+    'usuario' => $usuario,
     'email' => $email,
     'password' => password_hash('Password-test-123', PASSWORD_BCRYPT),
 ]);

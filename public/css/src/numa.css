@@ -300,71 +300,34 @@
     place-self: center;
     justify-items: center;
     width: 100%;
-    gap: 0.75rem;
+    margin-bottom: clamp(2rem, 10vh, 4rem);
     padding: 0 0.1rem;
     color: var(--bh-text-muted);
     font-size: var(--bh-text-sm);
     text-align: center;
-    transform: translateY(-8%);
 }
 
 .bh-numa-panel-initial[hidden]{
     display: none;
 }
 
-.bh-numa-panel-initial > p{
+.bh-numa-initial-greeting{
     margin: 0;
     max-width: calc(100% - var(--bh-space-3));
     color: var(--bh-text-main);
     font-family: var(--bh-font-display);
-    font-size: 1.75rem;
-    font-weight: var(--bh-weight-semibold);
+    font-size: 1.25rem;
+    font-weight: var(--bh-weight-regular);
     line-height: var(--bh-line-tight);
     letter-spacing: -0.02em;
-    overflow-wrap: anywhere;
-}
-
-.bh-numa-suggestions{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    width: 100%;
-}
-
-.bh-numa-suggestion{
-    width: auto;
-    min-height: 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    color: var(--bh-brand-deep);
-    background: transparent;
-    font-family: var(--bh-font-interface);
-    font-size: 0.8125rem;
-    font-weight: var(--bh-weight-semibold);
-    line-height: var(--bh-line-tight);
     text-align: center;
-    text-decoration: underline transparent;
-    text-underline-offset: 0.2em;
-    cursor: pointer;
-    touch-action: manipulation;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    pointer-events: none;
 }
 
-.bh-numa-suggestion:hover{
-    color: var(--bh-brand);
-    text-decoration-color: currentColor;
-}
-
-.bh-numa-suggestion:focus-visible{
-    outline: none;
-    color: var(--bh-brand);
-    text-decoration-color: currentColor;
-}
-
-.bh-numa-suggestion:disabled{
-    cursor: not-allowed;
-    opacity: 0.58;
+.bh-numa-initial-greeting[hidden]{
+    display: none;
 }
 
 .bh-numa-messages{
@@ -761,13 +724,7 @@
     }
 
     .bh-numa-panel-initial{
-        gap: 0.6rem;
         padding: 0;
-    }
-
-    .bh-numa-suggestion{
-        min-height: 28px;
-        font-size: 0.78rem;
     }
 
     .bh-numa-messages{
@@ -855,9 +812,6 @@
         padding-top: 0.1rem;
     }
 
-    .bh-numa-panel-initial{
-        transform: translateY(-4%);
-    }
 }
 
 @media (prefers-reduced-motion: reduce){

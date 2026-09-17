@@ -19,6 +19,7 @@ recorrido antes de crear proveedores o iniciar una llamada pagada.
 | Limites globales | `NUMA_GLOBAL_*` |
 | Embeddings y RAG | `NUMA_EMBEDDING_PROVIDER`, `NUMA_EMBEDDING_MODEL`, `NUMA_EMBEDDING_DIMENSIONS`, `NUMA_EMBEDDING_TIMEOUT_SECONDS`, `NUMA_MAX_RAG_RESULTS`, `NUMA_MAX_RAG_CHUNK_CHARS`, `NUMA_RAG_MIN_SIMILARITY` |
 | Tools | `NUMA_MAX_TOOL_CALLS`, `NUMA_MAX_TOOL_RESULT_BYTES`, `NUMA_MAX_TOOL_RESULT_ROWS` |
+| Controles operativos | `NUMA_BYPASS_LIMITS`, `NUMA_LIMIT_EXEMPT_USER_IDS`, `NUMA_PROVIDER_RESPONSE_DIAGNOSTICS` |
 | Modo publico | `NUMA_PUBLIC_HASH_KEY`, `NUMA_PUBLIC_DAILY_LIMIT`, `NUMA_PUBLIC_MONTHLY_LIMIT`, `NUMA_PUBLIC_GLOBAL_*` |
 | Evaluacion RAG real | `NUMA_RAG_EVALUATION_DB_*` |
 
@@ -29,7 +30,7 @@ admite con `APP_ENV=testing`; nunca es una alternativa de produccion.
 Los valores operativos iniciales son: 300 caracteres, 65.536 tokens de entrada para el
 payload final serializado, hasta 9 llamadas pagadas por interaccion (clasificacion,
 embedding RAG, hasta cinco llamadas a `consultar_datos_financieros`, redaccion final y
-un reintento transitorio), 1.000 tokens de salida, resultados de tools de hasta 262.144
+un reintento transitorio), 2.000 tokens de salida, resultados de tools de hasta 262.144
 bytes y 10.000 filas, 60 segundos de generacion, 30 de embedding y un deadline compartido
 de 240 segundos. El lock conversacional y la reserva duran al menos 245 segundos; el
 cliente HTTP usa el timeout efectivo mas un segundo. Son controles operativos revisables
@@ -38,6 +39,37 @@ iniciales estan en `.env.example` y deben ajustarse antes de activar cada entorn
 El mismo cálculo `ceil(bytes/3)` del payload serializado comprueba el cap técnico y fija
 la reserva previa; el uso fiable del proveedor la reconcilia después. Los límites
 globales iniciales son 300.000 tokens diarios y 1.500.000 mensuales.
+
+## Contrato financiero actual
+
+El recorrido privado declara exclusivamente la tool nativa
+`consultar_datos_financieros`. Gemini selecciona periodos mensuales y ramas canonicas;
+PHP valida esos argumentos, obtiene el usuario de la sesion, consulta con aislamiento,
+estructura las hojas mensuales y suma los nodos contenedores. Gemini recibe el
+`functionResponse` emparejado por nombre e ID y realiza comparaciones, porcentajes,
+medias, rankings y tendencias solo sobre esos hechos autorizados y su cobertura.
+
+Una consulta combinada puede incluir simultaneamente fragmentos RAG recuperados y
+hechos financieros estructurados en el contexto final. La finalidad, la autorizacion y
+el aislamiento no cambian: los fragmentos proceden de documentacion publica y los hechos
+financieros solo de la sesion autenticada.
+
+Los limites de bytes y filas de tools son sanity caps contra payloads, loops o
+cardinalidades descontroladas. Si se supera uno, PHP devuelve un fallo seguro; nunca
+recorta, pagina ni devuelve una respuesta financiera parcial. Los valores no son limites
+funcionales de meses, areas, categorias ni importes.
+
+El mapping de las siete categorias legacy sigue pendiente de aprobacion antes del
+despliegue. No se exponen a Gemini ni se admiten en nuevas escrituras; no se propone
+ninguna equivalencia en esta operacion.
+
+La referencia de precio consultada el 2026-09-17 para Gemini 3.1 Flash-Lite en el tier
+de pago estandar es USD 0,25 por millon de tokens de entrada de texto y USD 1,50 por
+millon de tokens de salida, incluidos los tokens de pensamiento. Es una tarifa publicada,
+no un consumo observado. Las cuotas de proveedor dependen del proyecto y se revisan en
+su consola antes de produccion; los limites efectivos documentados de BeneHom son 100
+llamadas globales diarias, 1.000 mensuales, 300.000 tokens diarios y 1.500.000 mensuales.
+Fuente: [precios de Gemini API](https://ai.google.dev/gemini-api/docs/pricing).
 
 ## Activacion y desactivacion
 
@@ -199,6 +231,12 @@ muestra en el panel. El campo `calls` cuenta unidades de proveedor realmente ini
 mantiene en `null` si alguna respuesta, como puede ocurrir con `embedContent`, no la
 incluye. Desactivarlo tras obtener la evidencia necesaria.
 
+## Evidencia historica anterior al Sprint 1.1
+
+La seccion 17.3.3 siguiente se conserva como el registro historico disponible del
+contrato anterior. No se modifica ni se usa como evidencia del contrato canónico del
+Sprint 1.1; la evidencia posterior, fechada y separada, figura al final de este documento.
+
 ### Cierre controlado 17.3.3
 
 Este registro cierra la validacion financiera controlada de 17.3.3. La evidencia de
@@ -271,3 +309,39 @@ No hay riesgos residuales abiertos registrados para 17.3.3: las incidencias hall
 tienen correccion, regresion automatizada y validacion real satisfactoria en los casos
 indicados. La evidencia real no incluye los campos expresamente marcados como no
 registrados; no se infiere su contenido ni su consumo.
+
+## Evidencia Sprint 1.1 - 2026-09-17
+
+Esta seccion registra exclusivamente la evidencia posterior al refactor del contrato
+canonico. Durante la Tarea 9 se valido manualmente el nuevo flujo con Gemini real y datos
+sinteticos; aparecieron incidencias, se corrigieron y el refactor quedo validado sin
+fallos abiertos. No se reconstruye aqui una auditoria de cada llamada: no se conservaron
+prompts, argumentos completos, payloads ni respuestas completas.
+
+### Regresion automatizada
+
+| Comando | Resultado observado |
+| --- | --- |
+| `vendor/bin/phpunit --testsuite Unit` | PASS: 551 tests, 3.526 assertions, 1,066 s. |
+| `vendor/bin/phpunit --testsuite Integration` | PASS: 213 tests, 1.467 assertions, 22,472 s. |
+| `composer test` | PASS: 764 tests, 4.993 assertions, 26,659 s. |
+| `vendor/bin/phpstan analyse` | PASS: `No errors`. |
+| `composer lint:design` | PASS: `Sin hallazgos`. |
+
+### Validacion controlada con Gemini real
+
+Tras esa validacion, las comprobaciones controladas volvieron a finalizar correctamente:
+
+| Comprobacion | Resultado observado |
+| --- | --- |
+| E2E con NumaService, Gemini y base aislada | 4 PASS. |
+| Precedencia temporal con Gemini | 14 PASS. |
+| Analitica con Gemini | 6 PASS. |
+
+Las comprobaciones cubrieron la declaracion unica, seleccion de periodos y selectores
+canonicos, luz/electricidad, comida a domicilio, area de suministros, comparacion,
+ausencia de periodo, continuidad, analitica y consulta combinada con RAG. Se observo un
+HTTP 503 transitorio que el reintento controlado resolvio; no quedo ningun fallo abierto.
+El unico consumo real emitido por los evaluadores fue el de la analitica: 12 llamadas,
+58.650 tokens de entrada y 1.018 de salida. No se presentan como registrados otros
+consumos, argumentos, IDs ni duraciones.

@@ -84,3 +84,55 @@ Estas verificaciones operativas se realizaran antes de desplegar Numa a producci
 La tarea 17.6 queda cerrada. No quedan pendientes bloqueantes dentro de su
 alcance; las verificaciones de Google Cloud/Gemini y de produccion se mantienen
 como tareas operativas previas al futuro despliegue de Numa.
+
+## Cierre diferenciado del Sprint 1.1 - 2026-09-17
+
+Las secciones anteriores son el cierre historico del Sprint 1. No validan ni se
+atribuyen al contrato financiero nuevo. Este cierre corresponde exclusivamente al
+refactor posterior: una unica declaracion nativa `consultar_datos_financieros`, hechos
+mensuales estructurados, analitica derivada por Gemini y sanity caps sin truncado.
+
+### Matriz y regresion
+
+La [matriz historica 17.4](../../pdte.md) se contrasto con los riesgos del Sprint 1.1.
+La nueva cobertura relevante incluye el contrato unico, selectores y periodos canonicos,
+Function Calling, continuidad, aislamiento, RAG combinado, cuotas, reintentos, limites y
+errores seguros. Los resultados automatizados observados son:
+
+| Comprobacion | Resultado |
+| --- | --- |
+| Unit | `551 tests`, `3.526 assertions`, PASS. |
+| Integration | `213 tests`, `1.467 assertions`, PASS. |
+| Suite completa | `764 tests`, `4.993 assertions`, PASS. |
+| PHPStan | `No errors`. |
+| Guard de diseno | `Sin hallazgos`. |
+
+La evidencia resumida de la Tarea 9 y de las comprobaciones posteriores esta en la seccion
+[Evidencia Sprint 1.1](runbook.md#evidencia-sprint-11---2026-09-17).
+
+### Validacion controlada
+
+Con Gemini real y datos sinteticos, `composer eval:numa-e2e` finalizo 4 PASS,
+`composer eval:numa-temporal` 14 PASS y `composer eval:numa-analitica` 6 PASS. El E2E
+uso una base aislada y limpio sus usuarios sinteticos. Se valido la declaracion unica,
+Function Calling, luz/electricidad, comida a domicilio, area de suministros, comparacion,
+periodo de dashboard, continuacion, promedio, operaciones derivadas y consulta combinada
+con RAG. No hay fallos abiertos de la matriz 17.4 ni del contrato nuevo.
+
+Un HTTP 503 transitorio durante la evaluacion temporal se resolvio con el reintento
+controlado. La unica medicion de consumo real emitida fue la analitica: 12 llamadas,
+58.650 tokens de entrada y 1.018 de salida. No se infieren otros consumos ni duraciones.
+
+### Operacion y pendientes de despliegue
+
+La operacion vigente queda documentada en [runbook.md](runbook.md), incluida la frontera
+PHP/Gemini, los nuevos defaults, RAG combinado, el fallo explicito de sanity caps y el
+precio publicado de Gemini 3.1 Flash-Lite, que no se confunde con consumo real. La
+[privacidad operativa](privacidad-operativa.md) refleja el envio conjunto posible de RAG
+publico y hechos financieros estructurados sin cambio de finalidad, proveedor o
+aislamiento.
+
+El mapping de las siete categorias legacy sigue pendiente de aprobacion antes del
+despliegue. No se propone ninguna equivalencia ni se habilita una escritura legacy.
+
+**Sprint 1.1: CERRADO.**

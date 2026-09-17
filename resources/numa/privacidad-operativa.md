@@ -25,6 +25,10 @@ ni aceptación adicional antes de utilizar la funcionalidad.
   el servidor, documentación pública recuperada y el resultado financiero mínimo que sea
   imprescindible para responder. Nunca se envían correo, nombre, identificadores de
   usuario, SQL, tablas, columnas ni datos de otros usuarios.
+- Con el contrato financiero del Sprint 1.1, ese resultado es una jerarquía de hechos
+  mensuales canónicos. Una consulta combinada puede enviar a la vez fragmentos RAG
+  públicos y esos hechos financieros estructurados; no cambia la finalidad, el proveedor
+  ni el aislamiento por sesión descritos en este documento.
 - BeneHom no almacena preguntas, respuestas, prompts ni resultados de tools. El transcript
   vive solo en la sesión PHP y desaparece al finalizarla.
 - La política de Gemini API indica que Google conserva prompts, contexto y resultados

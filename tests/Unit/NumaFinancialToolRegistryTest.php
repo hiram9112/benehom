@@ -81,6 +81,20 @@ final class NumaFinancialToolRegistryTest extends TestCase
         ], $validated['periodos']);
     }
 
+    public function testContratoNormalizaSelectoresOmitidosAlUniversoCompletoYPermiteRevalidarlos(): void
+    {
+        $contract = new \NumaFinancialDataToolContract();
+        $validated = $contract->validateArguments([
+            'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+        ]);
+
+        self::assertSame([
+            ['ambito' => 'ingresos'],
+            ['ambito' => 'gastos'],
+        ], $validated['selectores']);
+        self::assertSame($validated, $contract->validateArguments($validated));
+    }
+
     #[DataProvider('invalidArguments')]
     public function testContratoRechazaSelectoresYPeriodosInvalidos(array $arguments): void
     {
@@ -108,6 +122,10 @@ final class NumaFinancialToolRegistryTest extends TestCase
             ]],
             'mes de inicio invalido' => [[
                 'periodos' => [['mes_inicio' => '2026-13', 'mes_fin' => '2026-13']],
+            ]],
+            'selectores vacios' => [[
+                'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+                'selectores' => [],
             ]],
             'categoria retirada' => [[
                 'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],

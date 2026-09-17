@@ -87,8 +87,10 @@ final class GeminiNumaProviderTest extends TestCase
             ),
             $captured['body']['tools'][0]['functionDeclarations'][0]
         );
-        self::assertSame(['periodos'], $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']['required']);
-        self::assertArrayNotHasKey('additionalProperties', $captured['body']['tools'][0]['functionDeclarations'][0]['parameters']);
+        self::assertSame(['periodos'], $captured['body']['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['required']);
+        self::assertArrayNotHasKey('parameters', $captured['body']['tools'][0]['functionDeclarations'][0]);
+        self::assertFalse($captured['body']['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['additionalProperties']);
+        self::assertFalse($captured['body']['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['properties']['periodos']['items']['additionalProperties']);
         self::assertSame('Instrucciones internas de Numa', $captured['body']['system_instruction']['parts'][0]['text']);
         self::assertStringContainsString('Mensaje actual del usuario:', $captured['body']['contents'][0]['parts'][0]['text']);
         self::assertStringContainsString('¿Cómo añado un movimiento?', $captured['body']['contents'][0]['parts'][0]['text']);
@@ -212,21 +214,11 @@ final class GeminiNumaProviderTest extends TestCase
         );
     }
 
-    public function testOmiteAdditionalPropertiesQueGeminiRechazaEnLasDeclaracionesFinancieras(): void
+    public function testConservaElSchemaFinancieroCerradoEnParametersJsonSchema(): void
     {
-        $provider = new \GeminiNumaProvider('key', 'model', transport: static function (string $url, array $headers, string $body): array {
-            if (str_contains($body, '"additionalProperties"')) {
-                return [
-                    'status' => 400,
-                    'body' => json_encode([
-                        'error' => [
-                            'code' => 400,
-                            'status' => 'INVALID_ARGUMENT',
-                            'message' => 'Unknown name "additionalProperties" at function declaration parameters.',
-                        ],
-                    ], JSON_THROW_ON_ERROR),
-                ];
-            }
+        $captured = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static function (string $url, array $headers, string $body) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
 
             return [
                 'status' => 200,
@@ -254,6 +246,13 @@ final class GeminiNumaProviderTest extends TestCase
         ));
 
         self::assertSame('Declaraciones compatibles.', $response->message());
+        $function = $captured['tools'][0]['functionDeclarations'][0];
+        $schema = (new \NumaFinancialDataToolContract())->functionDeclaration()['parameters'];
+        self::assertArrayHasKey('parametersJsonSchema', $function);
+        self::assertArrayNotHasKey('parameters', $function);
+        self::assertSame($schema, $function['parametersJsonSchema']);
+        self::assertFalse($function['parametersJsonSchema']['additionalProperties']);
+        self::assertFalse($function['parametersJsonSchema']['properties']['periodos']['items']['additionalProperties']);
     }
 
     public function testPermiteRespuestaEstructuradaJson(): void
@@ -1250,25 +1249,10 @@ final class GeminiNumaProviderTest extends TestCase
      */
     private function geminiFunctionDeclaration(array $declaration): array
     {
-        $declaration['parameters'] = $this->withoutAdditionalProperties($declaration['parameters']);
+        $parameters = $declaration['parameters'];
+        unset($declaration['parameters']);
+        $declaration['parametersJsonSchema'] = $parameters;
 
         return $declaration;
-    }
-
-    /**
-     * @param array<array-key, mixed> $schema
-     * @return array<array-key, mixed>
-     */
-    private function withoutAdditionalProperties(array $schema): array
-    {
-        unset($schema['additionalProperties']);
-
-        foreach ($schema as $key => $value) {
-            if (is_array($value)) {
-                $schema[$key] = $this->withoutAdditionalProperties($value);
-            }
-        }
-
-        return $schema;
     }
 }

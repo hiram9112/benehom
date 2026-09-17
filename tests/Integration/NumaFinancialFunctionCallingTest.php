@@ -28,7 +28,7 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
         parent::tearDown();
     }
 
-    public function testFunctionCallingAceptaUnaSeleccionTemporalValidaSinReleerElMensaje(): void
+    public function testFunctionCallingEjecutaElUniversoCompletoCuandoGeminiOmiteSelectores(): void
     {
         $user = $this->crearUsuario('numa-canonical-function@example.test');
         $userId = (int) $user['id'];
@@ -52,7 +52,6 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
             ], JSON_THROW_ON_ERROR)),
             $this->functionCallResponse('financial-call', [
                 'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
-                'selectores' => [['categoria' => 'electricidad']],
             ]),
             $this->textResponse('He consultado los datos solicitados.'),
         ];
@@ -83,14 +82,18 @@ final class NumaFinancialFunctionCallingTest extends IntegrationTestCase
             new \NumaPeriodResolver(new \DateTimeImmutable('2026-08-12', new \DateTimeZone('Europe/Madrid'))),
         );
 
-        $result = $service->answer($userId, '¿Cuánto pagué de electricidad?');
+        $result = $service->answer($userId, 'Hazme un resumen de mis finanzas de julio.');
 
         self::assertSame('He consultado los datos solicitados.', $result->toArray()['message']);
         self::assertSame('consultar_datos_financieros', $requests[1]['tools'][0]['functionDeclarations'][0]['name']);
-        self::assertSame(['periodos'], $requests[1]['tools'][0]['functionDeclarations'][0]['parameters']['required']);
+        self::assertSame(['periodos'], $requests[1]['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['required']);
+        self::assertArrayNotHasKey('parameters', $requests[1]['tools'][0]['functionDeclarations'][0]);
+        self::assertFalse($requests[1]['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['additionalProperties']);
+        self::assertFalse($requests[1]['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['properties']['periodos']['items']['additionalProperties']);
         self::assertSame('ANY', $requests[1]['toolConfig']['functionCallingConfig']['mode']);
         self::assertSame('financial-call', $requests[2]['contents'][2]['parts'][0]['functionResponse']['id']);
         self::assertSame('consultar_datos_financieros', $requests[2]['contents'][2]['parts'][0]['functionResponse']['name']);
+        self::assertSame(['mes', 'ingresos', 'gastos'], array_keys($requests[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['meses'][0]));
         self::assertSame('42.50', $requests[2]['contents'][2]['parts'][0]['functionResponse']['response']['result']['meses'][0]['gastos']['importe']);
     }
 

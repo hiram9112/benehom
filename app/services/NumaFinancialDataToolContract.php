@@ -152,7 +152,10 @@ final class NumaFinancialDataToolContract
         $periods = $this->validatePeriods($arguments['periodos']);
         $selectors = array_key_exists('selectores', $arguments)
             ? $this->validateSelectors($arguments['selectores'])
-            : [];
+            : [
+                ['ambito' => 'ingresos'],
+                ['ambito' => 'gastos'],
+            ];
 
         return ['periodos' => $periods, 'selectores' => $selectors];
     }

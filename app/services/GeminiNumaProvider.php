@@ -830,10 +830,6 @@ final class GeminiNumaProvider implements NumaProviderInterface
     }
 
     /**
-     * Gemini function declarations use an OpenAPI subset that excludes
-     * additionalProperties. The internal contract remains closed and is still
-     * enforced before a tool can execute.
-     *
      * @param array<string, mixed> $declaration
      * @return array<string, mixed>
      */
@@ -842,27 +838,11 @@ final class GeminiNumaProvider implements NumaProviderInterface
         $parameters = $declaration['parameters'] ?? null;
 
         if (is_array($parameters)) {
-            $declaration['parameters'] = self::geminiParameterSchema($parameters);
+            unset($declaration['parameters']);
+            $declaration['parametersJsonSchema'] = $parameters;
         }
 
         return $declaration;
-    }
-
-    /**
-     * @param array<array-key, mixed> $schema
-     * @return array<array-key, mixed>
-     */
-    private static function geminiParameterSchema(array $schema): array
-    {
-        unset($schema['additionalProperties']);
-
-        foreach ($schema as $key => $value) {
-            if (is_array($value)) {
-                $schema[$key] = self::geminiParameterSchema($value);
-            }
-        }
-
-        return $schema;
     }
 
     /**

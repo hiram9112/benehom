@@ -135,7 +135,7 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
 
 
 //*************************************************ROUTING
- 
+
 
 // Ruta solicitada
 $route = isset($_GET['r']) ? trim($_GET['r'], "/") : 'home/index';

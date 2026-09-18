@@ -183,4 +183,3 @@ El informe no contiene claves, vectores ni datos privados. Las consultas pertene
 - 1. `knowledge:preguntas-frecuentes:que-hago-si-no-hay-datos-suficientes` (0.649816)
 - 2. `knowledge:movimientos:como-anadir-un-movimiento` (0.644050)
 - 3. `knowledge:preguntas-frecuentes:como-anado-un-movimiento` (0.642661)
-

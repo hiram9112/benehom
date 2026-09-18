@@ -56,6 +56,61 @@ class GastoController{
             return;
         }
 
+        $gastoExistente=Gasto::obtenerGastoMensual($usuario_id,$tipo,$categoria,$fecha);
+
+        if($gastoExistente===false){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Error al consultar la base de datos"
+            ]);
+            return;
+        }
+
+        if($gastoExistente!==null){
+            if(($_POST['confirmar_acumulacion']??'')!=='1'){
+                echo json_encode([
+                    "ok"=>false,
+                    "requiere_confirmacion"=>true,
+                    "confirmacion"=>[
+                        "categoria"=>$categoria,
+                        "cantidad_actual"=>$gastoExistente['cantidad'],
+                        "mes"=>$mesSeleccionado,
+                        "cantidad_nueva"=>$cantidad
+                    ]
+                ]);
+                return;
+            }
+
+            $gastoAcumulado=Gasto::acumularGastoMensual($usuario_id,$tipo,$categoria,$cantidad,$fecha);
+
+            if(!is_array($gastoAcumulado)){
+                echo json_encode([
+                    "ok"=>false,
+                    "msg"=>"El gasto mensual ya no está disponible para acumularlo"
+                ]);
+                return;
+            }
+
+            echo json_encode([
+                "ok"=>true,
+                "acumulado"=>true,
+                "gasto_esencial"=>[
+                    "id"=>$gastoAcumulado['id'],
+                    "categoria"=>$categoria,
+                    "cantidad"=>$gastoAcumulado['cantidad']
+                ]
+            ]);
+            return;
+        }
+
+        if(($_POST['confirmar_acumulacion']??'')==='1'){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"El gasto mensual ya no está disponible para acumularlo"
+            ]);
+            return;
+        }
+
         //Insertamos en la base de datos el nuevo gasto esencial(devolverá el ID del recién creado gasto)
         $nuevoID=Gasto::agregarGasto($usuario_id,$tipo,$categoria,$cantidad,$fecha);
 
@@ -219,6 +274,61 @@ class GastoController{
             echo json_encode([
                 "ok"=>false,
                 "msg"=>"Selecciona una categoría válida."
+            ]);
+            return;
+        }
+
+        $gastoExistente=Gasto::obtenerGastoMensual($usuario_id,$tipo,$categoria,$fecha);
+
+        if($gastoExistente===false){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"Error al consultar la base de datos"
+            ]);
+            return;
+        }
+
+        if($gastoExistente!==null){
+            if(($_POST['confirmar_acumulacion']??'')!=='1'){
+                echo json_encode([
+                    "ok"=>false,
+                    "requiere_confirmacion"=>true,
+                    "confirmacion"=>[
+                        "categoria"=>$categoria,
+                        "cantidad_actual"=>$gastoExistente['cantidad'],
+                        "mes"=>$mesSeleccionado,
+                        "cantidad_nueva"=>$cantidad
+                    ]
+                ]);
+                return;
+            }
+
+            $gastoAcumulado=Gasto::acumularGastoMensual($usuario_id,$tipo,$categoria,$cantidad,$fecha);
+
+            if(!is_array($gastoAcumulado)){
+                echo json_encode([
+                    "ok"=>false,
+                    "msg"=>"El gasto mensual ya no está disponible para acumularlo"
+                ]);
+                return;
+            }
+
+            echo json_encode([
+                "ok"=>true,
+                "acumulado"=>true,
+                "gasto_flexible"=>[
+                    "id"=>$gastoAcumulado['id'],
+                    "categoria"=>$categoria,
+                    "cantidad"=>$gastoAcumulado['cantidad']
+                ]
+            ]);
+            return;
+        }
+
+        if(($_POST['confirmar_acumulacion']??'')==='1'){
+            echo json_encode([
+                "ok"=>false,
+                "msg"=>"El gasto mensual ya no está disponible para acumularlo"
             ]);
             return;
         }

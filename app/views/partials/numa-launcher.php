@@ -1,0 +1,199 @@
+<?php
+
+function bh_numa_widget_mode(): ?string
+{
+    $route = isset($_GET['r']) ? trim((string) $_GET['r'], '/') : 'home/index';
+    $privateRoutes = ['dashboard/index', 'proyecciones/index', 'cuenta/index'];
+    $publicRoutes = ['home/index', 'blog/index', 'blog/detalle'];
+
+    if (in_array($route, $privateRoutes, true)) {
+        return 'private';
+    }
+
+    if (in_array($route, $publicRoutes, true)) {
+        return !empty($_SESSION['usuario_id']) ? 'private' : 'public';
+    }
+
+    return null;
+}
+
+function bh_numa_launcher(string $mode = 'private'): void
+{
+    if (!in_array($mode, ['private', 'public'], true)) {
+        throw new InvalidArgumentException('Modo de Numa no valido.');
+    }
+
+    $isPublic = $mode === 'public';
+    $available = bh_env_bool('NUMA_ENABLED', false) && (!$isPublic || bh_env_bool('NUMA_PUBLIC_ENABLED', false));
+    $maxMessageLength = bh_numa_max_message_length();
+    $requestTimeoutMs = (max(1, bh_env_int('NUMA_REQUEST_TIMEOUT_SECONDS', 240)) * 1000) + 1000;
+    $stateClass = $available ? ' is-available' : ' is-unavailable';
+    $userName = $isPublic ? '' : trim((string) ($_SESSION['usuario'] ?? ''));
+    $bodySrc = bh_asset('img/numa/runtime/numa-body.webp');
+    $faceFrames = [
+        bh_asset('img/numa/runtime/blink/numa-face-00.webp'),
+        bh_asset('img/numa/runtime/blink/numa-face-01.webp'),
+        bh_asset('img/numa/runtime/blink/numa-face-02.webp'),
+    ];
+    $armFrames = array_map(
+        static fn (int $frame): string => bh_asset(sprintf('img/numa/runtime/wave/numa-arm-%02d.webp', $frame)),
+        range(0, 20)
+    );
+    $showInitialTooltip = !$isPublic && !empty($_SESSION['usuario_id']) && empty($_SESSION['numa_initial_tooltip_shown']);
+    if ($showInitialTooltip) {
+        $_SESSION['numa_initial_tooltip_shown'] = true;
+    }
+    $csrfToken = session_status() === PHP_SESSION_ACTIVE ? csrf_token() : (string) ($_SESSION['csrf_token'] ?? '');
+    $endpoints = $isPublic
+        ? [
+            'status' => BASE_URL . 'index.php?r=numa/public/status',
+            'chat' => BASE_URL . 'index.php?r=numa/public/chat',
+            'conversation' => BASE_URL . 'index.php?r=numa/public/conversation/new',
+        ]
+        : [
+            'status' => BASE_URL . 'index.php?r=numa/status',
+            'chat' => BASE_URL . 'index.php?r=numa/chat',
+            'conversation' => BASE_URL . 'index.php?r=numa/conversation/new',
+        ];
+    $faceFramesJson = htmlspecialchars((string) json_encode($faceFrames, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
+    $armFramesJson = htmlspecialchars((string) json_encode($armFrames, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
+    ?>
+    <div
+        class="bh-numa-widget"
+        data-numa-widget
+        data-numa-mode="<?= $mode ?>"
+        data-numa-show-initial-tooltip="<?= $showInitialTooltip ? 'true' : 'false' ?>"
+        data-numa-status-url="<?= htmlspecialchars($endpoints['status'], ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-chat-url="<?= htmlspecialchars($endpoints['chat'], ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-new-conversation-url="<?= htmlspecialchars($endpoints['conversation'], ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-login-url="<?= htmlspecialchars(BASE_URL . 'index.php?r=auth/login', ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-csrf="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>"
+        data-numa-max-message-length="<?= $maxMessageLength ?>"
+        data-numa-request-timeout-ms="<?= $requestTimeoutMs ?>"<?= $userName !== '' ? ' data-numa-user-name="' . htmlspecialchars($userName, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+        <button
+            type="button"
+            class="bh-numa-launcher<?= $stateClass ?>"
+            aria-label="Abrir Numa"
+            aria-expanded="false"
+            aria-controls="bh-numa-panel"
+            data-numa-launcher
+            data-available="<?= $available ? 'true' : 'false' ?>">
+            <span class="bh-numa-launcher-character" aria-hidden="true">
+                <picture class="bh-numa-launcher-picture bh-numa-launcher-static" data-numa-static>
+                    <source
+                        srcset="<?= htmlspecialchars(bh_asset('img/numa/numa-static-sm.webp'), ENT_QUOTES, 'UTF-8') ?>"
+                        type="image/webp">
+                    <img
+                        src="<?= htmlspecialchars(bh_asset('img/numa/numa-static-master.png'), ENT_QUOTES, 'UTF-8') ?>"
+                        alt=""
+                        width="1024"
+                        height="1024">
+                </picture>
+                <span
+                    class="bh-numa-launcher-animated"
+                    data-numa-animated
+                    data-numa-body-src="<?= htmlspecialchars($bodySrc, ENT_QUOTES, 'UTF-8') ?>"
+                    data-numa-face-frames="<?= $faceFramesJson ?>"
+                    data-numa-arm-frames="<?= $armFramesJson ?>"
+                    hidden>
+                    <img class="bh-numa-launcher-layer bh-numa-launcher-body" data-numa-body alt="" width="384" height="384" draggable="false">
+                    <img class="bh-numa-launcher-layer bh-numa-launcher-face" data-numa-face alt="" width="384" height="384" draggable="false">
+                    <img class="bh-numa-launcher-layer bh-numa-launcher-arm" data-numa-arm alt="" width="384" height="384" draggable="false">
+                </span>
+            </span>
+        </button>
+
+        <div
+            id="bh-numa-tooltip"
+            class="bh-numa-tooltip"
+            role="tooltip"
+            data-numa-tooltip
+            hidden></div>
+
+        <section
+            id="bh-numa-panel"
+            class="bh-numa-panel"
+            aria-label="Chat con Numa"
+            data-numa-panel
+            hidden>
+            <div class="bh-numa-panel-header">
+                <button
+                    type="button"
+                    class="bh-btn bh-btn-ghost bh-numa-new-conversation"
+                    data-numa-new-conversation
+                    aria-expanded="false"
+                    aria-controls="bh-numa-confirmation"
+                    disabled><i class="ti ti-plus" aria-hidden="true"></i><span>Nueva conversación</span></button>
+                <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost bh-numa-panel-close" aria-label="Cerrar Numa" data-numa-close>
+                    <i class="ti ti-x" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div
+                id="bh-numa-confirmation"
+                class="bh-numa-confirmation"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Confirmar nueva conversación"
+                aria-describedby="bh-numa-confirmation-description"
+                aria-hidden="true"
+                data-numa-confirmation
+                hidden>
+                <div class="bh-numa-confirmation-dialog">
+                    <p class="bh-numa-confirmation-title">¿Empezar de nuevo?</p>
+                    <p id="bh-numa-confirmation-description">Numa olvidará lo hablado hasta ahora. Tu límite de uso no cambia.</p>
+                    <div class="bh-numa-confirmation-actions">
+                        <button type="button" class="bh-btn bh-btn-secondary" data-numa-confirmation-cancel>Cancelar</button>
+                        <button type="button" class="bh-btn bh-btn-primary" data-numa-confirmation-confirm>Empezar de nuevo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bh-numa-panel-body" data-numa-panel-content>
+                <div class="bh-numa-panel-initial" data-numa-initial>
+                    <p class="bh-numa-initial-greeting" data-numa-initial-greeting></p>
+                </div>
+
+                <div class="bh-numa-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación con Numa" tabindex="0" data-numa-messages data-lenis-prevent></div>
+
+                <p class="visually-hidden" role="status" aria-live="polite" data-numa-status></p>
+
+                <form class="bh-numa-form" data-numa-form>
+                    <label class="visually-hidden" for="bh-numa-message">Pregunta para Numa</label>
+                    <div class="bh-numa-composer">
+                        <textarea
+                            id="bh-numa-message"
+                            class="bh-numa-input"
+                            name="message"
+                            rows="1"
+                            maxlength="<?= $maxMessageLength ?>"
+                            placeholder="Pregunta a Numa…"
+                            aria-describedby="bh-numa-counter bh-numa-help"
+                            data-numa-input
+                            disabled></textarea>
+                        <span class="bh-numa-counter" id="bh-numa-counter" data-numa-counter><span class="visually-hidden">Caracteres: </span><span data-numa-counter-value>0/<?= $maxMessageLength ?></span></span>
+                        <button type="submit" class="bh-numa-submit" aria-label="Enviar mensaje" data-numa-submit disabled>
+                            <i class="ti ti-arrow-up" aria-hidden="true" data-numa-submit-icon></i>
+                            <span class="bh-numa-submit-processing" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    <p class="visually-hidden" id="bh-numa-help">Escribe tu pregunta y pulsa Enter para enviar. Usa Mayús+Enter para un salto de línea. Máximo <?= $maxMessageLength ?> caracteres.</p>
+                    <button type="button" class="bh-numa-status-retry" data-numa-status-retry hidden>Reintentar estado</button>
+                </form>
+            </div>
+        </section>
+        <noscript>
+            <div class="bh-numa-noscript">Numa necesita JavaScript para funcionar. Puedes seguir navegando por BeneHom.</div>
+        </noscript>
+    </div>
+    <?php
+}
+
+function bh_numa_assets(): void
+{
+    ?>
+    <script src="<?= htmlspecialchars(bh_asset('js/vendor/gsap/gsap.min.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+    <script src="<?= htmlspecialchars(bh_asset('js/numa-character.js'), ENT_QUOTES, 'UTF-8') ?>" defer></script>
+    <script src="<?= htmlspecialchars(bh_asset('js/numa-chat.js'), ENT_QUOTES, 'UTF-8') ?>" defer></script>
+    <?php
+}

@@ -585,6 +585,12 @@
     width: 100%;
 }
 
+@media (max-width: 991.98px){
+    .bh-blog-meta-list{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .bh-blog-article-map{
     position: static;
 }

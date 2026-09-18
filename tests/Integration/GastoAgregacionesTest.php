@@ -48,4 +48,19 @@ final class GastoAgregacionesTest extends IntegrationTestCase
             $totales
         );
     }
+
+    public function testUltimoMesConGastosPorCategoriaHastaIgnoraMesesVaciosYFuturos(): void
+    {
+        $usuario = $this->crearUsuario('gastos-ultimo-mes.integration@example.test');
+
+        self::assertNotFalse(\Gasto::agregarGasto($usuario['id'], 'flexible', 'ocio_entretenimiento', 30, '2026-03-10'));
+        self::assertNotFalse(\Gasto::agregarGasto($usuario['id'], 'flexible', 'viajes_escapadas', 50, '2026-05-10'));
+        self::assertNotFalse(\Gasto::agregarGasto($usuario['id'], 'flexible', 'restaurantes_bares_cafeterias', 80, '2026-07-10'));
+
+        self::assertSame(
+            '2026-05',
+            \Gasto::ultimoMesConGastosPorCategoriaHasta($usuario['id'], '2026-06-30', 'flexible')
+        );
+        self::assertNull(\Gasto::ultimoMesConGastosPorCategoriaHasta($usuario['id'], '2026-02-28', 'flexible'));
+    }
 }

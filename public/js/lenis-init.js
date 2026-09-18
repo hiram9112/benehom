@@ -6,6 +6,7 @@
   var TOUCH_INPUT_QUERY = '(hover: none), (pointer: coarse)';
   var reducedMotion = window.matchMedia ? window.matchMedia(REDUCED_MOTION_QUERY) : null;
   var touchInput = window.matchMedia ? window.matchMedia(TOUCH_INPUT_QUERY) : null;
+  var modalScrollY = null;
 
   function prefersReducedMotion() {
     return Boolean(reducedMotion && reducedMotion.matches);
@@ -84,6 +85,25 @@
     resumeLenis();
   }
 
+  function lockModalScroll() {
+    if (modalScrollY === null) {
+      modalScrollY = window.scrollY;
+    }
+
+    document.documentElement.classList.add('bh-modal-scroll-locked');
+  }
+
+  function unlockModalScroll() {
+    if (document.querySelector('.modal.show')) return;
+
+    document.documentElement.classList.remove('bh-modal-scroll-locked');
+
+    if (modalScrollY !== null) {
+      window.scrollTo(0, modalScrollY);
+      modalScrollY = null;
+    }
+  }
+
   startLenis();
 
   if (reducedMotion) {
@@ -99,4 +119,6 @@
   document.addEventListener('show.bs.offcanvas', handleOverlayShow);
   document.addEventListener('hidden.bs.modal', handleOverlayHidden);
   document.addEventListener('hidden.bs.offcanvas', handleOverlayHidden);
+  document.addEventListener('show.bs.modal', lockModalScroll);
+  document.addEventListener('hidden.bs.modal', unlockModalScroll);
 }());

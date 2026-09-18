@@ -1,5 +1,7 @@
 <?php
 
+require_once APP_PATH . '/views/partials/numa-launcher.php';
+
 function bh_document_meta_content(string $robots): string
 {
     return $robots === 'noindex' ? 'noindex, nofollow' : 'index, follow';
@@ -125,7 +127,11 @@ function bh_document_end(array $opciones = []): void
     $includeBootstrapJs = (bool) ($opciones['include_bootstrap_js'] ?? false);
     $includeFlashJs = (bool) ($opciones['include_flash_js'] ?? false);
     $bodyEndExtra = (string) ($opciones['body_end_extra'] ?? '');
+    $numaMode = ($opciones['numa_widget'] ?? true) ? bh_numa_widget_mode() : null;
     ?>
+<?php if ($numaMode !== null): ?>
+    <?php bh_numa_launcher($numaMode); ?>
+<?php endif; ?>
     <script src="<?= bh_asset('js/vendor/lenis/lenis.min.js') ?>"></script>
     <script src="<?= bh_asset('js/lenis-init.js') ?>"></script>
 <?php if ($includeBootstrapJs): ?>
@@ -134,6 +140,9 @@ function bh_document_end(array $opciones = []): void
 <?php endif; ?>
 <?php if ($includeFlashJs): ?>
     <script src="<?= bh_asset('js/flash.js') ?>"></script>
+<?php endif; ?>
+<?php if ($numaMode !== null): ?>
+    <?php bh_numa_assets(); ?>
 <?php endif; ?>
 <?php if ($bodyEndExtra !== ''): ?>
 <?= $bodyEndExtra ?>

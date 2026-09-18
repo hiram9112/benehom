@@ -3,7 +3,8 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^\.env$ - [F,L]
-    RewriteRule ^(app|config|database|vendor)(/|$) - [F,L]
+    RewriteRule ^(app|bin|config|database|knowledge|resources|tests|vendor|\.git)(/|$) - [F,L,NC]
+    RewriteRule ^(AGENTS\.md|pdte\.md)$ - [F,L,NC]
 </IfModule>
 
 <FilesMatch "^\.env">

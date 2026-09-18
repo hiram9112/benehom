@@ -92,7 +92,13 @@ function ingresoCategoriaLabels(): array
 
 function ingresoCategoriaPermitida(string $categoria): bool
 {
-    return isset(ingresoCategoriaLabels()[$categoria]);
+    foreach (ingresoCategorias() as $grupo) {
+        if (isset(($grupo['conceptos'] ?? [])[$categoria])) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 //Funcion para formatear las categorias
@@ -208,6 +214,7 @@ function bh_css_tags(): string
             'css/src/blog.css',
             'css/src/cuenta.css',
             'css/src/legal.css',
+            'css/src/numa.css',
             'css/src/responsive.css',
         ];
 
@@ -333,6 +340,246 @@ function bh_session_idle_expired(int $lastActivity, int $idleTimeout, ?int $now 
     return $lastActivity < ($now - $idleTimeout);
 }
 
+function bh_env_value(string $key, ?string $default = null): ?string
+{
+    $value = $_ENV[$key] ?? getenv($key);
+
+    if ($value === false || $value === null) {
+        return $default;
+    }
+
+    return trim((string) $value, " \t\n\r\0\x0B\"'");
+}
+
+function bh_env_bool(string $key, bool $default = false): bool
+{
+    $value = bh_env_value($key);
+
+    if ($value === null || $value === '') {
+        return $default;
+    }
+
+    return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+}
+
+function bh_numa_limits_bypassed(): bool
+{
+    return strtolower((string) bh_env_value('APP_ENV', '')) === 'local'
+        && bh_env_bool('NUMA_BYPASS_LIMITS', false);
+}
+
+function bh_numa_user_limits_bypassed(int $userId): bool
+{
+    if (bh_numa_limits_bypassed()) {
+        return true;
+    }
+
+    if ($userId < 1) {
+        return false;
+    }
+
+    $exemptUserIds = bh_env_value('NUMA_LIMIT_EXEMPT_USER_IDS', '');
+    if ($exemptUserIds === null || $exemptUserIds === '') {
+        return false;
+    }
+
+    foreach (explode(',', $exemptUserIds) as $exemptUserId) {
+        if (ctype_digit($exemptUserId) && (int) $exemptUserId === $userId) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function bh_env_int(string $key, int $default): int
+{
+    $value = bh_env_value($key);
+
+    if ($value === null || $value === '' || !is_numeric($value)) {
+        return $default;
+    }
+
+    return (int) $value;
+}
+
+function bh_routes(): array
+{
+    static $routes = null;
+
+    if ($routes === null) {
+        $routes = require CONFIG_PATH . '/routes.php';
+    }
+
+    return $routes;
+}
+
+function bh_route_definition(string $route): ?array
+{
+    $route = trim($route, '/');
+
+    return bh_routes()[$route] ?? null;
+}
+
+function bh_route_allows_method(?array $routeDefinition, string $method): bool
+{
+    if ($routeDefinition === null) {
+        return false;
+    }
+
+    $allowedMethods = array_map('strtoupper', $routeDefinition['methods'] ?? []);
+
+    return in_array(strtoupper($method), $allowedMethods, true);
+}
+
+function bh_route_response_type(?array $routeDefinition): string
+{
+    if ($routeDefinition !== null) {
+        return ($routeDefinition['response'] ?? 'html') === 'json' ? 'json' : 'html';
+    }
+
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+
+    return str_contains($accept, 'application/json') ? 'json' : 'html';
+}
+
+function bh_route_requires_global_csrf(array $routeDefinition): bool
+{
+    return (bool) ($routeDefinition['csrf'] ?? true);
+}
+
+function bh_controller_action_callable(string $controllerClass, string $action): bool
+{
+    if (!class_exists($controllerClass)) {
+        return false;
+    }
+
+    $reflection = new ReflectionClass($controllerClass);
+
+    if (!$reflection->hasMethod($action)) {
+        return false;
+    }
+
+    $method = $reflection->getMethod($action);
+
+    if (!$method->isPublic() || $method->isStatic()) {
+        return false;
+    }
+
+    return is_callable([$reflection->newInstance(), $action]);
+}
+
+function bh_json_success(array $data = [], int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+    }
+
+    echo json_encode(['ok' => true, 'data' => $data], JSON_UNESCAPED_UNICODE);
+}
+
+function bh_json_no_store_private(): void
+{
+    if (!headers_sent()) {
+        header('Cache-Control: no-store, private');
+    }
+}
+
+function bh_json_error(string $code, string $message, int $statusCode, ?array $data = null): void
+{
+    http_response_code($statusCode);
+
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+    }
+
+    $payload = [
+        'ok' => false,
+        'error' => [
+            'code' => $code,
+            'message' => $message,
+        ],
+    ];
+
+    if ($data !== null) {
+        $payload['data'] = $data;
+    }
+
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+}
+
+function bh_router_error_message(string $code): string
+{
+    return [
+        'NOT_FOUND' => 'No hemos encontrado la página solicitada.',
+        'METHOD_NOT_ALLOWED' => 'El método HTTP no está permitido para esta ruta.',
+        'UNAUTHENTICATED' => 'Inicia sesión para acceder a esa sección.',
+        'INVALID_CSRF' => 'Solicitud no válida. Recarga la página e inténtalo de nuevo.',
+        'INTERNAL_ERROR' => 'No hemos podido completar la solicitud.',
+    ][$code] ?? 'No hemos podido completar la solicitud.';
+}
+
+function bh_router_error_title(string $code): string
+{
+    return [
+        'NOT_FOUND' => 'Página no encontrada',
+        'METHOD_NOT_ALLOWED' => 'Método no permitido',
+        'UNAUTHENTICATED' => 'Sesión necesaria',
+        'INVALID_CSRF' => 'Solicitud no válida',
+        'INTERNAL_ERROR' => 'Error interno',
+    ][$code] ?? 'Error';
+}
+
+function bh_numa_error_message(string $code): string
+{
+    return [
+        'NUMA_INVALID_CSRF' => 'Solicitud no válida. Recarga la página e inténtalo de nuevo.',
+        'NUMA_INVALID_MESSAGE' => 'Escribe una consulta válida.',
+        'NUMA_MESSAGE_TOO_LONG' => sprintf('La consulta no puede superar %d caracteres.', bh_numa_max_message_length()),
+        'NUMA_REQUEST_TOO_LARGE' => 'La consulta supera el tamaño permitido.',
+        'NUMA_REQUEST_IN_PROGRESS' => 'Numa ya está procesando una consulta. Espera a que termine antes de enviar otra.',
+        'NUMA_NOT_AVAILABLE' => 'Numa no está disponible en este momento.',
+        'NUMA_LIMIT_REACHED' => 'Has alcanzado el límite de uso de Numa. Podrás volver a utilizarlo cuando se renueve.',
+        'NUMA_RATE_LIMITED' => 'Has enviado demasiadas consultas seguidas. Espera un momento antes de volver a intentarlo.',
+        'NUMA_DAILY_LIMIT_REACHED' => 'Has alcanzado el límite diario de llamadas pagadas de Numa.',
+        'NUMA_MONTHLY_LIMIT_REACHED' => 'Has alcanzado el límite mensual de llamadas pagadas de Numa.',
+        'NUMA_USAGE_ERROR' => 'No hemos podido comprobar el consumo de Numa.',
+        'NUMA_PROVIDER_UNAVAILABLE' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_AUTH_ERROR' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_RATE_LIMITED' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_QUOTA_EXCEEDED' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_INVALID_RESPONSE' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_MAX_TOKENS' => 'Numa no está disponible en este momento.',
+        'NUMA_PROVIDER_TIMEOUT' => 'Numa no está disponible en este momento.',
+        'NUMA_CONFIGURATION_ERROR' => 'Numa no está disponible en este momento.',
+        'NUMA_GLOBAL_LIMIT_REACHED' => 'Numa no está disponible en este momento.',
+        'NUMA_PUBLIC_GLOBAL_LIMIT_REACHED' => 'Numa no está disponible en este momento.',
+        'NUMA_INTERNAL_ERROR' => 'No hemos podido procesar la consulta.',
+    ][$code] ?? 'No hemos podido procesar la consulta.';
+}
+
+function bh_numa_max_message_length(): int
+{
+    return max(1, bh_env_int('NUMA_MAX_MESSAGE_LENGTH', 300));
+}
+
+function bh_numa_max_request_body_bytes(): int
+{
+    return max(1, bh_env_int('NUMA_MAX_REQUEST_BODY_BYTES', 2048));
+}
+
+function bh_numa_max_provider_response_body_bytes(): int
+{
+    return max(1, bh_env_int('NUMA_MAX_PROVIDER_RESPONSE_BODY_BYTES', 65536));
+}
+
+function bh_numa_error(string $code, int $statusCode, ?array $data = null): void
+{
+    bh_json_error($code, bh_numa_error_message($code), $statusCode, $data);
+}
+
 
 
 
@@ -376,14 +623,14 @@ function csrf_field(): string
 function csrf_validate(): bool
 {
     $sessionToken = $_SESSION['csrf_token'] ?? '';
-    $postToken    = $_POST['_csrf'] ?? '';
+    $requestToken = $_POST['_csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
 
-    if (!$sessionToken || !$postToken) {
+    if (!$sessionToken || !$requestToken) {
         return false;
     }
 
     // hash_equals → comparación segura (evita ataques de timing)
-    return hash_equals($sessionToken, $postToken);
+    return hash_equals((string) $sessionToken, (string) $requestToken);
 }
 
 function bh_is_ajax_request(?string $route = null): bool
@@ -393,6 +640,10 @@ function bh_is_ajax_request(?string $route = null): bool
     $requestedWith = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
 
     if (str_contains($accept, 'application/json') || $requestedWith === 'xmlhttprequest') {
+        return true;
+    }
+
+    if ($route !== '' && bh_route_response_type(bh_route_definition($route)) === 'json') {
         return true;
     }
 

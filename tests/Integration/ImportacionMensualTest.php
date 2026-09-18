@@ -58,7 +58,7 @@ final class ImportacionMensualTest extends IntegrationTestCase
     {
         $fechaAnterior = $mesAnterior . '-01';
 
-        \Ingreso::agregarIngreso($usuarioId, 'salario', '2000', $fechaAnterior);
+        \Ingreso::agregarIngreso($usuarioId, 'nomina', '2000', $fechaAnterior);
         \Ingreso::agregarIngreso($usuarioId, 'otros_ingresos', '500', $fechaAnterior);
         \Gasto::agregarGasto($usuarioId, 'esencial', 'alquiler_hipoteca', '800', $fechaAnterior);
         \Gasto::agregarGasto($usuarioId, 'esencial', 'alimentacion_hogar', '300', $fechaAnterior);
@@ -163,7 +163,7 @@ final class ImportacionMensualTest extends IntegrationTestCase
 
         $this->crearMovimientosMesAnterior($usuario['id'], '2026-05');
 
-        \Ingreso::agregarIngreso($usuario['id'], 'salario', '1000', '2026-06-01');
+        \Ingreso::agregarIngreso($usuario['id'], 'nomina', '1000', '2026-06-01');
 
         $respuesta = $this->invocarImportacion([
             'mes_destino' => '2026-06',

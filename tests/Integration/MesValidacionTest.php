@@ -150,7 +150,7 @@ final class MesValidacionTest extends IntegrationTestCase
 
         foreach ($casosInvalidos as $caso => $valor) {
             $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-                'categoria_ingreso' => 'salario',
+                'categoria_ingreso' => 'nomina',
                 'cantidad_ingreso' => '1500',
                 'mes_seleccionado' => $valor,
             ], $usuario['id']);
@@ -165,12 +165,12 @@ final class MesValidacionTest extends IntegrationTestCase
         $usuario = $this->crearUsuario('mes-ingreso-valido.integration@example.test');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '1500',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
 
         self::assertTrue($respuesta['ok'], 'Ingreso con mes válido debería guardarse: ' . ($respuesta['msg'] ?? ''));
-        self::assertSame('salario', $respuesta['ingreso']['categoria']);
+        self::assertSame('nomina', $respuesta['ingreso']['categoria']);
     }
 }

@@ -63,6 +63,26 @@ if (!function_exists('bh_proy_formatear_plazo')) {
     }
 }
 
+if (!function_exists('bh_proy_formatear_mes')) {
+    function bh_proy_formatear_mes($mes): string
+    {
+        $mesesEs = [1 => 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        $partesMes = explode('-', (string) $mes);
+
+        return count($partesMes) === 2 && isset($mesesEs[(int) $partesMes[1]])
+            ? $mesesEs[(int) $partesMes[1]] . ' ' . $partesMes[0]
+            : (string) $mes;
+    }
+}
+
+if (!function_exists('bh_proy_nota_referencia_gastos_flexibles')) {
+    function bh_proy_nota_referencia_gastos_flexibles($mesSeleccionado, $mesReferencia): string
+    {
+        return 'Como ' . bh_proy_formatear_mes($mesSeleccionado) . ' no tiene gastos flexibles registrados, esta simulación usa ' .
+            bh_proy_formatear_mes($mesReferencia) . ' como referencia.';
+    }
+}
+
 if (!function_exists('bh_proy_formatear_opcion_con_importe')) {
     function bh_proy_formatear_opcion_con_importe($texto, $importe, $prefijo = ''): string
     {
@@ -74,7 +94,7 @@ if (!function_exists('bh_proy_formatear_opcion_con_importe')) {
 }
 
 if (!function_exists('bh_render_meta_card')) {
-    function bh_render_meta_card(array $meta, array $gastosFlexiblesPorCategoria): string
+    function bh_render_meta_card(array $meta, array $gastosFlexiblesPorCategoria, string $notaReferenciaGastosFlexibles = ''): string
     {
         $metaId = intval($meta['id']);
         ob_start();
@@ -150,8 +170,11 @@ if (!function_exists('bh_render_meta_card')) {
                 </div>
 
                 <?php if (empty($gastosFlexiblesPorCategoria)): ?>
-                    <p class="bh-field-help mb-0">No hay gastos flexibles registrados en el mes seleccionado para proyectar una reducción.</p>
+                    <p class="bh-field-help mb-0">No hay gastos flexibles registrados para proyectar una reducción.</p>
                 <?php else: ?>
+                    <?php if ($notaReferenciaGastosFlexibles !== ''): ?>
+                        <p class="bh-field-help mb-0"><?= htmlspecialchars($notaReferenciaGastosFlexibles, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endif; ?>
                     <div class="bh-category-picker bh-meta-projection-controls" data-projection-picker>
                         <div class="bh-field">
                             <label class="bh-label" for="meta_proyeccion_categoria_<?= $metaId ?>">Categoría flexible</label>

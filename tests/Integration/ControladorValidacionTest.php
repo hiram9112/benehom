@@ -19,7 +19,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
 
         $this->metodoOriginal = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $this->postBackup = $_POST;
-        $this->sessionBackup = $_SESSION;
+        $this->sessionBackup = is_array($_SESSION ?? null) ? $_SESSION : [];
 
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = [];
@@ -170,7 +170,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
         $usuario = $this->crearUsuario('ctrl-ingreso-neg.integration@example.test');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '-100',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
@@ -184,7 +184,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
         $usuario = $this->crearUsuario('ctrl-ingreso-zero.integration@example.test');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '0',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
@@ -198,7 +198,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
         $usuario = $this->crearUsuario('ctrl-ingreso-empty.integration@example.test');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
@@ -212,7 +212,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
         $usuario = $this->crearUsuario('ctrl-ingreso-nan.integration@example.test');
 
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '1,2,3',
             'mes_seleccionado' => '2026-05',
         ], $usuario['id']);
@@ -235,10 +235,34 @@ final class ControladorValidacionTest extends IntegrationTestCase
         self::assertSame('Categoría de ingreso no válida', $respuesta['msg']);
     }
 
+    public function testAgregarIngresoRechazaLasSieteClavesLegacy(): void
+    {
+        $usuario = $this->crearUsuario('ctrl-ingreso-legacy.integration@example.test');
+
+        foreach ([
+            'salario',
+            'actividad_propia',
+            'prestaciones_ayudas',
+            'alquileres',
+            'inversiones',
+            'ventas_segunda_mano',
+            'aportaciones_regalos',
+        ] as $categoria) {
+            $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
+                'categoria_ingreso' => $categoria,
+                'cantidad_ingreso' => '1500',
+                'mes_seleccionado' => '2026-05',
+            ], $usuario['id']);
+
+            self::assertFalse($respuesta['ok'], "La clave legacy {$categoria} debe rechazarse en un alta nueva.");
+            self::assertSame('Categoría de ingreso no válida', $respuesta['msg']);
+        }
+    }
+
     public function testAgregarIngresoSinSesionDevuelveSesionNoValida(): void
     {
         $respuesta = $this->invocar(\IngresoController::class, 'agregarAjax', [
-            'categoria_ingreso' => 'salario',
+            'categoria_ingreso' => 'nomina',
             'cantidad_ingreso' => '1500',
             'mes_seleccionado' => '2026-05',
         ], null);
@@ -290,7 +314,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
     public function testEditarIngresoRechazaCantidadNegativa(): void
     {
         $usuario = $this->crearUsuario('ctrl-edit-ingreso-neg.integration@example.test');
-        $ingresoId = \Ingreso::agregarIngreso($usuario['id'], 'salario', 1500, '2026-05-01');
+        $ingresoId = \Ingreso::agregarIngreso($usuario['id'], 'nomina', 1500, '2026-05-01');
 
         self::assertNotFalse($ingresoId);
 
@@ -339,7 +363,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
     {
         $duenio = $this->crearUsuario('idor-ei-o@example.test');
         $atacante = $this->crearUsuario('idor-ei-a@example.test');
-        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'salario', 1500, '2026-05-01');
+        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'nomina', 1500, '2026-05-01');
 
         self::assertNotFalse($ingresoId);
 
@@ -397,7 +421,7 @@ final class ControladorValidacionTest extends IntegrationTestCase
     {
         $duenio = $this->crearUsuario('idor-di-o@example.test');
         $atacante = $this->crearUsuario('idor-di-a@example.test');
-        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'salario', 1500, '2026-05-01');
+        $ingresoId = \Ingreso::agregarIngreso($duenio['id'], 'nomina', 1500, '2026-05-01');
 
         self::assertNotFalse($ingresoId);
 

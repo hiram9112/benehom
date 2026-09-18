@@ -1,7 +1,11 @@
 {
   "scripts": {
     "build": "npm run copy:vendor",
-    "copy:vendor": "mkdir -p public/js/vendor/gsap public/js/vendor/lenis && cp node_modules/gsap/dist/gsap.min.js public/js/vendor/gsap/ && cp node_modules/gsap/dist/ScrollTrigger.min.js public/js/vendor/gsap/ && cp node_modules/gsap/dist/SplitText.min.js public/js/vendor/gsap/ && cp node_modules/lenis/dist/lenis.min.js public/js/vendor/lenis/"
+    "copy:vendor": "mkdir -p public/js/vendor/gsap public/js/vendor/lenis && cp node_modules/gsap/dist/gsap.min.js public/js/vendor/gsap/ && cp node_modules/gsap/dist/ScrollTrigger.min.js public/js/vendor/gsap/ && cp node_modules/gsap/dist/SplitText.min.js public/js/vendor/gsap/ && cp node_modules/lenis/dist/lenis.min.js public/js/vendor/lenis/",
+    "test:e2e": "playwright install chromium && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   },
   "dependencies": {
     "gsap": "^3.15.0",

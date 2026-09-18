@@ -27,7 +27,7 @@ final class CategoriasWhitelistTest extends TestCase
         self::assertFalse(\gastoCategoriaPermitida('esencial', 'categoria_desconocida'));
         self::assertFalse(\gastoCategoriaPermitida('flexible', 'alquiler_hipoteca'));
         self::assertFalse(\gastoCategoriaPermitida('esencial', 'ocio_entretenimiento'));
-        self::assertFalse(\gastoCategoriaPermitida('esencial', 'salario'));
+        self::assertFalse(\gastoCategoriaPermitida('esencial', 'nomina'));
     }
 
     public function testAceptaCategoriasDeIngresoDelCatalogo(): void
@@ -41,8 +41,17 @@ final class CategoriasWhitelistTest extends TestCase
             }
         }
 
-        self::assertTrue(\ingresoCategoriaPermitida('salario'));
-        self::assertTrue(\ingresoCategoriaPermitida('prestaciones_ayudas'));
+        foreach ([
+            'salario',
+            'actividad_propia',
+            'prestaciones_ayudas',
+            'alquileres',
+            'inversiones',
+            'ventas_segunda_mano',
+            'aportaciones_regalos',
+        ] as $categoria) {
+            self::assertFalse(\ingresoCategoriaPermitida($categoria), "La clave legacy {$categoria} no puede admitirse en altas nuevas.");
+        }
     }
 
     public function testRechazaCategoriasDeIngresoDesconocidasOGastos(): void

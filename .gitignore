@@ -3,6 +3,8 @@
 /node_modules/
 .phpunit.result.cache
 coverage/
+playwright-report/
+test-results/
 
 skills-lock.json
 
@@ -23,3 +25,5 @@ auditoria-preproduccion.md
 auditoria-despliegue.md
 sprint-24-deuda.md
 planificación
+pdte.md
+inventario-tecnico.md

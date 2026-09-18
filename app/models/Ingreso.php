@@ -63,6 +63,74 @@ class Ingreso{
 
     }
 
+    // Busca la única entrada de una categoría dentro del mes indicado.
+    public static function obtenerIngresoMensual($usuario_id,$categoria,$fecha){
+        try{
+            $db=Database::getConnection();
+            $fechaFin=date('Y-m-d',strtotime($fecha.' +1 month'));
+
+            $stmt=$db->prepare(
+                "SELECT id, categoria, cantidad, fecha FROM ingresos
+                 WHERE usuario_id= :usuario_id
+                 AND categoria= :categoria
+                 AND fecha >= :fecha_inicio
+                 AND fecha < :fecha_fin
+                 ORDER BY id ASC
+                 LIMIT 1"
+            );
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+            $stmt->bindParam(':categoria',$categoria,PDO::PARAM_STR);
+            $stmt->bindParam(':fecha_inicio',$fecha);
+            $stmt->bindParam(':fecha_fin',$fechaFin);
+            $stmt->execute();
+
+            $ingreso=$stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $ingreso===false ? null : $ingreso;
+        }catch(PDOException $e){
+            return false;
+        }
+    }
+
+    // Vuelve a comprobar la identidad mensual antes de sumar el importe confirmado.
+    public static function acumularIngresoMensual($usuario_id,$categoria,$cantidad,$fecha){
+        $ingreso=self::obtenerIngresoMensual($usuario_id,$categoria,$fecha);
+
+        if($ingreso===false || $ingreso===null){
+            return $ingreso;
+        }
+
+        try{
+            $db=Database::getConnection();
+            $fechaFin=date('Y-m-d',strtotime($fecha.' +1 month'));
+
+            $stmt=$db->prepare(
+                "UPDATE ingresos
+                 SET cantidad= cantidad + :cantidad
+                 WHERE id= :id
+                 AND usuario_id= :usuario_id
+                 AND categoria= :categoria
+                 AND fecha >= :fecha_inicio
+                 AND fecha < :fecha_fin"
+            );
+            $stmt->bindParam(':cantidad',$cantidad);
+            $stmt->bindParam(':id',$ingreso['id'],PDO::PARAM_INT);
+            $stmt->bindParam(':usuario_id',$usuario_id,PDO::PARAM_INT);
+            $stmt->bindParam(':categoria',$categoria,PDO::PARAM_STR);
+            $stmt->bindParam(':fecha_inicio',$fecha);
+            $stmt->bindParam(':fecha_fin',$fechaFin);
+            $stmt->execute();
+
+            if($stmt->rowCount()!==1){
+                return null;
+            }
+
+            return self::obtenerIngresoMensual($usuario_id,$categoria,$fecha);
+        }catch(PDOException $e){
+            return false;
+        }
+    }
+
     //Método para eliminar un ingreso propio del usuario (mitiga IDOR)
     public static function eliminarIngreso($id,$usuario_id){
 

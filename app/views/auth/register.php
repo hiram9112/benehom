@@ -8,8 +8,6 @@ bh_auth_begin(
 );
 ?>
 
-<?php bh_auth_flash_messages(); ?>
-
 <form method="post" action="?r=registro/registrarUsuario" class="bh-form bh-auth-form">
     <?= csrf_field() ?>
 

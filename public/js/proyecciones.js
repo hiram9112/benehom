@@ -1037,9 +1037,48 @@
 
   const resolverEliminacion = (form) => seccionesEliminacion.find((item) => form.classList.contains(item.clase));
 
-  const enviarFormularioEliminacion = async (form, config, boton) => {
-    if (boton && boton.dataset.confirm && !window.confirm(boton.dataset.confirm)) return;
+  const modalConfirmacion = document.getElementById("modalConfirmacionProyeccion");
+  const botonConfirmarEliminacion = document.getElementById("modalConfirmacionProyeccionAceptar");
+  let eliminacionPendiente = null;
+  let disparadorConfirmacion = null;
 
+  const abrirConfirmacionEliminacion = (boton, onConfirm) => {
+    if (!modalConfirmacion || !boton?.dataset.confirm) {
+      onConfirm();
+      return;
+    }
+
+    document.getElementById("modalConfirmacionProyeccionTexto").textContent = boton.dataset.confirm;
+    eliminacionPendiente = onConfirm;
+    disparadorConfirmacion = boton;
+    window.bootstrap.Modal.getOrCreateInstance(modalConfirmacion).show(boton);
+  };
+
+  if (modalConfirmacion && botonConfirmarEliminacion) {
+    botonConfirmarEliminacion.addEventListener("click", () => {
+      if (!eliminacionPendiente || botonConfirmarEliminacion.disabled) return;
+
+      const confirmar = eliminacionPendiente;
+
+      eliminacionPendiente = null;
+      botonConfirmarEliminacion.disabled = true;
+      window.bootstrap.Modal.getInstance(modalConfirmacion)?.hide();
+      confirmar();
+    });
+
+    modalConfirmacion.addEventListener("hidden.bs.modal", () => {
+      botonConfirmarEliminacion.disabled = false;
+
+      if (disparadorConfirmacion?.isConnected && !disparadorConfirmacion.disabled) {
+        disparadorConfirmacion.focus({ preventScroll: true });
+      }
+
+      disparadorConfirmacion = null;
+      eliminacionPendiente = null;
+    });
+  }
+
+  const enviarFormularioEliminacion = async (form, config, boton) => {
     const card = form.closest("[data-meta-card], [data-investment-card], [data-inflacion-card], [data-hipoteca-card]");
 
     if (boton) boton.disabled = true;
@@ -1083,7 +1122,11 @@
 
     if (config) {
       event.preventDefault();
-      enviarFormularioEliminacion(form, config, event.submitter);
+      const boton = event.submitter instanceof HTMLElement
+        ? event.submitter
+        : form.querySelector('button[type="submit"]');
+
+      abrirConfirmacionEliminacion(boton, () => enviarFormularioEliminacion(form, config, boton));
     }
   });
 

@@ -15,7 +15,9 @@ function bh_auth_begin(string $pageTitle, string $heading, string $lead = '', bo
     ]);
     ?>
         <main id="contenido" class="bh-auth-shell">
-            <section class="bh-card bh-card-form bh-auth-card" aria-labelledby="auth-title">
+            <div class="bh-auth-stack">
+                <?php bh_auth_flash_messages(); ?>
+                <section class="bh-card bh-card-form bh-auth-card" aria-labelledby="auth-title">
                 <header class="bh-auth-header">
                     <a class="bh-auth-brand" href="<?= BASE_URL ?>index.php" aria-label="BeneHom inicio">
                         <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="BeneHom" width="120" height="80">
@@ -45,7 +47,8 @@ function bh_auth_end(): void
 {
     $includeBootstrapJs = $GLOBALS['bh_auth_include_bootstrap_js'] ?? false;
     ?>
-            </section>
+                </section>
+            </div>
         </main>
     <?php
 

@@ -29,7 +29,7 @@ class ProyeccionesController {
         $ingresosMes = Ingreso::totalPorRango($usuario_id, $fechaInicio, $fechaFin);
         $gastosEsencialesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'esencial');
         $gastosFlexiblesMes = Gasto::totalPorRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
-        $gastosFlexiblesPorCategoria = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
+        $referenciaGastosFlexibles = $this->gastosFlexiblesPorCategoriaReferencia($usuario_id, $mesSeleccionado);
         $ahorroAsignadoMetas = $this->totalAsignadoProyecciones($usuario_id);
         $metasAhorro = MetaAhorro::obtenerActivasPorUsuario($usuario_id);
         $escenariosInversion = EscenarioInversion::obtenerPorUsuario($usuario_id);
@@ -54,10 +54,17 @@ class ProyeccionesController {
             $avisoAhorroAsignado = 'No se pudieron cargar tus metas de ahorro. Inténtalo de nuevo más tarde.';
         }
 
-        if ($gastosFlexiblesPorCategoria === false) {
+        if ($referenciaGastosFlexibles === false) {
             $gastosFlexiblesPorCategoria = [];
+            $usaReferenciaGastosFlexiblesAnterior = false;
+            $mesSeleccionadoGastosFlexibles = $mesSeleccionado;
+            $mesReferenciaGastosFlexibles = null;
             $avisoGastosFlexibles = 'No se pudieron cargar los gastos flexibles para proyectar reducciones.';
         } else {
+            $gastosFlexiblesPorCategoria = $referenciaGastosFlexibles['categorias'];
+            $usaReferenciaGastosFlexiblesAnterior = $referenciaGastosFlexibles['usa_mes_anterior'];
+            $mesSeleccionadoGastosFlexibles = $referenciaGastosFlexibles['mes_seleccionado'];
+            $mesReferenciaGastosFlexibles = $referenciaGastosFlexibles['mes_referencia'];
             $avisoGastosFlexibles = '';
         }
 
@@ -1251,18 +1258,58 @@ class ProyeccionesController {
         return (int) $_SESSION['usuario_id'];
     }
 
-    private function gastosFlexiblesPorCategoriaActual($usuario_id): array{
-        $mesSeleccionado = $_SESSION['dashboard_mes_seleccionado'] ?? date('Y-m');
-
-        if (!bh_mes_valido((string) $mesSeleccionado)) {
-            $mesSeleccionado = date('Y-m');
-        }
-
+    private function gastosFlexiblesPorCategoriaReferencia($usuario_id, string $mesSeleccionado){
         $fechaInicio = $mesSeleccionado . '-01';
         $fechaFin = date('Y-m-t', strtotime($fechaInicio));
         $categorias = Gasto::totalesPorCategoriaYRango($usuario_id, $fechaInicio, $fechaFin, 'flexible');
 
-        return $categorias === false ? [] : $categorias;
+        if ($categorias === false) {
+            return false;
+        }
+
+        if (!empty($categorias)) {
+            return [
+                'categorias' => $categorias,
+                'usa_mes_anterior' => false,
+                'mes_seleccionado' => $mesSeleccionado,
+                'mes_referencia' => $mesSeleccionado,
+            ];
+        }
+
+        $ultimoMesConDatos = Gasto::ultimoMesConGastosPorCategoriaHasta($usuario_id, $fechaFin, 'flexible');
+
+        if ($ultimoMesConDatos === false) {
+            return false;
+        }
+
+        if ($ultimoMesConDatos === null) {
+            return [
+                'categorias' => [],
+                'usa_mes_anterior' => false,
+                'mes_seleccionado' => $mesSeleccionado,
+                'mes_referencia' => null,
+            ];
+        }
+
+        $fechaInicioReferencia = $ultimoMesConDatos . '-01';
+        $fechaFinReferencia = date('Y-m-t', strtotime($fechaInicioReferencia));
+        $categorias = Gasto::totalesPorCategoriaYRango(
+            $usuario_id,
+            $fechaInicioReferencia,
+            $fechaFinReferencia,
+            'flexible'
+        );
+
+        if ($categorias === false) {
+            return false;
+        }
+
+        return [
+            'categorias' => $categorias,
+            'usa_mes_anterior' => $ultimoMesConDatos !== $mesSeleccionado,
+            'mes_seleccionado' => $mesSeleccionado,
+            'mes_referencia' => $ultimoMesConDatos,
+        ];
     }
 
     private function calcularCapacidadMetas($usuario_id): array{
@@ -1358,9 +1405,23 @@ class ProyeccionesController {
         }
 
         require_once APP_PATH . '/views/partials/proyecciones-cards.php';
+        $mesSeleccionado = $_SESSION['dashboard_mes_seleccionado'] ?? date('Y-m');
+
+        if (!bh_mes_valido((string) $mesSeleccionado)) {
+            $mesSeleccionado = date('Y-m');
+        }
+
+        $referenciaGastosFlexibles = $this->gastosFlexiblesPorCategoriaReferencia($usuario_id, $mesSeleccionado);
+        $notaReferenciaGastosFlexibles = $referenciaGastosFlexibles !== false && $referenciaGastosFlexibles['usa_mes_anterior']
+            ? bh_proy_nota_referencia_gastos_flexibles(
+                $referenciaGastosFlexibles['mes_seleccionado'],
+                $referenciaGastosFlexibles['mes_referencia']
+            )
+            : '';
         $cardHtml = bh_render_meta_card(
             $this->prepararMetaParaVista($meta),
-            $this->gastosFlexiblesPorCategoriaActual($usuario_id)
+            $referenciaGastosFlexibles === false ? [] : $referenciaGastosFlexibles['categorias'],
+            $notaReferenciaGastosFlexibles
         );
         $capacidad = $this->calcularCapacidadMetas($usuario_id);
         $metas = MetaAhorro::obtenerActivasPorUsuario($usuario_id);

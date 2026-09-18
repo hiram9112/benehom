@@ -24,13 +24,11 @@ bh_document_begin([
         'anual' => 'Anual',
     ];
 
-    // Etiqueta legible del mes de referencia para la sugerencia de ahorro real.
-    $mesesEs = [1 => 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
     $mesReferencia = $mesSeleccionado ?? date('Y-m');
-    $partesMesReferencia = explode('-', (string) $mesReferencia);
-    $mesSugerenciaLabel = (count($partesMesReferencia) === 2 && isset($mesesEs[(int) $partesMesReferencia[1]]))
-        ? $mesesEs[(int) $partesMesReferencia[1]] . ' ' . $partesMesReferencia[0]
-        : $mesReferencia;
+    $mesSugerenciaLabel = bh_proy_formatear_mes($mesReferencia);
+    $notaReferenciaGastosFlexibles = $usaReferenciaGastosFlexiblesAnterior
+        ? bh_proy_nota_referencia_gastos_flexibles($mesSeleccionadoGastosFlexibles, $mesReferenciaGastosFlexibles)
+        : '';
     ?>
 
     <!--Contenedor Principal-->
@@ -133,7 +131,7 @@ bh_document_begin([
                         <div class="bh-card-body">
                             <div class="bh-meta-list" data-section-list="meta">
                                 <?php foreach ($metasAhorroPreparadas as $meta): ?>
-                                    <?= bh_render_meta_card($meta, $gastosFlexiblesPorCategoria) ?>
+                                    <?= bh_render_meta_card($meta, $gastosFlexiblesPorCategoria, $notaReferenciaGastosFlexibles) ?>
                                 <?php endforeach; ?>
                             </div>
                             <div class="bh-empty-state bh-meta-empty-state" data-section-empty="meta" <?= empty($metasAhorroPreparadas) ? '' : ' hidden' ?>>
@@ -517,9 +515,19 @@ bh_document_begin([
     </div>
 
     <?php
+    bh_modal([
+        'id' => 'modalConfirmacionProyeccion',
+        'title' => 'Eliminar proyección',
+        'titleId' => 'modalConfirmacionProyeccionTitulo',
+        'bodyId' => 'modalConfirmacionProyeccionTexto',
+        'body' => '¿Quieres continuar?',
+        'footer' => '<button type="button" class="bh-btn bh-btn-secondary" data-bs-dismiss="modal">Cancelar</button>'
+            . '<button type="button" class="bh-btn bh-btn-danger" id="modalConfirmacionProyeccionAceptar">Aceptar</button>',
+    ]);
+
     bh_info_modal('infoProyeccionGastosFlexibles', 'Proyectar reducción de gastos flexible', <<<'HTML'
 <p>
-    Elige una categoría flexible registrada en el mes seleccionado y un porcentaje de reducción.
+    Elige una categoría flexible registrada en un mes con datos y un porcentaje de reducción.
     BeneHom calcula cuánto podrías aportar de forma adicional a esa meta.
 </p>
 <p>

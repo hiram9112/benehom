@@ -1,0 +1,253 @@
+const { test, expect } = require('@playwright/test');
+const { createPrivateUser, deletePrivateUser } = require('../helpers/private-user');
+
+const homeUrl = '/index.php?r=home/index';
+
+function messages(page) {
+    return page.locator('[data-numa-messages]');
+}
+
+async function mockAvailableStatus(page, conversation = []) {
+    await page.route(/\/index\.php\?r=numa\/public\/status$/, (route) => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+            ok: true,
+            data: { availability: 'available', conversation },
+        }),
+    }));
+}
+
+async function openAvailableNuma(page, conversation = []) {
+    await mockAvailableStatus(page, conversation);
+    await page.goto(homeUrl);
+    await page.getByRole('button', { name: 'Abrir Numa' }).click();
+    await expect(page.locator('[data-numa-input]')).toBeEnabled();
+}
+
+test('inicia una nueva conversacion y restablece el panel', async ({ page }) => {
+    const conversation = [
+        { role: 'user', message: '¿Qué son los gastos flexibles?' },
+        { role: 'assistant', message: 'Son gastos que puedes ajustar según tus necesidades.' },
+    ];
+
+    await openAvailableNuma(page, conversation);
+    await expect(page.locator('[data-numa-canonical-message="true"]')).toHaveCount(2);
+    await expect(page.locator('[data-numa-new-conversation]')).toBeEnabled();
+
+    await page.route(/\/index\.php\?r=numa\/public\/conversation\/new$/, (route) => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+            ok: true,
+            data: { availability: 'available', conversation: [] },
+        }),
+    }));
+    const newConversationRequest = page.waitForRequest((request) => {
+        const url = new URL(request.url());
+
+        return url.searchParams.get('r') === 'numa/public/conversation/new'
+            && request.method() === 'POST';
+    });
+    await page.locator('[data-numa-new-conversation]').click();
+    const confirmation = page.getByRole('dialog', { name: 'Confirmar nueva conversación' });
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation).toHaveAttribute('aria-modal', 'true');
+    expect(await confirmation.evaluate((element) => getComputedStyle(element).backdropFilter)).toContain('blur');
+    const panelBox = await page.locator('[data-numa-panel]').boundingBox();
+    const dialogBox = await confirmation.locator('.bh-numa-confirmation-dialog').boundingBox();
+
+    expect(panelBox).not.toBeNull();
+    expect(dialogBox).not.toBeNull();
+    expect(Math.abs((dialogBox.x + dialogBox.width / 2) - (panelBox.x + panelBox.width / 2))).toBeLessThan(2);
+    expect(Math.abs((dialogBox.y + dialogBox.height / 2) - (panelBox.y + panelBox.height / 2))).toBeLessThan(2);
+    await expect(page.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Empezar de nuevo' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+    expect(await page.locator('.bh-numa-panel-header').evaluate((element) => element.inert)).toBe(true);
+    expect(await page.locator('[data-numa-panel-content]').evaluate((element) => element.inert)).toBe(true);
+    await page.getByRole('button', { name: 'Empezar de nuevo' }).click();
+
+    await newConversationRequest;
+    await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-numa-initial]')).toBeVisible();
+    await expect(page.locator('[data-numa-initial-greeting]')).toHaveText(/.+/);
+    await expect(page.locator('[data-numa-initial-prompt]')).toHaveCount(0);
+    await expect(page.locator('[data-numa-suggestions]')).toHaveCount(0);
+    await expect(page.locator('[data-numa-new-conversation]')).toBeDisabled();
+    await expect(page.locator('[data-numa-input]')).toBeFocused();
+    await expect(page.locator('[data-numa-status]')).toHaveText('Nueva conversación iniciada.');
+});
+
+test('elige las cuatro variantes públicas al reabrir Numa sin conversación', async ({ page }) => {
+    await mockAvailableStatus(page);
+    await page.goto(homeUrl);
+
+    const variants = [
+        [0, '¿En qué puedo ayudarte?'],
+        [0.3, '¿Qué te gustaría consultar?'],
+        [0.6, '¿Hay algo que quieras revisar?'],
+        [0.9, '¿Por dónde quieres empezar?'],
+    ];
+
+    for (const [randomValue, greeting] of variants) {
+        await page.evaluate((value) => {
+            Math.random = () => value;
+        }, randomValue);
+        await page.getByRole('button', { name: 'Abrir Numa' }).click();
+
+        await expect(page.locator('[data-numa-initial-greeting]')).toHaveText(greeting);
+        await expect(page.locator('[data-numa-initial-prompt]')).toHaveCount(0);
+        const initialPosition = await page.locator('.bh-numa-panel-body').evaluate((body) => {
+            const initial = body.querySelector('[data-numa-initial]');
+            const messages = body.querySelector('[data-numa-messages]');
+            const initialBox = initial.getBoundingClientRect();
+            const messagesBox = messages.getBoundingClientRect();
+
+            return (initialBox.top + initialBox.height / 2 - messagesBox.top) / messagesBox.height;
+        });
+
+        expect(initialPosition).toBeGreaterThan(0.4);
+        expect(initialPosition).toBeLessThan(0.46);
+
+        if (randomValue !== 0.9) {
+            await page.locator('[data-numa-close]').click();
+        }
+    }
+});
+
+test('el estado inicial público es texto informativo y no envía mensajes al pulsarlo', async ({ page }) => {
+    let chatRequests = 0;
+
+    await mockAvailableStatus(page);
+    await page.route(/\/index\.php\?r=numa\/public\/chat$/, (route) => {
+        chatRequests += 1;
+        return route.fulfill({ status: 500 });
+    });
+    await page.goto(homeUrl);
+    await page.evaluate(() => {
+        Math.random = () => 0;
+    });
+    await page.getByRole('button', { name: 'Abrir Numa' }).click();
+
+    const greeting = page.locator('[data-numa-initial-greeting]');
+    await greeting.click({ force: true });
+
+    expect(await greeting.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none');
+    expect(await greeting.evaluate((element) => getComputedStyle(element).cursor)).not.toBe('pointer');
+    await expect(messages(page).locator('.bh-numa-message.is-user')).toHaveCount(0);
+    await expect(page.locator('[data-numa-input]')).toHaveValue('');
+    expect(chatRequests).toBe(0);
+});
+
+test('cancela la nueva conversación con Escape y devuelve el foco a la acción', async ({ page }) => {
+    const conversation = [
+        { role: 'user', message: '¿Qué son los gastos flexibles?' },
+        { role: 'assistant', message: 'Son gastos que puedes ajustar según tus necesidades.' },
+    ];
+
+    await openAvailableNuma(page, conversation);
+    const newConversation = page.locator('[data-numa-new-conversation]');
+    await newConversation.click();
+    await expect(page.getByRole('dialog', { name: 'Confirmar nueva conversación' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Confirmar nueva conversación' })).toBeHidden();
+    await expect(newConversation).toBeFocused();
+    await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(2);
+});
+
+test('mantiene Numa privado al navegar entre dashboard, proyecciones y cuenta', async ({ page }) => {
+    const user = createPrivateUser();
+
+    try {
+        await page.route(/\/index\.php\?r=numa\/status$/, (route) => route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                ok: true,
+                data: { availability: 'available', conversation: [] },
+            }),
+        }));
+        await page.goto('/index.php?r=auth/login');
+        await page.getByLabel('Correo electrónico:').fill(user.email);
+        await page.getByLabel('Contraseña:').fill(user.password);
+        await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+        await expect(page).toHaveURL(/\?r=dashboard\/index$/);
+
+        for (const view of [
+            { name: 'Dashboard', url: /\?r=dashboard\/index$/ },
+            { name: 'Proyecciones', url: /\?r=proyecciones\/index$/ },
+            { name: 'Cuenta', url: /\?r=cuenta\/index$/ },
+        ]) {
+            if (view.name !== 'Dashboard') {
+                await page.getByRole('link', { name: view.name, exact: true }).first().click();
+                await expect(page).toHaveURL(view.url);
+            }
+
+            const widget = page.locator('[data-numa-widget]');
+            const statusRequest = page.waitForRequest((request) => {
+                const url = new URL(request.url());
+
+                return url.searchParams.get('r') === 'numa/status' && request.method() === 'GET';
+            });
+
+            await expect(widget).toHaveAttribute('data-numa-mode', 'private');
+            await expect(widget).toHaveAttribute('data-numa-status-url', '/index.php?r=numa/status');
+            await expect(widget).toHaveAttribute('data-numa-chat-url', '/index.php?r=numa/chat');
+            await expect(widget).toHaveAttribute('data-numa-new-conversation-url', '/index.php?r=numa/conversation/new');
+            await page.getByRole('button', { name: 'Abrir Numa' }).click();
+            await statusRequest;
+            await expect(page.locator('[data-numa-panel]')).toBeVisible();
+            await expect(page.locator('[data-numa-input]')).toBeEnabled();
+            await page.locator('[data-numa-close]').click();
+        }
+    } finally {
+        deletePrivateUser(user.email);
+    }
+});
+
+test('permite abrir, enviar y cerrar mediante teclado, manteniendo el foco', async ({ page }) => {
+    const question = '¿Cómo añado un movimiento?';
+    const answer = 'Puedes añadirlo desde el formulario de movimientos.';
+
+    await mockAvailableStatus(page);
+    await page.route(/\/index\.php\?r=numa\/public\/chat$/, (route) => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+            ok: true,
+            data: {
+                message: answer,
+                availability: 'available',
+                conversation: [
+                    { role: 'user', message: question },
+                    { role: 'assistant', message: answer },
+                ],
+            },
+        }),
+    }));
+    await page.goto(homeUrl);
+
+    const launcher = page.getByRole('button', { name: 'Abrir Numa' });
+    await launcher.focus();
+    await page.keyboard.press('Enter');
+
+    const input = page.locator('[data-numa-input]');
+    await expect(input).toBeEnabled();
+    await expect(input).toBeFocused();
+    await input.focus();
+    await input.fill(question);
+    await page.keyboard.press('Shift+Enter');
+    await expect(input).toHaveValue(`${question}\n`);
+
+    await input.fill(question);
+    await page.keyboard.press('Enter');
+    await expect(messages(page).locator('[data-numa-canonical-message="true"]')).toHaveCount(2);
+    await expect(input).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-numa-panel]')).toBeHidden();
+    await expect(launcher).toBeFocused();
+});

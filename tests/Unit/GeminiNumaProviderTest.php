@@ -1,0 +1,1258 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit;
+
+use PHPUnit\Framework\TestCase;
+
+require_once APP_PATH . '/services/GeminiNumaProvider.php';
+require_once APP_PATH . '/services/NumaFinancialTools.php';
+
+final class GeminiNumaProviderTest extends TestCase
+{
+    /** @var array<string, string|null> */
+    private array $envBackup = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        foreach ($this->managedEnvKeys() as $key) {
+            $this->envBackup[$key] = $_ENV[$key] ?? null;
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ($this->managedEnvKeys() as $key) {
+            if ($this->envBackup[$key] === null) {
+                unset($_ENV[$key]);
+            } else {
+                $_ENV[$key] = $this->envBackup[$key];
+            }
+        }
+
+        parent::tearDown();
+    }
+
+    public function testConstruyeSolicitudSeguraYMapeaRespuestaValida(): void
+    {
+        $captured = [];
+        $transport = function (string $url, array $headers, string $body, int $timeout) use (&$captured): array {
+            $captured = [
+                'url' => $url,
+                'headers' => $headers,
+                'body' => json_decode($body, true, 512, JSON_THROW_ON_ERROR),
+                'timeout' => $timeout,
+            ];
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => [
+                            'parts' => [[
+                                'text' => 'Respuesta breve de Numa.',
+                            ]],
+                        ],
+                        'finishReason' => 'STOP',
+                    ]],
+                    'usageMetadata' => [
+                        'promptTokenCount' => 120,
+                        'candidatesTokenCount' => 35,
+                    ],
+                ], JSON_UNESCAPED_UNICODE),
+            ];
+        };
+
+        $provider = new \GeminiNumaProvider('server-api-key', 'gemini-model', 1000, 20, 1, $transport);
+        $response = $provider->respond(new \NumaRequest(
+            '¿Cómo añado un movimiento?',
+            'Instrucciones internas de Numa',
+            $this->toolContext(),
+            ['consultar_datos_financieros']
+        ));
+
+        self::assertStringEndsWith('/models/gemini-model:generateContent', $captured['url']);
+        self::assertContains('x-goog-api-key: server-api-key', $captured['headers']);
+        self::assertSame(20, $captured['timeout']);
+        self::assertSame(1000, $captured['body']['generationConfig']['maxOutputTokens']);
+        self::assertSame('low', $captured['body']['generationConfig']['thinkingConfig']['thinkingLevel']);
+        self::assertSame('consultar_datos_financieros', $captured['body']['tools'][0]['functionDeclarations'][0]['name']);
+        self::assertSame('AUTO', $captured['body']['toolConfig']['functionCallingConfig']['mode']);
+        self::assertSame(
+            $this->geminiFunctionDeclaration(
+                (new \NumaFinancialToolRegistry())->get('consultar_datos_financieros')->functionDeclaration(),
+            ),
+            $captured['body']['tools'][0]['functionDeclarations'][0]
+        );
+        self::assertSame(['periodos'], $captured['body']['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['required']);
+        self::assertArrayNotHasKey('parameters', $captured['body']['tools'][0]['functionDeclarations'][0]);
+        self::assertFalse($captured['body']['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['additionalProperties']);
+        self::assertFalse($captured['body']['tools'][0]['functionDeclarations'][0]['parametersJsonSchema']['properties']['periodos']['items']['additionalProperties']);
+        self::assertSame('Instrucciones internas de Numa', $captured['body']['system_instruction']['parts'][0]['text']);
+        self::assertStringContainsString('Mensaje actual del usuario:', $captured['body']['contents'][0]['parts'][0]['text']);
+        self::assertStringContainsString('¿Cómo añado un movimiento?', $captured['body']['contents'][0]['parts'][0]['text']);
+        self::assertSame('Respuesta breve de Numa.', $response->message());
+        self::assertSame(120, $response->tokenUsage()->inputTokens());
+        self::assertSame(35, $response->tokenUsage()->outputTokens());
+    }
+
+    public function testPresupuestoUsaElPayloadSerializadoAntesDelTransporte(): void
+    {
+        $_ENV['NUMA_MAX_INPUT_TOKENS'] = '1';
+        $transportCalls = 0;
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static function () use (&$transportCalls): array {
+            ++$transportCalls;
+
+            return ['status' => 200, 'body' => '{}'];
+        });
+
+        $this->expectException(\NumaInputLimitExceeded::class);
+        $this->expectExceptionMessage('NUMA_CONVERSATION_TOO_LONG');
+
+        try {
+            $provider->respond(new \NumaRequest(
+                'Pregunta con declaracion y contexto.',
+                'Instruccion controlada.',
+                $this->toolContext(),
+                ['consultar_datos_financieros'],
+            ));
+        } finally {
+            self::assertSame(0, $transportCalls);
+        }
+    }
+
+    public function testReservaLaEstimacionConcretaDelPayloadSerializado(): void
+    {
+        $payload = '';
+        $consumption = new class implements \NumaProviderConsumptionInterface, \NumaProviderInputEstimateInterface {
+            public ?int $inputTokens = null;
+
+            public function setInputTokenEstimate(int $inputTokens): void
+            {
+                $this->inputTokens = $inputTokens;
+            }
+
+            public function iniciarLlamada(): void
+            {
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+        };
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: static function (string $url, array $headers, string $body) use (&$payload): array {
+                $payload = $body;
+
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [[
+                            'content' => ['parts' => [['text' => 'Respuesta valida.']]],
+                            'finishReason' => 'STOP',
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            },
+            consumption: $consumption,
+        );
+
+        $provider->respond(new \NumaRequest('Pregunta', 'Instruccion controlada.', $this->toolContext(), ['consultar_datos_financieros']));
+
+        self::assertNotSame('', $payload);
+        self::assertSame(\NumaInputBudget::estimateSerializedPayloadTokens($payload), $consumption->inputTokens);
+    }
+
+    public function testEnviaLaDeclaracionCanonicaSinPerderElContratoDelRegistro(): void
+    {
+        $captured = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => ['parts' => [['text' => 'Respuesta valida.']]],
+                        'finishReason' => 'STOP',
+                    ]],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+        $registry = new \NumaFinancialToolRegistry();
+        $definitions = array_values($registry->all());
+
+        $provider->respond(new \NumaRequest(
+            'Consulta financiera',
+            '',
+            [[
+                'type' => 'available_financial_tools',
+                'items' => array_map(
+                    static fn (\NumaFinancialToolDefinition $definition): array => $definition->externalContract(),
+                    $definitions,
+                ),
+            ]],
+            $registry->names(),
+        ));
+
+        self::assertSame(
+            array_map(
+                fn (\NumaFinancialToolDefinition $definition): array => $this->geminiFunctionDeclaration($definition->functionDeclaration()),
+                $definitions,
+            ),
+            $captured['tools'][0]['functionDeclarations']
+        );
+        self::assertCount(1, $captured['tools'][0]['functionDeclarations']);
+        self::assertSame(
+            'consultar_datos_financieros',
+            $captured['tools'][0]['functionDeclarations'][0]['name'],
+        );
+    }
+
+    public function testConservaElSchemaFinancieroCerradoEnParametersJsonSchema(): void
+    {
+        $captured = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static function (string $url, array $headers, string $body) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => ['parts' => [['text' => 'Declaraciones compatibles.']]],
+                        'finishReason' => 'STOP',
+                    ]],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+        $registry = new \NumaFinancialToolRegistry();
+
+        $response = $provider->respond(new \NumaRequest(
+            'Consulta financiera',
+            '',
+            [[
+                'type' => 'available_financial_tools',
+                'items' => array_map(
+                    static fn (\NumaFinancialToolDefinition $definition): array => $definition->externalContract(),
+                    array_values($registry->all()),
+                ),
+            ]],
+            $registry->names(),
+        ));
+
+        self::assertSame('Declaraciones compatibles.', $response->message());
+        $function = $captured['tools'][0]['functionDeclarations'][0];
+        $schema = (new \NumaFinancialDataToolContract())->functionDeclaration()['parameters'];
+        self::assertArrayHasKey('parametersJsonSchema', $function);
+        self::assertArrayNotHasKey('parameters', $function);
+        self::assertSame($schema, $function['parametersJsonSchema']);
+        self::assertFalse($function['parametersJsonSchema']['additionalProperties']);
+        self::assertFalse($function['parametersJsonSchema']['properties']['periodos']['items']['additionalProperties']);
+    }
+
+    public function testPermiteRespuestaEstructuradaJson(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', transport: fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'candidates' => [[
+                    'content' => [
+                        'parts' => [[
+                            'text' => '{"intent":"producto","allowed":true}',
+                        ]],
+                    ],
+                    'finishReason' => 'STOP',
+                ]],
+            ]),
+        ]);
+
+        $response = $provider->respond(new \NumaRequest('Pregunta'));
+
+        self::assertSame(['intent' => 'producto', 'allowed' => true], $response->structuredData());
+    }
+
+    public function testRechazaCuerpoDeRespuestaExcesivoAntesDeDecodificarlo(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', maxResponseBodyBytes: 32, transport: static fn (): array => [
+            'status' => 200,
+            'body' => str_repeat('{', 33),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->respond(new \NumaRequest('Pregunta'));
+    }
+
+    public function testRechazaRespuestasBloqueadasTruncadasOVariasCandidatas(): void
+    {
+        foreach ([
+            ['finishReason' => 'SAFETY'],
+            ['finishReason' => 'MAX_TOKENS'],
+            ['candidates' => [
+                ['content' => ['parts' => [['text' => 'Primera respuesta.']]]],
+                ['content' => ['parts' => [['text' => 'Segunda respuesta.']]]],
+            ]],
+        ] as $candidate) {
+            $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [$candidate],
+                ], JSON_THROW_ON_ERROR),
+            ]);
+
+            if (isset($candidate['candidates'])) {
+                $provider = new \GeminiNumaProvider('key', 'model', transport: static function () use ($candidate): array {
+                    return [
+                    'status' => 200,
+                    'body' => json_encode($candidate, JSON_THROW_ON_ERROR),
+                    ];
+                });
+            }
+
+            try {
+                $provider->respond(new \NumaRequest('Pregunta'));
+                self::fail('Se esperaba rechazo de una respuesta no utilizable.');
+            } catch (\NumaProviderException $exception) {
+                self::assertSame(
+                    ($candidate['finishReason'] ?? null) === 'MAX_TOKENS'
+                        ? 'NUMA_PROVIDER_MAX_TOKENS'
+                        : 'NUMA_PROVIDER_INVALID_RESPONSE',
+                    $exception->getMessage(),
+                );
+            }
+        }
+    }
+
+    public function testRechazaRespuestaConContenidoSinFinishReason(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'candidates' => [[
+                    'content' => ['parts' => [['text' => 'Respuesta aparentemente válida.']]],
+                ]],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->respond(new \NumaRequest('Pregunta'));
+    }
+
+    public function testRechazaTextoConFunctionCallSalidaExcesivaYContenidoInseguro(): void
+    {
+        $responses = [
+            [
+                'candidates' => [[
+                    'content' => ['parts' => [
+                        ['text' => 'Ya tengo la respuesta final.'],
+                        ['functionCall' => ['name' => 'consultar_datos_financieros', 'args' => []]],
+                    ]],
+                    'finishReason' => 'STOP',
+                ]],
+            ],
+            [
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => str_repeat('a', 33000)]]], 'finishReason' => 'STOP'],
+                ],
+            ],
+            [
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => 'Te recomiendo comprar acciones.']]], 'finishReason' => 'STOP'],
+                ],
+            ],
+            [
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => 'La clave de API es confidencial.']]], 'finishReason' => 'STOP'],
+                ],
+            ],
+        ];
+
+        foreach ($responses as $body) {
+            $provider = new \GeminiNumaProvider('key', 'model', transport: static fn () => [
+                'status' => 200,
+                'body' => json_encode($body, JSON_THROW_ON_ERROR),
+            ]);
+
+            try {
+                $provider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['consultar_datos_financieros']));
+                self::fail('Se esperaba rechazo de una respuesta no utilizable.');
+            } catch (\NumaProviderException $exception) {
+                self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+            }
+        }
+    }
+
+    public function testDiagnosticoDeFunctionCallsNoRegistraContenidoNiArgumentos(): void
+    {
+        $_ENV['NUMA_PROVIDER_RESPONSE_DIAGNOSTICS'] = 'true';
+        $diagnostics = [];
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: static fn (): array => [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => ['parts' => [
+                            ['functionCall' => [
+                                'id' => 'parallel-electricity',
+                                'name' => 'consultar_datos_financieros',
+                                'args' => ['periodo' => 'junio', 'categoria' => 'electricidad'],
+                            ], 'thoughtSignature' => 'never-log-this'],
+                            ['functionCall' => [
+                                'id' => 'parallel-delivery',
+                                'name' => 'consultar_datos_financieros',
+                                'args' => ['periodo' => 'junio', 'categoria' => 'comida_domicilio'],
+                            ]],
+                        ]],
+                        'finishReason' => 'STOP',
+                    ]],
+                ], JSON_THROW_ON_ERROR),
+            ],
+            diagnosticLogger: static function (array $diagnostic) use (&$diagnostics): void {
+                $diagnostics[] = $diagnostic;
+            },
+            correlationId: '0123456789abcdef0123456789abcdef',
+        );
+
+        $response = $provider->respond(new \NumaRequest(
+            'Consulta de prueba',
+            '',
+            $this->toolContext(),
+            ['consultar_datos_financieros'],
+        ));
+
+        self::assertCount(2, $response->toolRequests());
+        self::assertSame([[
+            'correlation_id' => '0123456789abcdef0123456789abcdef',
+            'provider_turn' => 1,
+            'function_call_count' => 2,
+            'function_calls' => [
+                ['name' => 'consultar_datos_financieros', 'id' => 'parallel-electricity'],
+                ['name' => 'consultar_datos_financieros', 'id' => 'parallel-delivery'],
+            ],
+            'finish_reason' => 'STOP',
+            'part_shapes' => [
+                ['functionCall', 'thoughtSignature'],
+                ['functionCall'],
+            ],
+        ]], $diagnostics);
+        self::assertStringNotContainsString('junio', json_encode($diagnostics, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('electricidad', json_encode($diagnostics, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('never-log-this', json_encode($diagnostics, JSON_THROW_ON_ERROR));
+    }
+
+    public function testRechazaUsoDeSalidaPorEncimaDelLimite(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'candidates' => [['content' => ['parts' => [['text' => 'Respuesta.']]], 'finishReason' => 'STOP']],
+                'usageMetadata' => ['candidatesTokenCount' => 2001],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_PROVIDER_INVALID_RESPONSE');
+
+        $provider->respond(new \NumaRequest('Pregunta'));
+    }
+
+    public function testEnviaHistorialControladoConRolesDeGemini(): void
+    {
+        $captured = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$captured): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['text' => 'Respuesta actual.']]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+
+        $provider->respond(new \NumaRequest(
+            '¿Y el anterior?',
+            'Prompt controlado',
+            [],
+            [],
+            [
+                ['role' => 'user', 'message' => 'Pregunta anterior'],
+                ['role' => 'assistant', 'message' => 'Respuesta anterior'],
+            ],
+        ));
+
+        self::assertSame(['user', 'model', 'user'], array_column($captured['contents'], 'role'));
+        self::assertSame('Pregunta anterior', $captured['contents'][0]['parts'][0]['text']);
+        self::assertSame('Respuesta anterior', $captured['contents'][1]['parts'][0]['text']);
+        self::assertStringContainsString('¿Y el anterior?', $captured['contents'][2]['parts'][0]['text']);
+    }
+
+    public function testConvierteFunctionCallEnToolRequestYEnviaFunctionResponseEstructurado(): void
+    {
+        $requests = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$requests): array {
+            $requests[] = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            if (count($requests) === 1) {
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [[
+                            'content' => [
+                                'role' => 'model',
+                                'parts' => [[
+                                    'functionCall' => [
+                                        'id' => 'call-1',
+                                        'name' => 'consultar_datos_financieros',
+                                        'args' => [
+                                            'fecha_inicio' => '2026-07-01',
+                                            'fecha_fin' => '2026-07-31',
+                                        ],
+                                    ],
+                                    'thoughtSignature' => 'signature-1',
+                                ]],
+                            ],
+                            'finishReason' => 'STOP',
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            }
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['text' => 'En julio ingresaste 1200 € y gastaste 800 €.']]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+
+        $toolResponse = $provider->respond(new \NumaRequest(
+            '¿Cuál es mi resumen financiero de julio?',
+            '',
+            $this->toolContext(),
+            ['consultar_datos_financieros'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
+        ));
+
+        self::assertSame('consultar_datos_financieros', $toolResponse->toolRequest()?->name());
+        self::assertSame([
+            'fecha_inicio' => '2026-07-01',
+            'fecha_fin' => '2026-07-31',
+        ], $toolResponse->toolRequest()?->arguments());
+        self::assertSame('call-1', $toolResponse->toolRequest()?->id());
+
+        $finalResponse = $provider->respond(new \NumaRequest(
+            '¿Cuál es mi resumen financiero de julio?',
+            '',
+            $this->toolContext(['call-1' => [
+                'tool' => 'consultar_datos_financieros',
+                'periodo' => ['inicio' => '2026-07-01', 'fin' => '2026-07-31'],
+                'ingresos' => 1200.0,
+                'gastos' => 800.0,
+            ]]),
+            ['consultar_datos_financieros'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
+        ));
+
+        self::assertSame('En julio ingresaste 1200 € y gastaste 800 €.', $finalResponse->message());
+        self::assertSame('model', $requests[1]['contents'][1]['role']);
+        self::assertSame('call-1', $requests[1]['contents'][1]['parts'][0]['functionCall']['id']);
+        self::assertSame('signature-1', $requests[1]['contents'][1]['parts'][0]['thoughtSignature']);
+        self::assertSame('call-1', $requests[1]['contents'][2]['parts'][0]['functionResponse']['id']);
+        self::assertSame('consultar_datos_financieros', $requests[1]['contents'][2]['parts'][0]['functionResponse']['name']);
+        self::assertSame(1200, $requests[1]['contents'][2]['parts'][0]['functionResponse']['response']['result']['ingresos']);
+        self::assertStringNotContainsString('financial_tool_results', $requests[1]['contents'][0]['parts'][0]['text']);
+        self::assertSame('ANY', $requests[0]['toolConfig']['functionCallingConfig']['mode']);
+        self::assertSame('AUTO', $requests[1]['toolConfig']['functionCallingConfig']['mode']);
+    }
+
+    public function testPermiteUnaSegundaToolDentroDelMismoIntercambio(): void
+    {
+        $requests = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function (string $url, array $headers, string $body) use (&$requests): array {
+            $requests[] = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+            $callNumber = count($requests);
+
+            if ($callNumber <= 2) {
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [[
+                            'content' => [
+                                'role' => 'model',
+                                'parts' => [[
+                                    'functionCall' => [
+                                        'id' => 'call-' . $callNumber,
+                                        'name' => 'consultar_datos_financieros',
+                                        'args' => [
+                                            'fecha_inicio' => $callNumber === 1 ? '2026-07-01' : '2026-08-01',
+                                            'fecha_fin' => $callNumber === 1 ? '2026-07-31' : '2026-08-31',
+                                        ],
+                                    ],
+                                ]],
+                            ],
+                            'finishReason' => 'STOP',
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            }
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['text' => 'Comparativa lista.']]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        });
+
+        $first = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY));
+        $second = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext(['call-1' => ['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0]]), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO));
+        $final = $provider->respond(new \NumaRequest('Compara julio y agosto', '', $this->toolContext([
+            'call-1' => ['tool' => 'consultar_datos_financieros', 'ingresos' => 1200.0],
+            'call-2' => ['tool' => 'consultar_datos_financieros', 'ingresos' => 1300.0],
+        ]), ['consultar_datos_financieros'], functionCallingMode: \NumaRequest::FUNCTION_CALLING_NONE));
+
+        self::assertSame('2026-07-01', $first->toolRequest()?->arguments()['fecha_inicio']);
+        self::assertSame('2026-08-01', $second->toolRequest()?->arguments()['fecha_inicio']);
+        self::assertSame('Comparativa lista.', $final->message());
+        self::assertCount(5, $requests[2]['contents']);
+        self::assertSame('call-1', $requests[2]['contents'][2]['parts'][0]['functionResponse']['id']);
+        self::assertSame('call-2', $requests[2]['contents'][4]['parts'][0]['functionResponse']['id']);
+        self::assertSame(1300, $requests[2]['contents'][4]['parts'][0]['functionResponse']['response']['result']['ingresos']);
+        self::assertSame(['ANY', 'AUTO', 'NONE'], array_map(
+            static fn (array $request): string => $request['toolConfig']['functionCallingConfig']['mode'],
+            $requests,
+        ));
+    }
+
+    public function testRechazaFunctionCallFinancieraSinIdStringNoVacio(): void
+    {
+        $invalidIds = [
+            'ausente' => [],
+            'null' => ['id' => null],
+            'vacio' => ['id' => ''],
+            'espacios' => ['id' => '   '],
+        ];
+
+        foreach ($invalidIds as $case => $idField) {
+            $functionCall = array_merge([
+                'name' => 'consultar_datos_financieros',
+                'args' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+            ], $idField);
+            $provider = new \GeminiNumaProvider('key', 'model', transport: static fn (): array => [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['functionCall' => $functionCall]]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ]);
+
+            try {
+                $provider->respond(new \NumaRequest(
+                    '¿Cuánto gasté?',
+                    '',
+                    $this->toolContext(),
+                    ['consultar_datos_financieros'],
+                    functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
+                ));
+                self::fail('Se esperaba rechazo para el ID ' . $case . '.');
+            } catch (\NumaProviderException $exception) {
+                self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage(), $case);
+            }
+        }
+    }
+
+    public function testReintentaElMismoPayloadDespuesDeEjecutarUnaTool(): void
+    {
+        $calls = 0;
+        $payloads = [];
+        $delays = [];
+        $provider = new \GeminiNumaProvider('key', 'model', maxTransientRetries: 1, transport: function (string $url, array $headers, string $body) use (&$calls, &$payloads): array {
+            ++$calls;
+            $payloads[] = $body;
+
+            if ($calls === 1) {
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [['functionCall' => [
+                            'id' => 'call-1',
+                            'name' => 'consultar_datos_financieros',
+                            'args' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+                        ]]]], 'finishReason' => 'STOP']],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            }
+
+            if ($calls === 2) {
+                return ['status' => 503, 'body' => '{}'];
+            }
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [['content' => ['parts' => [['text' => 'En julio gastaste 800 €.']]], 'finishReason' => 'STOP']],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        }, retrySleeper: static function (int $microseconds) use (&$delays): void {
+            $delays[] = $microseconds;
+        });
+
+        $provider->respond(new \NumaRequest(
+            '¿Cuánto gasté?',
+            '',
+            $this->toolContext(),
+            ['consultar_datos_financieros'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_ANY,
+        ));
+
+        $response = $provider->respond(new \NumaRequest(
+            '¿Cuánto gasté?',
+            '',
+            $this->toolContext(['call-1' => ['tool' => 'consultar_datos_financieros', 'gastos' => 800.0]]),
+            ['consultar_datos_financieros'],
+            functionCallingMode: \NumaRequest::FUNCTION_CALLING_AUTO,
+        ));
+
+        self::assertSame('En julio gastaste 800 €.', $response->message());
+        self::assertSame(3, $calls);
+        self::assertSame($payloads[1], $payloads[2]);
+        self::assertCount(1, $delays);
+        self::assertGreaterThanOrEqual(1_500_000, $delays[0]);
+        self::assertLessThanOrEqual(2_500_000, $delays[0]);
+    }
+
+    public function testRechazaFunctionCallDesconocidoOMalformado(): void
+    {
+        $unknownProvider = new \GeminiNumaProvider('key', 'model', transport: fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'candidates' => [['content' => ['parts' => [['functionCall' => ['name' => 'tool_desconocida', 'args' => []]]]], 'finishReason' => 'STOP']],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        try {
+            $unknownProvider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['consultar_datos_financieros']));
+            self::fail('Se esperaba rechazo de functionCall desconocido.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+        }
+
+        $malformedProvider = new \GeminiNumaProvider('key', 'model', transport: fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'candidates' => [['content' => ['parts' => [['functionCall' => ['args' => ['fecha_inicio' => '2026-07-01']]]]], 'finishReason' => 'STOP']],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        try {
+            $malformedProvider->respond(new \NumaRequest('Pregunta', '', $this->toolContext(), ['consultar_datos_financieros']));
+            self::fail('Se esperaba rechazo de functionCall malformado.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+        }
+    }
+
+    public function testReintentaUnaVezUnFalloTransitorioSeguro(): void
+    {
+        $calls = 0;
+        $delays = [];
+        $events = [];
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function () use (&$calls, &$events): array {
+            ++$calls;
+            $events[] = 'transport';
+
+            if ($calls === 1) {
+                return ['status' => 503, 'body' => '{}'];
+            }
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => [
+                            'parts' => [['text' => 'Disponible de nuevo.']],
+                        ],
+                        'finishReason' => 'STOP',
+                    ]],
+                ]),
+            ];
+        }, retrySleeper: static function (int $microseconds) use (&$delays, &$events): void {
+            $delays[] = $microseconds;
+            $events[] = 'wait';
+        });
+
+        $response = $provider->respond(new \NumaRequest('Pregunta'));
+
+        self::assertSame(2, $calls);
+        self::assertSame('Disponible de nuevo.', $response->message());
+        self::assertCount(1, $delays);
+        self::assertGreaterThanOrEqual(1_500_000, $delays[0]);
+        self::assertLessThanOrEqual(2_500_000, $delays[0]);
+        self::assertSame(['transport', 'wait', 'transport'], $events);
+    }
+
+    public function testComparteElUnicoReintentoYElTimeoutConLaInteraccion(): void
+    {
+        $transportCalls = 0;
+        $timeouts = [];
+        $consumption = new class implements \NumaProviderConsumptionInterface, \NumaInteractionBudgetInterface {
+            public int $calls = 0;
+            public int $retries = 0;
+
+            public function iniciarLlamada(): void
+            {
+                ++$this->calls;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+            }
+
+            public function timeoutForCall(int $configuredTimeoutSeconds): int
+            {
+                return 2;
+            }
+
+            public function allowTransientRetry(): bool
+            {
+                if ($this->retries >= 1) {
+                    return false;
+                }
+
+                ++$this->retries;
+
+                return true;
+            }
+        };
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: function (string $url, array $headers, string $body, int $timeout) use (&$transportCalls, &$timeouts): array {
+                ++$transportCalls;
+                $timeouts[] = $timeout;
+
+                if ($transportCalls === 1 || $transportCalls === 3) {
+                    return ['status' => 503, 'body' => '{}'];
+                }
+
+                return [
+                    'status' => 200,
+                    'body' => json_encode([
+                        'candidates' => [['content' => ['parts' => [['text' => 'Respuesta válida.']]], 'finishReason' => 'STOP']],
+                    ], JSON_THROW_ON_ERROR),
+                ];
+            },
+            consumption: $consumption,
+            retrySleeper: static function (): void {
+            },
+        );
+
+        self::assertSame('Respuesta válida.', $provider->respond(new \NumaRequest('Primera consulta'))->message());
+
+        try {
+            $provider->respond(new \NumaRequest('Segunda consulta'));
+            self::fail('La segunda llamada transitoria no debe reutilizar el reintento.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_UNAVAILABLE', $exception->providerError()->safeCode());
+        }
+
+        self::assertSame(3, $transportCalls);
+        self::assertSame(3, $consumption->calls);
+        self::assertSame(1, $consumption->retries);
+        self::assertSame([2, 2, 2], $timeouts);
+    }
+
+    public function testDiagnosticoDeIntentosDistingueErroresSinRegistrarContenidoSensible(): void
+    {
+        $_ENV['NUMA_PROVIDER_RESPONSE_DIAGNOSTICS'] = 'true';
+        $secret = 'dato-financiero-secreto-987';
+        $scenarios = [
+            'http-503' => [
+                'transport' => static fn (): array => [
+                    'status' => 503,
+                    'body' => '{"error":{"message":"' . $secret . '"}}',
+                ],
+                'origin' => 'http',
+                'status' => 503,
+                'type' => \NumaProviderError::TRANSIENT,
+                'code' => 'NUMA_PROVIDER_UNAVAILABLE',
+            ],
+            'http-429' => [
+                'transport' => static fn (): array => [
+                    'status' => 429,
+                    'body' => '{"error":{"message":"too many requests ' . $secret . '"}}',
+                ],
+                'origin' => 'http',
+                'status' => 429,
+                'type' => \NumaProviderError::RATE_LIMIT,
+                'code' => 'NUMA_PROVIDER_RATE_LIMITED',
+            ],
+            'timeout' => [
+                'transport' => static function () use ($secret): never {
+                    throw new \NumaProviderException(
+                        new \NumaProviderError(\NumaProviderError::TIMEOUT, 'NUMA_PROVIDER_TIMEOUT', true),
+                        new \RuntimeException($secret),
+                    );
+                },
+                'origin' => 'transport',
+                'status' => null,
+                'type' => \NumaProviderError::TIMEOUT,
+                'code' => 'NUMA_PROVIDER_TIMEOUT',
+            ],
+            'transport' => [
+                'transport' => static function () use ($secret): never {
+                    throw new \RuntimeException($secret);
+                },
+                'origin' => 'transport',
+                'status' => null,
+                'type' => \NumaProviderError::TRANSIENT,
+                'code' => 'NUMA_PROVIDER_UNAVAILABLE',
+            ],
+        ];
+
+        foreach ($scenarios as $name => $scenario) {
+            $diagnostics = [];
+            $provider = new \GeminiNumaProvider(
+                'key',
+                'model',
+                maxTransientRetries: 0,
+                transport: $scenario['transport'],
+                diagnosticLogger: static function (array $diagnostic) use (&$diagnostics): void {
+                    $diagnostics[] = $diagnostic;
+                },
+                correlationId: '0123456789abcdef0123456789abcdef',
+            );
+
+            try {
+                $provider->respond(new \NumaRequest(
+                    'Pregunta ' . $secret,
+                    'Prompt ' . $secret,
+                    [['type' => 'private_context', 'value' => $secret]],
+                ));
+                self::fail('Se esperaba un error de proveedor para ' . $name . '.');
+            } catch (\NumaProviderException) {
+            }
+
+            self::assertCount(1, $diagnostics, $name);
+            self::assertSame('attempt_failure', $diagnostics[0]['event'], $name);
+            self::assertSame($scenario['origin'], $diagnostics[0]['origin'], $name);
+            self::assertSame($scenario['status'], $diagnostics[0]['http_status'], $name);
+            self::assertSame($scenario['type'], $diagnostics[0]['error_type'], $name);
+            self::assertSame($scenario['code'], $diagnostics[0]['error_code'], $name);
+            self::assertFalse($diagnostics[0]['will_retry'], $name);
+            self::assertStringNotContainsString($secret, json_encode($diagnostics, JSON_THROW_ON_ERROR), $name);
+        }
+    }
+
+    public function testDiagnosticoRegistraCadaIntentoFallidoYLaDecisionDeRetry(): void
+    {
+        $_ENV['NUMA_PROVIDER_RESPONSE_DIAGNOSTICS'] = 'true';
+        $diagnostics = [];
+        $provider = new \GeminiNumaProvider(
+            'key',
+            'model',
+            transport: static fn (): array => ['status' => 503, 'body' => '{}'],
+            diagnosticLogger: static function (array $diagnostic) use (&$diagnostics): void {
+                $diagnostics[] = $diagnostic;
+            },
+            retrySleeper: static function (): void {
+            },
+        );
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta'));
+            self::fail('Se esperaba indisponibilidad tras agotar el retry.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_UNAVAILABLE', $exception->providerError()->safeCode());
+        }
+
+        self::assertCount(2, $diagnostics);
+        self::assertSame([1, 2], array_column($diagnostics, 'attempt'));
+        self::assertSame([2, 2], array_column($diagnostics, 'max_attempts'));
+        self::assertSame([true, false], array_column($diagnostics, 'will_retry'));
+        self::assertGreaterThanOrEqual(1500, $diagnostics[0]['retry_delay_ms']);
+        self::assertLessThanOrEqual(2500, $diagnostics[0]['retry_delay_ms']);
+        self::assertNull($diagnostics[1]['retry_delay_ms']);
+    }
+
+    public function testNoReintentaErrorDeAutenticacion(): void
+    {
+        $calls = 0;
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function () use (&$calls): array {
+            ++$calls;
+
+            return ['status' => 401, 'body' => '{"error":{"message":"secret technical body"}}'];
+        });
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta sensible'));
+            self::fail('Se esperaba una excepcion de proveedor.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame(1, $calls);
+            self::assertSame('NUMA_PROVIDER_AUTH_ERROR', $exception->getMessage());
+            self::assertSame(\NumaProviderError::AUTHENTICATION, $exception->providerError()->type());
+        }
+    }
+
+    public function testNoReintentaJsonInvalido(): void
+    {
+        $calls = 0;
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function () use (&$calls): array {
+            ++$calls;
+
+            return ['status' => 200, 'body' => '{invalid-json'];
+        });
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta'));
+            self::fail('Se esperaba una excepcion de proveedor.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame(1, $calls);
+            self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+        }
+    }
+
+    public function testNoReintentaCuotaAgotada(): void
+    {
+        $calls = 0;
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function () use (&$calls): array {
+            ++$calls;
+
+            return ['status' => 429, 'body' => '{"error":{"status":"RESOURCE_EXHAUSTED"}}'];
+        });
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta'));
+            self::fail('Se esperaba una excepcion de proveedor.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame(1, $calls);
+            self::assertSame('NUMA_PROVIDER_QUOTA_EXCEEDED', $exception->getMessage());
+            self::assertSame(\NumaProviderError::QUOTA, $exception->providerError()->type());
+        }
+    }
+
+    public function testNoReintentaRateLimit(): void
+    {
+        $calls = 0;
+        $provider = new \GeminiNumaProvider('key', 'model', transport: function () use (&$calls): array {
+            ++$calls;
+
+            return ['status' => 429, 'body' => '{"error":{"message":"too many requests"}}'];
+        });
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta'));
+            self::fail('Se esperaba una excepcion de proveedor.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame(1, $calls);
+            self::assertSame('NUMA_PROVIDER_RATE_LIMITED', $exception->getMessage());
+            self::assertSame(\NumaProviderError::RATE_LIMIT, $exception->providerError()->type());
+        }
+    }
+
+    public function testRechazaProveedorNoSoportadoConErrorSeguro(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'otro';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_CONFIGURATION_ERROR');
+
+        \NumaProviderFactory::fromEnvironment(fn (): array => ['status' => 200, 'body' => '{}']);
+    }
+
+    public function testFactoryInyectaPromptBaseComoSystemInstruction(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+
+        $captured = [];
+        $capturedTimeout = null;
+        $consumption = new class implements \NumaProviderConsumptionInterface {
+            public int $calls = 0;
+
+            public int $tokenRegistrations = 0;
+
+            public function iniciarLlamada(): void
+            {
+                ++$this->calls;
+            }
+
+            public function registrarTokens(\NumaTokenUsage $usage): void
+            {
+                ++$this->tokenRegistrations;
+            }
+        };
+        $provider = \NumaProviderFactory::fromEnvironment(function (string $url, array $headers, string $body, int $timeout) use (&$captured, &$capturedTimeout): array {
+            $captured = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+            $capturedTimeout = $timeout;
+
+            return [
+                'status' => 200,
+                'body' => json_encode([
+                    'candidates' => [[
+                        'content' => [
+                            'parts' => [['text' => 'Respuesta breve de Numa.']],
+                        ],
+                        'finishReason' => 'STOP',
+                    ]],
+                ]),
+            ];
+        }, $consumption);
+
+        $provider->respond(new \NumaRequest('Pregunta', 'Instruccion no controlada'));
+
+        $systemInstruction = $captured['system_instruction']['parts'][0]['text'] ?? '';
+        self::assertStringContainsString('Eres Numa, la guia inteligente de BeneHom.', $systemInstruction);
+        self::assertStringContainsString('primero el período explícito del mensaje actual', $systemInstruction);
+        self::assertStringContainsString('No actues como asistente generalista.', $systemInstruction);
+        self::assertStringNotContainsString('Instruccion no controlada', $systemInstruction);
+        self::assertSame(60, $capturedTimeout);
+        self::assertSame(1, $consumption->calls);
+        self::assertSame(1, $consumption->tokenRegistrations);
+    }
+
+    public function testFactoryPrivadaNoExigeConfiguracionPublica(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'corta';
+
+        $provider = \NumaProviderFactory::fromEnvironment();
+
+        self::assertInstanceOf(\NumaProviderInterface::class, $provider);
+    }
+
+    public function testFactoryPublicaRechazaConfiguracionPublicaInvalida(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+        $_ENV['NUMA_PUBLIC_ENABLED'] = 'true';
+        $_ENV['NUMA_PUBLIC_HASH_KEY'] = 'corta';
+
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_CONFIGURATION_ERROR');
+
+        \NumaProviderFactory::fromEnvironment(publicMode: true);
+    }
+
+    public function testRechazaClaveOModeloAusente(): void
+    {
+        $this->expectException(\NumaProviderException::class);
+        $this->expectExceptionMessage('NUMA_CONFIGURATION_ERROR');
+
+        new \GeminiNumaProvider('', 'model');
+    }
+
+    public function testBloqueaElTransporteRealDuranteTestsAutomatizados(): void
+    {
+        $provider = new \GeminiNumaProvider('key', 'model');
+
+        try {
+            $provider->respond(new \NumaRequest('Pregunta de prueba'));
+            self::fail('El transporte real no debe iniciarse durante los tests automatizados.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_CONFIGURATION_ERROR', $exception->getMessage());
+        }
+    }
+
+    public function testFactoryAplicaFronteraDeDatosAntesDelTransporte(): void
+    {
+        $_ENV['NUMA_PROVIDER'] = 'gemini';
+        $_ENV['NUMA_API_KEY'] = 'key';
+        $_ENV['NUMA_MODEL'] = 'model';
+
+        $calls = 0;
+        $provider = \NumaProviderFactory::fromEnvironment(function () use (&$calls): array {
+            $calls++;
+
+            return ['status' => 200, 'body' => '{}'];
+        });
+
+        try {
+            $provider->respond(new \NumaRequest(
+                'Pregunta',
+                '',
+                [['type' => 'financial_tool_results', 'items' => [['usuario_id' => 7]]]],
+            ));
+            self::fail('Se esperaba que la frontera de datos rechazara la solicitud.');
+        } catch (\NumaProviderException $exception) {
+            self::assertSame('NUMA_PROVIDER_INVALID_RESPONSE', $exception->getMessage());
+            self::assertSame(0, $calls);
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function managedEnvKeys(): array
+    {
+        return [
+            'NUMA_PROVIDER',
+            'NUMA_API_KEY',
+            'NUMA_MODEL',
+            'NUMA_MAX_OUTPUT_TOKENS',
+            'NUMA_MAX_INPUT_TOKENS',
+            'NUMA_PROVIDER_TIMEOUT_SECONDS',
+            'NUMA_MAX_TRANSIENT_RETRIES',
+            'NUMA_PROVIDER_RESPONSE_DIAGNOSTICS',
+            'NUMA_PUBLIC_ENABLED',
+            'NUMA_PUBLIC_HASH_KEY',
+        ];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $toolResults
+     * @return array<int, array<string, mixed>>
+     */
+    private function toolContext(array $toolResults = []): array
+    {
+        $definition = (new \NumaFinancialToolRegistry())->get('consultar_datos_financieros');
+        $context = [[
+            'type' => 'available_financial_tools',
+            'items' => [$definition->externalContract()],
+        ]];
+
+        if ($toolResults !== []) {
+            $context[] = [
+                'type' => 'financial_tool_results',
+                'items' => array_map(static fn (string $callId, array $result): array => [
+                    'call_id' => $callId,
+                    'name' => $result['tool'],
+                    'arguments' => [],
+                    'result' => $result,
+                ], array_keys($toolResults), array_values($toolResults)),
+            ];
+        }
+
+        return $context;
+    }
+
+    /**
+     * @param array<string, mixed> $declaration
+     * @return array<string, mixed>
+     */
+    private function geminiFunctionDeclaration(array $declaration): array
+    {
+        $parameters = $declaration['parameters'];
+        unset($declaration['parameters']);
+        $declaration['parametersJsonSchema'] = $parameters;
+
+        return $declaration;
+    }
+}

@@ -226,6 +226,15 @@ Ejecuta también el análisis estático antes de cerrar cambios:
 vendor/bin/phpstan analyse app public config
 ```
 
+La suite de navegador usa Playwright e inicia un servidor PHP temporal en `APP_ENV=testing`. Las peticiones llegan a los endpoints reales de Numa; el proveedor y los embeddings de Gemini se sustituyen exclusivamente por fakes PHP configurables, sin llamadas externas ni base de datos.
+
+Cada prueba selecciona su escenario (`success`, `error`, `timeout` o `limit`) en su propio contexto de navegador mediante `configureNumaScenario()`.
+
+```bash
+npm ci
+npm run test:e2e
+```
+
 Cobertura actual de tests:
 
 - Cálculos financieros puros: hipoteca, interés compuesto, inflación, fechas objetivo, normalización de cantidades y protección frente a resultados no fiables.
@@ -235,7 +244,27 @@ Cobertura actual de tests:
 Queda fuera del alcance de los tests actuales:
 
 - Tests HTTP de controladores que dependen de `echo`, `header` y `exit`.
-- Tests e2e de interfaz, Chart.js y comportamiento visual.
+- Tests e2e de Chart.js y comportamiento visual ajenos a Numa.
+
+## Indexación de Numa
+
+El índice documental de Numa se actualiza manualmente con:
+
+```bash
+php bin/indexar-numa.php
+```
+
+Ejecuta este comando una vez en el entorno correspondiente después de desplegar cualquier alta, modificación, cambio de estado, retirada o cambio de slug de un artículo del blog. El comando es idempotente, usa `config/blog_articulos.php` como catálogo canónico, no indexa implícitamente al servir el blog y requiere la base de datos y el proveedor de embeddings configurados.
+
+La activación, los límites, la comprobación del índice, la rotación de claves, la respuesta ante cuota o proveedor no disponible y el SQL aditivo para bases existentes se documentan en [`resources/numa/runbook.md`](resources/numa/runbook.md).
+
+La calibración real del umbral RAG es una operación manual separada de PHPUnit y CI:
+
+```bash
+php bin/evaluar-rag-numa.php --real
+```
+
+Requiere `NUMA_API_KEY`, la misma clave de Gemini utilizada por generación y embeddings, y una base aislada configurada mediante `NUMA_RAG_EVALUATION_DB_*`, con credenciales propias y nombre terminado en `_test` o `_sandbox`. La base debe contener las tablas `numa_conocimiento` y `numa_uso_proveedor` creadas desde `database/schema.sql`. El comando valida de antemano las llamadas y reservas conservadoras de tokens necesarias; para la primera ejecución deben aumentarse solo en el entorno sandbox los límites globales hasta cubrir el resumen mostrado por el error de preflight. Usa exclusivamente el corpus público versionado, registra el consumo global en esa base y genera `resources/numa/evaluacion-rag-resultados.md` sin claves, vectores ni datos privados. Los tests normales continúan usando fakes y nunca ejecutan este comando.
 
 ## Variables de entorno
 
@@ -249,6 +278,7 @@ Queda fuera del alcance de los tests actuales:
 | `APP_ENV` | Entorno de ejecución: `local` o `production` |
 | `APP_URL` | URL base de la aplicación |
 | `SESSION_IDLE_TIMEOUT` | Segundos de inactividad antes de cerrar la sesión, por defecto `1800` |
+| `NUMA_RAG_EVALUATION_DB_*` | Conexión aislada usada únicamente por la evaluación RAG real manual |
 | `SMTP_USER` | Usuario SMTP para recuperación de contraseña |
 | `SMTP_PASS` | Contraseña SMTP |
 

@@ -21,6 +21,7 @@
         "test": "phpunit",
         "build:css": "php scripts/minify-css.php",
         "lint:design": "php scripts/design-drift-report.php",
+        "numa:index": "php bin/indexar-numa.php",
         "eval:numa-temporal": "php bin/evaluar-precedencia-temporal-numa.php --real",
         "eval:numa-analitica": "php bin/evaluar-analitica-numa.php --real",
         "eval:numa-e2e": "php bin/evaluar-e2e-numa.php --real"

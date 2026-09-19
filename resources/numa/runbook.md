@@ -78,7 +78,7 @@ Fuente: [precios de Gemini API](https://ai.google.dev/gemini-api/docs/pricing).
    en el fichero de entorno protegido fuera del DocumentRoot.
 3. Configurar los modelos, limites y `NUMA_API_KEY`; configurar tambien
    `NUMA_PUBLIC_HASH_KEY` si se activara el modo publico.
-4. Ejecutar `php bin/indexar-numa.php` en el mismo entorno y verificar que informa de
+4. Ejecutar `composer numa:index` en el mismo entorno y verificar que informa de
    fragmentos, firma y cero errores.
 5. Consultar `GET numa/status` autenticado. Debe devolver `availability: available`
    solo si configuracion, tablas, indice compatible y limites locales son validos.
@@ -93,15 +93,16 @@ transcript de la sesion.
 
 ## Indexacion e indice
 
-Ejecutar una vez despues de desplegar un alta, edicion, retirada, cambio de estado o
-cambio de slug de un articulo elegible:
+Generar o actualizar el indice RAG despues de desplegar un alta, edicion, retirada,
+cambio de estado o cambio de slug de un articulo elegible mediante:
 
 ```bash
-php bin/indexar-numa.php
+composer numa:index
 ```
 
-El comando solo se ejecuta por CLI, toma un lock local, valida los nueve documentos y
-el catalogo publico del blog, y es idempotente. Nunca se ejecuta al servir una pagina.
+El script de Composer ejecuta `php bin/indexar-numa.php`. El comando solo se ejecuta por
+CLI, toma un lock local, valida los nueve documentos y el catalogo publico del blog, y es
+idempotente. Nunca se ejecuta al servir una pagina.
 La disponibilidad comprueba que exista al menos un fragmento compatible con la firma
 actual. Para una inspeccion operativa adicional, con una cuenta de solo lectura:
 

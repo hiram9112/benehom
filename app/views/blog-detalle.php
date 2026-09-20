@@ -147,13 +147,13 @@ bh_document_begin([
                         <?php endforeach; ?>
 
                         <aside class="bh-blog-product-note" aria-label="Cómo aplicar este artículo en BeneHom">
-                            <div class="bh-blog-product-note-icon" aria-hidden="true">
-                                <i class="ti ti-bulb" aria-hidden="true"></i>
-                            </div>
-                            <div>
+                            <div class="bh-blog-product-note-heading">
+                                <div class="bh-blog-product-note-icon" aria-hidden="true">
+                                    <i class="ti ti-bulb" aria-hidden="true"></i>
+                                </div>
                                 <h2>Cómo usarlo en BeneHom</h2>
-                                <p><?= htmlspecialchars($articulo['conexion'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
                             </div>
+                            <p><?= htmlspecialchars($articulo['conexion'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
                         </aside>
                     </div>
                 </div>

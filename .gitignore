@@ -1,6 +1,7 @@
 .env
 /vendor/
 /node_modules/
+/dist/
 .phpunit.result.cache
 coverage/
 playwright-report/

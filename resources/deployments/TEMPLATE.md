@@ -39,6 +39,7 @@ Este registro no debe contener secretos, credenciales, datos privados ni identif
 
 - [ ] Correo transaccional preparado
 - [ ] SPF, DKIM y DMARC verificados
+
 - Proveedor de IA: ____________________
 - Modelo: ____________________
 - Embeddings: ____________________
@@ -52,9 +53,11 @@ Este registro no debe contener secretos, credenciales, datos privados ni identif
 
 - [ ] Confirmar SHA final
 - [ ] Confirmar CI verde
-- [ ] Publicar código
-- [ ] Instalar dependencias de producción
-- [ ] Ejecutar build
+- [ ] Construir artefacto con `composer release:build`
+- [ ] Verificar checksum SHA-256 del artefacto
+- [ ] Subir el artefacto de release al servidor
+- [ ] Verificar checksum SHA-256 en el servidor
+- [ ] Extraer la release
 - [ ] Comprobar permisos
 - [ ] Confirmar carga del `.env`
 - [ ] Conectar la versión a la BD de producción

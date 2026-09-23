@@ -24,7 +24,8 @@
         "numa:index": "php bin/indexar-numa.php",
         "eval:numa-temporal": "php bin/evaluar-precedencia-temporal-numa.php --real",
         "eval:numa-analitica": "php bin/evaluar-analitica-numa.php --real",
-        "eval:numa-e2e": "php bin/evaluar-e2e-numa.php --real"
+        "eval:numa-e2e": "php bin/evaluar-e2e-numa.php --real",
+        "release:build": "bash scripts/build-release.sh"
     },
     "require": {
         "phpmailer/phpmailer": "^7.1",

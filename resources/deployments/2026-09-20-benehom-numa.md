@@ -6,8 +6,8 @@ Este registro no debe contener secretos, credenciales, datos privados ni identif
 
 - Fecha: 2026-09-20
 - Rama: `main`
-- SHA desplegado: pendiente de confirmar
-- Estado CI: pendiente de confirmar
+- SHA desplegado: `8f6c6954b538293dfc8c3af70b95431cc34ac162`
+- Estado CI: verde
 
 ## 2. Estado previo y backups
 
@@ -30,64 +30,64 @@ Este registro no debe contener secretos, credenciales, datos privados ni identif
 
 - Motor/versión: MariaDB 11.8.9
 - [x] BD nueva de producción preparada
-- [x] `database/schema.sql` aplicado
-- [x] 14 tablas creadas
-- [x] `database/seed.sql` no aplicado
-- [x] Usuario de aplicación limitado a `SELECT`, `INSERT`, `UPDATE` y `DELETE`
-- [ ] Conexión real de V2 con la BD nueva validada
+- [x] Schema aplicado: `database/schema.sql` (14 tablas)
+- [x] Seed no aplicado, cuando corresponda
+- [x] Usuario de aplicación con privilegios mínimos (`SELECT`, `INSERT`, `UPDATE` y `DELETE`)
+- [x] Conexión real validada
 
 ## 5. Servicios externos
 
-- [x] Correo transaccional del dominio preparado
+- [x] Correo transaccional preparado
 - [x] SPF, DKIM y DMARC verificados
 - Proveedor de IA: Gemini
-- [x] Gemini API configurada
 - Modelo: `gemini-3.1-flash-lite`
-- Embeddings: `gemini-embedding-001`
-- Logging/datasets: desactivados
-- Presupuesto de Google Cloud: 5 €
-- Alertas: 50 %, 75 %, 90 % y 100 %
-- Límite de gasto de AI Studio: 7 €
+- Embeddings: `gemini-embedding-001` (768 dimensiones)
+- Logging/datasets: desactivados en Gemini
+- Presupuesto: Google Cloud, 5 €/mes; límite de gasto de AI Studio, 7 €/mes
+- Alertas: 50 %, 75 %, 90 % y 100 % del presupuesto de Google Cloud
+- Límites: 15 consultas por usuario y día; 200 llamadas globales al proveedor por día y 1000 por mes; bypass desactivado
 - Estado inicial de Numa: desactivado
 
 ## 6. Pasos del deploy
 
-- [ ] Confirmar SHA final
-- [ ] Confirmar CI verde
-- [ ] Publicar código
-- [ ] Instalar dependencias de producción
-- [ ] Ejecutar build
-- [ ] Comprobar permisos
-- [ ] Confirmar carga del `.env`
-- [ ] Conectar la versión a la BD de producción
-- [ ] Poner la versión en servicio
-- [ ] Ejecutar `composer numa:index`
-- [ ] Comprobar índice RAG
-- [ ] Activar Numa después de validar BeneHom
-- [ ] Activar Numa público solo mediante decisión expresa
+- [x] Confirmar SHA final
+- [x] Confirmar CI verde
+- [x] Construir artefacto con `composer release:build`
+- [x] Verificar checksum SHA-256 del artefacto
+- [x] Subir el artefacto de release al servidor
+- [x] Verificar checksum SHA-256 en el servidor
+- [x] Extraer la release
+- [x] Comprobar permisos
+- [x] Confirmar carga del `.env`
+- [x] Conectar la versión a la BD de producción
+- [x] Poner la versión en servicio
+- [x] Ejecutar la indexación RAG, cuando corresponda (`php bin/indexar-numa.php`)
+- [x] Comprobar el índice RAG, cuando corresponda (97 fragmentos)
+- [x] Activar Numa después de validar la aplicación
+- [x] Activar Numa público solo mediante decisión expresa
 
 ## 7. Smoke test
 
-- [ ] Home pública
-- [ ] HTTPS
-- [ ] Redirección al dominio canónico
-- [ ] Registro
-- [ ] Email de verificación
-- [ ] Enlace de verificación bajo el dominio correcto
-- [ ] Login/logout
-- [ ] Recuperación de contraseña
-- [ ] Email de reset
-- [ ] Enlace de reset bajo el dominio correcto
-- [ ] Dashboard
-- [ ] Ingresos
-- [ ] Gastos
-- [ ] Metas
-- [ ] Proyecciones
-- [ ] Conexión con BD
-- [ ] Numa
-- [ ] Numa público, solo si se activa
-- [ ] RAG
-- [ ] Límites/cuotas
+- [x] Home pública
+- [x] HTTPS
+- [x] Redirección al dominio canónico
+- [x] Registro
+- [x] Email de verificación
+- [x] Enlace de verificación bajo el dominio correcto
+- [x] Login/logout
+- [x] Recuperación de contraseña
+- [x] Email de reset
+- [x] Enlace de reset bajo el dominio correcto
+- [x] Dashboard
+- [x] Ingresos
+- [x] Gastos
+- [x] Metas
+- [x] Proyecciones
+- [x] Conexión con BD
+- [x] Numa
+- [x] Numa público, solo si se activa
+- [x] RAG
+- [x] Límites/cuotas
 
 ## 8. Incidencias
 
@@ -95,12 +95,11 @@ No registrar secretos, datos privados ni identificadores internos.
 
 | Hora | Incidencia | Acción | Resultado |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| 24/09, hora no registrada | Se alcanzó el límite global diario de 100 llamadas tras la indexación RAG y la primera consulta de Numa. | Se verificó el consumo registrado y se elevó el límite global diario a 200, manteniendo el límite mensual de 1000 y el bypass desactivado. | Numa volvió a responder; el límite diario quedó en 200, se restablecerá a 100 pasadas 24h. |
 
 ## 9. Rollback
 
 - [x] Backup de código disponible
 - [x] Backup de BD disponible
 - [x] Versión V1 disponible
-- Procedimiento resumido: ____________________
-- Resultado, si se ejecuta: ____________________
+- Procedimiento resumido: retirar el enlace público hacia V2, restaurar el directorio público de V1 y comprobar su funcionamiento; V1 conserva su configuración y BD. No fue necesario ejecutarlo.

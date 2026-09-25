@@ -5,6 +5,10 @@ RewriteEngine On
 RewriteCond %{HTTP_HOST} ^www\.benehom\.es$ [NC]
 RewriteRule ^ https://benehom.es%{REQUEST_URI} [R=301,L]
 
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP_HOST} ^benehom\.es$ [NC]
+RewriteRule ^ https://benehom.es%{REQUEST_URI} [R=301,L]
+
 RewriteRule ^$ index.php?r=home/index [L,QSD]
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]

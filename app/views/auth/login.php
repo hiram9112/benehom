@@ -1,12 +1,10 @@
 <?php
 require_once APP_PATH . '/views/partials/auth-layout.php';
-require_once APP_PATH . '/views/partials/modals.php';
 
 bh_auth_begin(
     'Iniciar sesión',
     'Inicia sesión',
-    'Entra para revisar tu mes, tus gastos y tu ahorro real con calma.',
-    true
+    'Entra para revisar tu mes, tus gastos y tu ahorro real con calma.'
 );
 ?>
 
@@ -35,34 +33,6 @@ bh_auth_begin(
     <p>¿No tienes cuenta? <a href="<?= bh_page_url('registro/registrarUsuario') ?>">Regístrate aquí</a></p>
     <p><a href="<?= bh_page_url('password/mostrarFormularioOlvido') ?>">¿Olvidaste la contraseña?</a></p>
     <p><a href="<?= bh_page_url('verificacion/mostrarFormularioReenvio') ?>">Reenviar verificación de email</a></p>
-    <p>
-        <a href="#" data-bs-toggle="modal" data-bs-target="#infoApp">
-            ¿Qué es BeneHom?
-        </a>
-    </p>
 </div>
-
-<!-- Modal informativo sobre BeneHom -->
-<?php
-bh_info_modal('infoApp', '¿Qué es BeneHom?', <<<'HTML'
-<p><strong>BeneHom</strong> es una herramienta de gestión de la economía familiar diseñada para ayudarte a comprender con claridad cómo se mueve el dinero en tu hogar.</p>
-
-<h6>¿Qué permite?</h6>
-<ul>
-    <li>Registrar ingresos y clasificarlos correctamente</li>
-    <li>Diferenciar gastos esenciales y gastos flexibles</li>
-    <li>Visualizar tu ahorro posible frente a tu ahorro real</li>
-    <li>Detectar patrones de comportamiento que pueden generar problemas económico para el hogar.</li>
-</ul>
-
-<h6>¿Cuál es su objetivo?</h6>
-<p>
-    Fomentar una gestión consciente y sostenible del dinero,
-    mostrando que pequeños ajustes en los gastos flexibles
-    pueden generar un impacto significativo en la estabilidad
-    económica familiar a largo plazo.
-</p>
-HTML);
-?>
 
 <?php bh_auth_end(); ?>

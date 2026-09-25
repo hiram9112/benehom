@@ -6,7 +6,8 @@ async function login(page, user) {
     await page.getByLabel('Correo electrónico:').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await expect(page).toHaveURL(/\?r=dashboard\/index$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.waitForLoadState('networkidle');
 }
 
 test('los modales informativos mantienen el sidebar y el scroll del dashboard', async ({ page }) => {

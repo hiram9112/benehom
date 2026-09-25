@@ -174,12 +174,12 @@ test('mantiene Numa privado al navegar entre dashboard, proyecciones y cuenta', 
         await page.getByLabel('Correo electrónico:').fill(user.email);
         await page.getByLabel('Contraseña:').fill(user.password);
         await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-        await expect(page).toHaveURL(/\?r=dashboard\/index$/);
+        await expect(page).toHaveURL(/\/dashboard$/);
 
         for (const view of [
-            { name: 'Dashboard', url: /\?r=dashboard\/index$/ },
-            { name: 'Proyecciones', url: /\?r=proyecciones\/index$/ },
-            { name: 'Cuenta', url: /\?r=cuenta\/index$/ },
+            { name: 'Dashboard', url: /\/dashboard$/ },
+            { name: 'Proyecciones', url: /\/proyecciones$/ },
+            { name: 'Cuenta', url: /\/cuenta$/ },
         ]) {
             if (view.name !== 'Dashboard') {
                 await page.getByRole('link', { name: view.name, exact: true }).first().click();

@@ -4,7 +4,7 @@ const { createPrivateUser, deletePrivateUser } = require('../helpers/private-use
 const privateStatusUrl = /\/index\.php\?r=numa\/status$/;
 const privateChatUrl = /\/index\.php\?r=numa\/chat$/;
 const privateNewConversationUrl = /\/index\.php\?r=numa\/conversation\/new$/;
-const loginUrl = /\?r=auth\/login$/;
+const loginUrl = /\/iniciar-sesion$/;
 
 const conversation = [
     { role: 'user', message: 'Pregunta anterior.' },
@@ -29,7 +29,7 @@ async function login(page, user) {
     await page.getByLabel('Correo electrónico:').fill(user.email);
     await page.getByLabel('Contraseña:').fill(user.password);
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await expect(page).toHaveURL(/\?r=dashboard\/index$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 }
 
 async function openPrivateNuma(page) {

@@ -13,7 +13,7 @@ module.exports = defineConfig({
         screenshot: 'only-on-failure',
     },
     webServer: {
-        command: 'php -d variables_order=EGPCS -S 127.0.0.1:4173 -t public',
+        command: 'php -d variables_order=EGPCS -S 127.0.0.1:4173 -t public tests/browser/router.php',
         url: 'http://127.0.0.1:4173/index.php?r=home/index',
         reuseExistingServer: false,
         timeout: 30_000,

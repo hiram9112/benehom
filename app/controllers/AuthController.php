@@ -42,7 +42,7 @@ class AuthController {
 
                 if (IntentoAcceso::estaBloqueado('login', $claveRateLimit)) {
                     $_SESSION['mensaje_error'] = 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.';
-                    header("Location: " . BASE_URL . "index.php?r=auth/login");
+                    header('Location: ' . bh_page_url('auth/login'));
                     exit;
                 }
 
@@ -54,7 +54,7 @@ class AuthController {
 
                     $_SESSION['mensaje_error'] = 'No se pudo iniciar sesión. Inténtalo más tarde.';
 
-                    header("Location: " . BASE_URL . "index.php?r=auth/login");
+                    header('Location: ' . bh_page_url('auth/login'));
                     exit;
                 }
 
@@ -68,7 +68,7 @@ class AuthController {
                         $_SESSION['mensaje_error'] =
                             'Debes verificar tu email antes de acceder. Puedes solicitar un nuevo enlace de verificación.';
 
-                        header("Location: " . BASE_URL . "index.php?r=auth/login");
+                        header('Location: ' . bh_page_url('auth/login'));
                         exit;
                     }
 
@@ -90,7 +90,7 @@ class AuthController {
 
 
                     //Redirigimos al panel principal
-                    header("Location: ".BASE_URL."index.php?r=dashboard/index");
+                    header('Location: ' . bh_page_url('dashboard/index'));
                     exit;
                 }
                 else{
@@ -110,7 +110,7 @@ class AuthController {
             }
             // Si apareció algún error volvemos a cargar la vista
             $_SESSION['mensaje_error']=$errores[0];
-            header("Location: " . BASE_URL . "index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             exit;  
         }
         //Si no es una petición POST (el usuario entra por primera vez ) redirigimos
@@ -142,7 +142,7 @@ class AuthController {
         session_destroy();
 
         // Redirigir al login
-        header("Location: " . BASE_URL . "index.php?r=home/index");
+        header('Location: ' . bh_page_url('home/index'));
         exit;
     }
 

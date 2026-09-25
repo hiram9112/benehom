@@ -10,7 +10,7 @@ bh_auth_begin(
 );
 ?>
 
-<form method="post" action="" class="bh-form bh-auth-form">
+<form method="post" action="<?= BASE_URL ?>index.php?r=auth/login" class="bh-form bh-auth-form">
     <?= csrf_field() ?>
 
     <div class="bh-field">
@@ -32,9 +32,9 @@ bh_auth_begin(
 </form>
 
 <div class="bh-auth-links">
-    <p>¿No tienes cuenta? <a href="?r=registro/registrarUsuario">Regístrate aquí</a></p>
-    <p><a href="?r=password/mostrarFormularioOlvido">¿Olvidaste la contraseña?</a></p>
-    <p><a href="?r=verificacion/mostrarFormularioReenvio">Reenviar verificación de email</a></p>
+    <p>¿No tienes cuenta? <a href="<?= bh_page_url('registro/registrarUsuario') ?>">Regístrate aquí</a></p>
+    <p><a href="<?= bh_page_url('password/mostrarFormularioOlvido') ?>">¿Olvidaste la contraseña?</a></p>
+    <p><a href="<?= bh_page_url('verificacion/mostrarFormularioReenvio') ?>">Reenviar verificación de email</a></p>
     <p>
         <a href="#" data-bs-toggle="modal" data-bs-target="#infoApp">
             ¿Qué es BeneHom?

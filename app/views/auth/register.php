@@ -8,7 +8,7 @@ bh_auth_begin(
 );
 ?>
 
-<form method="post" action="?r=registro/registrarUsuario" class="bh-form bh-auth-form">
+<form method="post" action="<?= BASE_URL ?>index.php?r=registro/registrarUsuario" class="bh-form bh-auth-form">
     <?= csrf_field() ?>
 
     <div class="bh-field">
@@ -66,7 +66,7 @@ bh_auth_begin(
 </form>
 
 <div class="bh-auth-links">
-    <p>¿Ya tienes cuenta? <a href="?r=auth/login">Inicia sesión aquí</a></p>
+    <p>¿Ya tienes cuenta? <a href="<?= bh_page_url('auth/login') ?>">Inicia sesión aquí</a></p>
 </div>
 
 <?php bh_auth_end(); ?>

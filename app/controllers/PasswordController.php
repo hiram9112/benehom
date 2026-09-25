@@ -23,7 +23,7 @@ class PasswordController {
         // Validación mínima
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['mensaje_error'] = 'Introduce un correo electrónico válido.';
-            header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+            header('Location: ' . bh_page_url('password/mostrarFormularioOlvido'));
             exit;
         }
 
@@ -32,7 +32,7 @@ class PasswordController {
 
         if (IntentoAcceso::estaBloqueado('password_reset', $claveRateLimit)) {
             $_SESSION['mensaje_exitoso'] = 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';
-            header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+            header('Location: ' . bh_page_url('password/mostrarFormularioOlvido'));
             exit;
         }
 
@@ -45,7 +45,7 @@ class PasswordController {
             $_SESSION['mensaje_error'] =
                 'No se pudo procesar la solicitud. Inténtalo de nuevo más tarde.';
 
-            header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+            header('Location: ' . bh_page_url('password/mostrarFormularioOlvido'));
             exit;
         }
 
@@ -68,11 +68,11 @@ class PasswordController {
                 $_SESSION['mensaje_error'] =
                     'No se pudo procesar la solicitud. Inténtalo más tarde.';
 
-                header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+                header('Location: ' . bh_page_url('password/mostrarFormularioOlvido'));
                 exit;
             }
 
-            $resetLink = BASE_URL . "index.php?r=password/reset&token=" . $token;
+            $resetLink = bh_page_url('password/reset', ['token' => $token]);
             
             //Almacenamos el token para pruebas si estamos en local
             if (($_ENV['APP_ENV'] ?? 'local') === 'local') {
@@ -93,7 +93,7 @@ class PasswordController {
         // 7. Mensaje neutro SIEMPRE
         $_SESSION['mensaje_exitoso'] ='Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';
 
-        header("Location: " . BASE_URL . "index.php?r=password/mostrarFormularioOlvido");
+        header('Location: ' . bh_page_url('password/mostrarFormularioOlvido'));
         exit;
 
     }
@@ -107,7 +107,7 @@ class PasswordController {
 
         if (empty($token)) {
             $_SESSION['mensaje_error'] = 'Enlace de recuperación inválido.';
-            header('Location: ?r=auth/login');
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
@@ -119,7 +119,7 @@ class PasswordController {
 
         if (!$usuario) {
             $_SESSION['mensaje_error'] = 'El enlace es inválido o ha expirado.';
-            header('Location: ?r=auth/login');
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
@@ -139,14 +139,14 @@ class PasswordController {
         // Si falta token, cortamos flujo
         if (empty($token)) {
             $_SESSION['mensaje_error'] = 'Enlace inválido.';
-            header('Location: ?r=auth/login');
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
         // Errores de formulario → volver al reset
         if (empty($password) || empty($passwordConfirm)) {
             $_SESSION['mensaje_error'] = 'Debes completar todos los campos.';
-            header('Location: ?r=password/reset&token=' . urlencode($token));
+            header('Location: ' . bh_page_url('password/reset', ['token' => $token]));
             exit;
         }
 
@@ -156,13 +156,13 @@ class PasswordController {
         !preg_match('/[0-9]/', $password)) {
 
             $_SESSION['mensaje_error'] ='La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.';
-            header('Location: ?r=password/reset&token=' . urlencode($token));
+            header('Location: ' . bh_page_url('password/reset', ['token' => $token]));
             exit;
         }
 
         if ($password !== $passwordConfirm) {
             $_SESSION['mensaje_error'] = 'Las contraseñas no coinciden.';
-            header('Location: ?r=password/reset&token=' . urlencode($token));
+            header('Location: ' . bh_page_url('password/reset', ['token' => $token]));
             exit;
         }
 
@@ -175,7 +175,7 @@ class PasswordController {
         //cortamos el flujo si no encuentra coincidencia
         if (!$usuario) {
             $_SESSION['mensaje_error'] = 'El enlace es inválido o ha expirado.';
-            header('Location: ?r=auth/login');
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
@@ -191,13 +191,13 @@ class PasswordController {
             $_SESSION['mensaje_error'] =
                 'No se pudo actualizar la contraseña. Inténtalo más tarde.';
 
-            header('Location: ?r=password/reset&token=' . urlencode($token));
+            header('Location: ' . bh_page_url('password/reset', ['token' => $token]));
             exit;
         }
 
         $_SESSION['mensaje_exitoso'] = 'Contraseña actualizada correctamente.';
 
-        header('Location: ?r=auth/login');
+        header('Location: ' . bh_page_url('auth/login'));
         exit;
     }
 

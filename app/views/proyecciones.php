@@ -4,7 +4,7 @@ require_once APP_PATH . '/views/partials/head.php';
 bh_document_begin([
     'title' => 'Proyecciones financieras',
     'description' => 'Simulador privado de BeneHom para explorar metas, ahorro, inversión, inflación e hipoteca con fines educativos.',
-    'canonical' => bh_url('index.php?r=proyecciones/index'),
+    'canonical' => bh_page_url('proyecciones/index'),
     'robots' => 'noindex',
     'body_class' => 'bh-projections-page',
 ]);

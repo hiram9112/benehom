@@ -11,13 +11,13 @@ function bh_navigation_items(): array
         [
             'label' => 'Dashboard',
             'route' => 'dashboard/index',
-            'href' => BASE_URL . 'index.php?r=dashboard/index',
+            'href' => bh_page_url('dashboard/index'),
             'icon' => 'ti ti-home',
         ],
         [
             'label' => 'Proyecciones',
             'route' => 'proyecciones/index',
-            'href' => BASE_URL . 'index.php?r=proyecciones/index',
+            'href' => bh_page_url('proyecciones/index'),
             'icon' => 'ti ti-adjustments-horizontal',
         ],
         [
@@ -29,7 +29,7 @@ function bh_navigation_items(): array
         [
             'label' => 'Cuenta',
             'route' => 'cuenta/index',
-            'href' => BASE_URL . 'index.php?r=cuenta/index',
+            'href' => bh_page_url('cuenta/index'),
             'icon' => 'ti ti-user',
         ],
     ];
@@ -77,7 +77,7 @@ function bh_mobile_nav(): void
     <!-- Boton menu movil -->
     <header class="bh-home-nav d-md-none" aria-label="Navegación principal">
         <div class="bh-home-wrap">
-            <a class="bh-home-brand" href="<?= BASE_URL ?>index.php?r=dashboard/index" aria-label="BeneHom, ir al dashboard">
+            <a class="bh-home-brand" href="<?= bh_page_url('dashboard/index') ?>" aria-label="BeneHom, ir al dashboard">
                 <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="BeneHom" width="120" height="80">
             </a>
 
@@ -101,7 +101,7 @@ function bh_sidebar(): void
     <aside class="d-none d-md-flex bh-sidebar">
         <!-- Logo Benehom-->
         <div class="logo-container text-center mb-4">
-            <a href="<?= BASE_URL ?>index.php?r=dashboard/index">
+            <a href="<?= bh_page_url('dashboard/index') ?>">
                 <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="Logo Benehom" class="logo-benehom">
             </a>
         </div>
@@ -138,7 +138,7 @@ function bh_mobile_menu(): void
 
         <div class="offcanvas-body" data-lenis-prevent>
             <div class="logo-container text-center mb-4">
-                <a href="<?= BASE_URL ?>index.php?r=dashboard/index">
+                <a href="<?= bh_page_url('dashboard/index') ?>">
                     <img src="<?= BASE_URL ?>img/logo-benehom.png"
                         alt="Logo Benehom"
                         class="logo-benehom">

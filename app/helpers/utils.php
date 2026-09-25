@@ -185,6 +185,51 @@ function bh_url(string $ruta = ''): string
     return $base . '/' . $ruta;
 }
 
+function bh_page_url(string $route, array $query = []): string
+{
+    $route = trim($route, '/');
+    $paths = [
+        'home/index' => '',
+        'auth/login' => 'iniciar-sesion',
+        'registro/registrarUsuario' => 'registro',
+        'password/mostrarFormularioOlvido' => 'recuperar-contrasena',
+        'password/reset' => 'restablecer-contrasena',
+        'verificacion/verificar' => 'verificar-email',
+        'verificacion/mostrarFormularioReenvio' => 'reenviar-verificacion',
+        'dashboard/index' => 'dashboard',
+        'proyecciones/index' => 'proyecciones',
+        'cuenta/index' => 'cuenta',
+    ];
+
+    if (!array_key_exists($route, $paths)) {
+        throw new InvalidArgumentException('Ruta de página no soportada.');
+    }
+
+    $params = [];
+
+    if ($route === 'dashboard/index') {
+        $mes = trim((string) ($query['mes'] ?? ''));
+
+        if (bh_mes_valido($mes)) {
+            $params['mes'] = $mes;
+        }
+    }
+
+    if ($route === 'password/reset' || $route === 'verificacion/verificar') {
+        $token = trim((string) ($query['token'] ?? ''));
+
+        if ($token !== '') {
+            $params['token'] = $token;
+        }
+    }
+
+    $url = bh_url($paths[$route]);
+
+    return $params === []
+        ? $url
+        : $url . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+}
+
 function bh_asset(string $ruta): string
 {
     $ruta = ltrim($ruta, '/');
@@ -658,7 +703,7 @@ function bh_render_error_page(int $statusCode, string $title, string $message, s
 {
     http_response_code($statusCode);
 
-    $actionUrl = $actionUrl !== '' ? $actionUrl : BASE_URL . 'index.php?r=home/index';
+    $actionUrl = $actionUrl !== '' ? $actionUrl : bh_page_url('home/index');
 
     require APP_PATH . '/views/error.php';
     exit;
@@ -699,8 +744,9 @@ function enviarEmailReset(string $email, string $resetLink): bool
 {
     $appEnv = $_ENV['APP_ENV'] ?? 'local';
 
-    // Construimos URL absoluta
-    $resetLink = rtrim($_ENV['APP_URL'], '/') . $resetLink;
+    if (!preg_match('#^https?://#i', $resetLink)) {
+        $resetLink = rtrim($_ENV['APP_URL'], '/') . $resetLink;
+    }
 
     $subject = 'Recuperación de contraseña - BeneHom';
     $safeLink = htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8');

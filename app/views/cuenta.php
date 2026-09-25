@@ -4,7 +4,7 @@ require_once APP_PATH . '/views/partials/head.php';
 bh_document_begin([
     'title' => 'Cuenta',
     'description' => 'Área privada de BeneHom para gestionar los datos de cuenta, contraseña y eliminación de perfil.',
-    'canonical' => bh_url('index.php?r=cuenta/index'),
+    'canonical' => bh_page_url('cuenta/index'),
     'robots' => 'noindex',
 ]);
 ?>

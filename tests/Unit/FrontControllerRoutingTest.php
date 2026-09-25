@@ -18,6 +18,132 @@ final class FrontControllerRoutingTest extends TestCase
         self::assertSame(200, $response['status']);
         self::assertStringContainsString('<!DOCTYPE html>', $response['body']);
         self::assertStringContainsString('BeneHom', $response['body']);
+        self::assertSame(2, substr_count($response['body'], 'href="http://localhost/" aria-label="BeneHom, ir al inicio"'));
+        self::assertStringContainsString('href="http://localhost/iniciar-sesion"', $response['body']);
+        self::assertStringContainsString('href="http://localhost/registro"', $response['body']);
+    }
+
+    public function testRutaLimpiaDeLoginSeDespachaTrasLaReescritura(): void
+    {
+        $response = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'auth/login'],
+            'request_uri' => '/iniciar-sesion',
+        ]);
+
+        self::assertSame(200, $response['status']);
+        self::assertStringContainsString('<h1 id="auth-title" class="bh-auth-title">Inicia sesión</h1>', $response['body']);
+        self::assertStringContainsString('href="http://localhost/" aria-label="BeneHom inicio"', $response['body']);
+        self::assertStringContainsString('action="/index.php?r=auth/login"', $response['body']);
+        self::assertStringContainsString('href="http://localhost/registro"', $response['body']);
+    }
+
+    public function testRutaAntiguaDeLoginSigueFuncionando(): void
+    {
+        $response = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'auth/login'],
+        ]);
+
+        self::assertSame(200, $response['status']);
+        self::assertStringContainsString('Inicia sesión', $response['body']);
+    }
+
+    public function testRutasLimpiasConTokenYLasAntiguasMantienenElControlador(): void
+    {
+        foreach ([
+            ['password/reset', '/restablecer-contrasena', 'Enlace de recuperación inválido.'],
+            ['verificacion/verificar', '/verificar-email', 'El enlace de verificación es inválido o ha expirado.'],
+            ['password/reset', '/index.php?r=password/reset', 'Enlace de recuperación inválido.'],
+            ['verificacion/verificar', '/index.php?r=verificacion/verificar', 'El enlace de verificación es inválido o ha expirado.'],
+        ] as [$route, $requestUri, $message]) {
+            $response = $this->runFrontController([
+                'method' => 'GET',
+                'get' => ['r' => $route],
+                'request_uri' => $requestUri,
+            ]);
+
+            self::assertSame(302, $response['status']);
+            self::assertSame($message, $response['session']['mensaje_error'] ?? '');
+        }
+    }
+
+    public function testLoginLimpioEnlazaALaRecuperacionYElReenvioLimpios(): void
+    {
+        $login = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'auth/login'],
+            'request_uri' => '/iniciar-sesion',
+        ]);
+
+        self::assertStringContainsString(
+            'href="http://localhost/recuperar-contrasena"',
+            $login['body']
+        );
+        self::assertStringContainsString(
+            'href="http://localhost/reenviar-verificacion"',
+            $login['body']
+        );
+
+        $forgotPassword = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'password/mostrarFormularioOlvido'],
+            'request_uri' => '/recuperar-contrasena',
+        ]);
+        $resendVerification = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'verificacion/mostrarFormularioReenvio'],
+            'request_uri' => '/reenviar-verificacion',
+        ]);
+
+        self::assertSame(200, $forgotPassword['status']);
+        self::assertStringContainsString('Recupera tu contraseña', $forgotPassword['body']);
+        self::assertStringContainsString('action="/index.php?r=password/procesarFormularioOlvido"', $forgotPassword['body']);
+        self::assertStringContainsString('href="http://localhost/iniciar-sesion"', $forgotPassword['body']);
+        self::assertSame(200, $resendVerification['status']);
+        self::assertStringContainsString('Verifica tu correo', $resendVerification['body']);
+        self::assertStringContainsString('action="/index.php?r=verificacion/reenviar"', $resendVerification['body']);
+        self::assertStringContainsString('href="http://localhost/iniciar-sesion"', $resendVerification['body']);
+
+        $legacyForgotPassword = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'password/mostrarFormularioOlvido'],
+        ]);
+        $legacyResendVerification = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'verificacion/mostrarFormularioReenvio'],
+        ]);
+
+        self::assertSame(200, $legacyForgotPassword['status']);
+        self::assertSame(200, $legacyResendVerification['status']);
+    }
+
+    public function testRutaLimpiaDeRegistroMantieneElEndpointPostInterno(): void
+    {
+        $response = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'registro/registrarUsuario'],
+            'request_uri' => '/registro',
+        ]);
+
+        self::assertSame(200, $response['status']);
+        self::assertStringContainsString('action="/index.php?r=registro/registrarUsuario"', $response['body']);
+        self::assertStringContainsString('href="http://localhost/iniciar-sesion"', $response['body']);
+    }
+
+    public function testRutaPrivadaLimpiaConservaLaProteccionDeAutenticacion(): void
+    {
+        $response = $this->runFrontController([
+            'method' => 'GET',
+            'get' => [
+                'r' => 'dashboard/index',
+                'mes' => '2026-05',
+            ],
+            'request_uri' => '/dashboard?mes=2026-05',
+        ]);
+
+        self::assertSame(302, $response['status']);
+        self::assertSame('Inicia sesión para acceder a esa sección.', $response['session']['mensaje_error']);
     }
 
     public function testRutaNoRegistradaDevuelveErrorHtmlDesdeRouterReal(): void
@@ -31,6 +157,7 @@ final class FrontControllerRoutingTest extends TestCase
         self::assertSame(404, $response['status']);
         self::assertStringContainsString('<!DOCTYPE html>', $response['body']);
         self::assertStringContainsString('Página no encontrada', $response['body']);
+        self::assertSame(2, substr_count($response['body'], 'href="http://localhost/"'));
     }
 
     public function testRutaNoRegistradaConAcceptJsonDevuelveErrorJsonDesdeRouterReal(): void
@@ -233,7 +360,7 @@ if (!empty($config['ensure_schema'])) {
 }
 
 $query = http_build_query($_GET);
-$requestUri = '/index.php' . ($query !== '' ? '?' . $query : '');
+$requestUri = (string) ($config['request_uri'] ?? ('/index.php' . ($query !== '' ? '?' . $query : '')));
 
 $_SERVER = array_replace($_SERVER, [
     'DOCUMENT_ROOT' => $basePath . '/public',

@@ -50,7 +50,7 @@ class RegistroController{
 
             // Si hubo error, redirigimos
             if (isset($_SESSION['mensaje_error'])) {
-                header("Location: " . BASE_URL . "index.php?r=registro/registrarUsuario");
+                header('Location: ' . bh_page_url('registro/registrarUsuario'));
                 exit;
             }
 
@@ -67,7 +67,7 @@ class RegistroController{
                 $_SESSION['mensaje_error'] =
                     'No se pudo completar el registro. Inténtalo más tarde.';
 
-                header("Location: " . BASE_URL . "index.php?r=registro/registrarUsuario");
+                header('Location: ' . bh_page_url('registro/registrarUsuario'));
                 exit;
             }
 
@@ -80,7 +80,7 @@ class RegistroController{
                     $_SESSION['mensaje_error'] =
                         'No se pudo preparar la verificación del email. Solicita un nuevo enlace.';
 
-                    header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+                    header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
                     exit;
                 }
 
@@ -94,23 +94,23 @@ class RegistroController{
                     $_SESSION['mensaje_error'] =
                         'No se pudo preparar la verificación del email. Solicita un nuevo enlace.';
 
-                    header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+                    header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
                     exit;
                 }
 
-                $verificationLink = bh_url('index.php?r=verificacion/verificar&token=' . urlencode($token));
+                $verificationLink = bh_page_url('verificacion/verificar', ['token' => $token]);
 
                 if (!enviarEmailVerificacion($usuarioRegistrado['email'], $verificationLink)) {
                     $_SESSION['mensaje_error'] = 'No se pudo enviar el email de verificación. Solicita un nuevo enlace.';
 
-                    header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+                    header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
                     exit;
                 }
 
                 $_SESSION['mensaje_exitoso'] =
                     "Te hemos enviado un enlace de verificación a tu correo. Verifícalo antes de iniciar sesión.";
 
-                header("Location: " . BASE_URL . "index.php?r=auth/login");
+                header('Location: ' . bh_page_url('auth/login'));
                 exit;
             } else {
 
@@ -118,7 +118,7 @@ class RegistroController{
                 $_SESSION['mensaje_error'] =
                     "Ya existe un usuario con ese email. Inicia sesión.";
 
-                header("Location: " . BASE_URL . "index.php?r=auth/login");
+                header('Location: ' . bh_page_url('auth/login'));
                 exit;
             }
         }

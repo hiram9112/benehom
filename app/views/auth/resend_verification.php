@@ -8,7 +8,7 @@ bh_auth_begin(
 );
 ?>
 
-<form method="POST" action="?r=verificacion/reenviar" class="bh-form bh-auth-form">
+<form method="POST" action="<?= BASE_URL ?>index.php?r=verificacion/reenviar" class="bh-form bh-auth-form">
     <?= csrf_field(); ?>
 
     <div class="bh-field">
@@ -22,7 +22,7 @@ bh_auth_begin(
 </form>
 
 <div class="bh-auth-links">
-    <p><a href="?r=auth/login">Volver a iniciar sesión</a></p>
+    <p><a href="<?= bh_page_url('auth/login') ?>">Volver a iniciar sesión</a></p>
 </div>
 
 <?php bh_auth_end(); ?>

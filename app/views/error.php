@@ -4,7 +4,7 @@ require_once APP_PATH . '/views/partials/head.php';
 $safeTitle = isset($title) ? (string) $title : 'Algo no ha ido bien';
 $safeMessage = isset($message) ? (string) $message : 'No hemos podido completar esta solicitud.';
 $safeActionLabel = isset($actionLabel) ? (string) $actionLabel : 'Volver al inicio';
-$safeActionUrl = isset($actionUrl) ? (string) $actionUrl : BASE_URL . 'index.php?r=home/index';
+$safeActionUrl = isset($actionUrl) ? (string) $actionUrl : bh_page_url('home/index');
 
 bh_document_begin([
     'title' => $safeTitle,
@@ -17,7 +17,7 @@ bh_document_begin([
     <main id="contenido" class="bh-auth-shell">
         <section class="bh-card bh-card-form bh-auth-card bh-error-card" aria-labelledby="error-title">
             <header class="bh-auth-header">
-                <a class="bh-auth-brand" href="<?= BASE_URL ?>index.php" aria-label="BeneHom inicio">
+                <a class="bh-auth-brand" href="<?= bh_page_url('home/index') ?>" aria-label="BeneHom inicio">
                     <img src="<?= bh_asset('img/logo-benehom.png') ?>" alt="BeneHom" width="96" height="96">
                 </a>
                 <h1 id="error-title" class="bh-auth-title"><?= htmlspecialchars($safeTitle, ENT_QUOTES, 'UTF-8') ?></h1>

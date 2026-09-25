@@ -34,6 +34,11 @@ final class EmailVerificationTest extends IntegrationTestCase
         self::assertFalse(\Usuario::obtenerUsuarioPorTokenVerificacion($tokenHash));
     }
 
+    public function testTokenVerificacionInvalidoNoSeRecupera(): void
+    {
+        self::assertFalse(\Usuario::obtenerUsuarioPorTokenVerificacion(hash('sha256', str_repeat('a', 64))));
+    }
+
     public function testMarcarEmailVerificadoActivaCuentaYLimpiaToken(): void
     {
         $usuario = $this->crearUsuario('verify-marcar.integration@example.test');

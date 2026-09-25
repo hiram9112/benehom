@@ -126,7 +126,7 @@ if (isset($_SESSION['usuario_id']) && $sessionIdleTimeout > 0) {
             exit;
         }
 
-        header("Location: " . BASE_URL . "index.php?r=auth/login");
+        header('Location: ' . bh_page_url('auth/login'));
         exit;
     }
 
@@ -177,7 +177,7 @@ if (!$usuarioLogueado && !($routeDefinition['public'] ?? false)) {
     }
 
     $_SESSION['mensaje_error'] = bh_router_error_message('UNAUTHENTICATED');
-    header("Location: " . BASE_URL . "index.php?r=auth/login");
+    header('Location: ' . bh_page_url('auth/login'));
     exit;
 }
 
@@ -197,7 +197,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && bh_route_requires_global
         bh_router_error_title('INVALID_CSRF'),
         'Por seguridad no hemos podido completar la acción. Recarga la página e inténtalo de nuevo.',
         'Ir al inicio de sesión',
-        BASE_URL . 'index.php?r=auth/login'
+        bh_page_url('auth/login')
     );
 }
 

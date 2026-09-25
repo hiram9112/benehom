@@ -615,7 +615,7 @@ async function importarMesAnterior() {
         window.mostrarFlash(data.msg, 'success', 5000);
       }
 
-      window.location.href = 'index.php?r=dashboard/index&mes=' + encodeURIComponent(mesDestino);
+      window.location.href = document.querySelector('.bh-month-form').action + '?mes=' + encodeURIComponent(mesDestino);
     } else {
       if (typeof window.abrirModalInfo === 'function') {
         window.abrirModalInfo({

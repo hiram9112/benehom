@@ -13,7 +13,7 @@ class VerificacionController {
 
         if (empty($token)) {
             $_SESSION['mensaje_error'] = 'El enlace de verificación es inválido o ha expirado.';
-            header("Location: " . BASE_URL . "index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
@@ -22,18 +22,18 @@ class VerificacionController {
 
         if (!$usuario) {
             $_SESSION['mensaje_error'] = 'El enlace de verificación es inválido o ha expirado.';
-            header("Location: " . BASE_URL . "index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
         if (!Usuario::marcarEmailVerificado($usuario['id'])) {
             $_SESSION['mensaje_error'] = 'No se pudo verificar el email. Solicita un nuevo enlace.';
-            header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+            header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
             exit;
         }
 
         $_SESSION['mensaje_exitoso'] = 'Email verificado. Ya puedes iniciar sesión.';
-        header("Location: " . BASE_URL . "index.php?r=auth/login");
+        header('Location: ' . bh_page_url('auth/login'));
         exit;
     }
 
@@ -46,7 +46,7 @@ class VerificacionController {
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['mensaje_error'] = 'Introduce un correo electrónico válido.';
-            header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+            header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
             exit;
         }
 
@@ -54,7 +54,7 @@ class VerificacionController {
 
         if (IntentoAcceso::estaBloqueado('email_verification', $claveRateLimit)) {
             $_SESSION['mensaje_exitoso'] = 'Si el correo está registrado y pendiente de verificación, recibirás un nuevo enlace.';
-            header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+            header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
             exit;
         }
 
@@ -70,7 +70,7 @@ class VerificacionController {
             $expira = date('Y-m-d H:i:s', time() + 1800);
 
             if (Usuario::guardarTokenVerificacion($usuario['id'], $tokenHash, $expira)) {
-                $verificationLink = bh_url('index.php?r=verificacion/verificar&token=' . urlencode($token));
+                $verificationLink = bh_page_url('verificacion/verificar', ['token' => $token]);
 
                 enviarEmailVerificacion($usuario['email'], $verificationLink);
             }
@@ -85,7 +85,7 @@ class VerificacionController {
         );
 
         $_SESSION['mensaje_exitoso'] = 'Si el correo está registrado y pendiente de verificación, recibirás un nuevo enlace.';
-        header("Location: " . BASE_URL . "index.php?r=verificacion/mostrarFormularioReenvio");
+        header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
         exit;
     }
 }

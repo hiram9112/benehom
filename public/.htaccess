@@ -5,11 +5,57 @@ RewriteEngine On
 RewriteCond %{HTTP_HOST} ^www\.benehom\.es$ [NC]
 RewriteRule ^ https://benehom.es%{REQUEST_URI} [R=301,L]
 
+RewriteRule ^$ index.php?r=home/index [L,QSD]
+
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-RewriteRule ^$ index.php?r=home/index [L,QSA]
+# Solo los nuevos aliases GET/HEAD: conservar la query al quitar la barra final.
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{REQUEST_URI} ^(/[^/].*)/$
+RewriteRule ^(iniciar-sesion|registro|recuperar-contrasena|reenviar-verificacion|dashboard|proyecciones|cuenta)/$ %1 [R=301,L]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^iniciar-sesion/?$ index.php?r=auth/login [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^registro/?$ index.php?r=registro/registrarUsuario [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^recuperar-contrasena/?$ index.php?r=password/mostrarFormularioOlvido [L,QSD]
+
+# Los tokens emitidos por la aplicación son bin2hex(random_bytes(32)).
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{QUERY_STRING} (?:^|&)token=([a-f0-9]{64})(?:&|$)
+RewriteRule ^restablecer-contrasena/?$ index.php?r=password/reset&token=%1 [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^restablecer-contrasena/?$ index.php?r=password/reset [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{QUERY_STRING} (?:^|&)token=([a-f0-9]{64})(?:&|$)
+RewriteRule ^verificar-email/?$ index.php?r=verificacion/verificar&token=%1 [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^verificar-email/?$ index.php?r=verificacion/verificar [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^reenviar-verificacion/?$ index.php?r=verificacion/mostrarFormularioReenvio [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{QUERY_STRING} (?:^|&)mes=([0-9]{4}-(?:0[1-9]|1[0-2]))(?:&|$)
+RewriteRule ^dashboard/?$ index.php?r=dashboard/index&mes=%1 [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^dashboard/?$ index.php?r=dashboard/index [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^proyecciones/?$ index.php?r=proyecciones/index [L,QSD]
+
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^cuenta/?$ index.php?r=cuenta/index [L,QSD]
+
 RewriteRule ^blog/?$ index.php?r=blog/index [L,QSA]
 RewriteRule ^blog/([A-Za-z0-9-]+)/?$ index.php?r=blog/detalle&slug=$1 [L,QSA,B]
 RewriteRule ^privacidad/?$ index.php?r=legal/privacidad [L,QSA]

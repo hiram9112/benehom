@@ -29,13 +29,13 @@ class CuentaController{
         //Comprobaciones de seguridad, nos aseguramos que la petición sea POST y  haya una sesión activa
         if($_SERVER['REQUEST_METHOD']!=='POST'){
             $_SESSION['mensaje_error']="Método no permitido.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             return;
         }
 
         if(!isset($_SESSION['usuario_id'])){ 
             $_SESSION['mensaje_error']="Sesión no válida.";
-            header("Location: index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             return;
         }           
 
@@ -49,14 +49,14 @@ class CuentaController{
         //Comprobamos que todos los campos estén rellenos
         if ($actual === '' || $nueva === '' || $confirmacion === '') {
             $_SESSION['mensaje_error'] = "Todos los campos son obligatorios.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         }
 
         //Comprobamos que la nueva contraseña y su confirmación coincidan
         if ($nueva !== $confirmacion) {
             $_SESSION['mensaje_error'] = "La nueva contraseña y su confirmación no coinciden.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         }
 
@@ -65,14 +65,14 @@ class CuentaController{
 
         if(!$hashBD || !password_verify($actual, $hashBD)){
             $_SESSION['mensaje_error']="La contraseña actual no es correcta.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         }
 
         // Evitar reutilizar la misma contraseña
         if (password_verify($nueva, $hashBD)) {
             $_SESSION['mensaje_error'] = "La nueva contraseña no puede ser igual a la actual.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         }
 
@@ -85,7 +85,7 @@ class CuentaController{
         ) {
             $_SESSION['mensaje_error'] =
             "La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         }
 
@@ -99,7 +99,7 @@ class CuentaController{
             $_SESSION['mensaje_error'] = "No se pudo actualizar la contraseña. Inténtalo de nueva más tarde";
         }
 
-        header("Location: index.php?r=cuenta/index");
+        header('Location: ' . bh_page_url('cuenta/index'));
         exit;             
     }        
 
@@ -109,13 +109,13 @@ class CuentaController{
         //Comprobaciones de seguridad, nos aseguramos que la petición sea POST y  haya una sesión activa
         if($_SERVER['REQUEST_METHOD']!=='POST'){
             $_SESSION['mensaje_error']="Método no permitido.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             return;
         }
 
         if(!isset($_SESSION['usuario_id'])){ 
             $_SESSION['mensaje_error']="Sesión no válida.";
-            header("Location: index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             return;
         }           
 
@@ -130,7 +130,7 @@ class CuentaController{
 
         if(!$hashBD || !password_verify($password, $hashBD)){
             $_SESSION['mensaje_error']="La contraseña actual no es correcta.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         }
         
@@ -166,7 +166,7 @@ class CuentaController{
             session_start();
             $_SESSION['mensaje_exitoso'] = "Cuenta eliminada correctamente.";
 
-            header("Location: index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         } else {
 
@@ -174,7 +174,7 @@ class CuentaController{
             $db->rollBack();
 
             $_SESSION['mensaje_error'] = "Error eliminando la cuenta. Inténtelo de nuevo.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         }
     }
@@ -185,13 +185,13 @@ class CuentaController{
         //Comprobaciones de seguridad: petición POST y sesión activa
         if($_SERVER['REQUEST_METHOD']!=='POST'){
             $_SESSION['mensaje_error']="Método no permitido.";
-            header("Location: index.php?r=cuenta/index");
+            header('Location: ' . bh_page_url('cuenta/index'));
             return;
         }
 
         if(!isset($_SESSION['usuario_id'])){
             $_SESSION['mensaje_error']="Sesión no válida.";
-            header("Location: index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             return;
         }
 

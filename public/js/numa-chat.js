@@ -146,7 +146,7 @@
             }
 
             sessionRedirecting = true;
-            window.location.assign(loginUrl || 'index.php?r=auth/login');
+            window.location.assign(loginUrl || '/iniciar-sesion');
             return true;
         };
 

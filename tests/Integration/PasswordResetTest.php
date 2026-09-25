@@ -30,6 +30,11 @@ final class PasswordResetTest extends IntegrationTestCase
         self::assertFalse(\Usuario::obtenerUsuarioPorTokenReset($tokenHash));
     }
 
+    public function testTokenResetInvalidoNoSeRecupera(): void
+    {
+        self::assertFalse(\Usuario::obtenerUsuarioPorTokenReset(hash('sha256', str_repeat('a', 64))));
+    }
+
     public function testLimpiarTokenResetLoElimina(): void
     {
         $usuario = $this->crearUsuario('reset-limpiar.integration@example.test');

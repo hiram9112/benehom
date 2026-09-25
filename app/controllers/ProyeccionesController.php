@@ -12,7 +12,7 @@ class ProyeccionesController {
     private const RENTABILIDAD_ANUAL_MAXIMA = 999.99;
     public function index(){
         if(!isset($_SESSION['usuario_id'])){
-            header("Location: " . BASE_URL . "index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
@@ -38,7 +38,7 @@ class ProyeccionesController {
 
         if ($ingresosMes === false || $gastosEsencialesMes === false || $gastosFlexiblesMes === false) {
             $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos de Proyecciones.';
-            header("Location: " . BASE_URL . "index.php?r=dashboard/index");
+            header('Location: ' . bh_page_url('dashboard/index'));
             exit;
         }
 
@@ -871,7 +871,7 @@ class ProyeccionesController {
         }
 
         if(!isset($_SESSION['usuario_id'])){
-            header("Location: " . BASE_URL . "index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
@@ -1723,7 +1723,7 @@ class ProyeccionesController {
     }
 
     private function redirigirAProyecciones(): void{
-        header("Location: " . BASE_URL . "index.php?r=proyecciones/index");
+        header('Location: ' . bh_page_url('proyecciones/index'));
         exit;
     }
 

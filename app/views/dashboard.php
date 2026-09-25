@@ -9,7 +9,7 @@ HTML;
 bh_document_begin([
     'title' => 'Dashboard financiero',
     'description' => 'Panel privado de BeneHom para revisar ingresos, gastos esenciales, gastos flexibles, ahorro posible y ahorro real del hogar.',
-    'canonical' => bh_url('index.php?r=dashboard/index'),
+    'canonical' => bh_page_url('dashboard/index'),
     'robots' => 'noindex',
     'head_extra' => $bhDashboardHeadExtra,
 ]);
@@ -53,9 +53,7 @@ $mesSeleccionado = $mesSeleccionado ?? ($_GET['mes'] ?? date('Y-m'));
 
                     <!--Selector de mes-->
                     <div id="selector_mes">
-                        <form method="GET" action="index.php" class="bh-form bh-month-form bh-month-pill" aria-label="Seleccionar mes del dashboard">
-                            <input type="hidden" name="r" value="dashboard/index">
-
+                        <form method="GET" action="<?= bh_page_url('dashboard/index') ?>" class="bh-form bh-month-form bh-month-pill" aria-label="Seleccionar mes del dashboard">
                             <button type="button" class="bh-month-nav" data-month-shift="-1" aria-label="Ver mes anterior">
                                 <i class="ti ti-chevron-left" aria-hidden="true"></i>
                             </button>

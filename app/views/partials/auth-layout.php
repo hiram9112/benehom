@@ -9,7 +9,7 @@ function bh_auth_begin(string $pageTitle, string $heading, string $lead = '', bo
     bh_document_begin([
         'title' => $pageTitle,
         'description' => 'Accede a BeneHom para organizar ingresos, gastos, ahorro real y metas económicas del hogar.',
-        'canonical' => bh_url('index.php?r=' . bh_current_auth_route()),
+        'canonical' => bh_page_url(bh_current_auth_route()),
         'robots' => 'noindex',
         'body_class' => 'bh-auth-body',
     ]);
@@ -19,7 +19,7 @@ function bh_auth_begin(string $pageTitle, string $heading, string $lead = '', bo
                 <?php bh_auth_flash_messages(); ?>
                 <section class="bh-card bh-card-form bh-auth-card" aria-labelledby="auth-title">
                 <header class="bh-auth-header">
-                    <a class="bh-auth-brand" href="<?= BASE_URL ?>index.php" aria-label="BeneHom inicio">
+                    <a class="bh-auth-brand" href="<?= bh_page_url('home/index') ?>" aria-label="BeneHom inicio">
                         <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="BeneHom" width="120" height="80">
                     </a>
                     <div>

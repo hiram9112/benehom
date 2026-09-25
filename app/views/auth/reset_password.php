@@ -8,7 +8,7 @@ bh_auth_begin(
 );
 ?>
 
-<form method="POST" action="?r=password/procesarReset" class="bh-form bh-auth-form">
+<form method="POST" action="<?= BASE_URL ?>index.php?r=password/procesarReset" class="bh-form bh-auth-form">
     <?= csrf_field() ?>
 
     <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token'], ENT_QUOTES, 'UTF-8') ?>">

@@ -57,7 +57,7 @@ ob_start();
 
         <header class="bh-home-nav" aria-label="Navegación principal">
             <div class="bh-home-wrap">
-                <a class="bh-home-brand" href="<?= BASE_URL ?>index.php" aria-label="BeneHom, ir al inicio">
+                <a class="bh-home-brand" href="<?= bh_page_url('home/index') ?>" aria-label="BeneHom, ir al inicio">
                     <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="BeneHom" width="120" height="80">
                 </a>
 
@@ -70,8 +70,8 @@ ob_start();
                 </nav>
 
                 <div class="bh-home-nav-actions">
-                    <a class="bh-btn bh-btn-ghost" href="<?= BASE_URL ?>index.php?r=auth/login">Iniciar sesión</a>
-                    <a class="bh-btn bh-btn-primary" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario">Crear cuenta</a>
+                    <a class="bh-btn bh-btn-ghost" href="<?= bh_page_url('auth/login') ?>">Iniciar sesión</a>
+                    <a class="bh-btn bh-btn-primary" href="<?= bh_page_url('registro/registrarUsuario') ?>">Crear cuenta</a>
                 </div>
 
                 <button class="bh-btn bh-btn-primary bh-btn-icon bh-home-mobile-trigger" type="button" data-bs-toggle="offcanvas" data-bs-target="#bh-home-mobile-menu" aria-controls="bh-home-mobile-menu" aria-label="Abrir menú">
@@ -88,7 +88,7 @@ ob_start();
 
             <div class="offcanvas-body" data-lenis-prevent>
                 <div class="logo-container text-center mb-4">
-                    <a href="<?= BASE_URL ?>index.php" aria-label="BeneHom, ir al inicio">
+                    <a href="<?= bh_page_url('home/index') ?>" aria-label="BeneHom, ir al inicio">
                         <img src="<?= BASE_URL ?>img/logo-benehom.png" alt="Logo Benehom" class="logo-benehom">
                     </a>
                 </div>
@@ -104,8 +104,8 @@ ob_start();
                 </nav>
 
                 <div class="bh-home-mobile-access" aria-label="Acceso a cuenta">
-                    <a class="bh-btn bh-home-mobile-login" href="<?= BASE_URL ?>index.php?r=auth/login"><i class="ti ti-login" aria-hidden="true"></i><span>Iniciar sesión</span></a>
-                    <a class="bh-btn bh-home-mobile-signup" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario"><i class="ti ti-user-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
+                    <a class="bh-btn bh-home-mobile-login" href="<?= bh_page_url('auth/login') ?>"><i class="ti ti-login" aria-hidden="true"></i><span>Iniciar sesión</span></a>
+                    <a class="bh-btn bh-home-mobile-signup" href="<?= bh_page_url('registro/registrarUsuario') ?>"><i class="ti ti-user-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
                 </div>
             </div>
         </div>
@@ -119,7 +119,7 @@ ob_start();
                             <h1 id="hero-title">Tu dinero cuenta una historia. BeneHom te ayuda a leerla.</h1>
                             <p class="bh-home-lead">BeneHom te ayuda a mirar tu economía con perspectiva: entender tus gastos, descubrir tu margen real y comprobar cómo cada decisión puede abrir o cerrar camino hacia tus objetivos.</p>
                             <div class="bh-home-cta">
-                                <a class="bh-btn bh-btn-primary" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario">Crear cuenta gratis</a>
+                                <a class="bh-btn bh-btn-primary" href="<?= bh_page_url('registro/registrarUsuario') ?>">Crear cuenta gratis</a>
                                 <a class="bh-btn bh-btn-ghost" href="#como-funciona">Ver cómo funciona</a>
                             </div>
                             <p class="bh-home-cta-note">Gratis y sin tarjeta. Sin conectar tu banco ni instalar nada.</p>
@@ -308,7 +308,7 @@ ob_start();
                                     data-numa-open
                                     aria-controls="bh-numa-panel"
                                     aria-expanded="false">Probar Numa</button>
-                                <a class="bh-btn bh-btn-secondary" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario">Crear cuenta gratis</a>
+                                <a class="bh-btn bh-btn-secondary" href="<?= bh_page_url('registro/registrarUsuario') ?>">Crear cuenta gratis</a>
                             </div>
 
                             <p class="bh-home-numa-note"><strong>En beta y con uso limitado.</strong> Numa ofrece información orientativa y nunca modifica tus datos.</p>
@@ -754,8 +754,8 @@ ob_start();
                             <p>Crear una cuenta lleva un minuto. Apunta los primeros movimientos y cuando el mes termine sabrás exactamente dónde ha ido tu dinero.</p>
                         </div>
                         <div class="bh-home-band-actions">
-                            <a class="bh-btn bh-btn-primary" href="<?= BASE_URL ?>index.php?r=registro/registrarUsuario">Crear cuenta gratis</a>
-                            <a class="bh-btn bh-btn-secondary" href="<?= BASE_URL ?>index.php?r=auth/login">Iniciar sesión</a>
+                            <a class="bh-btn bh-btn-primary" href="<?= bh_page_url('registro/registrarUsuario') ?>">Crear cuenta gratis</a>
+                            <a class="bh-btn bh-btn-secondary" href="<?= bh_page_url('auth/login') ?>">Iniciar sesión</a>
                         </div>
                     </div>
                 </div>

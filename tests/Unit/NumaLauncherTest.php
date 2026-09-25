@@ -68,7 +68,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-status-url="/index.php?r=numa/status"', $html);
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/chat"', $html);
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/conversation/new"', $html);
-        self::assertStringContainsString('data-numa-login-url="/index.php?r=auth/login"', $html);
+        self::assertStringContainsString('data-numa-login-url="http://localhost/iniciar-sesion"', $html);
         self::assertStringContainsString('data-numa-csrf="', $html);
         self::assertStringContainsString('data-numa-max-message-length="300"', $html);
         self::assertStringContainsString('data-numa-request-timeout-ms="241000"', $html);
@@ -211,7 +211,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString('data-numa-status-url="/index.php?r=numa/public/status"', $html);
         self::assertStringContainsString('data-numa-chat-url="/index.php?r=numa/public/chat"', $html);
         self::assertStringContainsString('data-numa-new-conversation-url="/index.php?r=numa/public/conversation/new"', $html);
-        self::assertStringContainsString('data-numa-login-url="/index.php?r=auth/login"', $html);
+        self::assertStringContainsString('data-numa-login-url="http://localhost/iniciar-sesion"', $html);
         self::assertStringNotContainsString('data-numa-empty-messages=', $html);
         self::assertStringNotContainsString('data-numa-suggestions=', $html);
         self::assertStringNotContainsString('data-numa-user-name=', $html);
@@ -516,7 +516,7 @@ final class NumaLauncherTest extends TestCase
         self::assertStringContainsString("code === 'NUMA_INVALID_CSRF'", $javascript);
         self::assertStringContainsString('const redirectToLoginWhenSessionExpired', $javascript);
         self::assertStringContainsString("response.status !== 401 || errorCode !== 'UNAUTHENTICATED'", $javascript);
-        self::assertStringContainsString("window.location.assign(loginUrl || 'index.php?r=auth/login')", $javascript);
+        self::assertStringContainsString("window.location.assign(loginUrl || '/iniciar-sesion')", $javascript);
         self::assertStringNotContainsString('daily_remaining', $javascript);
         self::assertStringNotContainsString('monthly_remaining', $javascript);
         self::assertStringNotContainsString('user_limit', $javascript);

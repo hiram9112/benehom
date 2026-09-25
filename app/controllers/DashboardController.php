@@ -9,7 +9,7 @@ class DashboardController{
 
         //Comprobamos que haya sesión activa
         if(!isset($_SESSION['usuario'])){
-            header("Location: ".BASE_URL."index.php?r=auth/login");
+            header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
@@ -46,7 +46,7 @@ class DashboardController{
 
                 $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos del panel. Inicia sesión nuevamente.';
 
-                header("Location: " . BASE_URL . "index.php?r=auth/login");
+                header('Location: ' . bh_page_url('auth/login'));
                 exit;
             }
         }

@@ -11,7 +11,7 @@ pass() {
     printf '[OK] %s\n' "$*"
 }
 
-for required_command in git composer php tar gzip sha256sum mktemp find; do
+for required_command in git composer php tar gzip sha256sum mktemp find chmod stat; do
     command -v "$required_command" >/dev/null 2>&1 \
         || die "No se encontro el comando requerido: ${required_command}"
 done
@@ -206,8 +206,13 @@ unexpected_file="$(find "$BUILD_DIR" \
     || die "Archivo o directorio prohibido presente en la release: ${unexpected_file#${BUILD_DIR}/}"
 pass 'No existen paths ni patrones prohibidos en la release.'
 
+chmod 755 -- "$BUILD_DIR"
 mv -- "$BUILD_DIR" "$RELEASE_DIR"
 BUILD_DIR=''
+
+[[ "$(stat -c '%a' "$RELEASE_DIR")" == '755' ]] \
+    || die 'La raiz del directorio de release no tiene permisos 755.'
+pass 'La raiz del directorio de release tiene permisos 755.'
 
 COMMIT_TIMESTAMP="$(git -C "$REPO_ROOT" show -s --format=%ct "$FULL_SHA")"
 TEMP_ARCHIVE="${ARCHIVE_PATH}.tmp.$$"
@@ -225,6 +230,12 @@ mv -- "$TEMP_ARCHIVE" "$ARCHIVE_PATH"
 TEMP_ARCHIVE=''
 [[ -s "$ARCHIVE_PATH" ]] || die 'No se genero el archivo tar.gz.'
 pass 'El archivo tar.gz existe.'
+
+archive_root_entry="$(tar --no-recursion -tzvf "$ARCHIVE_PATH" -- ./)" \
+    || die 'No se pudo inspeccionar la entrada raiz del archivo tar.gz.'
+[[ "$archive_root_entry" == drwxr-xr-x* ]] \
+    || die 'La entrada raiz del archivo tar.gz no tiene permisos 755.'
+pass 'La entrada raiz del archivo tar.gz tiene permisos 755.'
 
 TEMP_CHECKSUM="${CHECKSUM_PATH}.tmp.$$"
 assert_dist_child "$TEMP_CHECKSUM"

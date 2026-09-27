@@ -55,7 +55,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql
+          extensions: pdo_mysql, openssl, pcntl, posix
           coverage: none
 
       - name: Cache Composer packages
@@ -71,7 +71,7 @@ jobs:
       - name: Run design drift lint
         run: composer lint:design
 
-      - name: Run PHPUnit Unit and Integration suites
+      - name: Run PHPUnit Unit, Integration and Deployment suites
         run: composer test
 
       - name: Run PHPStan
@@ -88,3 +88,163 @@ jobs:
             public/js/vendor/gsap/ScrollTrigger.min.js \
             public/js/vendor/gsap/SplitText.min.js \
             public/js/vendor/lenis/lenis.min.js
+
+  deploy:
+    name: Deploy production release
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.test.result == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out integrated commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Build release
+        run: composer release:build
+
+      - name: Verify release artifact
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          actual_sha="$(git rev-parse --verify 'HEAD^{commit}')"
+          [[ "$actual_sha" == "$EXPECTED_SHA" ]] \
+            || { printf 'Checked out SHA does not match the push SHA.\n' >&2; exit 1; }
+
+          short_sha="$(git rev-parse --short=7 "$EXPECTED_SHA")"
+          release_name="benehom-${short_sha}"
+          release_dir="dist/${release_name}"
+          archive_path="dist/${release_name}.tar.gz"
+          checksum_path="${archive_path}.sha256"
+
+          [[ -d "$release_dir" && ! -L "$release_dir" ]] \
+            || { printf 'Expected release directory is missing or is a symlink.\n' >&2; exit 1; }
+          [[ "$(stat -c '%a' "$release_dir")" == '755' ]] \
+            || { printf 'Release directory permissions are not 755.\n' >&2; exit 1; }
+          [[ -s "$archive_path" ]] \
+            || { printf 'Expected release archive is missing or empty.\n' >&2; exit 1; }
+          [[ -s "$checksum_path" ]] \
+            || { printf 'Expected release checksum is missing or empty.\n' >&2; exit 1; }
+
+          (cd dist && sha256sum --check "$(basename "$checksum_path")")
+          [[ "$(<"${release_dir}/RELEASE_SHA")" == "$EXPECTED_SHA" ]] \
+            || { printf 'Release directory RELEASE_SHA does not match the push SHA.\n' >&2; exit 1; }
+          [[ "$(tar -xOf "$archive_path" ./RELEASE_SHA)" == "$EXPECTED_SHA" ]] \
+            || { printf 'Archived RELEASE_SHA does not match the push SHA.\n' >&2; exit 1; }
+
+          archive_root_entry="$(tar --no-recursion -tzvf "$archive_path" -- ./)"
+          [[ "$archive_root_entry" == drwxr-xr-x* ]] \
+            || { printf 'Release archive root permissions are not 755.\n' >&2; exit 1; }
+
+      - name: Export release metadata
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          release_short="$(git rev-parse --short=7 "$EXPECTED_SHA")"
+          printf 'RELEASE_SHORT=%s\n' "$release_short" >> "$GITHUB_ENV"
+          printf 'RELEASE_ARCHIVE=dist/benehom-%s.tar.gz\n' "$release_short" >> "$GITHUB_ENV"
+          printf 'RELEASE_CHECKSUM=dist/benehom-%s.tar.gz.sha256\n' "$release_short" >> "$GITHUB_ENV"
+
+      - name: Configure SSH
+        env:
+          BENEHOM_SSH_PRIVATE_KEY: ${{ secrets.BENEHOM_SSH_PRIVATE_KEY }}
+          BENEHOM_SSH_HOST: ${{ vars.BENEHOM_SSH_HOST }}
+          BENEHOM_SSH_PORT: ${{ vars.BENEHOM_SSH_PORT }}
+          BENEHOM_SSH_USER: ${{ vars.BENEHOM_SSH_USER }}
+          BENEHOM_SSH_KNOWN_HOSTS: ${{ vars.BENEHOM_SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+
+          : "${BENEHOM_SSH_PRIVATE_KEY:?BENEHOM_SSH_PRIVATE_KEY is required}"
+          : "${BENEHOM_SSH_HOST:?BENEHOM_SSH_HOST is required}"
+          : "${BENEHOM_SSH_PORT:?BENEHOM_SSH_PORT is required}"
+          : "${BENEHOM_SSH_USER:?BENEHOM_SSH_USER is required}"
+          : "${BENEHOM_SSH_KNOWN_HOSTS:?BENEHOM_SSH_KNOWN_HOSTS is required}"
+          [[ "$BENEHOM_SSH_PORT" =~ ^[0-9]+$ ]] \
+            || { printf 'BENEHOM_SSH_PORT must be numeric.\n' >&2; exit 1; }
+
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$BENEHOM_SSH_PRIVATE_KEY" > "$HOME/.ssh/benehom_deploy"
+          printf '%s\n' "$BENEHOM_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          printf '%s\n' \
+            'Host benehom-production' \
+            "HostName ${BENEHOM_SSH_HOST}" \
+            "User ${BENEHOM_SSH_USER}" \
+            "Port ${BENEHOM_SSH_PORT}" \
+            "IdentityFile ${HOME}/.ssh/benehom_deploy" \
+            'IdentitiesOnly yes' \
+            'BatchMode yes' \
+            'PasswordAuthentication no' \
+            'KbdInteractiveAuthentication no' \
+            'PreferredAuthentications publickey' \
+            'StrictHostKeyChecking yes' \
+            "UserKnownHostsFile ${HOME}/.ssh/known_hosts" \
+            'GlobalKnownHostsFile /dev/null' \
+            'ConnectTimeout 15' > "$HOME/.ssh/config"
+          chmod 600 "$HOME/.ssh/benehom_deploy" "$HOME/.ssh/known_hosts" "$HOME/.ssh/config"
+
+      - name: Verify SSH connection
+        run: ssh -T benehom-production 'printf "SSH connection verified.\n"'
+
+      - name: Create remote staging directory
+        run: |
+          set -Eeuo pipefail
+
+          remote_staging_dir="$(ssh -T benehom-production bash -s -- create-staging "$RELEASE_SHORT" < scripts/prepare-remote-release.sh)"
+          staging_prefix="/home/u124104782/domains/benehom.es/releases/.prepare-${RELEASE_SHORT}."
+          staging_suffix="${remote_staging_dir#"$staging_prefix"}"
+          [[ "$remote_staging_dir" == "$staging_prefix"* && "$staging_suffix" =~ ^[a-zA-Z0-9]{6}$ ]] \
+            || { printf 'Remote staging path is invalid.\n' >&2; exit 1; }
+          printf 'REMOTE_STAGING_DIR=%s\n' "$remote_staging_dir" >> "$GITHUB_ENV"
+
+      - name: Transfer release artifact
+        run: scp "$RELEASE_ARCHIVE" "$RELEASE_CHECKSUM" "benehom-production:${REMOTE_STAGING_DIR}/"
+
+      - name: Prepare remote release
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: ssh -T benehom-production bash -s -- prepare "$REMOTE_STAGING_DIR" "$RELEASE_SHORT" "$EXPECTED_SHA" < scripts/prepare-remote-release.sh
+
+      - name: Activate release with smoke tests and automatic rollback
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          # Query the remote ref, not the possibly stale checkout of origin/main.
+          main_ref="$(git ls-remote --exit-code origin refs/heads/main)"
+          [[ "$main_ref" == "$EXPECTED_SHA"$'\trefs/heads/main' ]] \
+            || { printf 'Deployment superseded: expected SHA is no longer origin/main HEAD.\n' >&2; exit 1; }
+
+          ssh -T benehom-production bash -s -- activate "$RELEASE_SHORT" "$EXPECTED_SHA" < scripts/prepare-remote-release.sh
+
+      - name: Remove remote staging directory
+        if: ${{ always() }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ -n "${REMOTE_STAGING_DIR:-}" ]]; then
+            ssh -T benehom-production bash -s -- cleanup "$REMOTE_STAGING_DIR" "$RELEASE_SHORT" < scripts/prepare-remote-release.sh
+          fi
+
+      - name: Remove SSH credentials
+        if: ${{ always() }}
+        run: rm -f "$HOME/.ssh/benehom_deploy" "$HOME/.ssh/known_hosts" "$HOME/.ssh/config"

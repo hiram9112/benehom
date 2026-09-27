@@ -7,6 +7,9 @@
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
+        <testsuite name="Deployment">
+            <directory>tests/deployment</directory>
+        </testsuite>
     </testsuites>
     <php>
         <env name="APP_ENV" value="testing" force="true"/>

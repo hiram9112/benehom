@@ -23,6 +23,25 @@ final class FrontControllerRoutingTest extends TestCase
         self::assertStringContainsString('href="http://localhost/registro"', $response['body']);
     }
 
+    public function testHomeOmiteTablerMientrasLasRutasQueLoUsanLoConservan(): void
+    {
+        $home = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'home/index'],
+        ]);
+        $login = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'auth/login'],
+        ]);
+
+        self::assertSame(200, $home['status']);
+        self::assertStringNotContainsString('tabler-icons.min.css', $home['body']);
+        self::assertStringNotContainsString('tabler-icons.woff2', $home['body']);
+        self::assertStringNotContainsString('class="ti ', $home['body']);
+        self::assertSame(200, $login['status']);
+        self::assertStringContainsString('tabler-icons.min.css', $login['body']);
+    }
+
     public function testRutaLimpiaDeLoginSeDespachaTrasLaReescritura(): void
     {
         $response = $this->runFrontController([

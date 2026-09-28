@@ -420,6 +420,19 @@ final class NumaLauncherTest extends TestCase
         self::assertStringNotContainsString('offcanvas', $html);
     }
 
+    public function testControlesDelPanelUsanSvgYConservanElHookDeEnvio(): void
+    {
+        $html = $this->renderLauncher();
+
+        self::assertStringNotContainsString('ti ti-plus', $html);
+        self::assertStringNotContainsString('ti ti-x', $html);
+        self::assertStringNotContainsString('ti ti-arrow-up', $html);
+        self::assertStringContainsString('<line x1="12" y1="5" x2="12" y2="19" />', $html);
+        self::assertStringContainsString('<line x1="18" y1="6" x2="6" y2="18" />', $html);
+        self::assertStringContainsString('data-numa-submit-icon><svg', $html);
+        self::assertStringContainsString('width="1em" height="1em"', $html);
+    }
+
     public function testSaludoInicialSeMarcaUnaSolaVezPorSesionAutenticada(): void
     {
         $_SESSION['usuario_id'] = 123;

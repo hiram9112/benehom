@@ -50,6 +50,7 @@ ob_start();
             'canonical' => bh_url(),
             'robots' => 'index',
             'body_class' => 'bh-home-body',
+            'include_tabler_icons' => false,
             'head_extra' => $bhHomeHeadExtra,
             'json_ld' => $bhHomeJsonLd,
         ]);
@@ -75,7 +76,7 @@ ob_start();
                 </div>
 
                 <button class="bh-btn bh-btn-primary bh-btn-icon bh-home-mobile-trigger" type="button" data-bs-toggle="offcanvas" data-bs-target="#bh-home-mobile-menu" aria-controls="bh-home-mobile-menu" aria-label="Abrir menú">
-                    <i class="ti ti-menu-2" aria-hidden="true"></i>
+                    <i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" /></svg></i>
                 </button>
             </div>
         </header>
@@ -95,17 +96,17 @@ ob_start();
 
                 <nav aria-label="Navegación principal móvil">
                     <ul class="nav flex-column">
-                        <li class="nav-item"><a class="nav-link" href="#como-funciona"><i class="ti ti-map" aria-hidden="true"></i><span>Cómo funciona</span></a></li>
-                        <li class="nav-item"><a class="nav-link" href="#numa"><i class="ti ti-message-chatbot" aria-hidden="true"></i><span>Numa</span></a></li>
-                        <li class="nav-item"><a class="nav-link" href="#funciones"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i><span>Funciones</span></a></li>
-                        <li class="nav-item"><a class="nav-link" href="#blog"><i class="ti ti-notebook" aria-hidden="true"></i><span>Blog</span></a></li>
-                        <li class="nav-item"><a class="nav-link" href="#faq"><i class="ti ti-lifebuoy" aria-hidden="true"></i><span>Preguntas frecuentes</span></a></li>
+                        <li class="nav-item"><a class="nav-link" href="#como-funciona"><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polyline points="3 7 9 4 15 7 21 4 21 17 15 20 9 17 3 20 3 7" /><line x1="9" y1="4" x2="9" y2="17" /><line x1="15" y1="7" x2="15" y2="20" /></svg></i><span>Cómo funciona</span></a></li>
+                        <li class="nav-item"><a class="nav-link" href="#numa"><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 21v-13a3 3 0 0 1 3 -3h10a3 3 0 0 1 3 3v6a3 3 0 0 1 -3 3h-9l-4 4" /><path d="M9.5 9h.01" /><path d="M14.5 9h.01" /><path d="M9.5 13a3.5 3.5 0 0 0 5 0" /></svg></i><span>Numa</span></a></li>
+                        <li class="nav-item"><a class="nav-link" href="#funciones"><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="14" cy="6" r="2" /><line x1="4" y1="6" x2="12" y2="6" /><line x1="16" y1="6" x2="20" y2="6" /><circle cx="8" cy="12" r="2" /><line x1="4" y1="12" x2="6" y2="12" /><line x1="10" y1="12" x2="20" y2="12" /><circle cx="17" cy="18" r="2" /><line x1="4" y1="18" x2="15" y2="18" /><line x1="19" y1="18" x2="20" y2="18" /></svg></i><span>Funciones</span></a></li>
+                        <li class="nav-item"><a class="nav-link" href="#blog"><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-11a1 1 0 0 1 -1 -1v-14a1 1 0 0 1 1 -1m3 0v18" /><line x1="13" y1="8" x2="15" y2="8" /><line x1="13" y1="12" x2="15" y2="12" /></svg></i><span>Blog</span></a></li>
+                        <li class="nav-item"><a class="nav-link" href="#faq"><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="9" /><line x1="15" y1="15" x2="18.35" y2="18.35" /><line x1="9" y1="15" x2="5.65" y2="18.35" /><line x1="5.65" y1="5.65" x2="9" y2="9" /><line x1="18.35" y1="5.65" x2="15" y2="9" /></svg></i><span>Preguntas frecuentes</span></a></li>
                     </ul>
                 </nav>
 
                 <div class="bh-home-mobile-access" aria-label="Acceso a cuenta">
-                    <a class="bh-btn bh-home-mobile-login" href="<?= bh_page_url('auth/login') ?>"><i class="ti ti-login" aria-hidden="true"></i><span>Iniciar sesión</span></a>
-                    <a class="bh-btn bh-home-mobile-signup" href="<?= bh_page_url('registro/registrarUsuario') ?>"><i class="ti ti-user-plus" aria-hidden="true"></i><span>Crear cuenta</span></a>
+                    <a class="bh-btn bh-home-mobile-login" href="<?= bh_page_url('auth/login') ?>"><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M20 12h-13l3 -3m0 6l-3 -3" /></svg></i><span>Iniciar sesión</span></a>
+                    <a class="bh-btn bh-home-mobile-signup" href="<?= bh_page_url('registro/registrarUsuario') ?>"><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="9" cy="7" r="4" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 11h6m-3 -3v6" /></svg></i><span>Crear cuenta</span></a>
                 </div>
             </div>
         </div>

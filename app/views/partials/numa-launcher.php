@@ -123,9 +123,9 @@ function bh_numa_launcher(string $mode = 'private'): void
                     data-numa-new-conversation
                     aria-expanded="false"
                     aria-controls="bh-numa-confirmation"
-                    disabled><i class="ti ti-plus" aria-hidden="true"></i><span>Nueva conversación</span></button>
+                    disabled><i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg></i><span>Nueva conversación</span></button>
                 <button type="button" class="bh-btn bh-btn-icon bh-btn-ghost bh-numa-panel-close" aria-label="Cerrar Numa" data-numa-close>
-                    <i class="ti ti-x" aria-hidden="true"></i>
+                    <i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></i>
                 </button>
             </div>
 
@@ -173,7 +173,7 @@ function bh_numa_launcher(string $mode = 'private'): void
                             disabled></textarea>
                         <span class="bh-numa-counter" id="bh-numa-counter" data-numa-counter><span class="visually-hidden">Caracteres: </span><span data-numa-counter-value>0/<?= $maxMessageLength ?></span></span>
                         <button type="submit" class="bh-numa-submit" aria-label="Enviar mensaje" data-numa-submit disabled>
-                            <i class="ti ti-arrow-up" aria-hidden="true" data-numa-submit-icon></i>
+                            <i aria-hidden="true" data-numa-submit-icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="18" y1="11" x2="12" y2="5" /><line x1="6" y1="11" x2="12" y2="5" /></svg></i>
                             <span class="bh-numa-submit-processing" aria-hidden="true"></span>
                         </button>
                     </div>

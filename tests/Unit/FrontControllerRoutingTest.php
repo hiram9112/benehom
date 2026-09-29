@@ -42,6 +42,30 @@ final class FrontControllerRoutingTest extends TestCase
         self::assertStringContainsString('tabler-icons.min.css', $login['body']);
     }
 
+    public function testHomeOmiteBootstrapCssPeroConservaElBundleYLasDemasRutasLoCargan(): void
+    {
+        $home = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'home/index'],
+        ]);
+        $login = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'auth/login'],
+        ]);
+        $forgotPassword = $this->runFrontController([
+            'method' => 'GET',
+            'get' => ['r' => 'password/mostrarFormularioOlvido'],
+        ]);
+
+        self::assertSame(200, $home['status']);
+        self::assertStringNotContainsString('bootstrap@5.3.2/dist/css/bootstrap.min.css', $home['body']);
+        self::assertStringContainsString('bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js', $home['body']);
+        self::assertSame(200, $login['status']);
+        self::assertStringContainsString('bootstrap@5.3.2/dist/css/bootstrap.min.css', $login['body']);
+        self::assertSame(200, $forgotPassword['status']);
+        self::assertStringContainsString('bootstrap@5.3.2/dist/css/bootstrap.min.css', $forgotPassword['body']);
+    }
+
     public function testRutaLimpiaDeLoginSeDespachaTrasLaReescritura(): void
     {
         $response = $this->runFrontController([

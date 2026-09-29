@@ -50,6 +50,7 @@ ob_start();
             'canonical' => bh_url(),
             'robots' => 'index',
             'body_class' => 'bh-home-body',
+            'include_bootstrap_css' => false,
             'include_tabler_icons' => false,
             'head_extra' => $bhHomeHeadExtra,
             'json_ld' => $bhHomeJsonLd,

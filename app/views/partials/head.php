@@ -64,6 +64,7 @@ function bh_document_begin(array $opciones = []): void
     $robots = (string) ($opciones['robots'] ?? 'index');
     $bodyClass = trim((string) ($opciones['body_class'] ?? ''));
     $headExtra = (string) ($opciones['head_extra'] ?? '');
+    $includeBootstrapCss = (bool) ($opciones['include_bootstrap_css'] ?? true);
     $includeTablerIcons = (bool) ($opciones['include_tabler_icons'] ?? true);
     ?>
 <!DOCTYPE html>
@@ -109,7 +110,9 @@ function bh_document_begin(array $opciones = []): void
     <link rel="apple-touch-icon" sizes="180x180" href="<?= BASE_URL ?>img/apple-touch-icon.png">
     <link rel="manifest" href="<?= BASE_URL ?>site.webmanifest">
     <meta name="theme-color" content="#f5ead7">
+<?php if ($includeBootstrapCss): ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+<?php endif; ?>
 <?php if ($includeTablerIcons): ?>
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/iconfont/tabler-icons.min.css" rel="stylesheet" crossorigin="anonymous">
 <?php endif; ?>

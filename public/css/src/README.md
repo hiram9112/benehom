@@ -20,6 +20,10 @@ Orden canonico de carga y concatenacion:
 
 Las media queries se mantienen cerca del bloque o vista que modifican. `auth.css` contiene solo autenticacion y `home.css` contiene la home publica. `responsive.css` queda reservado para ajustes realmente globales y transversales.
 
+## Excepcion Bootstrap En Home
+
+La home no carga el CSS completo de Bootstrap para evitar ese recurso bloqueante. `home.css` mantiene un subconjunto local y scoped basado en Bootstrap 5.3.2 para el offcanvas movil, backdrop, boton de cierre, estados y utilidades estrictamente necesarias. Al actualizar Bootstrap, revisa ese bloque para comprobar cambios en esos contratos CSS antes de actualizar la version cargada por las demas rutas.
+
 ## Responsive
 
 La escala canonica de breakpoints queda alineada con Bootstrap y se usa siempre con valores `px` literales, porque CSS no permite `var()` dentro de la condicion de `@media`:

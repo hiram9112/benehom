@@ -63,6 +63,8 @@ final class NumaConsumoGlobalTest extends TestCase
         $_ENV['NUMA_DAILY_LIMIT'] = '15';
         $_ENV['NUMA_MONTHLY_LIMIT'] = '60';
         $_ENV['NUMA_RESERVATION_TTL_SECONDS'] = '120';
+        $_ENV['N8N_WEBHOOK_SECRET'] = 'test-secret';
+        $_ENV['N8N_NUMA_USAGE_WEBHOOK_URL'] = 'https://n8n.example.test/numa-usage-alert';
     }
 
     protected function tearDown(): void
@@ -109,6 +111,74 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(1000, $estado['monthly_calls_limit']);
         self::assertSame(12000, $estado['daily_tokens']);
         self::assertSame(300000, $estado['daily_tokens_limit']);
+    }
+
+    public function testAlertaNumaSeEnviaSoloAlCruzarElCincuentaPorCiento(): void
+    {
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '4';
+        $notifications = 0;
+        $transactionStates = [];
+        $webhooks = $this->webhookService($notifications, $transactionStates);
+        $repo = new \NumaConsumoGlobal(
+            $this->db,
+            new DateTimeImmutable('2026-07-25 10:00:00'),
+            webhooks: $webhooks,
+        );
+        $repo->setInputTokenEstimate(5000);
+        $chain = new \NumaProviderConsumptionChain($repo);
+
+        $chain->iniciarLlamada();
+        self::assertSame(0, $notifications);
+
+        $chain->iniciarLlamada();
+        self::assertSame(1, $notifications);
+
+        $chain->iniciarLlamada();
+        self::assertSame(1, $notifications);
+        self::assertSame([false], $transactionStates);
+    }
+
+    public function testUmbralDeAlertaNumaRespetaElLimiteConfigurado(): void
+    {
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '200';
+        $this->insertRow('2026-07-25', 98, 0, 0);
+        $notifications = 0;
+        $transactionStates = [];
+        $repo = new \NumaConsumoGlobal(
+            $this->db,
+            new DateTimeImmutable('2026-07-25 10:00:00'),
+            webhooks: $this->webhookService($notifications, $transactionStates),
+        );
+        $repo->setInputTokenEstimate(5000);
+
+        $repo->iniciarLlamada();
+        self::assertSame(0, $notifications);
+
+        $repo->iniciarLlamada();
+        self::assertSame(1, $notifications);
+        self::assertSame(100, $repo->llamadasDia('2026-07-25'));
+    }
+
+    public function testFalloDeN8nNoAfectaAlConsumoDeNuma(): void
+    {
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '2';
+        $transportCalls = 0;
+        $webhooks = new \N8nWebhookService(static function () use (&$transportCalls): int {
+            $transportCalls++;
+
+            throw new \RuntimeException('Fallo n8n simulado.');
+        });
+        $repo = new \NumaConsumoGlobal(
+            $this->db,
+            new DateTimeImmutable('2026-07-25 10:00:00'),
+            webhooks: $webhooks,
+        );
+        $repo->setInputTokenEstimate(5000);
+
+        $repo->iniciarLlamada();
+
+        self::assertSame(1, $transportCalls);
+        self::assertSame(1, $repo->llamadasDia('2026-07-25'));
     }
 
     public function testReinicioDiarioNoSumaLlamadasDeOtrosDias(): void
@@ -560,10 +630,17 @@ final class NumaConsumoGlobalTest extends TestCase
 
     public function testConfirmacionConjuntaRevierteUsuarioYGlobalSiFallaAntesDelProveedor(): void
     {
+        $_ENV['NUMA_GLOBAL_DAILY_PROVIDER_CALL_LIMIT'] = '2';
         $now = new DateTimeImmutable('2026-07-25 10:00:00');
         $usuarioId = $this->crearUsuario();
         $usage = new NumaUsoFallaDespuesDeConfirmar($this->db, $now);
-        $global = new \NumaConsumoGlobal($this->db, $now);
+        $notifications = 0;
+        $transactionStates = [];
+        $global = new \NumaConsumoGlobal(
+            $this->db,
+            $now,
+            webhooks: $this->webhookService($notifications, $transactionStates),
+        );
         $budget = new \NumaPaidCallBudget(new \NumaPrivateUsageBudget($usage, $usuarioId), 3);
         $transportCalls = 0;
         $provider = new \GeminiNumaProvider(
@@ -587,6 +664,7 @@ final class NumaConsumoGlobalTest extends TestCase
         self::assertSame(0, $transportCalls);
         self::assertSame(0, $usage->llamadasPagadasConfirmadasDia($usuarioId, '2026-07-25'));
         self::assertSame(0, $global->llamadasDia('2026-07-25'));
+        self::assertSame(0, $notifications);
         self::assertSame(0, $this->reservasPendientes($usuarioId));
         self::assertSame(['revertida'], $this->estadosReservas($usuarioId));
     }
@@ -597,6 +675,19 @@ final class NumaConsumoGlobalTest extends TestCase
         $repo->setInputTokenEstimate(5000);
 
         return $repo;
+    }
+
+    /** @param list<bool> $transactionStates */
+    private function webhookService(int &$notifications, array &$transactionStates): \N8nWebhookService
+    {
+        return new \N8nWebhookService(
+            function () use (&$notifications, &$transactionStates): int {
+                $notifications++;
+                $transactionStates[] = $this->db->inTransaction();
+
+                return 204;
+            }
+        );
     }
 
     private function crearUsuario(): int
@@ -1121,6 +1212,8 @@ PHP;
             'NUMA_PUBLIC_GLOBAL_DAILY_CALL_LIMIT',
             'NUMA_PUBLIC_GLOBAL_MONTHLY_CALL_LIMIT',
             'NUMA_BYPASS_LIMITS',
+            'N8N_WEBHOOK_SECRET',
+            'N8N_NUMA_USAGE_WEBHOOK_URL',
             'APP_ENV',
         ];
     }

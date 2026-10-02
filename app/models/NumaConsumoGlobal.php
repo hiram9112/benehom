@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Database.php';
 require_once dirname(__DIR__) . '/services/NumaProvider.php';
+require_once dirname(__DIR__) . '/services/N8nWebhookService.php';
 require_once dirname(__DIR__) . '/helpers/utils.php';
 
 final class NumaGlobalLimiteAlcanzado extends RuntimeException
 {
 }
 
-final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterface, NumaProviderInputEstimateInterface
+final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterface, NumaProviderInputEstimateInterface, NumaProviderPostCommitInterface
 {
     private const CALL_TYPE_LLM = 'llm';
     private const CALL_TYPE_EMBEDDING = 'embedding';
@@ -21,11 +22,14 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
 
     private ?int $inputTokenEstimate = null;
 
+    private bool $dailyUsageAlertPending = false;
+
     public function __construct(
         private readonly ?PDO $connection = null,
         private readonly ?DateTimeImmutable $now = null,
         private readonly string $callType = self::CALL_TYPE_LLM,
         private readonly bool $public = false,
+        private readonly ?N8nWebhookService $webhooks = null,
     ) {
         if (!in_array($callType, [self::CALL_TYPE_LLM, self::CALL_TYPE_EMBEDDING], true)) {
             throw new InvalidArgumentException('Tipo de llamada global de Numa no soportado.');
@@ -84,8 +88,13 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
      */
     public function iniciarLlamada(): void
     {
+        $hadOpenTransaction = $this->db()->inTransaction();
         $reservation = $this->prepararLlamada();
         $this->confirmarLlamada($reservation);
+
+        if (!$hadOpenTransaction && !$this->db()->inTransaction()) {
+            $this->afterCommit();
+        }
     }
 
     /** @return array{input:int,output:int} */
@@ -120,6 +129,22 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
             && ($last['output'] ?? null) === ($reservation['output'] ?? null)
         ) {
             array_pop($this->pendingTokenReservations);
+            $this->dailyUsageAlertPending = false;
+        }
+    }
+
+    public function afterCommit(): void
+    {
+        if (!$this->dailyUsageAlertPending) {
+            return;
+        }
+
+        $this->dailyUsageAlertPending = false;
+
+        try {
+            ($this->webhooks ?? new N8nWebhookService())->notifyNumaUsageAlert();
+        } catch (Throwable) {
+            // El consumo de Numa ya esta confirmado y no depende de n8n.
         }
     }
 
@@ -206,6 +231,10 @@ final class NumaConsumoGlobal implements NumaProviderDeferredConsumptionInterfac
                 'input' => $reservedInputTokens,
                 'output' => $reservedOutputTokens,
             ];
+            $alertThreshold = (int) ceil($this->dailyCallLimit() * 0.5);
+            $this->dailyUsageAlertPending = $alertThreshold > 0
+                && $dailyCalls < $alertThreshold
+                && $dailyCalls + 1 >= $alertThreshold;
 
             if ($started) {
                 $db->commit();

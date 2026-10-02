@@ -265,12 +265,12 @@ class Usuario{
                 SET email_verificado_en = NOW(),
                     email_verification_token_hash = NULL,
                     email_verification_expires_at = NULL
-                WHERE id = :id";
+                WHERE id = :id AND email_verificado_en IS NULL";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':id', $idUsuario, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            return $stmt->execute() && $stmt->rowCount() === 1;
         }
         catch(PDOException $e){
             return false;

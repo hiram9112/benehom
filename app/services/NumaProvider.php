@@ -28,6 +28,11 @@ interface NumaProviderDeferredConsumptionInterface extends NumaProviderConsumpti
     public function conexionTransaccional(): PDO;
 }
 
+interface NumaProviderPostCommitInterface
+{
+    public function afterCommit(): void;
+}
+
 /** Receives the conservative estimate from the serialized provider payload. */
 interface NumaProviderInputEstimateInterface
 {
@@ -102,6 +107,18 @@ final class NumaProviderConsumptionChain implements NumaProviderConsumptionInter
 
             $connection->commit();
             $transactionStarted = false;
+
+            foreach ($prepared as $entry) {
+                if (!$entry['consumer'] instanceof NumaProviderPostCommitInterface) {
+                    continue;
+                }
+
+                try {
+                    $entry['consumer']->afterCommit();
+                } catch (Throwable) {
+                    // Las integraciones auxiliares nunca invalidan consumo ya confirmado.
+                }
+            }
         } catch (Throwable $exception) {
             if ($transactionStarted && $connection !== null && $connection->inTransaction()) {
                 $connection->rollBack();

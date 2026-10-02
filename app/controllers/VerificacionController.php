@@ -1,9 +1,13 @@
 <?php
 require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../models/IntentoAcceso.php';
+require_once __DIR__ . '/../services/N8nWebhookService.php';
 
 class VerificacionController {
 
+    private const VERIFICACION_INVALIDA = 'invalid';
+    private const VERIFICACION_FALLIDA = 'failed';
+    private const VERIFICACION_CORRECTA = 'verified';
     private const VERIFICACION_MAX_SOLICITUDES = 3;
     private const VERIFICACION_VENTANA_SEGUNDOS = 3600;
     private const VERIFICACION_BLOQUEO_SEGUNDOS = 3600;
@@ -17,16 +21,15 @@ class VerificacionController {
             exit;
         }
 
-        $tokenHash = hash('sha256', $token);
-        $usuario = Usuario::obtenerUsuarioPorTokenVerificacion($tokenHash);
+        $resultado = $this->verificarToken($token);
 
-        if (!$usuario) {
+        if ($resultado === self::VERIFICACION_INVALIDA) {
             $_SESSION['mensaje_error'] = 'El enlace de verificación es inválido o ha expirado.';
             header('Location: ' . bh_page_url('auth/login'));
             exit;
         }
 
-        if (!Usuario::marcarEmailVerificado($usuario['id'])) {
+        if ($resultado === self::VERIFICACION_FALLIDA) {
             $_SESSION['mensaje_error'] = 'No se pudo verificar el email. Solicita un nuevo enlace.';
             header('Location: ' . bh_page_url('verificacion/mostrarFormularioReenvio'));
             exit;
@@ -35,6 +38,33 @@ class VerificacionController {
         $_SESSION['mensaje_exitoso'] = 'Email verificado. Ya puedes iniciar sesión.';
         header('Location: ' . bh_page_url('auth/login'));
         exit;
+    }
+
+    protected function verificarToken(string $token): string
+    {
+        $usuario = Usuario::obtenerUsuarioPorTokenVerificacion(hash('sha256', $token));
+
+        if (!$usuario) {
+            return self::VERIFICACION_INVALIDA;
+        }
+
+        if (!$this->confirmarEmailVerificado((int) $usuario['id'])) {
+            return self::VERIFICACION_FALLIDA;
+        }
+
+        $this->n8nWebhooks()->notifyVerifiedUser((int) $usuario['id'], (string) $usuario['usuario']);
+
+        return self::VERIFICACION_CORRECTA;
+    }
+
+    protected function confirmarEmailVerificado(int $userId): bool
+    {
+        return Usuario::marcarEmailVerificado($userId);
+    }
+
+    protected function n8nWebhooks(): N8nWebhookService
+    {
+        return new N8nWebhookService();
     }
 
     public function mostrarFormularioReenvio(){

@@ -46,7 +46,7 @@ BeneHom mantiene una arquitectura deliberadamente directa, sin framework PHP gen
 | Backend | PHP con controladores, modelos PDO, servicios y vistas renderizadas en servidor. Las clases se conectan mediante `require_once` explícitos. |
 | Datos | MySQL/MariaDB. `database/schema.sql` es el esquema canónico para instalaciones nuevas e incluye datos financieros, autenticación, límites de acceso, consumo de Numa e índice vectorial. |
 | Frontend | HTML y CSS propios, JavaScript sin framework, Fetch API y componentes apoyados en Bootstrap. Chart.js y Flatpickr se usan en el dashboard; GSAP y Lenis aportan interacción y movimiento con degradación controlada. |
-| Integraciones | PHPMailer para correo transaccional y Gemini API para generación y embeddings. |
+| Integraciones | PHPMailer para correo transaccional, Gemini API para generación y embeddings, y n8n self-hosted para automatizaciones administrativas autenticadas por webhook. |
 | Build | Composer gestiona PHP y la minificación CSS; npm copia versiones bloqueadas de GSAP y Lenis a los assets públicos. |
 
 `public/` es siempre el DocumentRoot. El código de aplicación, la configuración, el esquema, las dependencias y los secretos permanecen fuera de la raíz pública.

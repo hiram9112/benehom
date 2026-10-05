@@ -6,6 +6,7 @@ namespace Hiram9112\Benehom\Mcp;
 
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use Mcp\Schema\ServerCapabilities;
+use Mcp\Schema\Tool;
 use Mcp\Server;
 use Mcp\Server\Session\FileSessionStore;
 use Mcp\Server\Transport\Http\Middleware\CorsMiddleware;
@@ -24,13 +25,23 @@ final class BenehomMcpServer
     /** @var non-empty-string */
     private string $sessionDirectory;
 
+    private McpFinancialDataToolAdapter $financialDataTool;
+
     /**
      * @param list<string>|null $allowedHosts
      */
-    public function __construct(?string $sessionDirectory = null, ?array $allowedHosts = null)
-    {
+    public function __construct(
+        ?string $sessionDirectory = null,
+        ?array $allowedHosts = null,
+        ?\NumaFinancialToolRegistryInterface $financialTools = null,
+        ?int $authenticatedUserId = null,
+    ) {
         $this->sessionDirectory = $sessionDirectory ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . '/benehom-mcp-sessions';
         $this->allowedHosts = $allowedHosts ?? $this->allowedHosts();
+        $this->financialDataTool = new McpFinancialDataToolAdapter(
+            $financialTools ?? new \NumaFinancialToolRegistry(),
+            $authenticatedUserId,
+        );
     }
 
     public function emitFromGlobals(): void
@@ -43,6 +54,7 @@ final class BenehomMcpServer
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        $definition = (new \NumaFinancialDataToolContract())->functionDeclaration();
         $server = Server::builder()
             ->setServerInfo('BeneHom MCP', '0.1.0', 'Servidor MCP de BeneHom.')
             ->setCapabilities(new ServerCapabilities(
@@ -57,6 +69,14 @@ final class BenehomMcpServer
                 completions: false,
             ))
             ->setSession(new FileSessionStore($this->sessionDirectory))
+            ->add(new Tool(
+                name: $definition['name'],
+                title: null,
+                inputSchema: $definition['parameters'],
+                description: $definition['description']
+                    . ' Los periodos deben enviarse en formato canónico YYYY-MM; no interpreta expresiones temporales en lenguaje natural.',
+                annotations: null,
+            ), $this->financialDataTool)
             ->build();
 
         return $server->run(new StreamableHttpTransport(

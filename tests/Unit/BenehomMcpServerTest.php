@@ -33,7 +33,7 @@ final class BenehomMcpServerTest extends TestCase
         parent::tearDown();
     }
 
-    public function testInicializaYListaToolsVacia(): void
+    public function testInicializaYExponeLaConsultaFinancieraCanonica(): void
     {
         $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test']);
         $initialize = $server->handle($this->request([
@@ -67,7 +67,104 @@ final class BenehomMcpServerTest extends TestCase
 
         self::assertSame(200, $tools->getStatusCode());
         $payload = json_decode((string) $tools->getBody(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame([], $payload['result']['tools']);
+        self::assertCount(1, $payload['result']['tools']);
+        $tool = $payload['result']['tools'][0];
+        self::assertSame('consultar_datos_financieros', $tool['name']);
+        self::assertSame(['periodos'], $tool['inputSchema']['required']);
+        self::assertFalse($tool['inputSchema']['additionalProperties']);
+        self::assertArrayNotHasKey('usuario_id', $tool['inputSchema']['properties']);
+        self::assertArrayNotHasKey('user_id', $tool['inputSchema']['properties']);
+        self::assertStringContainsString('YYYY-MM', $tool['description']);
+        self::assertStringContainsString('no interpreta expresiones temporales', $tool['description']);
+        self::assertArrayNotHasKey('outputSchema', $tool);
+    }
+
+    public function testEjecutaLaConsultaConElUsuarioAutenticadoInyectado(): void
+    {
+        $registry = new McpFinancialToolRegistryFake(['tool' => 'consultar_datos_financieros', 'meses' => []]);
+        $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test'], $registry, 42);
+        $sessionId = $this->initialise($server);
+
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'consultar_datos_financieros',
+                'arguments' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+            ],
+        ], $sessionId));
+
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(42, $registry->authenticatedUserId);
+        self::assertSame('consultar_datos_financieros', $registry->name);
+        self::assertSame([['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']], $registry->arguments['periodos']);
+        self::assertSame(['tool' => 'consultar_datos_financieros', 'meses' => []], $payload['result']['structuredContent']);
+        self::assertFalse($payload['result']['isError']);
+    }
+
+    public function testRechazaLaToolSinUnaIdentidadAutenticada(): void
+    {
+        $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test']);
+        $sessionId = $this->initialise($server);
+
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'consultar_datos_financieros',
+                'arguments' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+            ],
+        ], $sessionId));
+
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertTrue($payload['result']['isError']);
+        self::assertSame('No se ha podido autenticar la consulta financiera.', $payload['result']['content'][0]['text']);
+    }
+
+    public function testRechazaIdentificadoresDeUsuarioEnLosArgumentos(): void
+    {
+        $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test']);
+        $sessionId = $this->initialise($server);
+
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'consultar_datos_financieros',
+                'arguments' => [
+                    'periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']],
+                    'usuario_id' => 1,
+                ],
+            ],
+        ], $sessionId));
+
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(-32602, $payload['error']['code']);
+        self::assertStringNotContainsString('SQL', $payload['error']['message']);
+    }
+
+    private function initialise(BenehomMcpServer $server): string
+    {
+        $initialize = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [
+                'protocolVersion' => '2025-11-25',
+                'clientInfo' => ['name' => 'phpunit', 'version' => '1.0.0'],
+                'capabilities' => new \stdClass(),
+            ],
+        ]));
+        $sessionId = $initialize->getHeaderLine('Mcp-Session-Id');
+        $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'method' => 'notifications/initialized',
+        ], $sessionId));
+
+        return $sessionId;
     }
 
     /**
@@ -92,5 +189,44 @@ final class BenehomMcpServerTest extends TestCase
             $headers,
             Stream::create(json_encode($payload, JSON_THROW_ON_ERROR)),
         );
+    }
+}
+
+final class McpFinancialToolRegistryFake implements \NumaFinancialToolRegistryInterface
+{
+    /** @var array<string, mixed> */
+    public array $arguments = [];
+
+    public string $name = '';
+
+    public int $authenticatedUserId = 0;
+
+    /** @param array<string, mixed> $result */
+    public function __construct(private readonly array $result)
+    {
+    }
+
+    public function names(): array
+    {
+        return ['consultar_datos_financieros'];
+    }
+
+    public function get(string $name): \NumaFinancialToolDefinition
+    {
+        throw new \LogicException('No debe utilizarse en esta prueba.');
+    }
+
+    public function validate(string $name, int $authenticatedUserId, array $arguments): array
+    {
+        throw new \LogicException('No debe utilizarse en esta prueba.');
+    }
+
+    public function execute(string $name, int $authenticatedUserId, array $arguments): array
+    {
+        $this->name = $name;
+        $this->authenticatedUserId = $authenticatedUserId;
+        $this->arguments = $arguments;
+
+        return $this->result;
     }
 }

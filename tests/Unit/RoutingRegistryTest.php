@@ -82,6 +82,7 @@ final class RoutingRegistryTest extends TestCase
             'numa/public/chat',
             'numa/public/status',
             'numa/public/conversation/new',
+            'mcp/server',
         ];
 
         foreach ($expected as $route) {
@@ -210,6 +211,18 @@ final class RoutingRegistryTest extends TestCase
     public function testRutaNoRegistrada(): void
     {
         self::assertNull(\bh_route_definition('no/existe'));
+    }
+
+    public function testRutaMcpPublicaPermiteElTransporteStreamableHttp(): void
+    {
+        $route = \bh_route_definition('mcp/server');
+
+        self::assertSame('McpController', $route['controller']);
+        self::assertSame('server', $route['action']);
+        self::assertSame(['POST', 'DELETE', 'OPTIONS'], $route['methods']);
+        self::assertTrue($route['public']);
+        self::assertSame('json', $route['response']);
+        self::assertFalse($route['csrf']);
     }
 
     public function testMetodoHttpIncorrecto(): void

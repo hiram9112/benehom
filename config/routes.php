@@ -448,4 +448,12 @@ return [
         'response' => 'json',
         'csrf' => false,
     ],
+    'mcp/server' => [
+        'controller' => 'McpController',
+        'action' => 'server',
+        'methods' => ['POST', 'DELETE', 'OPTIONS'],
+        'public' => true,
+        'response' => 'json',
+        'csrf' => false,
+    ],
 ];

@@ -11,6 +11,9 @@ RewriteRule ^ https://benehom.es%{REQUEST_URI} [R=301,L]
 
 RewriteRule ^$ index.php?r=home/index [L,QSD]
 
+# El endpoint MCP requiere POST, DELETE y OPTIONS, por lo que no se limita a GET.
+RewriteRule ^mcp/?$ index.php?r=mcp/server [L,QSD]
+
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]

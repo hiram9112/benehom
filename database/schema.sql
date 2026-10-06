@@ -183,3 +183,19 @@ CREATE TABLE numa_conocimiento (
   KEY numa_conocimiento_documento_idx (documento),
   KEY numa_conocimiento_hash_idx (hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE mcp_personal_access_tokens (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  nombre VARCHAR(100) NOT NULL,
+  selector CHAR(32) NOT NULL,
+  secret_hash VARCHAR(255) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_used_at DATETIME NULL,
+  revoked_at DATETIME NULL,
+  UNIQUE KEY mcp_personal_access_tokens_selector_unique (selector),
+  KEY mcp_personal_access_tokens_usuario_id_idx (usuario_id),
+  CONSTRAINT mcp_personal_access_tokens_usuario_fk
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

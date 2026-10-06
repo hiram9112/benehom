@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Hiram9112\Benehom\Mcp;
 
+require_once dirname(__DIR__) . '/models/McpPersonalAccessToken.php';
+
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use Mcp\Schema\ServerCapabilities;
 use Mcp\Schema\Tool;
@@ -27,6 +29,11 @@ final class BenehomMcpServer
 
     private McpFinancialDataToolAdapter $financialDataTool;
 
+    /** @var \Closure(string): ?int */
+    private \Closure $authenticatePat;
+
+    private McpAuthenticatedUserContext $authenticatedUser;
+
     /**
      * @param list<string>|null $allowedHosts
      */
@@ -34,14 +41,13 @@ final class BenehomMcpServer
         ?string $sessionDirectory = null,
         ?array $allowedHosts = null,
         ?\NumaFinancialToolRegistryInterface $financialTools = null,
-        ?int $authenticatedUserId = null,
+        ?callable $authenticatePat = null,
     ) {
         $this->sessionDirectory = $sessionDirectory ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . '/benehom-mcp-sessions';
         $this->allowedHosts = $allowedHosts ?? $this->allowedHosts();
-        $this->financialDataTool = new McpFinancialDataToolAdapter(
-            $financialTools ?? new \NumaFinancialToolRegistry(),
-            $authenticatedUserId,
-        );
+        $this->authenticatedUser = new McpAuthenticatedUserContext();
+        $this->financialDataTool = new McpFinancialDataToolAdapter($financialTools ?? new \NumaFinancialToolRegistry(), $this->authenticatedUser);
+        $this->authenticatePat = \Closure::fromCallable($authenticatePat ?? [\McpPersonalAccessToken::class, 'authenticate']);
     }
 
     public function emitFromGlobals(): void
@@ -84,6 +90,7 @@ final class BenehomMcpServer
             middleware: [
                 new CorsMiddleware(),
                 new DnsRebindingProtectionMiddleware($this->allowedHosts),
+                new McpPatAuthenticationMiddleware($this->authenticatePat, $this->authenticatedUser, new Psr17Factory()),
             ],
         ));
     }

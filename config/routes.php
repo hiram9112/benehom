@@ -456,4 +456,18 @@ return [
         'response' => 'json',
         'csrf' => false,
     ],
+    'cuenta/crearTokenMcp' => [
+        'controller' => 'CuentaController',
+        'action' => 'crearTokenMcp',
+        'methods' => ['POST'],
+        'public' => false,
+        'response' => 'html',
+    ],
+    'cuenta/revocarTokenMcp' => [
+        'controller' => 'CuentaController',
+        'action' => 'revocarTokenMcp',
+        'methods' => ['POST'],
+        'public' => false,
+        'response' => 'html',
+    ],
 ];

@@ -53,6 +53,8 @@ final class RoutingRegistryTest extends TestCase
             'cuenta/cambiarPassword',
             'cuenta/eliminarCuenta',
             'cuenta/exportarDatos',
+            'cuenta/crearTokenMcp',
+            'cuenta/revocarTokenMcp',
             'proyecciones/index',
             'proyecciones/simularCategoriaAjax',
             'proyecciones/crearEscenarioInversion',
@@ -223,6 +225,23 @@ final class RoutingRegistryTest extends TestCase
         self::assertTrue($route['public']);
         self::assertSame('json', $route['response']);
         self::assertFalse($route['csrf']);
+    }
+
+    public function testRutasDeGestionMcpPertenecenACuentaYSonPrivadasConCsrf(): void
+    {
+        $create = \bh_route_definition('cuenta/crearTokenMcp');
+        $revoke = \bh_route_definition('cuenta/revocarTokenMcp');
+
+        self::assertSame('CuentaController', $create['controller']);
+        self::assertSame('crearTokenMcp', $create['action']);
+        self::assertSame(['POST'], $create['methods']);
+        self::assertFalse($create['public']);
+        self::assertTrue(\bh_route_requires_global_csrf($create));
+        self::assertSame('CuentaController', $revoke['controller']);
+        self::assertSame('revocarTokenMcp', $revoke['action']);
+        self::assertSame(['POST'], $revoke['methods']);
+        self::assertFalse($revoke['public']);
+        self::assertTrue(\bh_route_requires_global_csrf($revoke));
     }
 
     public function testMetodoHttpIncorrecto(): void

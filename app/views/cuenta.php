@@ -1,6 +1,9 @@
 <?php
 require_once APP_PATH . '/views/partials/head.php';
 
+$createdMcpToken = $createdMcpToken ?? null;
+$mcpTokens = $mcpTokens ?? [];
+
 bh_document_begin([
     'title' => 'Cuenta',
     'description' => 'Área privada de BeneHom para gestionar los datos de cuenta, contraseña y eliminación de perfil.',
@@ -144,6 +147,72 @@ bh_document_begin([
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <div class="bh-card mb-4">
+                <div class="bh-card-header">
+                    <h2 class="m-0 bh-card-section-title" id="mcpAccessTitle">Acceso MCP</h2>
+                </div>
+                <div class="bh-card-body">
+                    <p>Crea un token personal para conectar un cliente MCP a tus consultas financieras de solo lectura. No compartas el token.</p>
+
+                    <form method="POST" action="index.php?r=cuenta/crearTokenMcp" class="bh-form mb-4">
+                        <?= csrf_field() ?>
+                        <div class="bh-field">
+                            <label class="bh-label" for="mcp_token_nombre">Nombre del token</label>
+                            <input class="bh-input" id="mcp_token_nombre" name="nombre" type="text" maxlength="100" required autocomplete="off" placeholder="Por ejemplo, Claude">
+                        </div>
+                        <div class="bh-field">
+                            <button class="bh-btn bh-btn-primary" type="submit">Crear token MCP</button>
+                        </div>
+                    </form>
+
+                    <?php if (is_string($createdMcpToken)): ?>
+                        <div class="bh-field" role="status" aria-labelledby="mcpTokenCreatedTitle">
+                            <h3 class="bh-account-danger-subtitle" id="mcpTokenCreatedTitle">Guarda tu token ahora</h3>
+                            <p>Este es el único momento en que BeneHom muestra el secreto completo.</p>
+                            <textarea class="bh-input" rows="3" readonly aria-label="Token MCP creado"><?= htmlspecialchars($createdMcpToken, ENT_QUOTES, 'UTF-8') ?></textarea>
+                        </div>
+                    <?php endif; ?>
+
+                    <h3 class="bh-account-danger-subtitle">Tus tokens MCP</h3>
+                    <?php if ($mcpTokens === []): ?>
+                        <p class="m-0">Aún no has creado ningún token MCP.</p>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Nombre</th>
+                                        <th scope="col">Creado</th>
+                                        <th scope="col">Último uso</th>
+                                        <th scope="col">Estado</th>
+                                        <th scope="col"><span class="visually-hidden">Acción</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($mcpTokens as $mcpToken): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($mcpToken['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td><?= htmlspecialchars($mcpToken['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td><?= htmlspecialchars($mcpToken['last_used_at'] ?? 'Sin uso', ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td><?= $mcpToken['revoked_at'] === null ? 'Activo' : 'Revocado' ?></td>
+                                            <td>
+                                                <?php if ($mcpToken['revoked_at'] === null): ?>
+                                                    <form method="POST" action="index.php?r=cuenta/revocarTokenMcp">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="token_id" value="<?= (int) $mcpToken['id'] ?>">
+                                                        <button class="bh-btn bh-btn-danger" type="submit">Revocar</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 

@@ -15,7 +15,7 @@ final class McpFinancialDataToolAdapter implements ToolHandlerInterface
 {
     public function __construct(
         private readonly \NumaFinancialToolRegistryInterface $financialTools,
-        private readonly ?int $authenticatedUserId,
+        private readonly McpAuthenticatedUserContext $authenticatedUser,
     ) {
     }
 
@@ -24,14 +24,15 @@ final class McpFinancialDataToolAdapter implements ToolHandlerInterface
      */
     public function execute(array $arguments, ClientGateway $gateway): mixed
     {
-        if ($this->authenticatedUserId === null || $this->authenticatedUserId <= 0) {
+        $authenticatedUserId = $this->authenticatedUser->authenticatedUserId();
+        if ($authenticatedUserId === null) {
             return $this->error('No se ha podido autenticar la consulta financiera.');
         }
 
         try {
             return $this->financialTools->execute(
                 \NumaFinancialDataToolContract::NAME,
-                $this->authenticatedUserId,
+                $authenticatedUserId,
                 $arguments,
             );
         } catch (\NumaFinancialToolInputIncomplete | \InvalidArgumentException) {

@@ -35,7 +35,12 @@ final class BenehomMcpServerTest extends TestCase
 
     public function testInicializaYExponeLaConsultaFinancieraCanonica(): void
     {
-        $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test']);
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            null,
+            static fn (string $token): ?int => $token === 'test-pat' ? 42 : null,
+        );
         $initialize = $server->handle($this->request([
             'jsonrpc' => '2.0',
             'id' => 1,
@@ -82,7 +87,12 @@ final class BenehomMcpServerTest extends TestCase
     public function testEjecutaLaConsultaConElUsuarioAutenticadoInyectado(): void
     {
         $registry = new McpFinancialToolRegistryFake(['tool' => 'consultar_datos_financieros', 'meses' => []]);
-        $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test'], $registry, 42);
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            $registry,
+            static fn (string $token): ?int => $token === 'test-pat' ? 42 : null,
+        );
         $sessionId = $this->initialise($server);
 
         $response = $server->handle($this->request([
@@ -103,29 +113,101 @@ final class BenehomMcpServerTest extends TestCase
         self::assertFalse($payload['result']['isError']);
     }
 
-    public function testRechazaLaToolSinUnaIdentidadAutenticada(): void
+    public function testRechazaAuthorizationAusenteSinValidarCredenciales(): void
     {
-        $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test']);
-        $sessionId = $this->initialise($server);
+        $validationCalls = 0;
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            null,
+            static function (string $token) use (&$validationCalls): ?int {
+                ++$validationCalls;
+                return null;
+            },
+        );
 
         $response = $server->handle($this->request([
             'jsonrpc' => '2.0',
-            'id' => 3,
-            'method' => 'tools/call',
+            'id' => 1,
+            'method' => 'initialize',
             'params' => [
-                'name' => 'consultar_datos_financieros',
-                'arguments' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+                'protocolVersion' => '2025-11-25',
+                'clientInfo' => ['name' => 'phpunit', 'version' => '1.0.0'],
+                'capabilities' => new \stdClass(),
             ],
-        ], $sessionId));
+        ], null, null));
 
-        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertTrue($payload['result']['isError']);
-        self::assertSame('No se ha podido autenticar la consulta financiera.', $payload['result']['content'][0]['text']);
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame('Bearer', $response->getHeaderLine('WWW-Authenticate'));
+        self::assertSame(0, $validationCalls);
+    }
+
+    public function testRechazaBearerMalFormadoSinValidarCredenciales(): void
+    {
+        $validationCalls = 0;
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            null,
+            static function (string $token) use (&$validationCalls): ?int {
+                ++$validationCalls;
+                return null;
+            },
+        );
+
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [
+                'protocolVersion' => '2025-11-25',
+                'clientInfo' => ['name' => 'phpunit', 'version' => '1.0.0'],
+                'capabilities' => new \stdClass(),
+            ],
+        ], null, 'Basic credencial-invalida'));
+
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame('Bearer', $response->getHeaderLine('WWW-Authenticate'));
+        self::assertSame(0, $validationCalls);
+    }
+
+    public function testRechazaBearerDesconocidoDespuesDeValidarlo(): void
+    {
+        $receivedToken = null;
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            null,
+            static function (string $token) use (&$receivedToken): ?int {
+                $receivedToken = $token;
+                return null;
+            },
+        );
+
+        $unknownToken = 'bhmcp_' . str_repeat('f', 32) . '_' . str_repeat('a', 64);
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [
+                'protocolVersion' => '2025-11-25',
+                'clientInfo' => ['name' => 'phpunit', 'version' => '1.0.0'],
+                'capabilities' => new \stdClass(),
+            ],
+        ], null, 'Bearer ' . $unknownToken));
+
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame($unknownToken, $receivedToken);
     }
 
     public function testRechazaIdentificadoresDeUsuarioEnLosArgumentos(): void
     {
-        $server = new BenehomMcpServer($this->sessionDirectory, ['benehom.test']);
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            null,
+            static fn (string $token): ?int => $token === 'test-pat' ? 42 : null,
+        );
         $sessionId = $this->initialise($server);
 
         $response = $server->handle($this->request([
@@ -170,13 +252,21 @@ final class BenehomMcpServerTest extends TestCase
     /**
      * @param array<string, mixed> $payload
      */
-    private function request(array $payload, ?string $sessionId = null): ServerRequest
+    private function request(
+        array $payload,
+        ?string $sessionId = null,
+        ?string $authorization = 'Bearer test-pat',
+    ): ServerRequest
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
             'Content-Type' => 'application/json',
             'Host' => 'benehom.test',
         ];
+
+        if ($authorization !== null) {
+            $headers['Authorization'] = $authorization;
+        }
 
         if ($sessionId !== null) {
             $headers['Mcp-Session-Id'] = $sessionId;

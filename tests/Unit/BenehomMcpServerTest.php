@@ -228,6 +228,168 @@ final class BenehomMcpServerTest extends TestCase
         self::assertStringNotContainsString('SQL', $payload['error']['message']);
     }
 
+    public function testRechazaArgumentosIncompletosSinEjecutarLaTool(): void
+    {
+        $registry = new McpFinancialToolRegistryFake(['meses' => []]);
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            $registry,
+            static fn (string $token): ?int => $token === 'test-pat' ? 42 : null,
+        );
+        $sessionId = $this->initialise($server);
+
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'consultar_datos_financieros',
+                'arguments' => [],
+            ],
+        ], $sessionId));
+
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(-32602, $payload['error']['code']);
+        self::assertSame(0, $registry->executeCalls);
+    }
+
+    public function testRechazaToolsDesconocidasSinExponerDetallesInternos(): void
+    {
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            null,
+            static fn (string $token): ?int => $token === 'test-pat' ? 42 : null,
+        );
+        $sessionId = $this->initialise($server);
+
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'tool_desconocida',
+                'arguments' => [],
+            ],
+        ], $sessionId));
+
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(-32602, $payload['error']['code']);
+        self::assertStringNotContainsString('SQL', $payload['error']['message']);
+        self::assertStringNotContainsString('stack', strtolower($payload['error']['message']));
+    }
+
+    public function testSaneaUnErrorDeBaseDeDatosDeLaTool(): void
+    {
+        $registry = new McpFinancialToolRegistryFake(new \PDOException(
+            'SQLSTATE[HY000] [2006] MySQL server has gone away; SELECT * FROM usuarios WHERE id = 987',
+            2006,
+        ));
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            $registry,
+            static fn (string $token): ?int => $token === 'test-pat' ? 42 : null,
+        );
+        $sessionId = $this->initialise($server);
+
+        $response = $server->handle($this->request([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'consultar_datos_financieros',
+                'arguments' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+            ],
+        ], $sessionId));
+
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        $serialized = json_encode($payload, JSON_THROW_ON_ERROR);
+        self::assertTrue($payload['result']['isError']);
+        self::assertStringContainsString('No hemos podido procesar la consulta financiera.', $serialized);
+        self::assertStringNotContainsString('SQLSTATE', $serialized);
+        self::assertStringNotContainsString('SELECT', $serialized);
+        self::assertStringNotContainsString('usuarios', $serialized);
+        self::assertStringNotContainsString('987', $serialized);
+    }
+
+    public function testSaneaRespuestaYLogsAnteUnErrorInesperadoDeLaTool(): void
+    {
+        $completePat = 'bhmcp_' . str_repeat('a', 32) . '_' . str_repeat('b', 64);
+        $hash = '$2y$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu';
+        $sensitiveDetails = implode(' | ', [
+            $completePat,
+            $hash,
+            'SELECT secret_hash FROM mcp_personal_access_tokens',
+            'Stack trace: #0 /var/www/html/benehom/app/Mcp/McpFinancialDataToolAdapter.php(33)',
+            'Authorization: Bearer credencial-supersecreta',
+            'usuario_id=987 token_id=654 other-user@example.test',
+        ]);
+        $registry = new McpFinancialToolRegistryFake(new \RuntimeException($sensitiveDetails));
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            $registry,
+            static fn (string $token): ?int => $token === 'test-pat' ? 42 : null,
+        );
+        $sessionId = $this->initialise($server);
+
+        $logPath = sys_get_temp_dir() . '/benehom-mcp-error-' . bin2hex(random_bytes(8)) . '.log';
+        $previousLogErrors = ini_get('log_errors');
+        $previousErrorLog = ini_get('error_log');
+        ini_set('log_errors', '1');
+        ini_set('error_log', $logPath);
+
+        try {
+            $response = $server->handle($this->request([
+                'jsonrpc' => '2.0',
+                'id' => 3,
+                'method' => 'tools/call',
+                'params' => [
+                    'name' => 'consultar_datos_financieros',
+                    'arguments' => ['periodos' => [['mes_inicio' => '2026-07', 'mes_fin' => '2026-07']]],
+                ],
+            ], $sessionId));
+            $logged = is_file($logPath) ? (string) file_get_contents($logPath) : '';
+        } finally {
+            ini_set('log_errors', (string) $previousLogErrors);
+            ini_set('error_log', (string) $previousErrorLog);
+
+            if (is_file($logPath)) {
+                unlink($logPath);
+            }
+        }
+
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertTrue($payload['result']['isError']);
+        self::assertStringContainsString(
+            'No hemos podido procesar la consulta financiera.',
+            json_encode($payload, JSON_THROW_ON_ERROR),
+        );
+
+        foreach ([
+            $completePat,
+            $hash,
+            'SELECT',
+            'secret_hash',
+            'Stack trace',
+            '/var/www/html/benehom',
+            'Authorization',
+            'credencial-supersecreta',
+            'usuario_id',
+            'token_id',
+            '987',
+            '654',
+            'other-user@example.test',
+        ] as $sensitiveValue) {
+            self::assertStringNotContainsString($sensitiveValue, json_encode($payload, JSON_THROW_ON_ERROR));
+            self::assertStringNotContainsString($sensitiveValue, $logged);
+        }
+
+        self::assertSame('', $logged, 'MCP usa el NullLogger del SDK y no debe derivar errores capturados al error_log de PHP.');
+    }
+
     private function initialise(BenehomMcpServer $server): string
     {
         $initialize = $server->handle($this->request([
@@ -291,8 +453,10 @@ final class McpFinancialToolRegistryFake implements \NumaFinancialToolRegistryIn
 
     public int $authenticatedUserId = 0;
 
-    /** @param array<string, mixed> $result */
-    public function __construct(private readonly array $result)
+    public int $executeCalls = 0;
+
+    /** @param array<string, mixed>|\Throwable $result */
+    public function __construct(private readonly array|\Throwable $result)
     {
     }
 
@@ -313,9 +477,14 @@ final class McpFinancialToolRegistryFake implements \NumaFinancialToolRegistryIn
 
     public function execute(string $name, int $authenticatedUserId, array $arguments): array
     {
+        ++$this->executeCalls;
         $this->name = $name;
         $this->authenticatedUserId = $authenticatedUserId;
         $this->arguments = $arguments;
+
+        if ($this->result instanceof \Throwable) {
+            throw $this->result;
+        }
 
         return $this->result;
     }

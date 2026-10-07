@@ -213,6 +213,38 @@ smoke_release() (
         done
         [[ "$passed" == true ]] || return 1
     done
+
+    # Releases anteriores a MCP no deben fallar al verificarse tras un rollback.
+    if [[ -f "${release_dir}/app/controllers/McpController.php" ]]; then
+        passed=false
+        for attempt in 1 2 3; do
+            if metadata="$(curl --silent --show-error --proto '=https' \
+                --connect-timeout 5 --max-time 15 \
+                --request POST \
+                --header 'Cache-Control: no-cache, no-store, max-age=0' \
+                --header 'Pragma: no-cache' \
+                --header 'Content-Type: application/json' \
+                --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"benehom-deployment-smoke","version":"1.0.0"}}}' \
+                --output "${work_dir}/body" --dump-header "${work_dir}/headers" \
+                --write-out '%{http_code} %{content_type}' \
+                "${SITE_URL}/mcp?__cd=${nonce}-${attempt}")"; then
+                read -r status content_type <<< "$metadata"
+                if [[ "$status" == '401' && ! -s "${work_dir}/body" ]] \
+                    && grep -Eiq '^WWW-Authenticate:[[:space:]]*Bearer[[:space:]]*$' "${work_dir}/headers" \
+                    && grep -Eiq '^Cache-Control:[[:space:]]*no-store[[:space:]]*$' "${work_dir}/headers" \
+                    && ! grep -Eiq '^(Age:[[:space:]]*0*[1-9][0-9]*|X-(Cache|LiteSpeed-Cache):.*hit|CF-Cache-Status:[[:space:]]*(HIT|STALE|UPDATING)|Warning:[[:space:]]*11[01])' "${work_dir}/headers"; then
+                    passed=true
+                fi
+            fi
+            if [[ "$passed" == true ]]; then
+                printf '[OK] HTTPS POST /mcp rejects missing Bearer credentials\n'
+                break
+            fi
+            printf 'Smoke check failed: /mcp (attempt %s/3).\n' "$attempt" >&2
+            if (( attempt < 3 )); then sleep 2 || return 1; fi
+        done
+        [[ "$passed" == true ]] || return 1
+    fi
 )
 
 public_link_matches() {

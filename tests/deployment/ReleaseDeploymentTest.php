@@ -146,10 +146,30 @@ final class ReleaseDeploymentTest extends TestCase
     {
         $cases = [];
         foreach (['home', 'blog', 'html', 'redirect', 'empty-css', 'css-type', 'old-css', 'cache-hit', 'cache-age',
-            'mcp-auth-header', 'mcp-cache-header', 'mcp-body'] as $fault) {
+            'mcp-auth-header'] as $fault) {
             $cases[$fault] = [$fault];
         }
         return $cases;
+    }
+
+    /** @return array<string, array{string}> */
+    public static function nonBlockingResponseVariations(): array
+    {
+        return [
+            'Bearer parameters' => ['mcp-bearer-parameters'],
+            'MCP cache header' => ['mcp-cache-header'],
+            'MCP response body' => ['mcp-body'],
+            'MCP proxy cache headers' => ['mcp-proxy-headers'],
+        ];
+    }
+
+    #[DataProvider('nonBlockingResponseVariations')]
+    public function testNonBlockingResponseVariationsDoNotPreventDeployment(string $fault): void
+    {
+        $this->fault($fault);
+        $result = $this->runScript();
+        self::assertSame(0, $result['code'], $result['stderr']);
+        self::assertSame('releases/abcdef0/public', readlink($this->public));
     }
 
     #[DataProvider('httpFailures')]

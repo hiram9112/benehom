@@ -89,11 +89,20 @@ while (true) {
             $body = 'MCP unavailable';
         } elseif ($fault === 'mcp-auth-header' && $path === '/mcp') {
             unset($extra['WWW-Authenticate']);
+        } elseif ($fault === 'mcp-bearer-parameters' && $path === '/mcp') {
+            $extra['WWW-Authenticate'] = 'Bearer realm="BeneHom MCP"';
         } elseif ($fault === 'mcp-cache-header' && $path === '/mcp') {
             $extra['Cache-Control'] = 'public, max-age=60';
         } elseif ($fault === 'mcp-body' && $path === '/mcp') {
             $contentType = 'application/json';
             $body = '{"protected":"unexpected"}';
+        } elseif ($fault === 'mcp-proxy-headers' && $path === '/mcp') {
+            $extra += [
+                'Age' => '60',
+                'X-Cache' => 'HIT',
+                'X-LiteSpeed-Cache' => 'hit',
+                'CF-Cache-Status' => 'HIT',
+            ];
         } elseif ($path === '/css/app.min.css') {
             if ($fault === 'empty-css') {
                 $body = '';

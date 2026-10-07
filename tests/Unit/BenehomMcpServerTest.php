@@ -142,6 +142,56 @@ final class BenehomMcpServerTest extends TestCase
         self::assertSame(0, $validationCalls);
     }
 
+    public function testConstruyeUnSoloHostDesdeGlobalsSinPuerto(): void
+    {
+        $request = $this->requestFromGlobals('benehom.test');
+
+        self::assertSame(['benehom.test'], $request->getHeader('Host'));
+        self::assertSame('benehom.test', $request->getHeaderLine('Host'));
+    }
+
+    public function testPeticionDesdeGlobalsSinAuthorizationAlcanzaElMiddlewarePat(): void
+    {
+        $validationCalls = 0;
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['localhost'],
+            null,
+            static function (string $token) use (&$validationCalls): ?int {
+                ++$validationCalls;
+                return null;
+            },
+        );
+
+        $request = $this->requestFromGlobals('localhost');
+        $response = $server->handle($request);
+
+        self::assertSame(['localhost'], $request->getHeader('Host'));
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame('Bearer', $response->getHeaderLine('WWW-Authenticate'));
+        self::assertSame(0, $validationCalls);
+    }
+
+    public function testPeticionDesdeGlobalsConHostNoPermitidoSigueDevolviendo403(): void
+    {
+        $validationCalls = 0;
+        $server = new BenehomMcpServer(
+            $this->sessionDirectory,
+            ['benehom.test'],
+            null,
+            static function (string $token) use (&$validationCalls): ?int {
+                ++$validationCalls;
+                return null;
+            },
+        );
+
+        $response = $server->handle($this->requestFromGlobals('not-allowed.test'));
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('Forbidden: Invalid Host header.', (string) $response->getBody());
+        self::assertSame(0, $validationCalls);
+    }
+
     public function testRechazaBearerMalFormadoSinValidarCredenciales(): void
     {
         $validationCalls = 0;
@@ -441,6 +491,38 @@ final class BenehomMcpServerTest extends TestCase
             $headers,
             Stream::create(json_encode($payload, JSON_THROW_ON_ERROR)),
         );
+    }
+
+    private function requestFromGlobals(string $host): \Psr\Http\Message\ServerRequestInterface
+    {
+        $server = $_SERVER;
+        $get = $_GET;
+        $post = $_POST;
+        $cookie = $_COOKIE;
+        $files = $_FILES;
+
+        try {
+            $_SERVER = [
+                'REQUEST_METHOD' => 'POST',
+                'HTTP_HOST' => $host,
+                'SERVER_NAME' => $host,
+                'SERVER_PROTOCOL' => 'HTTP/1.1',
+                'REQUEST_URI' => '/mcp',
+                'QUERY_STRING' => '',
+            ];
+            $_GET = [];
+            $_POST = [];
+            $_COOKIE = [];
+            $_FILES = [];
+
+            return BenehomMcpServer::createRequestFromGlobals();
+        } finally {
+            $_SERVER = $server;
+            $_GET = $get;
+            $_POST = $post;
+            $_COOKIE = $cookie;
+            $_FILES = $files;
+        }
     }
 }
 

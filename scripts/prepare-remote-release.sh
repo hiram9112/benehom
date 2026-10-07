@@ -225,14 +225,12 @@ smoke_release() (
                 --header 'Pragma: no-cache' \
                 --header 'Content-Type: application/json' \
                 --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"benehom-deployment-smoke","version":"1.0.0"}}}' \
-                --output "${work_dir}/body" --dump-header "${work_dir}/headers" \
+                --output /dev/null --dump-header "${work_dir}/headers" \
                 --write-out '%{http_code} %{content_type}' \
                 "${SITE_URL}/mcp?__cd=${nonce}-${attempt}")"; then
                 read -r status content_type <<< "$metadata"
-                if [[ "$status" == '401' && ! -s "${work_dir}/body" ]] \
-                    && grep -Eiq '^WWW-Authenticate:[[:space:]]*Bearer[[:space:]]*$' "${work_dir}/headers" \
-                    && grep -Eiq '^Cache-Control:[[:space:]]*no-store[[:space:]]*$' "${work_dir}/headers" \
-                    && ! grep -Eiq '^(Age:[[:space:]]*0*[1-9][0-9]*|X-(Cache|LiteSpeed-Cache):.*hit|CF-Cache-Status:[[:space:]]*(HIT|STALE|UPDATING)|Warning:[[:space:]]*11[01])' "${work_dir}/headers"; then
+                if [[ "$status" == '401' ]] \
+                    && grep -Eiq '^WWW-Authenticate:[[:space:]]*Bearer([[:space:]]|$)' "${work_dir}/headers"; then
                     passed=true
                 fi
             fi

@@ -46,6 +46,10 @@ final class ReleaseDeploymentTest extends TestCase
             file_put_contents($release . '/public/css/app.min.css', '/* ' . $sha . ' */ body{margin:0}');
             file_put_contents($release . '/RELEASE_SHA', $sha . "\n");
             symlink('../../.env.v2', $release . '/.env');
+            if ($sha !== self::OLD_SHA) {
+                mkdir($release . '/app/controllers', 0755, true);
+                file_put_contents($release . '/app/controllers/McpController.php', "<?php // fixture\n");
+            }
         }
         $this->public = $this->root . '/public_html';
         symlink($this->oldTarget, $this->public);
@@ -101,15 +105,31 @@ final class ReleaseDeploymentTest extends TestCase
         self::assertSame(0, $result['code'], $result['stderr']);
         self::assertSame('releases/abcdef0/public', readlink($this->public));
         $requests = $this->requests();
-        self::assertSame(['/', '/blog', '/css/app.min.css'], array_map(
+        self::assertSame(['/', '/blog', '/css/app.min.css', '/mcp'], array_map(
             static fn (array $request): string => parse_url($request['url'], PHP_URL_PATH), $requests));
-        foreach ($requests as $request) {
+        foreach (array_slice($requests, 0, 3) as $request) {
             self::assertSame('GET', $request['method']);
             self::assertSame('abcdef0', $request['active']);
             parse_str(parse_url($request['url'], PHP_URL_QUERY), $query);
             self::assertStringStartsWith(self::NEW_SHA, $query['__cd']);
             self::assertStringContainsString('no-cache', $request['headers']['cache-control']);
         }
+
+        $mcp = $requests[3];
+        self::assertSame('POST', $mcp['method']);
+        self::assertSame('abcdef0', $mcp['active']);
+        self::assertSame('application/json', $mcp['headers']['content-type']);
+        self::assertArrayNotHasKey('authorization', $mcp['headers']);
+        self::assertSame([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [
+                'protocolVersion' => '2025-11-25',
+                'capabilities' => [],
+                'clientInfo' => ['name' => 'benehom-deployment-smoke', 'version' => '1.0.0'],
+            ],
+        ], json_decode($mcp['body'], true, 512, JSON_THROW_ON_ERROR));
     }
 
     public function testSmokeCommandSuccessAndFailure(): void
@@ -125,7 +145,8 @@ final class ReleaseDeploymentTest extends TestCase
     public static function httpFailures(): array
     {
         $cases = [];
-        foreach (['home', 'blog', 'html', 'redirect', 'empty-css', 'css-type', 'old-css', 'cache-hit', 'cache-age'] as $fault) {
+        foreach (['home', 'blog', 'html', 'redirect', 'empty-css', 'css-type', 'old-css', 'cache-hit', 'cache-age',
+            'mcp-auth-header', 'mcp-cache-header', 'mcp-body'] as $fault) {
             $cases[$fault] = [$fault];
         }
         return $cases;
@@ -136,6 +157,22 @@ final class ReleaseDeploymentTest extends TestCase
     {
         $this->fault($fault);
         $this->assertRollback($this->runScript());
+    }
+
+    public function testMcpFailureRestoresPreMcpReleaseWithoutRequiringItsEndpoint(): void
+    {
+        $this->fault('mcp-status');
+        $result = $this->runScript();
+        $this->assertRollback($result);
+
+        $previousReleaseRequests = array_values(array_filter(
+            $this->requests(),
+            static fn (array $request): bool => $request['active'] === '578b831',
+        ));
+        self::assertSame(['/', '/blog', '/css/app.min.css'], array_map(
+            static fn (array $request): string => parse_url($request['url'], PHP_URL_PATH),
+            $previousReleaseRequests,
+        ));
     }
 
     public function testTransientFailureIsRetried(): void
@@ -308,7 +345,7 @@ BASH);
         file_put_contents($this->root . '/fault', $fault);
     }
 
-    /** @return list<array{method:string, url:string, active:string, headers:array<string,string>}> */
+    /** @return list<array{method:string, url:string, active:string, headers:array<string,string>, body:string}> */
     private function requests(): array
     {
         $path = $this->root . '/requests.jsonl';

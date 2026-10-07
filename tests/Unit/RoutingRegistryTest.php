@@ -53,6 +53,10 @@ final class RoutingRegistryTest extends TestCase
             'cuenta/cambiarPassword',
             'cuenta/eliminarCuenta',
             'cuenta/exportarDatos',
+            'cuenta/crearTokenMcp',
+            'cuenta/crearTokenMcpAjax',
+            'cuenta/revocarTokenMcp',
+            'cuenta/revocarTokenMcpAjax',
             'proyecciones/index',
             'proyecciones/simularCategoriaAjax',
             'proyecciones/crearEscenarioInversion',
@@ -82,6 +86,7 @@ final class RoutingRegistryTest extends TestCase
             'numa/public/chat',
             'numa/public/status',
             'numa/public/conversation/new',
+            'mcp/server',
         ];
 
         foreach ($expected as $route) {
@@ -210,6 +215,51 @@ final class RoutingRegistryTest extends TestCase
     public function testRutaNoRegistrada(): void
     {
         self::assertNull(\bh_route_definition('no/existe'));
+    }
+
+    public function testRutaMcpPublicaPermiteElTransporteStreamableHttp(): void
+    {
+        $route = \bh_route_definition('mcp/server');
+
+        self::assertSame('McpController', $route['controller']);
+        self::assertSame('server', $route['action']);
+        self::assertSame(['POST', 'DELETE', 'OPTIONS'], $route['methods']);
+        self::assertTrue($route['public']);
+        self::assertSame('json', $route['response']);
+        self::assertFalse($route['csrf']);
+    }
+
+    public function testRutasDeGestionMcpPertenecenACuentaYSonPrivadasConCsrf(): void
+    {
+        $create = \bh_route_definition('cuenta/crearTokenMcp');
+        $createAjax = \bh_route_definition('cuenta/crearTokenMcpAjax');
+        $revoke = \bh_route_definition('cuenta/revocarTokenMcp');
+        $revokeAjax = \bh_route_definition('cuenta/revocarTokenMcpAjax');
+
+        self::assertSame('CuentaController', $create['controller']);
+        self::assertSame('crearTokenMcp', $create['action']);
+        self::assertSame(['POST'], $create['methods']);
+        self::assertFalse($create['public']);
+        self::assertTrue(\bh_route_requires_global_csrf($create));
+        self::assertSame('html', $create['response']);
+        self::assertSame('CuentaController', $createAjax['controller']);
+        self::assertSame('crearTokenMcp', $createAjax['action']);
+        self::assertSame(['POST'], $createAjax['methods']);
+        self::assertFalse($createAjax['public']);
+        self::assertSame('json', $createAjax['response']);
+        self::assertTrue(\bh_route_requires_global_csrf($createAjax));
+        self::assertSame('CuentaController', $revoke['controller']);
+        self::assertSame('revocarTokenMcp', $revoke['action']);
+        self::assertSame(['POST'], $revoke['methods']);
+        self::assertFalse($revoke['public']);
+        self::assertTrue(\bh_route_requires_global_csrf($revoke));
+        self::assertSame('html', $revoke['response']);
+        self::assertSame('CuentaController', $revokeAjax['controller']);
+        self::assertSame('revocarTokenMcp', $revokeAjax['action']);
+        self::assertSame(['POST'], $revokeAjax['methods']);
+        self::assertFalse($revokeAjax['public']);
+        self::assertSame('json', $revokeAjax['response']);
+        self::assertTrue(\bh_route_requires_global_csrf($revokeAjax));
     }
 
     public function testMetodoHttpIncorrecto(): void

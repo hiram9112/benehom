@@ -147,6 +147,7 @@ final class NavigationUrlTest extends TestCase
         $htaccess = $this->htaccess();
         $expectedRules = [
             'RewriteRule ^$ index.php?r=home/index [L,QSD]',
+            'RewriteRule ^mcp/?$ index.php?r=mcp/server [L,QSD]',
             'RewriteRule ^iniciar-sesion/?$ index.php?r=auth/login [L,QSD]',
             'RewriteRule ^registro/?$ index.php?r=registro/registrarUsuario [L,QSD]',
             'RewriteRule ^recuperar-contrasena/?$ index.php?r=password/mostrarFormularioOlvido [L,QSD]',

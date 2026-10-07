@@ -102,9 +102,128 @@
     color: var(--bh-text-soft);
 }
 
+.bh-mcp-token-created{
+    display: grid;
+    gap: var(--bh-space-4);
+    margin-bottom: var(--bh-space-6);
+    scroll-margin-top: 5rem;
+    padding: var(--bh-space-5);
+    border: 1px solid var(--bh-brand);
+    border-radius: var(--bh-radius-md);
+    background-color: var(--bh-brand-soft);
+}
+
+.bh-mcp-token-created[hidden]{
+    display: none;
+}
+
+.bh-mcp-token-created:focus{
+    outline: none;
+    box-shadow: var(--bh-focus-ring);
+}
+
+.bh-mcp-token-created-header{
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--bh-space-3);
+}
+
+.bh-mcp-token-created-header > i{
+    color: var(--bh-brand);
+    font-size: var(--bh-text-xl);
+    line-height: var(--bh-line-tight);
+}
+
+.bh-mcp-token-created-header h3{
+    margin: 0 0 var(--bh-space-2);
+    font-family: var(--bh-font-interface);
+    font-size: var(--bh-text-xl);
+    color: var(--bh-brand-deep);
+}
+
+.bh-mcp-token-created-header p{
+    max-width: 68ch;
+    margin: 0;
+    color: var(--bh-info-ink);
+}
+
+.bh-mcp-token-secret{
+    resize: vertical;
+    overflow-wrap: anywhere;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    line-height: var(--bh-line-normal);
+}
+
+.bh-mcp-token-created-actions{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--bh-space-3);
+}
+
+.bh-mcp-copy-status{
+    margin: 0;
+    color: var(--bh-info-ink);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-semibold);
+}
+
+.bh-mcp-token-list{
+    padding-top: var(--bh-space-5);
+    border-top: var(--bh-border-subtle);
+}
+
+.bh-mcp-token-list-actions{
+    display: flex;
+    justify-content: center;
+    margin-top: var(--bh-space-4);
+}
+
+.bh-mcp-token-list-toggle{
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--bh-space-1);
+    padding: var(--bh-space-2) var(--bh-space-3);
+    border: 0;
+    border-radius: var(--bh-radius-sm);
+    background: transparent;
+    color: var(--bh-brand);
+    font-family: var(--bh-font-interface);
+    font-size: var(--bh-text-sm);
+    font-weight: var(--bh-weight-bold);
+}
+
+.bh-mcp-token-list-toggle:hover{
+    color: var(--bh-brand-deep);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.bh-mcp-token-list-toggle:focus-visible{
+    outline: none;
+    box-shadow: var(--bh-focus-ring);
+}
+
+.bh-mcp-token-list-toggle i{
+    font-size: var(--bh-text-md);
+}
+
 @media (min-width: 576px){
     .bh-account-identity-body{
         flex-direction: row;
         align-items: center;
+    }
+}
+
+@media (max-width: 575.98px){
+    .bh-mcp-token-created{
+        padding: var(--bh-space-4);
+    }
+
+    .bh-mcp-token-created-actions .bh-btn{
+        width: 100%;
     }
 }

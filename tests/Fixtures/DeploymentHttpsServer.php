@@ -36,13 +36,24 @@ while (true) {
         [$name, $value] = explode(':', $line, 2);
         $headers[strtolower($name)] = trim($value);
     }
+    $requestBody = '';
+    $contentLength = (int) ($headers['content-length'] ?? 0);
+    while (strlen($requestBody) < $contentLength) {
+        $chunk = fread($client, $contentLength - strlen($requestBody));
+        if ($chunk === false || $chunk === '') {
+            break;
+        }
+        $requestBody .= $chunk;
+    }
     // PHP caches realpath results, whereas the test deliberately changes symlinks.
     clearstatcache(true);
     $public = $root . '/public_html';
-    $active = basename(dirname((string) realpath($public)));
+    $activePublic = (string) realpath($public);
+    $active = basename(dirname($activePublic));
     $path = parse_url($url, PHP_URL_PATH);
     file_put_contents($root . '/requests.jsonl', json_encode([
-        'method' => $method, 'url' => $url, 'active' => $active, 'headers' => $headers,
+        'method' => $method, 'url' => $url, 'active' => $active,
+        'headers' => $headers, 'body' => $requestBody,
     ], JSON_THROW_ON_ERROR) . "\n", FILE_APPEND);
 
     $status = 200;
@@ -54,6 +65,11 @@ while (true) {
     } elseif ($path === '/css/app.min.css') {
         $contentType = 'text/css; charset=UTF-8';
         $body = file_get_contents($public . '/css/app.min.css');
+    } elseif ($path === '/mcp' && is_file(dirname($activePublic) . '/app/controllers/McpController.php')) {
+        $status = 401;
+        $contentType = '';
+        $extra = ['WWW-Authenticate' => 'Bearer', 'Cache-Control' => 'no-store'];
+        $body = '';
     } elseif ($path !== '/') {
         $status = 404;
     }
@@ -66,6 +82,18 @@ while (true) {
         } elseif ($fault === 'redirect' && $path === '/') {
             $status = 302;
             $extra = ['Location' => '/blog'];
+        } elseif ($fault === 'mcp-status' && $path === '/mcp') {
+            $status = 503;
+            $contentType = 'text/plain';
+            $extra = [];
+            $body = 'MCP unavailable';
+        } elseif ($fault === 'mcp-auth-header' && $path === '/mcp') {
+            unset($extra['WWW-Authenticate']);
+        } elseif ($fault === 'mcp-cache-header' && $path === '/mcp') {
+            $extra['Cache-Control'] = 'public, max-age=60';
+        } elseif ($fault === 'mcp-body' && $path === '/mcp') {
+            $contentType = 'application/json';
+            $body = '{"protected":"unexpected"}';
         } elseif ($path === '/css/app.min.css') {
             if ($fault === 'empty-css') {
                 $body = '';

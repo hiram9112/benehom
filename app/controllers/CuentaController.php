@@ -7,20 +7,112 @@ require_once APP_PATH."/models/MetaAhorro.php";
 require_once APP_PATH."/models/EscenarioInversion.php";
 require_once APP_PATH."/models/InflacionProyeccion.php";
 require_once APP_PATH."/models/CalculadoraHipoteca.php";
+require_once APP_PATH."/models/McpPersonalAccessToken.php";
 
 class CuentaController{    
     
     public function index(){
-        //Recuperamos los datos de perfil del usuario para mostrarlos en la vista
-        $id = $_SESSION['usuario_id'] ?? 0;
-        $perfil = Usuario::obtenerPorId($id);
+        $this->renderCuenta();
+    }
 
-        $nombreUsuario = $perfil['usuario'] ?? ($_SESSION['usuario'] ?? 'Usuario');
-        $emailUsuario  = $perfil['email'] ?? '';
-        $fechaRegistro = $perfil['fecha_registro'] ?? null;
+    public function crearTokenMcp(): void
+    {
+        $usuarioId = (int) ($_SESSION['usuario_id'] ?? 0);
+        $nombre = is_string($_POST['nombre'] ?? null) ? $_POST['nombre'] : '';
+        $esAjax = bh_is_ajax_request();
 
-        //Cargamos la vista de la cuenta
-        require APP_PATH."/views/cuenta.php";
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, private');
+            header('Pragma: no-cache');
+        }
+
+        try {
+            $token = McpPersonalAccessToken::create($usuarioId, $nombre);
+
+            if ($esAjax) {
+                bh_json_success([
+                    'token' => $token['token'],
+                    'record' => $token['record'],
+                ], 201);
+                return;
+            }
+
+            $this->renderCuenta($token['token']);
+        } catch (InvalidArgumentException) {
+            if ($esAjax) {
+                bh_json_error(
+                    'INVALID_TOKEN_NAME',
+                    'Indica un nombre de hasta 100 caracteres para el token.',
+                    422
+                );
+                return;
+            }
+
+            $_SESSION['mensaje_error'] = 'Indica un nombre de hasta 100 caracteres para el token.';
+            header('Location: ' . bh_page_url('cuenta/index'));
+            exit;
+        } catch (Throwable) {
+            if ($esAjax) {
+                bh_json_error(
+                    'TOKEN_CREATION_FAILED',
+                    'No se ha podido crear el token MCP. Inténtalo de nuevo.',
+                    500
+                );
+                return;
+            }
+
+            $_SESSION['mensaje_error'] = 'No se ha podido crear el token MCP. Inténtalo de nuevo.';
+            header('Location: ' . bh_page_url('cuenta/index'));
+            exit;
+        }
+    }
+
+    public function revocarTokenMcp(): void
+    {
+        $esAjax = bh_is_ajax_request();
+        $id = filter_var($_POST['token_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        try {
+            $revocado = is_int($id)
+                && McpPersonalAccessToken::revoke($id, (int) ($_SESSION['usuario_id'] ?? 0));
+        } catch (Throwable) {
+            if ($esAjax) {
+                bh_json_no_store_private();
+                bh_json_error(
+                    'TOKEN_REVOCATION_FAILED',
+                    'No se ha podido revocar ese token MCP.',
+                    500
+                );
+                return;
+            }
+
+            $_SESSION['mensaje_error'] = 'No se ha podido revocar ese token MCP.';
+            header('Location: ' . bh_page_url('cuenta/index'));
+            exit;
+        }
+
+        if ($esAjax) {
+            bh_json_no_store_private();
+
+            if (!$revocado || !is_int($id)) {
+                bh_json_error(
+                    'TOKEN_NOT_REVOCABLE',
+                    'No se ha podido revocar ese token MCP.',
+                    404
+                );
+                return;
+            }
+
+            bh_json_success(['token_id' => $id]);
+            return;
+        }
+
+        $_SESSION[$revocado ? 'mensaje_exitoso' : 'mensaje_error'] = $revocado
+            ? 'Token MCP revocado.'
+            : 'No se ha podido revocar ese token MCP.';
+
+        header('Location: ' . bh_page_url('cuenta/index'));
+        exit;
     }
 
     //Funcion para cambiar la contraseña
@@ -223,5 +315,18 @@ class CuentaController{
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
         exit;
+    }
+
+    private function renderCuenta(?string $createdMcpToken = null): void
+    {
+        $id = (int) ($_SESSION['usuario_id'] ?? 0);
+        $perfil = Usuario::obtenerPorId($id);
+
+        $nombreUsuario = $perfil['usuario'] ?? ($_SESSION['usuario'] ?? 'Usuario');
+        $emailUsuario = $perfil['email'] ?? '';
+        $fechaRegistro = $perfil['fecha_registro'] ?? null;
+        $mcpTokens = McpPersonalAccessToken::listForUser($id);
+
+        require APP_PATH."/views/cuenta.php";
     }
 }

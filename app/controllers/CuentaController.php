@@ -19,16 +19,48 @@ class CuentaController{
     {
         $usuarioId = (int) ($_SESSION['usuario_id'] ?? 0);
         $nombre = is_string($_POST['nombre'] ?? null) ? $_POST['nombre'] : '';
+        $esAjax = bh_is_ajax_request();
+
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, private');
+            header('Pragma: no-cache');
+        }
 
         try {
             $token = McpPersonalAccessToken::create($usuarioId, $nombre);
-            header('Cache-Control: no-store');
+
+            if ($esAjax) {
+                bh_json_success([
+                    'token' => $token['token'],
+                    'record' => $token['record'],
+                ], 201);
+                return;
+            }
+
             $this->renderCuenta($token['token']);
         } catch (InvalidArgumentException) {
+            if ($esAjax) {
+                bh_json_error(
+                    'INVALID_TOKEN_NAME',
+                    'Indica un nombre de hasta 100 caracteres para el token.',
+                    422
+                );
+                return;
+            }
+
             $_SESSION['mensaje_error'] = 'Indica un nombre de hasta 100 caracteres para el token.';
             header('Location: ' . bh_page_url('cuenta/index'));
             exit;
         } catch (Throwable) {
+            if ($esAjax) {
+                bh_json_error(
+                    'TOKEN_CREATION_FAILED',
+                    'No se ha podido crear el token MCP. Inténtalo de nuevo.',
+                    500
+                );
+                return;
+            }
+
             $_SESSION['mensaje_error'] = 'No se ha podido crear el token MCP. Inténtalo de nuevo.';
             header('Location: ' . bh_page_url('cuenta/index'));
             exit;
@@ -37,9 +69,43 @@ class CuentaController{
 
     public function revocarTokenMcp(): void
     {
+        $esAjax = bh_is_ajax_request();
         $id = filter_var($_POST['token_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        $revocado = is_int($id)
-            && McpPersonalAccessToken::revoke($id, (int) ($_SESSION['usuario_id'] ?? 0));
+
+        try {
+            $revocado = is_int($id)
+                && McpPersonalAccessToken::revoke($id, (int) ($_SESSION['usuario_id'] ?? 0));
+        } catch (Throwable) {
+            if ($esAjax) {
+                bh_json_no_store_private();
+                bh_json_error(
+                    'TOKEN_REVOCATION_FAILED',
+                    'No se ha podido revocar ese token MCP.',
+                    500
+                );
+                return;
+            }
+
+            $_SESSION['mensaje_error'] = 'No se ha podido revocar ese token MCP.';
+            header('Location: ' . bh_page_url('cuenta/index'));
+            exit;
+        }
+
+        if ($esAjax) {
+            bh_json_no_store_private();
+
+            if (!$revocado || !is_int($id)) {
+                bh_json_error(
+                    'TOKEN_NOT_REVOCABLE',
+                    'No se ha podido revocar ese token MCP.',
+                    404
+                );
+                return;
+            }
+
+            bh_json_success(['token_id' => $id]);
+            return;
+        }
 
         $_SESSION[$revocado ? 'mensaje_exitoso' : 'mensaje_error'] = $revocado
             ? 'Token MCP revocado.'

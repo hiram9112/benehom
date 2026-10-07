@@ -311,6 +311,34 @@ final class FrontControllerRoutingTest extends TestCase
         self::assertJsonError($response['body'], 'INVALID_CSRF');
     }
 
+    public function testCreacionAjaxDePatMantieneCsrfGlobalYContratoJson(): void
+    {
+        $response = $this->runFrontController([
+            'method' => 'POST',
+            'get' => ['r' => 'cuenta/crearTokenMcpAjax'],
+            'accept' => 'application/json',
+            'post' => ['nombre' => 'Cliente sin CSRF'],
+            'session' => ['usuario_id' => 123, 'csrf_token' => 'csrf-token'],
+        ]);
+
+        self::assertSame(403, $response['status']);
+        self::assertJsonError($response['body'], 'INVALID_CSRF');
+    }
+
+    public function testRevocacionAjaxDePatMantieneCsrfGlobalYContratoJson(): void
+    {
+        $response = $this->runFrontController([
+            'method' => 'POST',
+            'get' => ['r' => 'cuenta/revocarTokenMcpAjax'],
+            'accept' => 'application/json',
+            'post' => ['token_id' => '1'],
+            'session' => ['usuario_id' => 123, 'csrf_token' => 'csrf-token'],
+        ]);
+
+        self::assertSame(403, $response['status']);
+        self::assertJsonError($response['body'], 'INVALID_CSRF');
+    }
+
     public function testRutaAjaxValidaDespachaControladorDesdeRouterReal(): void
     {
         $response = $this->runFrontController([

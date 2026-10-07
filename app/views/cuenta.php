@@ -3,6 +3,7 @@ require_once APP_PATH . '/views/partials/head.php';
 
 $createdMcpToken = $createdMcpToken ?? null;
 $mcpTokens = $mcpTokens ?? [];
+$hasCreatedMcpToken = is_string($createdMcpToken) && $createdMcpToken !== '';
 
 bh_document_begin([
     'title' => 'Cuenta',
@@ -157,30 +158,43 @@ bh_document_begin([
                 <div class="bh-card-body">
                     <p>Crea un token personal para conectar un cliente MCP a tus consultas financieras de solo lectura. No compartas el token.</p>
 
-                    <form method="POST" action="index.php?r=cuenta/crearTokenMcp" class="bh-form mb-4">
+                    <form method="POST" action="index.php?r=cuenta/crearTokenMcp" data-mcp-token-form data-ajax-action="index.php?r=cuenta/crearTokenMcpAjax" class="bh-form mb-4">
                         <?= csrf_field() ?>
                         <div class="bh-field">
                             <label class="bh-label" for="mcp_token_nombre">Nombre del token</label>
-                            <input class="bh-input" id="mcp_token_nombre" name="nombre" type="text" maxlength="100" required autocomplete="off" placeholder="Por ejemplo, Claude">
+                            <input class="bh-input" id="mcp_token_nombre" name="nombre" type="text" maxlength="100" required autocomplete="off" placeholder="Por ejemplo, Claude" aria-describedby="mcpTokenFormError">
+                            <p class="bh-field-error" id="mcpTokenFormError" data-mcp-form-error role="alert" hidden></p>
                         </div>
                         <div class="bh-field">
-                            <button class="bh-btn bh-btn-primary" type="submit">Crear token MCP</button>
+                            <button class="bh-btn bh-btn-primary" type="submit" data-mcp-submit>Crear token MCP</button>
                         </div>
                     </form>
 
-                    <?php if (is_string($createdMcpToken)): ?>
-                        <div class="bh-field" role="status" aria-labelledby="mcpTokenCreatedTitle">
-                            <h3 class="bh-account-danger-subtitle" id="mcpTokenCreatedTitle">Guarda tu token ahora</h3>
-                            <p>Este es el único momento en que BeneHom muestra el secreto completo.</p>
-                            <textarea class="bh-input" rows="3" readonly aria-label="Token MCP creado"><?= htmlspecialchars($createdMcpToken, ENT_QUOTES, 'UTF-8') ?></textarea>
+                    <section class="bh-mcp-token-created" id="mcpTokenCreated" data-mcp-token-created tabindex="-1" aria-labelledby="mcpTokenCreatedTitle" aria-describedby="mcpTokenCreatedDescription"<?= $hasCreatedMcpToken ? '' : ' hidden' ?>>
+                        <div class="bh-mcp-token-created-header">
+                            <i class="ti ti-key" aria-hidden="true"></i>
+                            <div>
+                                <h3 id="mcpTokenCreatedTitle">Token MCP creado</h3>
+                                <p id="mcpTokenCreatedDescription"><strong>Cópialo y guárdalo ahora.</strong> Este es el único momento en que BeneHom muestra el secreto completo. Después no podremos recuperarlo ni volver a mostrártelo.</p>
+                            </div>
                         </div>
-                    <?php endif; ?>
+                        <div class="bh-field">
+                            <label class="bh-label" for="mcpTokenSecret">Tu token secreto</label>
+                            <textarea class="bh-input bh-mcp-token-secret" id="mcpTokenSecret" data-mcp-token-secret rows="3" readonly autocomplete="off" spellcheck="false"><?= $hasCreatedMcpToken ? htmlspecialchars($createdMcpToken, ENT_QUOTES, 'UTF-8') : '' ?></textarea>
+                        </div>
+                        <div class="bh-mcp-token-created-actions">
+                            <button class="bh-btn bh-btn-secondary" type="button" data-mcp-copy hidden>
+                                <i class="ti ti-copy" aria-hidden="true"></i>
+                                <span data-mcp-copy-label>Copiar token</span>
+                            </button>
+                            <p class="bh-mcp-copy-status" data-mcp-copy-status role="status" aria-live="polite"></p>
+                        </div>
+                    </section>
 
-                    <h3 class="bh-account-danger-subtitle">Tus tokens MCP</h3>
-                    <?php if ($mcpTokens === []): ?>
-                        <p class="m-0">Aún no has creado ningún token MCP.</p>
-                    <?php else: ?>
-                        <div class="table-responsive">
+                    <div class="bh-mcp-token-list">
+                        <h3 class="bh-account-danger-subtitle">Tus tokens MCP</h3>
+                        <p class="m-0" data-mcp-token-empty<?= $mcpTokens === [] ? '' : ' hidden' ?>>Aún no has creado ningún token MCP.</p>
+                        <div class="table-responsive" data-mcp-token-table<?= $mcpTokens === [] ? ' hidden' : '' ?>>
                             <table class="table mb-0">
                                 <thead>
                                     <tr>
@@ -191,19 +205,19 @@ bh_document_begin([
                                         <th scope="col"><span class="visually-hidden">Acción</span></th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="mcpTokenRows" data-mcp-token-list>
                                     <?php foreach ($mcpTokens as $mcpToken): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($mcpToken['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
-                                            <td><?= htmlspecialchars($mcpToken['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
-                                            <td><?= htmlspecialchars($mcpToken['last_used_at'] ?? 'Sin uso', ENT_QUOTES, 'UTF-8') ?></td>
-                                            <td><?= $mcpToken['revoked_at'] === null ? 'Activo' : 'Revocado' ?></td>
+                                        <tr data-mcp-token-id="<?= (int) $mcpToken['id'] ?>">
+                                            <td data-mcp-token-name><?= htmlspecialchars($mcpToken['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td data-mcp-token-created-at><?= htmlspecialchars($mcpToken['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td data-mcp-token-last-used><?= htmlspecialchars($mcpToken['last_used_at'] ?? 'Sin uso', ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td data-mcp-token-status tabindex="-1" aria-live="polite"><?= $mcpToken['revoked_at'] === null ? 'Activo' : 'Revocado' ?></td>
                                             <td>
                                                 <?php if ($mcpToken['revoked_at'] === null): ?>
-                                                    <form method="POST" action="index.php?r=cuenta/revocarTokenMcp">
+                                                    <form method="POST" action="index.php?r=cuenta/revocarTokenMcp" data-mcp-revoke-form data-ajax-action="index.php?r=cuenta/revocarTokenMcpAjax">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="token_id" value="<?= (int) $mcpToken['id'] ?>">
-                                                        <button class="bh-btn bh-btn-danger" type="submit">Revocar</button>
+                                                        <button class="bh-btn bh-btn-danger" type="submit" data-mcp-revoke-submit>Revocar</button>
                                                     </form>
                                                 <?php endif; ?>
                                             </td>
@@ -212,7 +226,29 @@ bh_document_begin([
                                 </tbody>
                             </table>
                         </div>
-                    <?php endif; ?>
+                        <div class="bh-mcp-token-list-actions">
+                            <button class="bh-mcp-token-list-toggle" type="button" data-mcp-token-list-toggle aria-controls="mcpTokenRows" aria-expanded="false" hidden>
+                                <span data-mcp-token-list-toggle-label>Ver más</span>
+                                <i class="ti ti-chevron-down" data-mcp-token-list-toggle-icon aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <template data-mcp-token-row-template>
+                        <tr data-mcp-token-id="">
+                            <td data-mcp-token-name></td>
+                            <td data-mcp-token-created-at>Ahora</td>
+                            <td data-mcp-token-last-used>Sin uso</td>
+                            <td data-mcp-token-status tabindex="-1" aria-live="polite">Activo</td>
+                            <td>
+                                <form method="POST" action="index.php?r=cuenta/revocarTokenMcp" data-mcp-revoke-form data-ajax-action="index.php?r=cuenta/revocarTokenMcpAjax">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="token_id" value="">
+                                    <button class="bh-btn bh-btn-danger" type="submit" data-mcp-revoke-submit>Revocar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </template>
                 </div>
             </div>
 

@@ -11,7 +11,11 @@ final class McpPersonalAccessToken
     private const SECRET_BYTES = 32;
 
     /**
-     * @return array{id: int, token: string}
+     * @return array{
+     *     id: int,
+     *     token: string,
+     *     record: array{id: int, nombre: string, last_used_at: null, revoked_at: null}
+     * }
      */
     public static function create(int $usuarioId, string $nombre): array
     {
@@ -32,7 +36,8 @@ final class McpPersonalAccessToken
             throw new RuntimeException('No se ha podido proteger el token.');
         }
 
-        $statement = Database::getConnection()->prepare(
+        $connection = Database::getConnection();
+        $statement = $connection->prepare(
             'INSERT INTO mcp_personal_access_tokens (usuario_id, nombre, selector, secret_hash)
              VALUES (:usuario_id, :nombre, :selector, :secret_hash)'
         );
@@ -43,9 +48,17 @@ final class McpPersonalAccessToken
             ':secret_hash' => $secretHash,
         ]);
 
+        $id = (int) $connection->lastInsertId();
+
         return [
-            'id' => (int) Database::getConnection()->lastInsertId(),
+            'id' => $id,
             'token' => self::PREFIX . $selector . '_' . $secret,
+            'record' => [
+                'id' => $id,
+                'nombre' => $nombre,
+                'last_used_at' => null,
+                'revoked_at' => null,
+            ],
         ];
     }
 

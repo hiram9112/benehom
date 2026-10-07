@@ -29,6 +29,10 @@ final class McpPersonalAccessTokenTest extends IntegrationTestCase
     protected function tearDown(): void
     {
         $_SESSION = [];
+        $_GET = [];
+        $_POST = [];
+        unset($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_X_REQUESTED_WITH']);
+        http_response_code(200);
 
         foreach (glob($this->mcpSessionDirectory . '/*') ?: [] as $session) {
             unlink($session);
@@ -59,6 +63,11 @@ final class McpPersonalAccessTokenTest extends IntegrationTestCase
         )->fetch(\PDO::FETCH_ASSOC);
         self::assertIsArray($stored);
         self::assertSame((int) $usuario['id'], (int) $stored['usuario_id']);
+        self::assertNotEmpty($stored['created_at']);
+        self::assertArrayNotHasKey('created_at', $created['record']);
+        self::assertSame('Cliente de pruebas', $created['record']['nombre']);
+        self::assertNull($created['record']['last_used_at']);
+        self::assertNull($created['record']['revoked_at']);
         self::assertSame($selector, $stored['selector']);
         self::assertNull($stored['last_used_at']);
         $persistedRecord = json_encode($stored, JSON_THROW_ON_ERROR);
@@ -192,6 +201,41 @@ final class McpPersonalAccessTokenTest extends IntegrationTestCase
         self::assertStringContainsString('Cliente de un solo uso', $laterHtml);
     }
 
+    public function testCreacionAjaxDevuelveElSecretoSoloEnLaRespuestaYElRegistroParaLaLista(): void
+    {
+        $usuario = $this->crearUsuario('mcp-ajax@example.test');
+        $_SESSION['usuario_id'] = (int) $usuario['id'];
+        $_SESSION['usuario'] = 'Usuario AJAX';
+        $_GET['r'] = 'cuenta/crearTokenMcpAjax';
+        $_POST = ['nombre' => 'Cliente AJAX'];
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+        $_SERVER['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest';
+
+        require_once APP_PATH . '/controllers/CuentaController.php';
+        $controller = new \CuentaController();
+
+        ob_start();
+        $controller->crearTokenMcp();
+        $responseBody = (string) ob_get_clean();
+        $response = json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(201, http_response_code());
+        self::assertTrue($response['ok']);
+        self::assertMatchesRegularExpression('/^bhmcp_[a-f0-9]{32}_[a-f0-9]{64}$/', $response['data']['token']);
+        self::assertSame('Cliente AJAX', $response['data']['record']['nombre']);
+        self::assertArrayNotHasKey('created_at', $response['data']['record']);
+        self::assertSame('Sin uso', $response['data']['record']['last_used_at'] ?? 'Sin uso');
+        self::assertNull($response['data']['record']['revoked_at']);
+        self::assertStringNotContainsString($response['data']['token'], serialize($_SESSION));
+
+        ob_start();
+        $controller->index();
+        $laterHtml = (string) ob_get_clean();
+
+        self::assertStringNotContainsString($response['data']['token'], $laterHtml);
+        self::assertStringContainsString('Cliente AJAX', $laterHtml);
+    }
+
     public function testListaYRevocaSoloLosTokensDelUsuarioPropietario(): void
     {
         $owner = $this->crearUsuario('mcp-owner@example.test');
@@ -206,6 +250,61 @@ final class McpPersonalAccessTokenTest extends IntegrationTestCase
         self::assertTrue(\McpPersonalAccessToken::revoke((int) $ownerToken['id'], (int) $owner['id']));
         self::assertFalse(\McpPersonalAccessToken::revoke((int) $ownerToken['id'], (int) $owner['id']));
         self::assertNull(\McpPersonalAccessToken::authenticate($ownerToken['token']));
+    }
+
+    public function testListaLosTokensMasRecientesPrimeroInclusoSiCompartenFecha(): void
+    {
+        $usuario = $this->crearUsuario('mcp-order@example.test');
+        $ids = [];
+
+        for ($index = 1; $index <= 7; $index++) {
+            $created = \McpPersonalAccessToken::create((int) $usuario['id'], 'Token ' . $index);
+            $ids[] = (int) $created['id'];
+        }
+
+        $tokens = \McpPersonalAccessToken::listForUser((int) $usuario['id']);
+
+        self::assertSame(array_reverse($ids), array_map(
+            static fn (array $token): int => (int) $token['id'],
+            $tokens
+        ));
+    }
+
+    public function testRevocacionAjaxRespetaOwnershipYDevuelveElIdRevocado(): void
+    {
+        $owner = $this->crearUsuario('mcp-ajax-owner@example.test');
+        $other = $this->crearUsuario('mcp-ajax-other@example.test');
+        $created = \McpPersonalAccessToken::create((int) $owner['id'], 'Token AJAX revocable');
+
+        require_once APP_PATH . '/controllers/CuentaController.php';
+        $controller = new \CuentaController();
+        $_GET['r'] = 'cuenta/revocarTokenMcpAjax';
+        $_POST = ['token_id' => (string) $created['id']];
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+        $_SERVER['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest';
+
+        $_SESSION['usuario_id'] = (int) $other['id'];
+        ob_start();
+        $controller->revocarTokenMcp();
+        $forbiddenBody = (string) ob_get_clean();
+        $forbidden = json_decode($forbiddenBody, true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(404, http_response_code());
+        self::assertFalse($forbidden['ok']);
+        self::assertSame('TOKEN_NOT_REVOCABLE', $forbidden['error']['code']);
+        self::assertSame((int) $owner['id'], \McpPersonalAccessToken::authenticate($created['token']));
+
+        http_response_code(200);
+        $_SESSION['usuario_id'] = (int) $owner['id'];
+        ob_start();
+        $controller->revocarTokenMcp();
+        $successBody = (string) ob_get_clean();
+        $success = json_decode($successBody, true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(200, http_response_code());
+        self::assertTrue($success['ok']);
+        self::assertSame((int) $created['id'], $success['data']['token_id']);
+        self::assertNull(\McpPersonalAccessToken::authenticate($created['token']));
     }
 
     private function assertLastUsedAtIsNull(int $tokenId): void

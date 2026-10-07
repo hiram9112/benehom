@@ -184,6 +184,11 @@ final class ReleaseDeploymentTest extends TestCase
         $this->fault('mcp-status');
         $result = $this->runScript();
         $this->assertRollback($result);
+        self::assertSame(3, substr_count(
+            $result['stderr'],
+            'MCP smoke diagnostics: status=503; WWW-Authenticate=<missing>',
+        ));
+        self::assertStringNotContainsString('MCP unavailable', $result['stderr']);
 
         $previousReleaseRequests = array_values(array_filter(
             $this->requests(),

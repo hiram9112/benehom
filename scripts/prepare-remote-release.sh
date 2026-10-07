@@ -157,7 +157,7 @@ smoke_release() (
     local release_short="$1"
     local expected_sha="$2"
     local release_dir="${RELEASES_DIR}/${release_short}"
-    local work_dir path marker attempt metadata status content_type passed nonce
+    local work_dir path marker attempt metadata status content_type www_authenticate passed nonce
 
     validate_release_short "$release_short"
     validate_full_sha "$expected_sha"
@@ -218,6 +218,8 @@ smoke_release() (
     if [[ -f "${release_dir}/app/controllers/McpController.php" ]]; then
         passed=false
         for attempt in 1 2 3; do
+            status='<missing>'
+            www_authenticate='<missing>'
             if metadata="$(curl --silent --show-error --proto '=https' \
                 --connect-timeout 5 --max-time 15 \
                 --request POST \
@@ -239,6 +241,16 @@ smoke_release() (
                 break
             fi
             printf 'Smoke check failed: /mcp (attempt %s/3).\n' "$attempt" >&2
+            www_authenticate="$(grep -Eim 1 '^WWW-Authenticate:' "${work_dir}/headers" || true)"
+            if [[ -n "$www_authenticate" ]]; then
+                www_authenticate="${www_authenticate#*:}"
+                www_authenticate="${www_authenticate#"${www_authenticate%%[![:space:]]*}"}"
+                www_authenticate="${www_authenticate%$'\r'}"
+            else
+                www_authenticate='<missing>'
+            fi
+            printf 'MCP smoke diagnostics: status=%s; WWW-Authenticate=%s\n' \
+                "$status" "$www_authenticate" >&2
             if (( attempt < 3 )); then sleep 2 || return 1; fi
         done
         [[ "$passed" == true ]] || return 1

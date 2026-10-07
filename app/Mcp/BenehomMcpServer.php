@@ -6,6 +6,7 @@ namespace Hiram9112\Benehom\Mcp;
 
 require_once dirname(__DIR__) . '/models/McpPersonalAccessToken.php';
 
+use Http\Discovery\Psr17Factory as DiscoveryPsr17Factory;
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use Mcp\Schema\ServerCapabilities;
 use Mcp\Schema\Tool;
@@ -15,7 +16,6 @@ use Mcp\Server\Transport\Http\Middleware\CorsMiddleware;
 use Mcp\Server\Transport\Http\Middleware\DnsRebindingProtectionMiddleware;
 use Mcp\Server\Transport\StreamableHttpTransport;
 use Nyholm\Psr7\Factory\Psr17Factory;
-use Nyholm\Psr7Server\ServerRequestCreator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -52,10 +52,14 @@ final class BenehomMcpServer
 
     public function emitFromGlobals(): void
     {
-        $factory = new Psr17Factory();
-        $request = (new ServerRequestCreator($factory, $factory, $factory, $factory))->fromGlobals();
+        $request = self::createRequestFromGlobals();
 
         (new SapiEmitter())->emit($this->handle($request));
+    }
+
+    public static function createRequestFromGlobals(): ServerRequestInterface
+    {
+        return (new DiscoveryPsr17Factory())->createServerRequestFromGlobals();
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface

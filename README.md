@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/hiram9112/benehom/actions/workflows/ci.yml/badge.svg)](https://github.com/hiram9112/benehom/actions/workflows/ci.yml)
 
-BeneHom es una aplicación web de gestión financiera doméstica. Centraliza ingresos, gastos, ahorro y proyecciones para ayudar a entender la economía del hogar con datos mensuales claros.
+BeneHom es una aplicación web de gestión financiera doméstica. Centraliza ingresos, gastos, ahorro y proyecciones para ayudar a entender la economía del hogar con datos mensuales claros. Integra además un asistente con IA, automatizaciones y un servidor MCP remoto para exponer consultas financieras de forma segura.
 
 **Producción:** [https://benehom.es](https://benehom.es)
 
@@ -18,6 +18,8 @@ Sus capacidades principales son:
 - escenarios de inversión con interés compuesto, proyecciones de inflación y cálculo hipotecario;
 - registro, verificación de email, recuperación de contraseña, exportación de datos y eliminación de cuenta;
 - blog público de educación financiera y una interfaz responsive para escritorio y móvil.
+- Numa, asistente integrado con IA generativa, RAG, embeddings y Function Calling para responder sobre BeneHom y analizar de forma segura datos financieros privados;
+- servidor MCP remoto de solo lectura para consultar datos financieros desde clientes compatibles, autenticado mediante Personal Access Tokens (PAT);
 
 El proyecto está desplegado en producción y evoluciona mediante un flujo de integración y entrega continua basado en GitHub Actions.
 
@@ -36,6 +38,16 @@ Numa no es un asistente generalista, no modifica datos y no ofrece asesoramiento
 
 La operación, privacidad, indexación y evaluación de este subsistema se documentan en [`resources/numa/`](resources/numa/).
 
+## MCP
+
+BeneHom expone un servidor MCP remoto de solo lectura en `https://benehom.es/mcp`, servido mediante Streamable HTTP sobre HTTPS. Permite que clientes MCP compatibles consulten información financiera del usuario utilizando la misma lógica financiera canónica que Numa.
+
+El acceso se autentica mediante Personal Access Tokens (PAT) enviados como `Authorization: Bearer <PAT>`. La identidad se obtiene exclusivamente del token autenticado, por lo que el cliente no puede seleccionar ni modificar el identificador del usuario consultado. Los PAT pueden crearse, listarse y revocarse desde BeneHom.
+
+Actualmente el servidor expone una única herramienta, `consultar_datos_financieros`, para consultar ingresos y gastos por periodos mensuales, tipos, áreas y categorías. No permite modificar datos financieros y no expone resources, prompts ni OAuth.
+
+El endpoint se validó en producción mediante MCP Inspector y OpenCode, incluyendo descubrimiento e invocación de la tool, revocación de PAT y rotación de credenciales.
+
 ## Arquitectura y tecnologías
 
 BeneHom mantiene una arquitectura deliberadamente directa, sin framework PHP generalista:
@@ -44,9 +56,9 @@ BeneHom mantiene una arquitectura deliberadamente directa, sin framework PHP gen
 | --- | --- |
 | Entrada y routing | `public/index.php` carga el entorno, aplica controles globales y despacha únicamente las acciones registradas en `config/routes.php`. Las rutas internas usan `?r=controlador/accion`; Apache expone además aliases legibles mediante `public/.htaccess`. |
 | Backend | PHP con controladores, modelos PDO, servicios y vistas renderizadas en servidor. Las clases se conectan mediante `require_once` explícitos. |
-| Datos | MySQL/MariaDB. `database/schema.sql` es el esquema canónico para instalaciones nuevas e incluye datos financieros, autenticación, límites de acceso, consumo de Numa e índice vectorial. |
+| Datos | MySQL/MariaDB. `database/schema.sql` es el esquema canónico para instalaciones nuevas e incluye datos financieros, autenticación, PAT del MCP, límites de acceso, consumo de Numa e índice vectorial. |
 | Frontend | HTML y CSS propios, JavaScript sin framework, Fetch API y componentes apoyados en Bootstrap. Chart.js y Flatpickr se usan en el dashboard; GSAP y Lenis aportan interacción y movimiento con degradación controlada. |
-| Integraciones | PHPMailer para correo transaccional, Gemini API para generación y embeddings, y n8n self-hosted para automatizaciones administrativas autenticadas por webhook. |
+| Integraciones | PHPMailer para correo transaccional, Gemini API para generación y embeddings, n8n self-hosted para automatizaciones administrativas y un servidor MCP remoto mediante Streamable HTTP para exponer consultas financieras autenticadas. | 
 | Build | Composer gestiona PHP y la minificación CSS; npm copia versiones bloqueadas de GSAP y Lenis a los assets públicos. |
 
 `public/` es siempre el DocumentRoot. El código de aplicación, la configuración, el esquema, las dependencias y los secretos permanecen fuera de la raíz pública.
@@ -55,7 +67,7 @@ BeneHom mantiene una arquitectura deliberadamente directa, sin framework PHP gen
 
 La estrategia de validación combina pruebas de lógica, base de datos, despliegue y navegador:
 
-- **PHPUnit:** `composer test` ejecuta las suites Unit, Integration y Deployment. Cubren cálculos, routing y controladores, autenticación, aislamiento por usuario, agregaciones, Numa, RAG y el comportamiento de activación y rollback de releases.
+- **PHPUnit:** `composer test` ejecuta las suites Unit, Integration y Deployment. Cubren cálculos, routing y controladores, autenticación, aislamiento por usuario, agregaciones, Numa, RAG, MCP, autenticación PAT y el comportamiento de activación y rollback de releases.
 - **Integración:** usa una base MySQL aislada llamada `benehom_test`. La clase base crea las tablas ausentes desde `database/schema.sql` y encapsula sus pruebas en transacciones; las pruebas de concurrencia que necesitan conexiones independientes realizan su propia limpieza.
 - **Proveedores externos:** en `APP_ENV=testing`, generación y embeddings reales están bloqueados. Las pruebas usan fakes o transportes inyectados, por lo que la suite automatizada no consume Gemini.
 - **Navegador:** Playwright levanta `public/` con un servidor PHP temporal y usa `benehom_test` para los recorridos autenticados. Valida interacción, responsive, accesibilidad, degradación y distintos resultados controlados de Numa. Esta suite se ejecuta por separado y actualmente no forma parte del workflow de CI.
@@ -84,7 +96,7 @@ Los pushes a `main` que superan esos controles activan el despliegue de producci
 2. Se genera y valida un checksum SHA-256 antes y después de transferir el artefacto por SSH/SCP con verificación estricta del host.
 3. El servidor prepara un directorio de release versionado por SHA y enlaza la configuración persistente, mantenida fuera de la release y del DocumentRoot.
 4. `public_html` se cambia de forma atómica al `public/` de la nueva release mediante symlink.
-5. Se ejecutan smoke tests HTTPS sobre la home, el blog y el CSS publicado. Si fallan, el script restaura el symlink anterior y valida la release recuperada.
+5. Se ejecutan smoke tests HTTPS sobre la home, el blog, el CSS publicado y el endpoint MCP, verificando también que `/mcp` rechace correctamente una petición sin autenticación Bearer. Si fallan, el script restaura el symlink anterior y valida la release recuperada.
 
 El rollback automático cubre código y assets. Los backups, los cambios de esquema y la indexación RAG quedan fuera del pipeline y requieren operación explícita; no existe un runner de migraciones. Los registros técnicos y la plantilla operativa están en [`resources/deployments/`](resources/deployments/).
 
@@ -102,6 +114,7 @@ La aplicación incorpora controles en varias capas, sin asumir que sustituyen la
 - escape de salida, validación de entrada y respuestas diferenciadas para HTML y JSON;
 - secretos en `.env`, fuera de `public/` y excluidos del artefacto; las releases enlazan una configuración persistente separada;
 - controles específicos de Numa para ámbito, identidad seudonimizada en el acceso público, aislamiento de herramientas por sesión, cuotas, límites de payload y logging sin contenido conversacional.
+- autenticación del MCP mediante PAT revocables cuyo secreto se almacena como hash; la identidad y el scoping de las consultas se derivan del token autenticado y no de parámetros controlados por el cliente;
 
 La configuración correcta sigue siendo parte del modelo de seguridad: producción debe servir exclusivamente `public/`, usar HTTPS y mantener el fichero de entorno con permisos adecuados.
 
@@ -157,6 +170,7 @@ La aplicación quedará disponible en `http://127.0.0.1:8080/index.php?r=home/in
 app/
   controllers/        Acciones HTTP registradas
   helpers/            Routing, seguridad y utilidades compartidas
+  Mcp/                Servidor MCP, autenticación PAT y adaptador financiero
   models/             Acceso PDO y persistencia
   services/           Cálculos, importación y subsistema Numa
   views/              Vistas PHP y parciales
